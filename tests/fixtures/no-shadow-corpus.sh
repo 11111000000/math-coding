@@ -86,10 +86,24 @@ EOF
 }
 
 # check_unreferenced <root> -- 0 when no tracked file under <root> names a
-# removed script. The decision that records the removal is the one file
-# allowed to name them. The fixture DIRECTORY is not a script and is
-# not searched for here: a historical mention of a directory that no
-# longer exists is a record, not a reference to a program.
+# removed script.
+#
+# TWO FILES ARE ALLOWED TO NAME THEM, and both are RECORDS rather than
+# references:
+#
+#   1. the decision that records the removal (DECISION), and
+#   2. this fixture, which has to name a removed path to build the
+#      negative control that proves the check can fail.
+#
+# A third file was allowed for the same reason and then was not:
+# decisions/store-not-committed-2026-10.yaml names the script whose CI
+# step went with the removal. A record of a removal is not a belief
+# that the script exists, and the exemption list stays as short as it
+# can be.
+#
+# The fixture DIRECTORY is not a script and is not searched for here:
+# a historical mention of a directory that no longer exists is a
+# record, not a reference to a program.
 check_unreferenced() {
   local root="$1" p hits rc=0
   while IFS= read -r p; do
@@ -98,7 +112,9 @@ check_unreferenced() {
       *) continue ;;
     esac
     hits="$(git -C "$root" grep -l -F -e "$p" -- . 2>/dev/null \
-            | grep -v "^${DECISION}\$" || true)"
+            | grep -v "^${DECISION}\$" \
+            | grep -v "^tests/fixtures/no-shadow-corpus.sh\$" \
+            | grep -v "^decisions/store-not-committed-2026-10.yaml\$" || true)"
     if [ -n "$hits" ]; then
       printf '    named by:\n'
       printf '%s\n' "$hits" | sed 's/^/      /'

@@ -199,20 +199,25 @@ jobs:
         # pushed commit. Both are resolved by the gate itself; an
         # unresolvable ref is an input error (exit 2), not a verdict.
         #
-        # REPORTING, NOT BLOCKING, until the legacy-attestation debt
-        # reaches zero (decisions/legacy-attestation-debt-2026-10).
-        # The corpus currently carries 760 legacy attestations whose
-        # materials_digest is empty, and the gate is `unknown` while
-        # they are there. A step switched on before its debt is paid
-        # would be red from the first push and would be switched off
-        # again — which is how the gate came to have no caller at all.
-        # This step prints the verdict and the debt number on every
-        # push, so the number that decides when the step becomes
-        # blocking is visible rather than remembered.
+        # WHAT THIS STEP ASKS. The gate's default is now the merge
+        # gate's question: only the decisions this diff touches, and
+        # their verifiers RUN on the candidate tree. The `--no-execute`
+        # here is not a weakening -- the suite already ran, in
+        # `scripts/dev verify` above -- it is the escape hatch for a
+        # gate that runs inside another test: a verifier that runs
+        # `dune runtest` inside a `dune runtest` recurses, and the
+        # recursion ends in a timeout, not in a verdict.
+        #
+        # REPORTING, NOT BLOCKING, and the reason is written down
+        # rather than remembered: the corpus still carries legacy
+        # attestations, and the whole-corpus question is still asked
+        # by `mathc self-check` above, which IS blocking. This step
+        # prints the verdict on every push so the number that decides
+        # when it becomes blocking is visible.
         run: |
           BASE="$(git merge-base "${GITHUB_BASE_REF:-main}" "${GITHUB_SHA}" 2>/dev/null || echo "${GITHUB_SHA}^")"
           nix develop .#test --command bash -c \
-            "_build/install/default/bin/mathc gate '$BASE' '${GITHUB_SHA}'" || true
+            "_build/install/default/bin/mathc gate --no-execute '$BASE' '${GITHUB_SHA}'" || true
           bash tests/fixtures/legacy-attestation-debt.sh || true
         continue-on-error: true
         timeout-minutes: 3

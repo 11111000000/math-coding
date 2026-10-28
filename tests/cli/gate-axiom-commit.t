@@ -48,7 +48,7 @@ the sub-decision `decisions/plan-2026-10-improvements/t3-1.yaml@1`.
   $ git diff HEAD~1 HEAD --name-only
   axioms/A0.md
   decisions/t3-1-axiom-toucher.yaml
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" mathc gate HEAD~1 HEAD | jq -c 'del(.now) | {verdict}'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" mathc gate --no-scope --no-execute HEAD~1 HEAD | jq -c 'del(.now) | {verdict}'
   {"verdict":"block"}
   $ cd /
   $ rm -rf "$tmp"

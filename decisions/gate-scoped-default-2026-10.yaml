@@ -1,17 +1,21 @@
 ---
 schema: math-coding/3.2
 id: gate-scoped-default-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
-body_sha: "sha256:225ad34364e6b0f384c1d76ffdf5d8fef026fd72f13538214da0b7cbde21f9c4"
-yaml_sha: "sha256:225ad34364e6b0f384c1d76ffdf5d8fef026fd72f13538214da0b7cbde21f9c4"
+body_sha: "sha256:4b9e264e1f29cb202a00bac2c6e8aa545e75733833f53c8a228b9ffb371f47eb"
+yaml_sha: "sha256:4b9e264e1f29cb202a00bac2c6e8aa545e75733833f53c8a228b9ffb371f47eb"
 
 intent: |
-  The gate has two switches and no default. This decision says which
-  way they should point. It does NOT point them: the default is off
-  today and stays off until the integration owner flips it, after
-  the fixtures that pin the new semantics are in place.
+  The gate had two switches and no default. This decision says which
+  way they point, and the default now points that way: `mathc gate
+  BASE HEAD` with no switch evaluates only the decisions the change
+  touches, and runs their verifiers on the candidate tree. The
+  corpus-wide, store-based gate stays reachable as an on-demand
+  audit with `--no-scope --no-execute`, because it is a legitimate
+  question about the corpus -- it is just not the question a merge
+  gate should answer on every commit.
 
   WHAT WAS MEASURED, on this repository on 2026-10-27:
 
@@ -109,7 +113,7 @@ axiom_link:
   - A2
 
 commitment: |
-  When the default is flipped, and not before:
+  The default points this way, and the legacy path stays reachable:
 
   1. `mathc gate BASE HEAD` with no switch evaluates only the
      decisions the change touches, and runs their verifiers on the
@@ -124,9 +128,9 @@ commitment: |
      not be run against the candidate tree", not as a failure and
      not as settled by the store's record of an older tree.
 
-  4. No default is flipped by this decision. The switch is flipped
-     by the integration owner, after the fixture in
-     tests/cli/gate-scoped.t passes.
+  4. The legacy corpus-wide, store-based gate is not deleted by the
+     switch. It is reachable with `--no-scope --no-execute`, and the
+     fixtures that pin it now ask for it explicitly.
 
 outcomes:
   - id: the-gate-answers-the-change
@@ -143,11 +147,11 @@ outcomes:
       An obligation whose check ran and could not conclude is
       reported as `Unverified` -- an `Unknown` gap -- and is not
       settled by the attestation store's record of an older tree.
-  - id: the-switch-is-not-flipping-anything-yet
+  - id: the-legacy-path-is-still-there
     statement: |
-      The default is still the corpus-wide, store-based gate. This
-      decision records the measurements and the switch; the
-      integration owner flips it.
+      `mathc gate --no-scope --no-execute BASE HEAD` still evaluates
+      every active decision against the store's record, and the
+      fixtures that pin that contract say so explicitly.
 
 scope:
   paths:

@@ -6035,124 +6035,55 @@ let[@warning "-32"] do_verify () =
  * MATH_CODING_ROOT in :312). *)
 (* Membership filter for the attestation store.
  *
- * An attestation names the tree it was produced against. A file that
- * exists on disk but is in no commit is not evidence about any tree,
- * so it is not evidence about the one the attestation names -- and if
- * it were read, a stray `dune runtest` would be enough to move the
- * verdict of a commit that never contained it. On this repository that
- * is not hypothetical: `attestations/t1-2-A0-*.json` is written by
- * test runs, is gitignored, and the loader used to read it, so a
- * polluted tree reported `pass` on nothing that was committed.
+ * THE STORE IS A GENERATED ARTEFACT, AND THE FILES ON DISK ARE THE
+ * STORE. The store is produced by scripts/sign-store.sh into the
+ * working tree and is no longer committed
+ * (decisions/store-not-committed-2026-10.yaml): 12337 of 12556 file
+ * touches over the last 60 commits were under attestations/, and
+ * committing a generated artefact put ~890 rewritten files into every
+ * diff that touched a decision.
  *
- * The answer comes from git, so a tree under no version control has no
- * claim to enforce and gets `any_file`. `None` from `tracked_under`
- * means "git could not answer", which is NOT the same as "git says
- * nothing is tracked" -- conflating them would silently empty the
- * store, so the distinction is preserved here. *)
-let[@warning "-32"] store_keep_for store_dir =
-  (* POSIX: a path is absolute exactly when it starts with '/'. *)
-  let[@warning "-32"] store_dir_is_relative d =
-    String.length d > 0 && d.[0] <> '/'
-  in
-  (* `git ls-files` prints paths relative to the REPOSITORY ROOT, so
-     the pathspec has to be given that way too. Passing the store's
-     absolute path makes git accept the pathspec (it resolves an
-     absolute path) and still print repository-relative paths, which
-     then fail to match any prefix and yield an empty set -- a filter
-     that silently admits nothing. Reducing the path against the
-     toplevel is what keeps the two sides speaking the same language. *)
-  let toplevel () =
-    let tmp = Filename.temp_file "mc_git_toplevel_" ".txt" in
-    Fun.protect
-      ~finally:(fun () -> try Sys.remove tmp with _ -> ())
-      (fun () ->
-        (* Ask git from the STORE's directory, not from the process's
-           working directory. The question being asked is "which
-           files of the store does the repository track", and that
-           question has the same answer whatever directory the caller
-           happens to be in. Asking it from the caller's directory
-           made the answer depend on the caller: from a directory
-           outside the repository git cannot answer at all, the
-           filter falls back to `any_file`, and `any_file` admits
-           every file on disk - including the 878 gitignored
-           attestations that test runs write into attestations/.
-           Those files carry stale material digests, so the subjects
-           they name stop being passes and fall back onto their
-           waivers. Measured on this repository: 0 open-with-waiver
-           subjects when the same binary ran from the repository
-           root, and 7 when it ran from anywhere else.
-           *
-           * The store's own directory is the one place the answer is
-           * guaranteed to exist, because it is inside the repository
-           * the store belongs to. *)
-        let cwd =
-          if Sys.file_exists store_dir then store_dir
-          else Filename.dirname store_dir
-        in
-        let cmd =
-          Printf.sprintf "git -C %s rev-parse --show-toplevel > %s 2>/dev/null"
-            (Filename.quote cwd) (Filename.quote tmp)
-        in
-        if Sys.command cmd <> 0 then None
-        else
-          let raw =
-            try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
-          in
-          let t = String.trim raw in
-          if t = "" then None else Some t)
-  in
-  (* The store directory arrives in either shape: `resolve_store_root`
-     hands back an absolute path, `Path_config.resolve_attestations_dir`
-     hands back one relative to the project root. Reducing only the
-     absolute form is how the first version of this ended up calling
-     `any_file` for every read path -- a filter that is present,
-     documented, and inert. Handle both, and treat a path outside the
-     repository as "no claim to enforce" rather than guessing. *)
-  let relative_to_toplevel top dir =
-    let a = String.trim dir in
-    if store_dir_is_relative a then Some a
-    else if a = top then Some ""
-    else
-      let k = String.length top in
-      if String.length a > k + 1 && String.sub a 0 k = top && a.[k] = '/' then
-        Some (String.sub a (k + 1) (String.length a - k - 1))
-      else None
-  in
-  match toplevel () with
-  | None -> Attestations.any_file
-  | Some top -> (
-      match relative_to_toplevel top store_dir with
-      | None -> Attestations.any_file
-      | Some rel -> (
-          (* The pathspec `rel` is relative to the REPOSITORY TOPLEVEL,
-             so git must be asked with the toplevel as its working
-             directory. Asking it from the PROCESS's working directory
-             silently asks a different question: `git -C <cwd>
-             ls-files -- attestations` resolves the pathspec against
-             <cwd>, and from a directory that is not the toplevel it
-             either fails (no repository there) or - when the
-             directory happens to be INSIDE the repository, as a cram
-             sandbox under _build/ is - succeeds with an EMPTY list.
-             An empty list means "no file of the store is tracked",
-             which empties the store: every attestation stops counting
-             as evidence, and every waiver-covered subject drops back
-             to open-with-waiver.
-             *
-             * The consequence was measured: the same binary reported
-             * 0 open-with-waiver subjects when run from the repository
-             * root and 7 when run from a sandbox inside the
-             * repository. The filter was therefore a function of the
-             * caller's working directory, which is the opposite of
-             * what the resolution comment above promises: "the gate is
-             * reproducible from any working directory".
-             *
-             * Fix: ask git from the toplevel. *)
-          match Git_diff.tracked_under ~cwd:top ~rel_dir:rel with
-          | None -> Attestations.any_file
-          | Some names ->
-              let table = Hashtbl.create ((List.length names * 2) + 1) in
-              List.iter (fun n -> Hashtbl.replace table n ()) names;
-              fun name -> Hashtbl.mem table name))
+ * So the question this function used to answer -- "which files of the
+ * store does the repository TRACK?" -- no longer has a repository to
+ * ask. The answer is now "the .json files under the store directory",
+ * and the trust anchor moves with it:
+ *
+ *   1. The sweep PRUNES the store to what the run observed, so
+ *      anything the sweep did not observe is not in the store when
+ *      the gate reads it.
+ *   2. Nothing may write into the store except the sweep:
+ *      tests/fixtures/cram-tests-do-not-write-the-source-tree.sh
+ *      lints the test sources for a write whose target is under the
+ *      source root -- attestations/ included -- and the tree is
+ *      compared before and after the suite runs.
+ *   3. CI sweeps the store immediately before the steps that read it.
+ *
+ * WHAT THIS GIVES UP, EXPLICITLY. The old filter was git's index, and
+ * it was added for a measured reason: `attestations/t1-2-A0-*.json`
+ * is written by test runs, and a tree polluted with scratch
+ * attestations reported `pass` on nothing that was committed. The
+ * guard (2) and the prune (1) replace that filter. The difference
+ * that remains is a window: between a stray write and the next
+ * sweep, a stray file would be admitted. The sweep closes that
+ * window in the flow that matters (CI sweeps, then gates), and the
+ * guard closes it in the flow that creates it (a test run).
+ *
+ * The alternative -- keeping the filter and keeping the store tracked
+ * -- keeps the churn that made the project spend 98.3% of its file
+ * touches on a generated artefact. That is the cost this function's
+ * comment used to defend; the cost is now paid on the other side. *)
+let[@warning "-32"] store_keep_for _store_dir = Attestations.any_file
+
+(*
+ * The previous implementation resolved the store's directory relative
+ * to the repository toplevel and asked git for the tracked names
+ * under it. It is kept here as the record of why the answer changed:
+ * the filter was a function of the CALLER's working directory, which
+ * is the opposite of what the resolution promise says -- the same
+ * binary reported 0 open-with-waiver subjects from the repository
+ * root and 7 from a sandbox inside the repository. The tracked
+ * filter is gone; the store is the directory.
+ *)
 
 let[@warning "-32"] resolve_store_root project_root =
   let env_path =
@@ -6328,7 +6259,7 @@ let[@warning "-32"] git_ref_resolves cwd r =
 
 let do_gate () =
   let base = ref "" and head = ref "" in
-  (* THE THREE SWITCHES OF THE GATE.
+  (* THE FOUR SWITCHES OF THE GATE.
    *
    * `--scope` evaluates only the decisions whose scope names a file
    * this change touches. Without it the gate asks every active
@@ -6359,13 +6290,15 @@ let do_gate () =
    * relied on by the thing that needs it most: the test that is
    * trying not to recurse.
    *
-   * BOTH `--scope` AND `--execute` ARE OFF BY DEFAULT. The gate's
-   * old behaviour is what CI has been running for months, and it is
-   * not switched over before the new path has been measured and the
-   * fixtures that pin the old semantics have been rewritten to pin
-   * the new ones. Parallel path first, switch second, delete the
-   * old path third. *)
-  let scope = ref false and execute = ref false and no_execute = ref false in
+   * BOTH `--scope` AND `--execute` ARE ON BY DEFAULT NOW. The old
+   * behaviour -- every active decision, read from the store -- stays
+   * reachable with `--no-scope --no-execute`, because it is the audit
+   * question ("is the whole corpus still satisfied?") and it is a
+   * legitimate question, just not the merge gate's question. What
+   * changed is which question the merge gate asks: the one about
+   * this change. *)
+  let scope = ref true and no_scope = ref false in
+  let execute = ref true and no_execute = ref false in
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
@@ -6373,10 +6306,14 @@ let do_gate () =
     [
       ( "--scope",
         Arg.Set scope,
-        "Evaluate only the decisions the change touches" );
+        "Evaluate only the decisions the change touches (default)" );
+      ( "--no-scope",
+        Arg.Set no_scope,
+        "Evaluate every active decision, the audit question" );
       ( "--execute",
         Arg.Set execute,
-        "Run the touched decisions' verifiers on the candidate tree" );
+        "Run the touched decisions' verifiers on the candidate tree \
+         (default)" );
       ( "--no-execute",
         Arg.Set no_execute,
         "Run no verifier at all; the attestation store's record decides" );
@@ -6384,7 +6321,8 @@ let do_gate () =
   in
   (try
      Arg.parse specs anon
-       "usage: mathc gate [--scope] [--execute] [--no-execute] BASE HEAD"
+       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] \
+        BASE HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
@@ -6560,7 +6498,7 @@ let do_gate () =
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
-      ~touched:(if !scope then Some touched else None)
+      ~touched:(if !scope && not !no_scope then Some touched else None)
       ~live
       ~materials_of_decision:
         (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head

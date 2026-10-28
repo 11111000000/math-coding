@@ -1,5 +1,7 @@
-mathc gate BASE HEAD with no attestation store present (the loader
-returns []) emits verdict "unknown" and exits 3. Per
+mathc gate --no-scope --no-execute BASE HEAD -- the AUDIT question: every
+active decision, read from the store, with no verifier run -- with no
+attestation store present (the loader returns []) emits verdict "unknown"
+and exits 3. Per
 constitution.md Invariants 14 and 14b (exit honesty +
 symmetric exit honesty), verdict `Unknown` MUST NOT exit 0;
 collapsing it to exit 0 would be `unknown != pass` laundering
@@ -19,6 +21,12 @@ gaps and exit 0 — exactly the laundering this test exists to
 forbid. The gap count moves with the live decision set, so the
 projection asserts invariants rather than counts.
 
+The gate's default is now the scoped, executing merge gate. This fixture
+asks the AUDIT question -- every active decision, read from the store --
+and says so with `--no-scope`, and it runs no verifier at all with
+`--no-execute`: a verifier that runs `dune runtest` inside a `dune
+runtest` recurses until the test times out.
+
   $ cd "$DUNE_SOURCEROOT"
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
@@ -29,7 +37,7 @@ projection asserts invariants rather than counts.
   $ git add . && git commit -q -m initial
   $ echo b > b.txt
   $ git add . && git commit -q -m second
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c 'mathc gate HEAD~1 HEAD > /tmp/gate-unk.out; ec=$?; jq -c "del(.now) | {verdict, gaps_present: ((.gaps | length) > 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-unk.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-unk.out; ec=$?; jq -c "del(.now) | {verdict, gaps_present: ((.gaps | length) > 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-unk.out; echo "exit=$ec"'
   {"verdict":"unknown","gaps_present":true,"obligations_positive":true}
   exit=3
   $ cd /

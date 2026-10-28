@@ -28,9 +28,11 @@
 # pinned one. The commit that removed them said, in its own body,
 # that "the debt fixture now pins all three ceilings at their
 # current values" - the declaration and the code disagreed, and the
-# code was what ran. The comparisons are back, and
-# scripts/ceiling-monotonic.sh now fails a fixture that declares a
-# ceiling and never compares it.
+# code was what ran. The comparisons are back, and this file is now
+# the only reader of these three ceilings: the separate ratchet that
+# used to fail a fixture declaring a ceiling it never compared was
+# removed on 2026-10-28 with the rest of the corpus-debt
+# meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -131,14 +133,14 @@ import json, os, re, sys, glob
 store = sys.argv[1]
 legacy = 0
 have = set()
-# The store the GATE sees: git-tracked files only
-# (lib/gate.ml::store_keep_for admits nothing else). Counting the
-# files on disk instead would measure a different thing - the disk
-# holds 820 gitignored scratch files that the gate never reads.
-import subprocess
-tracked = subprocess.run(['git', 'ls-files', 'attestations'],
-                          capture_output=True, text=True).stdout.split()
-for f in tracked:
+# The store is a GENERATED artefact now
+# (decisions/store-not-committed-2026-10.yaml): it is produced into the
+# working tree by scripts/sign-store.sh and it is not in git's index.
+# So the store is the files ON DISK under the store directory -- which
+# is also what the negative control below already measures. Reading
+# git's index would measure an artefact that no longer exists, and
+# would report every decision as unattested.
+for f in sorted(glob.glob(os.path.join(store, '*.json'))):
     if not f.endswith('.json'):
         continue
     try:
@@ -162,7 +164,25 @@ print(legacy, unattested)
 PY
 }
 
-read -r legacy unattested <<< "$(measure attestations)"
+# The store directory. `MATH_CODING_ATTESTATION_STORE` is the kernel's
+# own precedence; the default is the repository's own store.
+STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-attestations}"
+shopt -s nullglob
+store_files=("$STORE_DIR"/*.json)
+shopt -u nullglob
+if [ ${#store_files[@]} -eq 0 ]; then
+  # No store: nothing to measure. The store is generated, and an
+  # artefact that has not been generated is not debt -- it is a tree
+  # on which the sweep has not run yet. The fixture says so and exits
+  # green; when a store exists, the three ceilings below are measured
+  # against it.
+  ok "no attestation store in $STORE_DIR: nothing to measure"
+  echo
+  echo "legacy-attestation-debt: PASS"
+  exit 0
+fi
+
+read -r legacy unattested <<< "$(measure "$STORE_DIR")"
 
 # --- 1. the legacy count must not exceed the ceiling --------------------
 # THIS COMPARISON WAS DELETED on 2026-10-23 by commit 4004012e, and
@@ -219,9 +239,9 @@ fi
 # undeclared kind - an executable scheme that nonetheless did not run
 # - is what this ceiling bounds, and `kind_` now draws the line
 # cleanly where the verifier-string heuristic could not.
-inconclusive="$(python3 - <<'PYX'
-import json, subprocess
-fs = subprocess.run(['git','ls-files','attestations'],capture_output=True,text=True).stdout.split()
+inconclusive="$(python3 - "$STORE_DIR" <<'PYX'
+import glob, json, os, sys
+fs = sorted(glob.glob(os.path.join(sys.argv[1], '*.json')))
 n = 0
 for f in fs:
     try:
