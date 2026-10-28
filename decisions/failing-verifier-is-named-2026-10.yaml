@@ -5,10 +5,10 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/failing-verifier-is-named.sh
-body_sha: "sha256:62b34b3cb12c8c87023599f716cc0855236fdfaf63e7111d246d12347c2f3161"
-yaml_sha: "sha256:62b34b3cb12c8c87023599f716cc0855236fdfaf63e7111d246d12347c2f3161"
+body_sha: "sha256:69aa78d59380b048aff425c1817b1ad790348cbc598e337d7b6149d1e284810c"
+yaml_sha: "sha256:69aa78d59380b048aff425c1817b1ad790348cbc598e337d7b6149d1e284810c"
 
-intent: { source: "issue:the-refusal-named-a-pair-not-a-verifier-2026-10-25", text: "A refusal must name the verifier that failed, not only the (decision, obligation) pair. `mathc attest-batch --run-per-obligation --skip-failing` refuses to write an attestation for an obligation whose check failed, and says so: `mathc attest-batch: NOT signing <decision>/<obligation> — its verifier failed.` It does not say WHICH verifier failed. An obligation may name several, and the failure may be in any of them, so the message names a pair where the reader needs a name. The corpus had to guess: scripts/sign-store.sh named the obligation's FIRST verifier, and scripts/classify-failed-verifiers.py re-derived the truth by running every verifier of every unsigned obligation on its own in a throwaway decision - a second tool, minutes per obligation, to recover an answer the kernel had already thrown away. Measured on 2026-10-25 over this corpus: 889 obligations, of which 329 name more than one verifier (37%), so the first verifier is not determined by the failure; 45 of them name a `manual:` declaration FIRST while also carrying an executable verifier, and a `manual:` declaration cannot fail - the kernel cannot execute it and records it as a review - so the guess accuses a declaration of breaking a check some other verifier broke. The last committed sweep (sign-store-sweep.log, 2026-10-25) recorded 30 refusals and not one of them named a verifier; 10 of those obligations carry more than one verifier, and 2 were attributed by the guess to a `manual:` declaration." }
+intent: { source: "issue:the-refusal-named-a-pair-not-a-verifier-2026-10-25", text: "A refusal must name the verifier that failed, not only the (decision, obligation) pair. `mathc attest-batch --run-per-obligation --skip-failing` refuses to write an attestation for an obligation whose check failed, and says so: `mathc attest-batch: NOT signing <decision>/<obligation> — its verifier failed.` It does not say WHICH verifier failed. An obligation may name several, and the failure may be in any of them, so the message names a pair where the reader needs a name. The corpus had to guess: scripts/sign-store.sh named the obligation's FIRST verifier, and a second tool re-derived the truth by running every verifier of every unsigned obligation on its own in a throwaway decision - a second tool, minutes per obligation, to recover an answer the kernel had already thrown away. That second tool was removed on 2026-10-28 with the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml); what it used to re-derive is what the kernel now reports. Measured on 2026-10-25 over this corpus: 889 obligations, of which 329 name more than one verifier (37%), so the first verifier is not determined by the failure; 45 of them name a `manual:` declaration FIRST while also carrying an executable verifier, and a `manual:` declaration cannot fail - the kernel cannot execute it and records it as a review - so the guess accuses a declaration of breaking a check some other verifier broke. The last committed sweep (sign-store-sweep.log, 2026-10-25) recorded 30 refusals and not one of them named a verifier; 10 of those obligations carry more than one verifier, and 2 were attributed by the guess to a `manual:` declaration." }
 
 commitment: |
   After this decision closes:
@@ -50,9 +50,11 @@ counterexample: |
   is wrong in the worst direction - 45 obligations name a `manual:`
   declaration first, and a declaration cannot fail, so the guess
   names a check that never ran. The alternative already exists and
-  is expensive: scripts/classify-failed-verifiers.py re-runs every
-  verifier of every unsigned obligation in a throwaway decision,
-  because the kernel discarded the per-verifier outcomes. A rule
+  is expensive: a second tool re-ran every verifier of every
+  unsigned obligation in a throwaway decision, because the kernel
+  discarded the per-verifier outcomes. That tool was removed on
+  2026-10-28 with the corpus-debt meta-layer
+  (decisions/corpus-meta-layer-2026-10.yaml). A rule
   that needs a second tool to be applied is a rule the tool, not the
   kernel, is obeying.
 
@@ -85,9 +87,10 @@ antithesis: |
   Second, the cost of not naming is not zero. The refusal is printed
   by a sweep over hundreds of obligations, and the reader who cannot
   tell which check broke has to re-derive it - which is exactly why
-  scripts/classify-failed-verifiers.py exists, and why it has to
-  re-run every verifier of every unsigned obligation separately
-  instead of asking the kernel.
+  a second tool existed, and why it had to re-run every verifier
+  of every unsigned obligation separately instead of asking the
+  kernel. That tool was removed on 2026-10-28 with the corpus-debt
+  meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
 
   What the antithesis gets right must be preserved: the refusal is
   still a refusal. Naming the verifier does not make the kernel
@@ -173,14 +176,17 @@ assumptions:
       decisions, which is exactly the ceiling pinned by
       decisions/scope-invalidation-breadth-2026-10.yaml, and a
       decision that named the kernel would raise that breadth to
-      184 and break tests/fixtures/scope-invalidation-breadth.sh.
+      184 and break the scope-breadth ceiling. That ceiling, and the
+      fixture that pinned it, were removed on 2026-10-28 with the
+      corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
       The convention this follows is the one
       decisions/executed-evidence-census-2026-10.yaml uses for a
       decision of the same shape: the scope paths are the fixture,
       the decision and the attestations, and the kernel is not among
       them. Note that naming the kernel in `scope.exclusions` would
-      have the same effect - scripts/audit-scopes.py reads the
-      exclusions as scope paths - so the kernel is named nowhere in
+      have the same effect - the scope census read the exclusions as
+      scope paths - so the kernel is named nowhere in
       the scope, and this assumption is where the omission is
       declared.
     consequence_if_false: |

@@ -1,31 +1,41 @@
 ---
 schema: math-coding/3.3
 id: scope-invalidation-breadth-2026-10
-revision: 1
-state: active
+revision: 2
+state: superseded
 mode: light
-negative_control: tests/fixtures/scope-invalidation-breadth.sh
-body_sha: "sha256:7f783e4997b2866f46f183409475b5b56fdefa002da02cf75f95e3820526b809"
-yaml_sha: "sha256:7f783e4997b2866f46f183409475b5b56fdefa002da02cf75f95e3820526b809"
+body_sha: "sha256:459cf43a216e78f1fd8424b5bf7ec138d75a8afe171130d3fc3bde684cfe5139"
+yaml_sha: "sha256:459cf43a216e78f1fd8424b5bf7ec138d75a8afe171130d3fc3bde684cfe5139"
 
-intent: { source: "issue:scope-breadth-made-the-verification-cycle-a-treadmill-2026-10-25", text: "The cost of touching a file is the number of decisions whose scope covers it: change such a file and every one of those decisions' attestations goes stale, because the materials digest no longer describes the tree the attestation claims to describe. Measured on 2026-10-25 with scripts/audit-scopes.py: 183 of the corpus's 246 decisions cover bin/Mathc.ml, 158 cover lib/decision.ml, 157 cover spec/algebra-3.2.md, 145 cover lib/gate.ml, 137 cover lib/diagnostic.ml. The most repeated scope PATTERNS are spec/** (139 decisions), schemas/** (125), axioms/** (124), bin/Mathc.ml (121) and lib/** (96). One edit to the kernel therefore makes three quarters of the corpus stale, and a full re-signing - 232 s, five times in one session - becomes necessary." }
+# 2026-10-28: the negative control of this decision was the fixture that
+#   measured the breadth. It was removed with the corpus-debt meta-layer
+#   (decisions/corpus-meta-layer-2026-10.yaml); the decision no longer has
+#   an executable verifier to demonstrate.
+
+intent: { source: "issue:scope-breadth-made-the-verification-cycle-a-treadmill-2026-10-25", text: "The cost of touching a file is the number of decisions whose scope covers it: change such a file and every one of those decisions' attestations goes stale, because the materials digest no longer describes the tree the attestation claims to describe. Measured on 2026-10-25 by a scope census over `decisions/`: 183 of the corpus's 246 decisions cover bin/Mathc.ml, 158 cover lib/decision.ml, 157 cover spec/algebra-3.2.md, 145 cover lib/gate.ml, 137 cover lib/diagnostic.ml. The most repeated scope PATTERNS are spec/** (139 decisions), schemas/** (125), axioms/** (124), bin/Mathc.ml (121) and lib/** (96). One edit to the kernel therefore makes three quarters of the corpus stale, and a full re-signing - 232 s, five times in one session - becomes necessary." }
 
 commitment: |
-  After this decision closes:
+  At revision 1, after this decision closed:
 
-  1. The breadth is MEASURED by a tool, not by an estimate:
-     scripts/audit-scopes.py reports, for every tracked file, how many
-     decisions' scopes cover it, using the kernel's own glob rules
-     (Gate.glob_match) so the number is the number the gate produces.
-  2. The breadth is PINNED as a ceiling that may only fall. A scope
+  1. The breadth was MEASURED by a tool, not by an estimate: the tool
+     reported, for every tracked file, how many decisions' scopes
+     cover it, using the kernel's own glob rules (Gate.glob_match) so
+     the number was the number the gate produces.
+  2. The breadth was PINNED as a ceiling that may only fall. A scope
      that grows is a regression; a scope that narrows is progress.
-  3. The measurement is LIVE: the fixture inflates the corpus with a
-     decision that covers bin/Mathc.ml and requires the measured
+  3. The measurement was LIVE: the fixture inflated the corpus with a
+     decision that covers bin/Mathc.ml and required the measured
      breadth to move, so a fixture that compares two equal numbers
-     cannot pass.
-  4. The RULE this establishes: a scope may name only what the
+     could not pass.
+  4. The RULE this established: a scope may name only what the
      obligation actually depends on. `lib/**` names nothing; the
      obligation depends on a file.
+
+  AT REVISION 2 all four are void. The census tool and the fixture
+  that pinned its output were removed on 2026-10-28 with the
+  corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
+  The RULE survives as prose; the CEILING does not, and the breadth is
+  no longer measured by anything.
 
 axiom_link:
   - A0
@@ -49,6 +59,14 @@ counterexample: |
   mechanism by which the debt becomes visible, and refusing to pay
   it means refusing to look.
 
+  (c) "Keep the census tool, drop the ceiling." This is what
+  revision 2 did, in the opposite order: both were removed, because
+  the census existed only to feed the ceiling and the ceiling existed
+  only to be compared with the census. A measurement with nothing to
+  compare it against is a report, and the report is what the corpus
+  gets now: the audit is a CI artefact on demand, not a standing
+  gate.
+
 antithesis: |
   The opposite claim is that the breadth is not a defect but a
   FEATURE: a broad scope is conservative. If a decision's scope names
@@ -68,49 +86,54 @@ antithesis: |
 outcomes:
   - id: the-breadth-is-measured-and-pinned
     statement: |
-      The invalidation breadth of the corpus's files is measured by a
-      tool and pinned as a ceiling that may only fall.
-    acceptance:
-      all:
-        - verifier: tests/fixtures/scope-invalidation-breadth.sh
-          result: pass
-
+      RETIRED at revision 2. The invalidation breadth of the corpus's
+      files is no longer measured by a tool and no longer pinned as a
+      ceiling. The census and the fixture that pinned it were removed
+      on 2026-10-28 with the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
   - id: the-measurement-is-live
     claim: |
-      The measurement moves when the corpus moves, so the ceiling
-      comparison cannot be satisfied by two equal numbers.
+      RETIRED at revision 2. The measurement moved when the corpus
+      moved, while it existed; the measurement is gone now.
     acceptance:
       all:
-        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+        - verifier: manual-scope-breadth-ceiling-removed
           result: pass
 
 scope:
   paths:
-    - "scripts/audit-scopes.py"
-    - "tests/fixtures/scope-invalidation-breadth.sh"
     - "decisions/scope-invalidation-breadth-2026-10.yaml"
     - "attestations/scope-invalidation-breadth-2026-10-*.json"
   exclusions:
     - "spec/**"
     - "axioms/**"
+  # 2026-10-28: two paths left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   census tool and the fixture that pinned its output. Their names
+  #   are in that decision, which is the record of the removal.
 
 obligations:
   - id: the-breadth-does-not-grow
     claim: |
-      No tracked file's invalidation breadth exceeds its pinned
-      ceiling.
+      RETIRED at revision 2. No tracked file's invalidation breadth
+      is compared against a pinned ceiling any more: the ceiling and
+      the measurement were removed on 2026-10-28 with the corpus-debt
+      meta-layer (decisions/corpus-meta-layer-2026-10.yaml). A scope
+      may now widen without a program noticing.
     acceptance:
       all:
-        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+        - verifier: manual-scope-breadth-ceiling-removed
           result: pass
 
   - id: the-measurement-is-not-vacuous
     claim: |
-      An inflated corpus produces a larger measured breadth, and the
-      comparison tells the two apart.
+      RETIRED at revision 2. The measurement and the inflated-corpus
+      control that proved it were removed together on 2026-10-28 with
+      the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: tests/fixtures/scope-invalidation-breadth.sh
+        - verifier: manual-scope-breadth-measurement-removed
           result: pass
 
 risk:
@@ -131,3 +154,10 @@ assumptions:
       attestation would claim a currency it does not have. The
       narrowing must therefore be reviewed per decision, not
       automated.
+
+relations:
+  addresses:
+    - legacy-attestation-debt-2026-10@1
+  supersedes: []
+  superseded_by:
+    - corpus-meta-layer-2026-10@1

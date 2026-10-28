@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: audit-0.0.21-fixes
-revision: 2
+revision: 3
 state: active
-body_sha: "sha256:82cce8bed6d679774ef951e744ccfaea5818c93fe3a50dfa81d413067688d741"
-yaml_sha: "sha256:82cce8bed6d679774ef951e744ccfaea5818c93fe3a50dfa81d413067688d741"
+body_sha: "sha256:65f64b195b77e2d68fd75d875ce5a297cfc1a64a3dae3df4b815f0adae69e7b5"
+yaml_sha: "sha256:65f64b195b77e2d68fd75d875ce5a297cfc1a64a3dae3df4b815f0adae69e7b5"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`
@@ -64,13 +64,11 @@ scope:
     - "lib/memory.ml"
     - "bin/Mathc.ml"
     - "tests/cli/*.t"
-    - "tests/fixtures/self-check-pass/attestations/"
     - "tests/fixtures/self-check-fail/attestations/"
     - "tests/fixtures/self-check-unknown/attestations/"
     - "tests/decision_parser_yaml.ml"
     - "tests/counters_drift.ml"
     - "scripts/dev"
-    - "scripts/regenerate-self-check-fixture.sh"
     - "AGENTS.md"
     - "ROADMAP.md"
     - "PACKAGES.md"
@@ -79,6 +77,11 @@ scope:
     - "CHANGELOG.md"
     - "docs/AUDIT-0.0.21.md"
     - "spec/constitution.md"
+  # 2026-10-28: removed from this scope, with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   committed mirror of the live store, and the builder that
+  #   regenerated it. Their names are in that decision, which is the
+  #   record of the removal.
   exclusions:
     - "axioms/**"
     - "spec/algebra-3.2.md"
@@ -232,37 +235,26 @@ obligations:
         - verifier: tests/re_evaluation_test.ml
           result: pass
 
-  - id: self-check-pass-fixture-covers-all
-    outcome: kernel-self-check-passes
-    claim: |
-      `tests/fixtures/self-check-pass/attestations/` contains
-      a pass attestation for every (decision_id, obligation_id)
-      pair enumerated by `mathc packages --format=json`, with
-      the single exception of `portable-linux-musl`, which is
-      bound by a waiver.
-
-      The verifier below READS the committed fixture and compares
-      it against that enumeration. It was
-      `scripts/regenerate-self-check-fixture.sh` at revision 2,
-      which both GENERATED the fixture and declared it correct —
-      a claim true by construction rather than by measurement,
-      attached to a step that emptied the 765-file committed
-      store `attestations/` while reporting `pass`. See
-      `decisions/self-check-fixture-coverage-honest-2026-10.yaml`.
-      The claim is UNMET at this commit and this obligation
-      consequently reads `fail`, not `pass`.
-    acceptance:
-      all:
-        - verifier: scripts/check-self-check-fixture-coverage.sh
-          result: pass
-
   - id: self-check-verdict-is-pass
     outcome: kernel-self-check-passes
     claim: |
-      `mathc self-check` against the regenerated fixture returns
-      `verdict:"pass"`, exit `0`, `unknown_count == 0`
-      (or `unknown_count == waived_count` if waivers are
-      issued for retired subjects).
+      `mathc self-check` against a POPULATED store returns
+      `verdict:"pass"` for every subject the store covers, and the
+      aggregate refuses to certify the uncovered remainder: exit `0`
+      when the corpus is covered, `unknown_count == 0` (or
+      `unknown_count == waived_count` if waivers are issued for
+      retired subjects).
+
+      The obligation this decision carried at revision 2 — that the
+      committed mirror at `tests/fixtures/self-check-pass/attestations/`
+      holds a pass attestation for every enumerated pair — is
+      RETIRED. The mirror was a hand-synchronised copy of the live
+      corpus, it was 91 required pairs short of the enumeration on
+      2026-10-27, and it was removed on 2026-10-28 with the rest of
+      the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml). The property it
+      existed to prove is proved by the live store, ten files at a
+      time; see decisions/corpus-meta-layer-2026-10.yaml.
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t

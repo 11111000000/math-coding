@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:b65e2352d8e2a9209f28d55a629300f60d4059a5692469d7e527ecb4d4e0aeaf"
-yaml_sha: "sha256:b65e2352d8e2a9209f28d55a629300f60d4059a5692469d7e527ecb4d4e0aeaf"
+body_sha: "sha256:921f44adb5c14a259e514b1c8bd160312259178aedb8359184a5423607f1cd5c"
+yaml_sha: "sha256:921f44adb5c14a259e514b1c8bd160312259178aedb8359184a5423607f1cd5c"
 axiom_link:
   - A1
   - A4
@@ -150,10 +150,10 @@ assumptions:
       attestation store at `attestations/` must contain
       entries of the right `kind_` from the right
       `producer_identity`. Production CI populates the store
-      via `mathc attest FILE` followed by `scripts/regenerate-self-check-fixture.sh`,
-      both of which preserve kind_=review records from human
-      reviewers. Empty stores → every decision with this
-      field gets a gap (the conservative default).
+      via `mathc attest FILE`, which preserves kind_=review
+      records from human reviewers. Empty stores → every
+      decision with this field gets a gap (the conservative
+      default).
     owner: human:maintainer
     consequence_if_false: |
       On a fresh repo with no review attestations, every

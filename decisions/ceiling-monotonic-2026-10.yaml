@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.3
 id: ceiling-monotonic
-revision: 1
-state: active
+revision: 2
+state: superseded
 mode: light
-body_sha: "sha256:e24ceb3222c39ce3712aae0df0969669870d3ae9972cdc013ef33cbb1cde1384"
-yaml_sha: "sha256:e24ceb3222c39ce3712aae0df0969669870d3ae9972cdc013ef33cbb1cde1384"
+body_sha: "sha256:5404fc64ac60d7222b511d886dcfd9844304d719bf8e0bc9efe339a3eeac0205"
+yaml_sha: "sha256:5404fc64ac60d7222b511d886dcfd9844304d719bf8e0bc9efe339a3eeac0205"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -56,7 +56,7 @@ commitment: |
   Two mechanisms, one script, one fixture, one CI step, and the
   repair of the two dead ceilings.
 
-  (a) `scripts/ceiling-monotonic.sh` compares every `CEILING_*` in
+  (a) A ceiling checker compared every `CEILING_*` in
       `tests/fixtures/*.sh` with its value at a BASE COMMIT and fails
       when the ceiling grew. It prints the ceiling, the file, the old
       value, the new value and the size of the grow. The base is the
@@ -104,7 +104,7 @@ commitment: |
       the file of THIS decision, whose attestation the re-signing
       writes; after the re-signing the ceiling must fall to 0.
 
-  (c) `tests/fixtures/ceiling-monotonic-check.sh` covers the
+  (c) A dedicated fixture covered the
       checker, with the negative control the project requires: a
       synthetic corpus in which a ceiling HAS grown must make the
       checker fail, and the failure must name the ceiling and the
@@ -116,7 +116,7 @@ commitment: |
       3, not exit 0) and a corpus with no ceiling at all (exit 3,
       not exit 0).
 
-  (d) `.github/workflows/ci.yml` runs the checker as a named step,
+  (d) CI ran the checker as a named step,
       and its checkout now fetches the history (`fetch-depth: 0`).
       Without the history there is no base commit, the comparison
       cannot run, and the check would exit 3 on every push - a red
@@ -128,7 +128,7 @@ commitment: |
       tests/fixtures/executed-evidence-census.sh   3
           CEILING_UNANCHORED=886  CEILING_UNEXECUTED=364
           CEILING_ORPHANS=6
-      tests/fixtures/scope-invalidation-breadth.sh 4
+      the scope-breadth fixture (removed 2026-10-28)  4
           CEILING_BIN_MATHC=184  CEILING_LIB_DECISION=158
           CEILING_LIB_GATE=145  CEILING_LIB_DIAGNOSTIC=137
       tests/fixtures/legacy-attestation-debt.sh    3
@@ -136,7 +136,7 @@ commitment: |
           CEILING_INCONCLUSIVE=292
       tests/fixtures/failing-subject-backlog.sh    1  CEILING=11
       tests/fixtures/negative-control-debt.sh      1  CEILING=199
-      tests/fixtures/no-dead-scope-paths.sh        1  CEILING_DEAD=0
+      the dead-scope-path fixture (removed 2026-10-28)  1  CEILING_DEAD=0
 
   Before this change ELEVEN of the thirteen were compared against a
   real measurement. `CEILING_LEGACY` was compared against a SYNTHETIC
@@ -172,43 +172,52 @@ outcomes:
       the fixture that covers it asserts both.
 scope:
   paths:
-    - "scripts/ceiling-monotonic.sh"
-    - "tests/fixtures/ceiling-monotonic-check.sh"
     - "tests/fixtures/legacy-attestation-debt.sh"
     - "tests/fixtures/executed-evidence-census.sh"
     - "tests/fixtures/negative-control-debt.sh"
-    - "tests/fixtures/scope-invalidation-breadth.sh"
     - ".github/workflows/ci.yml"
+  # 2026-10-28: three paths left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   ceiling checker, the fixture that covered it, and the
+  #   scope-breadth fixture. Their names are in that decision, which
+  #   is the record of the removal.
   exclusions:
     - "attestations/**"
     - "_build/**"
 obligations:
   - id: a-grown-ceiling-fails-the-check
     claim: |
-      A ceiling that grew against the base commit fails the checker,
-      and the failure names the ceiling and the size of the grow.
+      RETIRED at revision 2. The ceiling checker and the fixture
+      that covered it were removed on 2026-10-28 with the corpus-debt
+      meta-layer (decisions/corpus-meta-layer-2026-10.yaml). A
+      ceiling may now GROW without a program noticing. The claim is
+      kept as the record of what the checker used to guarantee.
     acceptance:
       all:
-        - verifier: tests/fixtures/ceiling-monotonic-check.sh
-          result: pass
-        - verifier: scripts/ceiling-monotonic.sh
+        - verifier: manual-ceiling-checker-removed
           result: pass
   - id: a-raise-may-be-recorded-and-only-then
     claim: |
-      A raise with a marker naming the exact transition passes the
-      checker and is reported as recorded; the same raise with a
-      marker naming a different transition fails it.
+      RETIRED at revision 2. The marker that recorded a raise next to
+      the number is still read by a human reading the diff, but no
+      program checks it and no program requires it. Removed on
+      2026-10-28 with the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+        - verifier: manual-ceiling-raise-marker-unmonitored
           result: pass
   - id: a-ceiling-that-is-never-compared-fails
     claim: |
-      A ceiling whose comparison was deleted while its number stood
-      fails the checker, even though the number did not move.
+      RETIRED at revision 2. A ceiling whose comparison is deleted
+      while its number stands is no longer detected by anything. The
+      three legacy ceilings are still compared, by
+      `tests/fixtures/legacy-attestation-debt.sh`; no other ceiling
+      is. Removed on 2026-10-28 with the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+        - verifier: manual-declared-but-uncompared-ceiling-undetected
           result: pass
   - id: the-three-legacy-ceilings-are-compared
     claim: |
@@ -221,16 +230,18 @@ obligations:
           result: pass
   - id: the-check-runs-in-ci
     claim: |
-      CI runs the checker against the merge base with the push
-      target, with a checkout that has the history the comparison
-      needs.
+      RETIRED at revision 2. The CI step that ran the ceiling
+      checker was removed on 2026-10-28 with the corpus-debt
+      meta-layer (decisions/corpus-meta-layer-2026-10.yaml). The
+      decision still parses, and that is what the remaining verifier
+      checks.
     acceptance:
       all:
-        - verifier: scripts/ceiling-monotonic.sh
-          result: pass
         - verifier: mathc validate decisions/ceiling-monotonic-2026-10.yaml
           result: pass
-negative_control: tests/fixtures/ceiling-monotonic-check.sh
+# 2026-10-28: the negative control of this decision was removed with
+#   the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
+#   The decision no longer has an executable verifier to demonstrate.
 risk:
   declared_triggers:
     - the recorded-raise marker becomes a rubber stamp, and the
@@ -252,7 +263,8 @@ relations:
     - scope-invalidation-breadth-2026-10@1
     - negative-control-required-2026-10@1
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - corpus-meta-layer-2026-10@1
 reversal:
   - signal: |
       the recorded-raise marker is used on three consecutive raises

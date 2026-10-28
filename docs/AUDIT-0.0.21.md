@@ -78,7 +78,9 @@ blocking CI step (per `constitution.md` Invariant 14).
   1 unknown (`portable-linux-musl`).
 - Test fixture (`tests/fixtures/self-check-pass/attestations/`):
   31 subjects, 29 pass, 2 unknown (`site-deploy` and
-  `portable-linux-musl`).
+  `portable-linux-musl`). That fixture was removed on 2026-10-28
+  with the corpus-debt meta-layer
+  (`decisions/corpus-meta-layer-2026-10.yaml`).
 
 The fixture store is missing `site-deploy-extended-markdown-subset.json`
 (present in the live store). `portable-linux-musl` is missing

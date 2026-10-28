@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/unmet-obligations-are-inventoried.sh
-body_sha: "sha256:83b3c04cdf4d5facc77c964301b30c9d6bca8c16d8311e093367e2e4325b69a8"
-yaml_sha: "sha256:83b3c04cdf4d5facc77c964301b30c9d6bca8c16d8311e093367e2e4325b69a8"
+body_sha: "sha256:9a517b019003358443a95f43a6519f1f82ff4e437d86f3d3f6ae0ba5c77d95cb"
+yaml_sha: "sha256:9a517b019003358443a95f43a6519f1f82ff4e437d86f3d3f6ae0ba5c77d95cb"
 
 intent: { source: "issue:the-resigning-refuses-to-sign-30-obligations-and-does-not-say-why-2026-10-25", text: "On 2026-10-25 the corpus's re-signing left 30 obligations unsigned: `mathc attest-batch --run-per-obligation` refuses to write an attestation for an obligation whose check FAILED, and says only `NOT signing <decision>/<obligation> - its verifier failed`. It does not say WHICH verifier failed, nor what the verifier printed. An obligation may name several verifiers and the failure may be in any of them, so the repair had to be re-derived by hand, one obligation at a time. (It was 110 until the same day: sixteen decisions carried an id that differs from their file name, the kernel could not find them, and it reported \"the decision I was asked about does not exist\" as \"the check failed\". That is fixed; these 30 are the real ones.)" }
 
@@ -102,10 +102,14 @@ outcomes:
 
 scope:
   paths:
-    - "scripts/report-unmet-obligations.py"
     - "tests/fixtures/unmet-obligations-are-inventoried.sh"
     - "docs/unmet-obligations-2026-10.md"
     - "decisions/unmet-obligations-inventory-2026-10.yaml"
+  # 2026-10-28: one path left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   report generator. Its name is in that decision, which is the
+  #   record of the removal. The INVENTORY and the fixture that
+  #   checks it survive; only the generator that produced them is gone.
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   sign-store-sweep.log - no tracked file matches it
   exclusions:

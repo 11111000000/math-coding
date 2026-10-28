@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6fe51dc3af8bef62f90ddbb0202c786b304103555d8b91764d4c475477d69117"
-yaml_sha: "sha256:6fe51dc3af8bef62f90ddbb0202c786b304103555d8b91764d4c475477d69117"
+body_sha: "sha256:a455d99d381fea9ee1141d2a7a247bf2041aec831c68c519305142e4d8e2d90b"
+yaml_sha: "sha256:a455d99d381fea9ee1141d2a7a247bf2041aec831c68c519305142e4d8e2d90b"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -106,8 +106,11 @@ outcomes:
       fixture regenerates `attestations/`. Measured: running
       `mathc verify` on antithesis-mode-considered-2026-10
       (which carries `dune test`) deleted 765 committed
-      attestations and wrote ~790 into
-      tests/fixtures/self-check-pass/attestations/. The
+      attestations and wrote ~790 into the shadow corpus at
+      `tests/fixtures/self-check-pass/attestations/` — a mirror of
+      the live store, removed on 2026-10-28 with the rest of the
+      corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml). The
       sandbox strips the ENVIRONMENT and caps the time; it does
       not jail the filesystem, which is the same posture
       add-verify-subcommand-2026-10 declared. Declared, not

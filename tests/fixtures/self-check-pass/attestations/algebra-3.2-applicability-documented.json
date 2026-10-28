@@ -1,1 +1,0 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"algebra-3.2","obligation":"applicability-documented","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:562153717f849aeda1a49ae9abe7fc45a3a56b45e13de48df87121346e423102"}

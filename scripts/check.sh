@@ -455,36 +455,6 @@ else
   failed_names+=("svg-overflow")
 fi
 
-# The regenerate guard is NOT a tests/fixtures/*.sh file, so the
-# loop above never picked it up: it lived in scripts/, was named by
-# a decision as the acceptance verifier for
-# `regenerate-preserves-the-live-store`, and was executed by
-# NOTHING. The obligation it guards -- that
-# scripts/regenerate-self-check-fixture.sh leaves attestations/
-# byte-identical -- was therefore enforced by no gate at all.
-#
-# This step RUNS the guard and reports it. Exit 2 means the
-# measurement could not be taken (no store, not a git repository),
-# which is a skip, not a pass -- the same convention the
-# stub-lint and svg-overflow steps use, and the same reason: a
-# check that never ran must not be counted as one that passed.
-regenerate_rc=0
-regenerate_out=$(scripts/check-regenerate-preserves-live-store.sh 2>&1) || regenerate_rc=$?
-if [ "$regenerate_rc" -eq 0 ]; then
-  printf "  ok   regenerate-preserves-live-store\n"
-  pass=$((pass + 1))
-elif [ "$regenerate_rc" -eq 2 ]; then
-  printf "  SKIP regenerate-preserves-live-store (measurement could not be taken)\n"
-  skip=$((skip + 1))
-  skipped_names+=("regenerate-preserves-live-store")
-  pass=$((pass + 1))
-else
-  printf "  FAIL regenerate-preserves-live-store\n"
-  printf '%s\n' "$regenerate_out" >&2 || true
-  fail=$((fail + 1))
-  failed_names+=("regenerate-preserves-live-store")
-fi
-
 cleanup_dune
 
 echo

@@ -1,1 +1,0 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"algebra-3.2","obligation":"implementation-roadmap","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:f0d29db70210c925ae045d76a41564a703ee2a9193d108b3109a0bb967dc5284"}

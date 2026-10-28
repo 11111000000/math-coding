@@ -4,8 +4,8 @@ id: verification-cycle-cost
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:fff1d6faf3f996dc90f264326be98dc45bbd4f7a14df8305134db4538c34ec7f"
-yaml_sha: "sha256:fff1d6faf3f996dc90f264326be98dc45bbd4f7a14df8305134db4538c34ec7f"
+body_sha: "sha256:85f44d1617d9fcce0998d361c1f4e0cb644170c88f63c32e02d50f91b97f8e85"
+yaml_sha: "sha256:85f44d1617d9fcce0998d361c1f4e0cb644170c88f63c32e02d50f91b97f8e85"
 intent: |
   Record what the verification cycle actually costs, measured, and
   put the cost in the order of its leverage -- so that "make the
@@ -117,7 +117,11 @@ obligations:
       all:
         - verifier: file-exists scripts/dev-profile.sh
           result: pass
-negative_control: tests/fixtures/scope-invalidation-breadth.sh
+# 2026-10-28: the negative control this decision named was removed with
+#   the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
+#   The witness now named is the one that shows the SCHEME this decision's
+#   only verifier uses can fail: `file-exists` on a path that does not exist.
+negative_control: tests/fixtures/decision-resolves-by-id.sh
 risk:
   declared_triggers:
     - a lever is implemented and the measured profile is not
