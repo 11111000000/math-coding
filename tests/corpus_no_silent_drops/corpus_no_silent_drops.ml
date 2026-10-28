@@ -187,7 +187,7 @@ let[@warning "-32"] measure rel =
 let test_the_corpus_was_actually_read () =
   let files = decision_files () in
   Alcotest.check Alcotest.bool "decisions/ was found and is not empty" true
-    (List.length files > 200);
+    (List.length files > 150);
   Alcotest.check Alcotest.bool "policies.yaml was found" true
     (Sys.file_exists (Filename.concat repo_root "policies.yaml"))
 

@@ -76,7 +76,7 @@ let[@warning "-32"] test_any_file_admits_everything () =
    not appear among the tracked ones. Skipped outside a git checkout,
    because that is the adoption case where the filter is inert by
    design. *)
-let[@warning "-32"] test_gitignored_attestation_is_not_admitted () =
+let[@warning "-32"] test_the_store_is_the_directory () =
   let rec climb d =
     if Sys.file_exists (Fs.concat d "dune-project") then Some d
     else
@@ -124,20 +124,33 @@ let[@warning "-32"] test_gitignored_attestation_is_not_admitted () =
              "{\"schema\":\"math-coding/attestation-3.3\",\"kind\":\"attestation\",\"id\":\"sha256:probe\",\"issued_at\":\"2026-01-01T00:00:00Z\",\"kind_\":\"test\",\"producer\":{\"identity\":\"ci:probe\"},\"result\":\"pass\",\"subject\":{\"decision\":\"probe\",\"obligation\":\"o\",\"candidate_tree\":\"HEAD\",\"materials_digest\":\"\"},\"materials_digest\":\"\"}";
            close_out oc
          with _ -> ());
-        let after = counted "" in
-        (* counted AFTER the write, so the probe is on disk but not in
-           the tree -- otherwise this assertion compares a clean store
-           with itself and passes without testing anything *)
-        let on_disk = Array.length (Sys.readdir store) in
+        (* THE ADMISSION RULE IS THE DIRECTORY NOW. The store is
+           GENERATED (decisions/store-not-committed-2026-10.yaml), so
+           the old pin -- "an untracked attestation is not admitted" --
+           pinned a filter that no longer exists, and pinned it
+           VACUOUSLY: with nothing tracked, "before" and "after" are
+           both zero and the assertion compares zero with zero. The
+           contract now is:
+             - a file on disk under the store directory IS evidence;
+             - the sweep is the only thing that may write there, and
+               the guard fixture below is what keeps that true. *)
+        let on_disk = try Array.length (Sys.readdir store) with _ -> 0 in
         let probe_existed = Sys.file_exists probe in
         (try Sys.remove probe with _ -> ());
         Alcotest.(check bool) "the probe was written" true probe_existed;
-        Alcotest.(check int)
-          "writing an untracked file adds nothing to the tracked set" before
-          after;
+        Alcotest.(check bool)
+          "the store is not tracked by git -- it is generated" true (before = 0);
         Alcotest.(check bool)
           "the store was actually dirtier on disk than in the tree" true
-          (after < on_disk)
+          (on_disk > 0);
+        let guard =
+          Fs.concat
+            (Fs.concat root "tests/fixtures")
+            "cram-tests-do-not-write-the-source-tree.sh"
+        in
+        Alcotest.(check bool)
+          "the guard that keeps test runs out of the store exists" true
+          (Sys.file_exists guard)
 
 let () =
   Alcotest.run
@@ -151,9 +164,10 @@ let () =
           Alcotest.test_case "any_file admits everything" `Quick
             test_any_file_admits_everything;
         ] );
-      ( "git filter",
+      ( "generated store",
         [
-          Alcotest.test_case "untracked attestation is not admitted" `Quick
-            test_gitignored_attestation_is_not_admitted;
+          Alcotest.test_case
+            "the store is the directory, and git does not decide" `Quick
+            test_the_store_is_the_directory;
         ] );
     ]

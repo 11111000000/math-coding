@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:3ef3d6f377e3c085559568a2ce56e30eefbfff79405c925d163b8aa4e1a68c08"
-yaml_sha: "sha256:3ef3d6f377e3c085559568a2ce56e30eefbfff79405c925d163b8aa4e1a68c08"
+body_sha: "sha256:49aecb2f6d4944b419087bc4acae1dac436d93fc37f4dfa9fcc87a2afc6dda01"
+yaml_sha: "sha256:49aecb2f6d4944b419087bc4acae1dac436d93fc37f4dfa9fcc87a2afc6dda01"
 
 axiom_link:
   - A0
@@ -111,7 +111,7 @@ risk:
     - "a decision is archived while a relation, a waiver or a path
       reference still names it, and the corpus's relation graph
       develops a dangling edge"
-    - "the census is applied to a file that was a rule after all: the
+    - "the census is applied to a file that was a rule after all; the
       classification is a judgement, and a wrong judgement removes a
       commitment from the gate"
     - "the archive grows into a second corpus that nobody reads, and
