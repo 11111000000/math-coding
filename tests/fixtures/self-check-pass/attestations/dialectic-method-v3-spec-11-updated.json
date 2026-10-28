@@ -1,1 +1,0 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"dialectic-method-v3","obligation":"spec-11-updated","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:b3cc1f693f3d2284ba9aa3d04c0dca63e2c949c42f749106bb7f5704110dc272"}

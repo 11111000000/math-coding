@@ -435,210 +435,284 @@ let[@warning "-32"] class_cause (a : Domain.attestation) : string =
      declaration, not an observation"
     a.Domain.id (attestation_kind_str a) a.Domain.producer_identity
 
+(* What the gate knows about an obligation after its checks were
+   RUN against the candidate tree.
+ *
+   This is the difference between the gate asking a store what
+   happened once and the gate watching what happens now. A store
+   answers about a tree that has since moved -- that is what a
+   digest-bound attestation IS -- so a gate that reads a store
+   cannot tell the reader whether the change is safe. It can only
+   say whether the evidence is fresh, and freshness is not safety.
+ *
+   The three states are the three the constitution knows: satisfied,
+   failed, and not established. *)
+type obligation_state =
+  | Satisfied
+  (* the checks ran and every one of them passed *)
+  | Failed
+  (* a check ran and failed decisively *)
+  | Unverified
+(* the check exists and could not be run, or it could not conclude *)
+
+(* The gap of ONE obligation.
+ *
+ * [live] is what the gate learned by RUNNING the obligation's
+ * checks against the candidate tree, and it takes precedence over
+ * the store. The precedence is the whole point: a store entry is
+ * evidence about a tree that has since moved -- that is what a
+ * digest-bound attestation IS -- while a check that just ran is
+ * evidence about THIS tree. A gate that reads a store cannot say
+ * whether a change is safe; it can only say whether the evidence
+ * is fresh, and freshness is not safety.
+ *
+ * An obligation with no entry in [live] is one the gate could not
+ * settle by running anything: it carries only a human declaration,
+ * or no check at all. Those are exactly the obligations the store
+ * exists for, and for them the store is consulted as before. *)
 let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
-    ~store =
-  let candidates = candidates_for ~store ~decision_id ~obligation_id in
-  let current = fresh_against ~attestations:candidates ~materials_digest in
-  match (candidates, current) with
-  (* Store has entries for this obligation but none are current. *)
-  | _ :: _, [] ->
+    ~store ~live =
+  match Hashtbl.find_opt live (decision_id, obligation_id) with
+  | Some Satisfied -> None
+  | Some Failed ->
       Some
         {
           obligation_id;
-          kind = `StaleEvidence;
+          kind = `FailedEvidence;
           causes =
             [
               Printf.sprintf
-                "obligation %s of decision %s has %d attestation(s) but none \
-                 match the current materials digest %s"
-                obligation_id decision_id (List.length candidates)
-                materials_digest;
-            ];
-          remedies =
-            [
-              "re-run the producer of the attestation against the current \
-               candidate tree";
-              "or update the attestation's subject.materials_digest if the \
-               method is genuinely digest-independent";
-            ];
-          next_actions =
-            [
-              ( "run",
-                Printf.sprintf "mathc assess <base> <head>   # recompute digest"
-              );
-              ( "run",
-                Printf.sprintf
-                  "mathc gate <base> <head>          # re-evaluate the gate" );
-              ( "edit",
-                Printf.sprintf
-                  "attestations/<decision>-%s.json   # update \
-                   subject.materials_digest"
-                  obligation_id );
-            ];
-        }
-  | [], [] ->
-      Some
-        {
-          obligation_id;
-          kind = `MissingEvidence;
-          causes =
-            [
-              Printf.sprintf
-                "obligation %s of decision %s has no attestations in the store"
+                "obligation %s of decision %s has a check that ran against the \
+                 candidate tree and failed"
                 obligation_id decision_id;
             ];
           remedies =
             [
-              "produce an attestation that names this decision + obligation";
+              "revert the change that broke this obligation";
               "or add a waiver under decisions/*.yaml";
             ];
           next_actions =
             [
+              ("run", "git revert <sha>   # revert the offending change");
+              ( "edit",
+                Printf.sprintf "%s   # fix the underlying cause" decision_id );
               ( "create",
                 Printf.sprintf
-                  "attestations/%s-%s.json   # add an attestation file"
+                  "decisions/waivers/%s-%s.yaml   # add a waiver if acceptable"
                   decision_id obligation_id );
-              ("create", "decisions/waivers/<decision>-<obligation>.yaml");
-              ("run", "mathc self-check");
             ];
         }
-  | _, current ->
-      (* `has_pass` is the class-aware predicate, not "any attestation whose
-         result is Pass". A runtime-class pass counts only when its class is
-         established (see `establishes_class`); a review-class pass counts as
-         it stands. *)
-      let has_pass = List.exists satisfies_obligation current in
-      let has_fail =
-        List.exists (fun a -> a.Domain.result = Domain.Fail) current
-      in
-      (* The pass claims that were refused because their class was not
-         established. They are named in the gap so that a reader can see
-         WHY the obligation is not satisfied -- an unread gap is a hole the
-         next maintainer has to re-derive. *)
-      let class_rejected =
-        List.filter
-          (fun a -> a.Domain.result = Domain.Pass && not (establishes_class a))
-          current
-      in
-      if has_fail then
-        Some
-          {
-            obligation_id;
-            kind = `FailedEvidence;
-            causes =
-              [
-                Printf.sprintf
-                  "obligation %s of decision %s has a decisive fail attestation"
-                  obligation_id decision_id;
-              ];
-            remedies =
-              [
-                "revert the change that broke this obligation";
-                "or add a waiver under decisions/*.yaml";
-              ];
-            next_actions =
-              [
-                ("run", "git revert <sha>   # revert the offending change");
-                ( "edit",
-                  Printf.sprintf "%s   # %s" decision_id
-                    "fix the underlying cause and re-evaluate" );
-                ( "create",
-                  Printf.sprintf
-                    "decisions/waivers/%s-%s.yaml   # add a waiver if \
-                     acceptable"
-                    decision_id obligation_id );
-              ];
-          }
-      else if not has_pass then
-        let causes =
-          match class_rejected with
-          | [] ->
-              [
-                Printf.sprintf
-                  "obligation %s of decision %s has current attestations but \
-                   none reports pass (inconclusive or infrastructure-error)"
-                  obligation_id decision_id;
-              ]
-          | refused ->
+  | Some Unverified ->
+      Some
+        {
+          obligation_id;
+          kind = `Unknown;
+          causes =
+            [
               Printf.sprintf
-                "obligation %s of decision %s has %d attestation(s) reporting \
-                 pass whose source class is not established"
-                obligation_id decision_id (List.length refused)
-              :: List.map class_cause refused
-        in
-        let remedies =
-          match class_rejected with
-          | [] ->
-              [
-                "investigate the inconclusive attestation; a fail or a new \
-                 pass is required";
-              ]
-          | _ ->
-              [
-                "name the run that produced the result (producer.run), or \
-                 reissue the attestation with a declared 'ci:' producer";
-                "or reissue it as kind_: review if it is a human judgement \
-                 with no runtime anchor";
-              ]
-        in
-        let next_actions =
-          match class_rejected with
-          | [] ->
-              [
-                ( "run",
+                "obligation %s of decision %s has a check that could not be \
+                 run against the candidate tree"
+                obligation_id decision_id;
+            ];
+          remedies =
+            [ "make the check runnable, or declare the obligation manually" ];
+          next_actions =
+            [
+              ( "run",
+                Printf.sprintf
+                  "mathc verify decisions/%s.yaml   # see the per-obligation \
+                   verdict"
+                  decision_id );
+              ( "edit",
+                Printf.sprintf
+                  "decisions/%s.yaml   # point the verifier at something that \
+                   exists"
+                  decision_id );
+            ];
+        }
+  | None -> (
+      let candidates = candidates_for ~store ~decision_id ~obligation_id in
+      let current = fresh_against ~attestations:candidates ~materials_digest in
+      match (candidates, current) with
+      | _ :: _, [] ->
+          Some
+            {
+              obligation_id;
+              kind = `StaleEvidence;
+              causes =
+                [
                   Printf.sprintf
-                    "mathc re-evaluate-decisions A0   # run the oracle \
-                     explicitly" );
-                ( "edit",
+                    "obligation %s of decision %s has %d attestation(s) but \
+                     none match the current materials digest %s"
+                    obligation_id decision_id (List.length candidates)
+                    materials_digest;
+                ];
+              remedies =
+                [
+                  "re-run the producer of the attestation against the current \
+                   candidate tree";
+                  "or update the attestation's subject.materials_digest if the \
+                   method is genuinely digest-independent";
+                ];
+              next_actions =
+                [
+                  ( "run",
+                    Printf.sprintf
+                      "mathc assess <base> <head>   # recompute digest" );
+                  ( "run",
+                    Printf.sprintf
+                      "mathc gate <base> <head>          # re-evaluate the gate"
+                  );
+                  ( "edit",
+                    Printf.sprintf
+                      "attestations/<decision>-%s.json   # update \
+                       subject.materials_digest"
+                      obligation_id );
+                ];
+            }
+      | [], [] ->
+          Some
+            {
+              obligation_id;
+              kind = `MissingEvidence;
+              causes =
+                [
                   Printf.sprintf
-                    "attestations/%s-%s.json   # re-author the inconclusive \
-                     attestation"
-                    decision_id obligation_id );
-              ]
-          | _ ->
-              [
-                ( "edit",
+                    "obligation %s of decision %s has no attestations in the \
+                     store"
+                    obligation_id decision_id;
+                ];
+              remedies =
+                [
+                  "produce an attestation that names this decision + obligation";
+                  "or add a waiver under decisions/*.yaml";
+                ];
+              next_actions =
+                [
+                  ( "create",
+                    Printf.sprintf
+                      "attestations/%s-%s.json   # add an attestation file"
+                      decision_id obligation_id );
+                  ("create", "decisions/waivers/<decision>-<obligation>.yaml");
+                  ("run", "mathc self-check");
+                ];
+            }
+      | _, current ->
+          (* `has_pass` is the class-aware predicate, not "any attestation whose
+             result is Pass". A runtime-class pass counts only when its class is
+             established (see `establishes_class`); a review-class pass counts as
+             it stands. *)
+          let has_pass = List.exists satisfies_obligation current in
+          let has_fail =
+            List.exists (fun a -> a.Domain.result = Domain.Fail) current
+          in
+          (* The pass claims that were refused because their class was not
+             established. They are named in the gap so that a reader can see
+             WHY the obligation is not satisfied -- an unread gap is a hole the
+             next maintainer has to re-derive. *)
+          let class_rejected =
+            List.filter
+              (fun a ->
+                a.Domain.result = Domain.Pass && not (establishes_class a))
+              current
+          in
+          if has_fail then
+            Some
+              {
+                obligation_id;
+                kind = `FailedEvidence;
+                causes =
+                  [
+                    Printf.sprintf
+                      "obligation %s of decision %s has a decisive fail \
+                       attestation"
+                      obligation_id decision_id;
+                  ];
+                remedies =
+                  [
+                    "revert the change that broke this obligation";
+                    "or add a waiver under decisions/*.yaml";
+                  ];
+                next_actions =
+                  [
+                    ("run", "git revert <sha>   # revert the offending change");
+                    ( "edit",
+                      Printf.sprintf
+                        "%s   # fix the underlying cause and re-evaluate"
+                        decision_id );
+                    ( "create",
+                      Printf.sprintf
+                        "decisions/waivers/%s-%s.yaml   # add a waiver if \
+                         acceptable"
+                        decision_id obligation_id );
+                  ];
+              }
+          else if not has_pass then
+            let causes =
+              match class_rejected with
+              | [] ->
+                  [
+                    Printf.sprintf
+                      "obligation %s of decision %s has current attestations \
+                       but none reports pass (inconclusive or \
+                       infrastructure-error)"
+                      obligation_id decision_id;
+                  ]
+              | refused ->
                   Printf.sprintf
-                    "attestations/%s-%s.json   # add producer.run, or reissue \
-                     with a 'ci:' producer"
-                    decision_id obligation_id );
-                ( "run",
-                  Printf.sprintf
-                    "mathc attest-batch --manifest=manifest.tsv \
-                     --run=\"<command>\"   # one TSV row: %s <TAB> %s <TAB> \
-                     test <TAB> ci:<name>"
-                    decision_id obligation_id );
-              ]
-        in
-        Some { obligation_id; kind = `Unknown; causes; remedies; next_actions }
-      else None
+                    "obligation %s of decision %s has %d attestation(s) \
+                     reporting pass whose source class is not established"
+                    obligation_id decision_id (List.length refused)
+                  :: List.map class_cause refused
+            in
+            let remedies =
+              match class_rejected with
+              | [] ->
+                  [
+                    "investigate the inconclusive attestation; a fail or a new \
+                     pass is required";
+                  ]
+              | _ ->
+                  [
+                    "name the run that produced the result (producer.run), or \
+                     reissue the attestation with a declared 'ci:' producer";
+                    "or reissue it as kind_: review if it is a human judgement \
+                     with no runtime anchor";
+                  ]
+            in
+            let next_actions =
+              match class_rejected with
+              | [] ->
+                  [
+                    ( "run",
+                      Printf.sprintf
+                        "mathc re-evaluate-decisions A0   # run the oracle \
+                         explicitly" );
+                    ( "edit",
+                      Printf.sprintf
+                        "attestations/%s-%s.json   # re-author the \
+                         inconclusive attestation"
+                        decision_id obligation_id );
+                  ]
+              | _ ->
+                  [
+                    ( "edit",
+                      Printf.sprintf
+                        "attestations/%s-%s.json   # add producer.run, or \
+                         reissue with a 'ci:' producer"
+                        decision_id obligation_id );
+                    ( "run",
+                      Printf.sprintf
+                        "mathc attest-batch --manifest=manifest.tsv \
+                         --run=\"<command>\"   # one TSV row: %s <TAB> %s \
+                         <TAB> test <TAB> ci:<name>"
+                        decision_id obligation_id );
+                  ]
+            in
+            Some
+              { obligation_id; kind = `Unknown; causes; remedies; next_actions }
+          else None)
 
-(* Aggregate per-obligation gaps into a single verdict.
- * Per decisions/gate-attestation-store-fill commitment and
- * spec/semantics.md §"Evaluation":
- *   block if any obligation fails (decisive fail attestation)
- *   pass if every applicable obligation passes (no gaps)
- *   unknown otherwise (missing / stale / inconclusive gaps)
- *
- * Kernel Invariant 10 (honest status): a missing or stale gap
- * MUST NOT silently flip to pass; the verdict stays Unknown
- * until the human or waiver settles it. A decisive fail flips
- * to Block per Invariant 14 (exit honesty). *)
-(* `aggregate gaps` collapses a list of gaps to a verdict:
-   *   - any FailedEvidence -> Block (the executable knowable)
-   *   - any MissingReview -> Block (the human knowable; missing
-   *     required-attestation gaps are tagged with this kind)
-   *   - empty list          -> Pass
-   *   - otherwise            -> Unknown (e.g. stale evidence)
-   *
-   * `MissingReview` is treated as blocking per
-   * `decisions/decision-required-attestations-2026-10.yaml`: a
-   * required human review whose attestation is absent is a
-   * knownable gap, not an infrastructural one. Treating it as
-   * Unknown would let a CI step sleep on a missing review;
-   * treating it as FailedEvidence would conflate review-needs
-   * with real execution failures; treating it as its own
-   * Block-class is the middle path. *)
 let[@warning "-32"] aggregate gaps =
   let blocking =
     List.exists
@@ -778,10 +852,65 @@ let[@warning "-32"] active_entries (memory : Memory.t) :
 (* [materials_of_decision] maps a decision id to the reference
  * materials digest for that decision (semantics A: the digest of the
  * CONTENT of the files its scope names). It is injected so that
- * [Gate] stays pure — the git adapter lives in bin/. *)
+ * [Gate] stays pure — the git adapter lives in bin/.
+
+ * [touched] is the set of decisions the CHANGE can have broken: the
+ * ones whose scope names a file the diff touches. `None` means "no
+ * scoping" and evaluates every active decision; `Some ids` evaluates
+ * only those.
+ *
+ * WHY THE GATE IS SCOPED, AND WHAT IT COST TO LEARN.
+ *
+ * The gate asked every active decision whether its obligations
+ * held, on every change. Measured on this repository on 2026-10-27:
+ * a commit that touched EIGHT files was checked against 958
+ * obligations drawn from 266 active decisions, and produced 752
+ * gaps — 590 of them `Unknown` — so the verdict was `block` for a
+ * change that could not have broken most of what it was asked
+ * about. The verdict was not wrong: those obligations really were
+ * unverified. It was answering a question nobody asked.
+ *
+ * A merge gate answers ONE question: does this change break the
+ * commitments it claims to implement? The commitments a change can
+ * break are the ones whose scope names a file the change touches.
+ * Every other decision is history, and history is not re-litigated
+ * by every commit.
+ *
+ * The machinery for the scoped question already existed and was not
+ * used here: `decisions_touching_changes` in bin/Mathc.ml computes
+ * exactly this set, and `attest-batch --only-changed` already used
+ * it. The gate did not.
+ *
+ * A decision with an EMPTY scope is never in the touched set: an
+ * empty scope names no file, so no change can reach it. That is the
+ * correct reading, and it also removes from the gate's path the
+ * empty-scope digest collision (the digest of an empty scope is the
+ * digest of nothing, which is a constant, which makes the freshness
+ * check inert). The collision is a defect of the STORE, and the
+ * scoped gate does not consult the store for a decision it does not
+ * evaluate.
+ *
+ * A decision whose scope does not name the changed file is not
+ * checked, and that is only as good as the scope. A scope that
+ * names nothing real is a gap in the corpus, not in the gate, and
+ * NO program in this repository watches for it: the watcher was
+ * removed on 2026-10-28 with the rest of the corpus-debt tooling
+ * (decisions/corpus-meta-layer-2026-10.yaml). The scope of a
+ * decision is therefore only as good as the person who wrote it,
+ * and the gate says so by scoping itself to what the change
+ * touches rather than by pretending to have checked the rest. *)
 let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
-    ~rebuttals ~materials_of_decision =
+    ~rebuttals ~materials_of_decision ~touched ~live =
   let active_decisions = active_entries memory in
+  let active_decisions =
+    match touched with
+    | None -> active_decisions
+    | Some ids ->
+        List.filter
+          (fun (entry : Memory.decision_entry) ->
+            List.exists (fun id -> String.equal id entry.Memory.decision_id) ids)
+          active_decisions
+  in
   let applicable_count =
     List.fold_left
       (fun acc entry -> acc + List.length entry.Memory.obligation_ids)
@@ -795,7 +924,7 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
             obligation_gap ~decision_id:entry.Memory.decision_id
               ~obligation_id:obl_id
               ~materials_digest:(materials_of_decision entry.Memory.decision_id)
-              ~store)
+              ~store ~live)
           entry.Memory.obligation_ids)
       active_decisions
     @ List.concat_map

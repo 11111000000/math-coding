@@ -45,8 +45,65 @@ shopt -s nullglob
 fixtures=("$fixture_dir"/*.sh)
 shopt -u nullglob
 
+cleanup_dune() {
+  # Surface a stale _build/.lock left by an interrupted previous
+  # build. We DO NOT pkill dune processes here because the fixture
+  # itself spawns its own dune, and pkill from inside the
+  # aggregator would race-kill it. (Bug discovered 2026-09-27 when
+  # `scripts/dev verify` flake-killed dune via pkill race; the
+  # fix is to do only the lock-file cleanup here.)
+  #
+  # "Is a dune running?" is asked by the EXECUTABLE'S NAME, not by
+  # the command line. `pgrep -f dune` answered the wrong question:
+  # it matches every process whose command line CONTAINS the string
+  # "dune" -- including the shell that is running this aggregator,
+  # and including the `nix develop .#test --command bash -c 'dune
+  # build ...'` wrapper of a fixture. Measured on 2026-10-27: a
+  # dune left behind by an interrupted command kept the lock, and
+  # the check that was supposed to remove it could never fire,
+  # because the aggregator's own command line mentioned dune. The
+  # suite then failed with "Another Dune instance is currently
+  # running" -- a lock that was nobody's.
+  #
+  # The name is exact: the process's executable, not its arguments.
+  local pid exe
+  for pid in $(pgrep -x dune 2>/dev/null || true); do
+    exe=$(readlink "/proc/$pid/exe" 2>/dev/null || true)
+    case "$exe" in
+      */dune) return 0 ;;
+    esac
+  done
+  [ ! -f _build/.lock ] || rm -f _build/.lock || true
+}
+
 if [ "${1:-}" != "" ]; then
   fixtures=("$fixture_dir/$1.sh")
+  # The documented contract of the single-fixture form is "run a
+  # single fixture by basename". The other steps used to run anyway,
+  # and the alcotest step -- which needs the test binaries BUILT --
+  # reported 34 spurious "FAIL <binary> (no build target)" lines on
+  # a tree where nothing had been built. Thirty-four failures that
+  # say nothing about the fixture the caller asked about is a report
+  # that lies, and it buries the one line that matters.
+  #
+  # So the single-fixture form runs that fixture, prints its reason
+  # on failure, and exits with its status. Nothing else.
+  if [ ! -f "${fixtures[0]}" ]; then
+    printf "check.sh: no such fixture: %s\n" "$fixture_dir/$1.sh" >&2
+    exit 2
+  fi
+  cleanup_dune
+  name=$(basename "${fixtures[0]}" .sh)
+  log=$(mktemp)
+  trap 'rm -f "$log"' EXIT
+  if "${fixtures[0]}" >"$log" 2>&1; then
+    printf "  ok   %s\n" "$name"
+    exit 0
+  else
+    printf "  FAIL %s\n" "$name"
+    tail -20 "$log" >&2 || true
+    exit 1
+  fi
 fi
 
 # `skip` is tracked apart from `pass` on purpose. The stub-lint and
@@ -59,31 +116,25 @@ fi
 pass=0
 fail=0
 skip=0
-skipped_names=()
 failed_names=()
+# The per-fixture log. A fixture that fails must be able to say WHY,
+# and the log is what carries that reason to the aggregator's output.
+fixture_log=$(mktemp)
 
-cleanup_dune() {
-  # Surface a stale _build/.lock left by an interrupted previous
-  # build. We DO NOT pkill dune processes here because the fixture
-  # itself spawns its own dune, and pkill from inside the
-  # aggregator would race-kill it. (Bug discovered 2026-09-27 when
-  # `scripts/dev verify` flake-killed dune via pkill race; the
-  # fix is to do only the lock-file cleanup here.)
-  if [ -f _build/.lock ]; then
-    if ! pgrep -f 'dune' >/dev/null 2>&1; then
-      rm -f _build/.lock
-    fi
-  fi
-}
 
 for f in "${fixtures[@]}"; do
   cleanup_dune
   name=$(basename "$f" .sh)
-  if "$f" >/dev/null 2>&1; then
+  if "$f" >"$fixture_log" 2>&1; then
     printf "  ok   %s\n" "$name"
     pass=$((pass + 1))
   else
     printf "  FAIL %s\n" "$name"
+    # The reason, not just the name. A fixture whose output is
+    # discarded cannot say why it failed, and a red CI that cannot
+    # name its cause is a red CI nobody can fix: on 2026-10-27 that is
+    # how the project spent a month with a red main and no diagnosis.
+    tail -20 "$fixture_log" >&2 || true
     fail=$((fail + 1))
     failed_names+=("$name")
   fi
@@ -301,27 +352,31 @@ cleanup_dune
 # is made CONDITIONAL on the kernel's own content digest having
 # moved. A run that touched only decisions, fixtures or docs keeps
 # the build cache and skips the rebuild entirely.
-kernel_stamp_file=".local/kernel-stamp"
-# Everything the cram cache observes: the kernel, the TESTS, the
-# scripts they call, and the schemas. The cache goes stale when any
-# of them changes, and a stale cram cache replays a stale
-# transcript - which is how two fixtures stayed broken for a day
-# while the suite reported green.
-kernel_stamp_now="$(find lib bin tests scripts schemas -type f \( -name '*.ml' -o -name '*.mli' -o -name '*.t' -o -name '*.sh' -o -name '*.json' \) -print0 2>/dev/null \
-                     | sort -z | xargs -0 sha256sum 2>/dev/null | sha256sum | cut -d' ' -f1)"
-mkdir -p .local
-if [ -f "$kernel_stamp_file" ] && [ "$(cat "$kernel_stamp_file")" = "$kernel_stamp_now" ]; then
-  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
-  cram_clean=""
-else
-  printf '%s' "$kernel_stamp_now" > "$kernel_stamp_file"
+#
+# The digest is computed by scripts/kernel-stamp.sh, which is the ONE
+# definition of "has the code changed?". `scripts/dev verify` asks
+# the same question before its first stage, and the two answers
+# cannot disagree about what the current digest is.
+if [ "$(scripts/kernel-stamp.sh changed 2>/dev/null || echo changed)" = "changed" ]; then
   cram_clean="dune clean &&"
+else
+  cram_clean=""
 fi
+scripts/kernel-stamp.sh record >/dev/null 2>&1 || true
 cram_dir_list=$(find tests -name '*.t' -exec dirname {} \; | sort -u)
 cram_dirs=$(printf '%s\n' "$cram_dir_list" | tr '\n' ' ')
 cram_dirs=${cram_dirs% }
 cram_log=$(mktemp)
-trap 'rm -f "$cram_log"' EXIT
+cram_build_log=$(mktemp)
+trap 'rm -f "$cram_log" "$cram_build_log" "$fixture_log"' EXIT
+# The build's own output goes to its OWN log, not to /dev/null.
+#
+# The build used to be silenced with `>/dev/null 2>&1`, so when it
+# failed the aggregator printed the tail of an EMPTY log and the CI
+# log said only "FAIL cram" with no reason -- the failing build said
+# nothing at all. A gate that cannot name its cause is not a gate;
+# it is a red light. The build log is printed on failure, and the
+# test log (which carries the cram diff) is printed too.
 if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
   printf "  FAIL cram\n"
   printf 'cram discovery did not find tests/cli; found: [%s]\n' \
@@ -330,11 +385,14 @@ if ! printf '%s\n' "$cram_dir_list" | grep -qx 'tests/cli'; then
   failed_names+=("cram")
 elif ! nix develop .#test --command bash -c "
     $cram_clean
-    dune build --root . @install >/dev/null 2>&1 &&
+    dune build --root . @install > '$cram_build_log' 2>&1 &&
     dune runtest --root . $cram_dirs
 " >"$cram_log" 2>&1; then
   printf "  FAIL cram  [%s]\n" "$cram_dirs"
-  tail -20 "$cram_log" >&2 || true
+  printf '--- the build that preceded the test run ---\n' >&2
+  tail -20 "$cram_build_log" >&2 || true
+  printf '--- the test run ---\n' >&2
+  tail -40 "$cram_log" >&2 || true
   fail=$((fail + 1))
   failed_names+=("cram")
 else
@@ -395,36 +453,6 @@ else
   printf '%s\n' "$svg_overflow_out" >&2 || true
   fail=$((fail + 1))
   failed_names+=("svg-overflow")
-fi
-
-# The regenerate guard is NOT a tests/fixtures/*.sh file, so the
-# loop above never picked it up: it lived in scripts/, was named by
-# a decision as the acceptance verifier for
-# `regenerate-preserves-the-live-store`, and was executed by
-# NOTHING. The obligation it guards -- that
-# scripts/regenerate-self-check-fixture.sh leaves attestations/
-# byte-identical -- was therefore enforced by no gate at all.
-#
-# This step RUNS the guard and reports it. Exit 2 means the
-# measurement could not be taken (no store, not a git repository),
-# which is a skip, not a pass -- the same convention the
-# stub-lint and svg-overflow steps use, and the same reason: a
-# check that never ran must not be counted as one that passed.
-regenerate_rc=0
-regenerate_out=$(scripts/check-regenerate-preserves-live-store.sh 2>&1) || regenerate_rc=$?
-if [ "$regenerate_rc" -eq 0 ]; then
-  printf "  ok   regenerate-preserves-live-store\n"
-  pass=$((pass + 1))
-elif [ "$regenerate_rc" -eq 2 ]; then
-  printf "  SKIP regenerate-preserves-live-store (measurement could not be taken)\n"
-  skip=$((skip + 1))
-  skipped_names+=("regenerate-preserves-live-store")
-  pass=$((pass + 1))
-else
-  printf "  FAIL regenerate-preserves-live-store\n"
-  printf '%s\n' "$regenerate_out" >&2 || true
-  fail=$((fail + 1))
-  failed_names+=("regenerate-preserves-live-store")
 fi
 
 cleanup_dune

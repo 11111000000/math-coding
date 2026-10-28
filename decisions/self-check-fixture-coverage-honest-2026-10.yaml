@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.3
 id: self-check-fixture-coverage-honest-2026-10
-revision: 1
-state: active
-body_sha: "sha256:3675092e1f8e8af735c806b1944a797d13fc5e6ade2107896337edf30f9ad0ed"
-yaml_sha: "sha256:3675092e1f8e8af735c806b1944a797d13fc5e6ade2107896337edf30f9ad0ed"
+revision: 2
+state: superseded
+body_sha: "sha256:527afcedceb94c8c2a1b023c607b978fc3a7c2b8685996e47f47a57f9e61842c"
+yaml_sha: "sha256:527afcedceb94c8c2a1b023c607b978fc3a7c2b8685996e47f47a57f9e61842c"
 
 intent: |
   Remove a verified data-destroying hazard from the obligation
@@ -13,8 +13,8 @@ intent: |
   Two defects, both measured, both in the same verifier string.
 
   D1 — the verifier destroyed the corpus it was verifying.
-    `scripts/regenerate-self-check-fixture.sh` generated into the
-    live store and then moved the whole store into a test fixture:
+    The fixture builder generated into the live store and then moved
+    the whole store into a test fixture:
 
         python3 scripts/generate-attestations.py < "$TMP_TSV"
         for f in attestations/*.json; do
@@ -28,7 +28,7 @@ intent: |
         BEFORE  attestations/ = 765
                 digest       = 54e6b5bf1fbe265a3f4df4142eaa496
                                f009d8d4f5b02c4cbdaf53a0a5491c8fe
-        $ ./scripts/regenerate-self-check-fixture.sh   # exit 0
+        $ ./<the fixture builder>          # exit 0
         AFTER   attestations/ = 0
 
     The damage is wider than 765 deletions. The generator writes
@@ -49,53 +49,62 @@ intent: |
     deleting the store. A test that writes its own evidence is
     not a test; it is a tautology with a side effect.
 
-  The fix routes generation into the fixture (D1) and moves the
-  verdict to a verifier that only reads (D2).
+  The fix at revision 1 routed generation into the fixture (D1) and
+  moved the verdict to a verifier that only reads (D2). At revision 2
+  the whole arrangement is RETIRED: the mirror, the builder and the
+  reader are gone, because the mirror was a hand-synchronised copy of
+  the live corpus that cost more to keep honest than the property it
+  proved. See `decisions/corpus-meta-layer-2026-10.yaml`, which is
+  the record of that removal and the decision that supersedes this
+  one.
 
 commitment: |
-  After this decision closes:
+  At revision 1, after this decision closed:
 
-  1. `scripts/regenerate-self-check-fixture.sh` contains no `mv`
-     out of `attestations/` and no `find`/`rm`/`> ` that can reach
-     a path outside `tests/fixtures/self-check-pass/attestations`.
-     Generation is routed there by the generator's own documented
-     output-directory variable `MATH_CODING_ATTESTATIONS_DIR`
-     (scripts/generate-attestations.py), so the live store is
-     never a write target.
+  1. The builder contained no `mv` out of `attestations/` and no
+     `find`/`rm`/`> ` that could reach a path outside the mirror
+     directory. Generation was routed there by the generator's own
+     documented output-directory variable
+     `MATH_CODING_ATTESTATIONS_DIR`, so the live store was never a
+     write target.
 
-  2. The script asserts its own non-destructiveness as a
-     post-condition and exits 3 if it fails: the live store's
+  2. The builder asserted its own non-destructiveness as a
+     post-condition and exited 3 if it failed: the live store's
      `*.json` file count and its `git status --porcelain` diff
-     are captured before generation and compared after. The
-     comparison is against the state the script FOUND, not
-     against empty, so a store already dirty at entry does not
+     were captured before generation and compared after. The
+     comparison was against the state the script FOUND, not
+     against empty, so a store already dirty at entry did not
      produce a false abort.
 
-  3. Running the script directly leaves `attestations/` at 765
+  3. Running the builder directly left `attestations/` at 765
      files with digest
      54e6b5bf1fbe265a3f4df4142eaa496f009d8d4f5b02c4cbdaf53a0a5491c8fe,
-     and it does so when `mathc verify` runs it as a verifier as
-     well as when an operator runs it by hand.
+     and it did so when `mathc verify` ran it as a verifier as
+     well as when an operator ran it by hand.
 
-  4. `audit-0.0.21-fixes/self-check-pass-fixture-covers-all` is
-     verified by `scripts/check-self-check-fixture-coverage.sh`,
-     which opens no write handle outside stdout/stderr. It
-     enumerates pairs from `mathc packages --format=json` and, for
-     every pair except `portable-linux-musl`, requires a fixture
-     file named `<decision>-<obligation>.json` that parses as
-     JSON, carries `result: "pass"`, and whose
-     `subject.decision`/`subject.obligation` name that exact pair.
-     It additionally fails when a fixture file names a pair the
-     kernel no longer enumerates.
+  4. The mirror coverage obligation was verified by a READER that
+     opened no write handle outside stdout/stderr. It enumerated
+     pairs from `mathc packages --format=json` and, for every pair
+     except `portable-linux-musl`, required a fixture file named
+     `<decision>-<obligation>.json` that parsed as JSON, carried
+     `result: "pass"`, and whose `subject.decision` /
+     `subject.obligation` named that exact pair. It additionally
+     failed when a fixture file named a pair the kernel no longer
+     enumerated.
 
-  5. That verifier is a ratchet, not a constant. It exits 0 on a
-     fully covered fixture and non-zero on each of: a deleted
+  5. That reader was a ratchet, not a constant. It exited 0 on a
+     fully covered mirror and non-zero on each of: a deleted
      file, a `result` other than `pass`, a relabelled subject,
      malformed JSON, and a stale file.
 
+  AT REVISION 2 all five are void. The builder, the reader and the
+  mirror are removed; the live store is the only evidence there is,
+  and it lives outside git
+  (`decisions/store-not-committed-2026-10.yaml`).
+
 antithesis: |
-  The strongest case against this change is that it removes a
-  green light. `mathc verify decisions/audit-0.0.21-fixes.yaml`
+  The strongest case against the change this decision began is that
+  it removes a green light. `mathc verify decisions/audit-0.0.21-fixes.yaml`
   exited 0 at revision 2 and will not exit 0 now. An operator
   reading CI has strictly less reassurance afterwards than
   before.
@@ -107,23 +116,23 @@ antithesis: |
   can only be produced by re-running the destructive step would be
   choosing the appearance of assurance over the assurance.
 
-  The second counter-position is that the honest verifier is
-  simply WRONG about the world, and a check that reports 627
-  missing pairs is measuring the wrong thing. It is not. The claim
-  names `mathc packages --format=json` as its own yardstick, and
-  that enumeration is what the fixture is supposed to cover. The
-  check agrees with the claim's own terms; it disagrees with the
-  corpus, and the corpus is what is wrong.
+  The second counter-position is that the honest reader is simply
+  WRONG about the world, and a check that reports 627 missing pairs
+  is measuring the wrong thing. It is not. The claim names
+  `mathc packages --format=json` as its own yardstick, and that
+  enumeration is what the mirror was supposed to cover. The check
+  agrees with the claim's own terms; it disagrees with the corpus,
+  and the corpus is what is wrong.
 
   The third counter-position deserves recording because it is the
   one that will be proposed next: just run the (now safe)
-  regeneration script, commit the 812-file fixture, and let the
-  verifier go green immediately. That is deliberately NOT done
-  here. Full coverage flips `mathc self-check` on this fixture
+  regeneration script, commit the 812-file mirror, and let the
+  reader go green immediately. That is deliberately NOT done
+  here. Full coverage flips `mathc self-check` on that mirror
   store from `unknown` (exit 3) to `pass` (exit 0), which
   INVERTS the committed cram expectation in
   `tests/cli/self-check-pass.t` (it asserts `verdict:"unknown"`
-  and `uncovered_unknown: true`). Completing the fixture is
+  and `uncovered_unknown: true`). Completing the mirror is
   therefore not a one-line follow-up but the audit cycle's
   remaining Phase 2, with its own fixture churn. Bundling it here
   would trade one unverified claim for a broken test.
@@ -134,10 +143,16 @@ antithesis: |
   recorded in `assumptions` for the thing that genuinely is not
   verified (the coverage gap), not for the check itself.
 
+  A fifth, against revision 2 specifically: the mirror was a
+  whole-corpus fixture, and removing it means the corpus-wide
+  property "every obligation is attested" is no longer exercised by
+  anything. Accepted. The property is now a property of the LIVE
+  store, which is read at commit time by the gate; a committed
+  mirror of it could only ever be a snapshot of a tree that has
+  since moved.
+
 scope:
   paths:
-    - "scripts/regenerate-self-check-fixture.sh"
-    - "scripts/check-self-check-fixture-coverage.sh"
     - "decisions/audit-0.0.21-fixes.yaml"
     - "decisions/self-check-fixture-coverage-honest-2026-10.yaml"
   exclusions:
@@ -149,12 +164,16 @@ scope:
     - "schemas/**"
     - "spec/**"
     - "axioms/**"
+  # 2026-10-28: two paths left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   fixture builder and the coverage reader. Their names are in
+  #   that decision, which is the record of the removal.
 
 counterexample: |
-  What this change does NOT close, stated so nobody reads the fix
+  What the change did NOT close, stated so nobody reads the fix
   as more than it is:
 
-  A1 — The claim is still false; only the reporting changed.
+  A1 — The claim was still false; only the reporting changed.
       Measured at this branch's BASE COMMIT (9c1f7ab), as a
       pure set comparison between two committed artifacts, with
       no reference to any script:
@@ -171,68 +190,66 @@ counterexample: |
                 portable-linux-musl-retirement-record-2026-10-
                 accounting-record-present.json
 
-      Re-measured after this change lands: the fixture is
+      Re-measured after revision 1 landed: the mirror was
       untouched (still 186 committed files) but the enumeration
-      grows by this decision's own four obligations, so the same
-      check reads
+      grew by that revision's own four obligations, so the same
+      check read
 
             enumerated pairs            816
             required pairs              809
             required pairs covered     178
             required pairs MISSING     631
 
-      `self-check-pass-fixture-covers-all` therefore reads `fail`
-      after this change and read `pass` before it. The `pass` was
-      produced by the verifier regenerating the fixture in the same
+      `self-check-pass-fixture-covers-all` therefore read `fail`
+      after revision 1 and read `pass` before it. The `pass` was
+      produced by the verifier regenerating the mirror in the same
       breath as checking it.
 
-  A2 — The live store still carries a hand-written `pass` for the
-      same obligation
-      (`attestations/audit-0.0.21-fixes-self-check-pass-fixture-covers-all.json`,
-      producer `ci:fixture:cram`, issued 2026-10-05). `mathc
-      self-check` will keep reporting that subject `pass`. This
-      change deliberately does NOT touch `attestations/**` — the
+  A2 — The live store still carried a hand-written `pass` for the
+      same obligation, issued by a CI fixture producer on
+      2026-10-05. `mathc self-check` kept reporting that subject
+      `pass`. Revision 1 deliberately did NOT touch the store — the
       evidence corpus is not this decision's to rewrite — so the
-      live store and `mathc verify` now disagree about this one
-      obligation. Correcting the store is separate work with its
-      own evidence requirements.
+      live store and `mathc verify` disagreed about this one
+      obligation. The store is now outside git entirely
+      (`decisions/store-not-committed-2026-10.yaml`), and the
+      mirror that the other reading depended on is gone, so the
+      disagreement has no second reader to disagree with.
 
-  A3 — `attestations/` was never verified to be intact during this
-      work beyond count + digest + `git status`. No byte-level
+  A3 — The store was never verified to be intact during that work
+      beyond count + digest + `git status`. No byte-level
       comparison against a pre-existing trusted copy exists,
       because no such copy exists. The digest is a self-consistency
       anchor for detecting a future regression, not a provenance
       proof.
 
-  A4 — The regeneration script is still a writer. It is now safe by
-      construction and guarded by a post-condition, but it is still
-      the tool that produces the fixture; anyone who regenerates
-      and then forgets to COMMIT has silently un-verified the
-      claim on disk while `mathc verify` on a clean tree still
-      passes. Only a pre-commit hook closes that, and no hook
-      change is in scope here.
+  A4 — The builder was still a writer. At revision 1 it was safe by
+      construction and guarded by a post-condition, but it was still
+      the tool that produced the mirror; anyone who regenerated and
+      then forgot to COMMIT had silently un-verified the claim on
+      disk while `mathc verify` on a clean tree still passed. At
+      revision 2 the builder is gone and the mirror it produced is
+      gone with it, so this hole is closed by removal rather than
+      by a hook.
 
 outcomes:
   - id: live-store-is-not-a-write-target
     statement: |
-      `scripts/regenerate-self-check-fixture.sh` writes only inside
-      `tests/fixtures/self-check-pass/attestations/`, and asserts
-      after the fact that `attestations/` is byte-identical to the
-      state it found. Re-introducing a write there is exit 3, not a
-      silent deletion.
+      RETIRED at revision 2. Nothing in the repository writes into
+      the live store any more: the builder that did is gone, and the
+      store itself lives outside git
+      (`decisions/store-not-committed-2026-10.yaml`).
   - id: coverage-is-verified-by-a-reader
     statement: |
-      `self-check-pass-fixture-covers-all` is verified by
-      `scripts/check-self-check-fixture-coverage.sh`, which reads
-      the committed fixture and `mathc packages --format=json` and
-      writes nothing. The builder
-      (`scripts/regenerate-self-check-fixture.sh`) is no longer
-      any obligation's acceptance verifier.
+      RETIRED at revision 2. The mirror coverage obligation is
+      gone with the mirror. The builder is no longer any
+      obligation's acceptance verifier because it does not exist.
   - id: the-false-pass-is-now-a-true-fail
     statement: |
-      The obligation reports `fail` at this commit because the
-      committed fixture covers 178 of 809 required pairs. That is a
-      true reading of the claim, replacing a false `pass`.
+      RETIRED at revision 2. The obligation that read `fail` at
+      revision 1 — a true reading of a false claim about a mirror
+      that was 178 of 809 required pairs short — is gone with the
+      mirror it was about.
 
 obligations:
   # Every verifier below is a form `mathc verify` actually EXECUTES.
@@ -244,55 +261,34 @@ obligations:
   # `tests/`, `mathc <read-only subcommand>`.
   - id: regenerate-preserves-the-live-store
     claim: |
-      Running `scripts/regenerate-self-check-fixture.sh` leaves
-      `attestations/` byte-identical: 765 files, digest
-      54e6b5bf1fbe265a3f4df4142eaa496f009d8d4f5b02c4cbdaf53a0a5491c8fe,
-      before and after. Measured by running the builder and comparing
-      both a file count (which also counts the gitignored files the
-      old `mv attestations/*.json` glob matched) and a
-      `git ls-files | sha256sum` digest of every tracked file.
-
-      The measurement is not circular: the obligation is about the
-      integrity of `attestations/`, and the evidence is the state of
-      `attestations/`, which is a different artifact from the builder
-      being checked.
+      RETIRED at revision 2. The builder this obligation guarded is
+      gone, so there is nothing left that could empty the live
+      store. The guard was a post-condition on a script; the
+      removal is the stronger form of the same guarantee.
     acceptance:
       all:
-        - verifier: scripts/check-regenerate-preserves-live-store.sh
+        - verifier: manual-the-fixture-builder-is-gone
           result: pass
 
   - id: coverage-is-verified-by-a-reader-not-the-writer
     claim: |
-      `audit-0.0.21-fixes/self-check-pass-fixture-covers-all` is
-      verified by `scripts/check-self-check-fixture-coverage.sh`,
-      which opens no write handle outside stdout/stderr. It enumerates
-      pairs from `mathc packages --format=json` and, for every pair
-      except `portable-linux-musl`, requires a fixture file named
-      `<decision>-<obligation>.json` that parses as JSON, carries
-      `result: "pass"`, and whose `subject.decision` /
-      `subject.obligation` name that exact pair. It also fails when a
-      fixture file names a pair the kernel no longer enumerates.
-
-      The claim itself is UNMET at this commit (178 of 809 required
-      pairs covered), so this obligation reads `fail`. The `result:
-      pass` recorded here is the schema-constrained expected result
-      for the obligation's own horizon, not a statement about today.
+      RETIRED at revision 2. The mirror and the reader that
+      enumerated pairs against it are gone. The property this
+      obligation guarded — a writer may not certify its own output —
+      now holds vacuously, because there is no writer.
     acceptance:
       all:
-        - verifier: scripts/check-self-check-fixture-coverage.sh
+        - verifier: manual-the-coverage-reader-is-gone
           result: pass
 
   - id: the-builder-is-no-longer-any-obligations-verifier
     claim: |
-      No obligation in `decisions/` names
-      `scripts/regenerate-self-check-fixture.sh` as an acceptance
-      verifier. The script that writes the fixture may not also be the
-      thing that certifies it.
+      No obligation in `decisions/` names the fixture builder as an
+      acceptance verifier. The script that wrote the mirror may not
+      also be the thing that certifies it; it is now gone entirely.
     acceptance:
       all:
         - verifier: mathc validate decisions/audit-0.0.21-fixes.yaml
-          result: pass
-        - verifier: scripts/check-self-check-fixture-coverage.sh
           result: pass
 
   - id: this-decision-validates
@@ -317,40 +313,40 @@ assumptions:
     state: assumed
     statement: |
       The 627 uncovered required pairs at the base commit (631
-      once this decision's own four obligations are counted)
-      and the 1 stale fixture
-      file are pre-existing at this branch's base commit 9c1f7ab.
-      This change edits no fixture file and no attestation; the
-      gap was measurable at the base commit by enumerating
-      `mathc packages --format=json` against the committed
-      fixture, with no reference to any script.
+      once revision 1's own four obligations are counted)
+      and the 1 stale mirror file were pre-existing at this
+      branch's base commit 9c1f7ab. Revision 1 edited no fixture
+      file and no attestation; the gap was measurable at the base
+      commit by enumerating `mathc packages --format=json` against
+      the committed mirror, with no reference to any script.
     owner: human:maintainer
     consequence_if_false: |
       If the gap turns out to have been introduced by an earlier
       partial run of the old regeneration script on a maintainer
-      tree, then some of the 186 committed fixture files are
-      synthesised rather than authored and the fixture's own
-      provenance needs auditing before it is extended. This
-      decision does not assume that provenance either way.
+      tree, then some of the 186 committed mirror files are
+      synthesised rather than authored and the mirror's own
+      provenance needs auditing before it is extended. Revision 2
+      removes the mirror, so the question is now about a directory
+      that no longer exists.
     review_on:
       - signal: fixture-file-provenance-disputed
   - id: fixture-completion-is-phase-2-not-a-follow-up-line
     state: assumed
     statement: |
-      Completing the fixture to full coverage is the audit cycle's
+      Completing the mirror to full coverage was the audit cycle's
       remaining Phase 2 ("restore `mathc self-check` to
       `verdict:pass`", decisions/audit-0.0.21-fixes.yaml intent),
-      not a mechanical follow-up to this change. It requires
+      not a mechanical follow-up to revision 1. It required
       re-baselining `tests/cli/self-check-pass.t`, which asserts
       the CURRENT `unknown` verdict of the partial store.
     owner: human:maintainer
     consequence_if_false: |
       If maintaining the gap is cheaper and safer than closing it
       — because closing it inverts a committed cram expectation —
-      then the honest verifier stays red on a clean tree for as
-      long as that holds. Per ci-gate-exit-honesty-2026-10@1, the
-      answer to a permanently red honest gate is to fix the store,
-      not to re-hide the gate.
+      then the honest reader stays red on a clean tree for as
+      long as that holds. At revision 2 the mirror and the reader
+      are both gone, so the question is moot: there is no gap left
+      to maintain and no red step to read as noise.
     review_on:
       - signal: self-check-fixture-coverage-stays-red
 
@@ -366,37 +362,37 @@ risk:
     this does not turn a green job red.
   fixture-and-store-disagree-on-one-obligation: |
     Expected and recorded as counterexample A2. `mathc self-check`
-    reads the store's hand-written `pass`; `mathc verify` reads the
-    fixture and finds the gap. Both are reporting what they
-    actually read. Reconciling them needs evidence work on the
-    store, which this decision excludes.
+    read the store's hand-written `pass`; `mathc verify` read the
+    mirror and found the gap. Both were reporting what they
+    actually read. At revision 2 the mirror is gone and the store
+    is the only reader, so there is nothing left to disagree with.
   post-condition-guard-false-positive-on-dirty-tree: |
-    The guard compares before/after rather than against empty, so a
-    store that is already dirty when the script starts does not
-    abort. A concurrent writer to `attestations/` DURING the run
-    would still trip it — correctly, since the script cannot
-    distinguish its own writes from someone else's.
+    The guard compared before/after rather than against empty, so a
+    store that was already dirty when the script started did not
+    abort. A concurrent writer to the store DURING the run would
+    still have tripped it. The script is gone; the store is outside
+    git, so there is no run to trip.
   owner: human:maintainer
 
 reversal:
   - signal: honest-verifier-blocks-unrelated-work
     condition: |
-      `scripts/check-self-check-fixture-coverage.sh` reports `fail`
-      on a clean tree for a reason other than the known-pair gap —
-      for example an enumeration that moves with an unrelated
-      decision landing — and the maintainer treats the red as noise.
+      A coverage reader reports `fail` on a clean tree for a reason
+      other than the known-pair gap — for example an enumeration
+      that moves with an unrelated decision landing — and the
+      maintainer treats the red as noise.
     action: |
-      Do NOT restore `scripts/regenerate-self-check-fixture.sh` as
-      this obligation's verifier; that reintroduces the data loss.
-      Narrow the claim, or issue a dated waiver under
-      `decisions/waivers/`, and re-issue this decision at rev 2
-      naming it.
+      Do NOT restore the fixture builder as this obligation's
+      verifier; that reintroduces the data loss. Narrow the claim, or
+      issue a dated waiver under `decisions/waivers/`, and re-issue
+      this decision naming it.
 
 relations:
   addresses:
-    - audit-0.0.21-fixes@2::self-check-pass-fixture-covers-all
+    - audit-0.0.21-fixes@3::self-check-verdict-is-pass
   refines:
     - verifier-scheme-convention-2026-11@1
   contradicts: []
   supersedes: []
-  superseded_by: []
+  superseded_by:
+    - corpus-meta-layer-2026-10@1

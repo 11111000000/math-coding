@@ -1,0 +1,221 @@
+---
+schema: math-coding/3.2
+id: store-not-committed-2026-10
+revision: 2
+state: active
+mode: light
+negative_control: tests/fixtures/executed-evidence-census.sh
+body_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
+yaml_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
+
+intent: |
+  The attestation store was a COMMITTED artefact. It was generated
+  by scripts/sign-store.sh, and the generated result was committed
+  with the change that had caused the regeneration.
+
+  WHAT WAS MEASURED, on main, over the last 60 commits
+  (`git log --name-only --pretty=format: main -n 60`):
+
+    12337 of 12556 file touches (98.3%) were under attestations/
+    33 of those 60 commits touched nothing else at all
+    the store held 979 tracked files
+    a re-signing rewrote ~891 of them
+
+  A commit that re-signs the store therefore carried the generated
+  corpus and almost nothing else. The review of the change was the
+  review of the corpus, and the corpus is the part of the diff that
+  says nothing about the change.
+
+  WHAT CHANGES. The store is generated, not committed. `.gitignore`
+  excludes `/attestations/`, the generation path writes into the
+  working tree, and CI regenerates the store and uploads it as a
+  build artefact.
+
+  WHAT IS LOST. An auditor can no longer check out a commit and
+  read the evidence that was claimed at that commit: the store that
+  a commit carried was a snapshot, and the snapshot of an older tree
+  is evidence about a tree that no longer exists. The replacement is
+  the CI artefact - the evidence the run observed for that commit,
+  on demand, for as long as the artefact is kept. An offline reader
+  with no CI access has no store to read. That is a real loss and
+  it is accepted rather than papered over.
+
+axiom_link:
+  - A1
+  - A3
+
+commitment: |
+  After this decision closes:
+
+  1. The store is generated, not committed. `.gitignore` excludes
+     `/attestations/`, and the store is produced by
+     scripts/sign-store.sh into the working tree.
+
+  2. The generation path is ONE path. scripts/sign-store.sh owns
+     the sweep, the manifest and the installation of the store.
+     scripts/resign-changed.sh decides which decisions a commit
+     touched and hands them over; it signs nothing itself.
+
+  3. The store is a function of the run that produced it. The
+     generation REPLACES the store's contents with the evidence the
+     run observed, so an attestation the run did not observe is
+     dropped, and a second run over an unchanged tree leaves the
+     same set of files.
+
+  4. CI generates the store before the first step that reads it and
+     uploads it as a build artefact. The step that ran the deleted
+     scripts/ceiling-monotonic.sh is gone with it.
+
+outcomes:
+  - id: the-store-is-not-in-version-control
+    statement: |
+      attestations/ is not tracked by git; it is produced by
+      scripts/sign-store.sh and is not part of any commit.
+
+  - id: one-generation-path
+    statement: |
+      Every write of the store goes through scripts/sign-store.sh.
+
+  - id: the-store-is-a-function-of-the-run
+    statement: |
+      A generation run leaves exactly the evidence it observed, and
+      nothing else.
+
+  - id: ci-publishes-the-store
+    statement: |
+      CI regenerates the store and uploads it as a build artefact.
+
+scope:
+  paths:
+    - ".gitignore"
+    - ".github/workflows/ci.yml"
+    - "scripts/sign-store.sh"
+    - "scripts/resign-changed.sh"
+    - "scripts/generate-attestations.py"
+    - "decisions/store-not-committed-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "spec/**"
+    - "lib/**"
+    - "bin/**"
+
+obligations:
+  - id: the-store-is-not-in-version-control
+    claim: |
+      `.gitignore` excludes `/attestations/`, so the store is not a
+      committed artefact. `git check-ignore` exits 0 for a path the
+      ignore rules cover and 1 for one they do not.
+    acceptance:
+      all:
+        - verifier: file-exists .gitignore
+          result: pass
+        - verifier: bash -c "git check-ignore -q attestations/probe.json"
+          result: pass
+
+  - id: ci-generates-and-publishes-the-store
+    claim: |
+      The workflow generates the store before the first step that
+      reads it, uploads it as a build artefact, and no longer has
+      the step that ran the deleted scripts/ceiling-monotonic.sh.
+    acceptance:
+      all:
+        - verifier: bash -c "grep -q generate.attestation.store .github/workflows/ci.yml"
+          result: pass
+        - verifier: bash -c "grep -q upload-artifact .github/workflows/ci.yml"
+          result: pass
+        - verifier: bash -c "! grep -q ceiling.monotonicity .github/workflows/ci.yml"
+          result: pass
+        - verifier: bash -c "test $(grep -n -e -.name..generate.attestation.store .github/workflows/ci.yml | head -1 | tr -dc 0-9) -lt $(grep -n -e -.name..scripts/dev.verify .github/workflows/ci.yml | head -1 | tr -dc 0-9)"
+          result: pass
+        - verifier: tests/fixtures/ci-prereqs-precede-consumers.sh
+          result: pass
+
+  - id: one-generation-path
+    claim: |
+      scripts/resign-changed.sh decides which decisions a commit
+      touched and hands them to scripts/sign-store.sh, which is the
+      only path that writes the store.
+    acceptance:
+      all:
+        - verifier: bash -c "grep -q bash.scripts/sign-store.sh scripts/resign-changed.sh"
+          result: pass
+        - verifier: file-exists scripts/sign-store.sh
+          result: pass
+
+  - id: the-store-is-a-function-of-the-run
+    claim: |
+      The generation drops what the run did not observe, so the
+      store holds the evidence of the run and nothing else. The
+      census of the store measures the orphan count - the
+      attestations that name an obligation the corpus does not have
+      - and it is the instrument that says so.
+    acceptance:
+      all:
+        - verifier: bash -c "grep -q install_store.prune scripts/sign-store.sh"
+          result: pass
+        - verifier: tests/fixtures/executed-evidence-census.sh
+          result: pass
+
+counterexample: |
+  The strongest objection is that the committed store was a RECORD.
+  A reader could check out any commit and read the evidence that
+  was claimed at that commit, without running anything, without CI
+  access, and without a network. That is a real capability, and the
+  CI artefact does not replace it: the artefact belongs to a run,
+  it expires, it is only as good as the workflow that produced it,
+  and a reader who has a checkout but no CI access has nothing.
+
+  The objection is accepted as a cost rather than answered. What it
+  is not is an argument for keeping the store in the history, and
+  the reason is worth stating exactly: the committed store was not
+  a record of what was observed at that commit, because it was
+  regenerated on every sweep and committed whenever the sweep ran.
+  33 of the last 60 commits were the store and nothing else, and a
+  reader who checked out one of them and read the attestations
+  would be reading evidence about whichever tree the last sweep
+  happened to run against - not, in general, the tree of the commit
+  they checked out. The record was a snapshot with a commit-shaped
+  wrapper. An artefact that says "this run observed this tree" is
+  a smaller promise and a truer one.
+
+antithesis: |
+  The opposite claim would be that the store should stay committed
+  and the DIFF should be filtered instead: a review tool that hides
+  the attestations/ paths, a `.gitattributes` diff driver, a
+  `git log -- . ':(exclude)attestations'` convention, a review
+  checklist that skips generated files.
+
+  Rejected, for a reason that is about storage and not about
+  reading. The noise is not a viewing problem: 979 files of
+  generated evidence are in the object database, in every clone, in
+  every pack, and the next re-signing rewrites ~891 of them, so the
+  history grows by the size of the corpus on every sweep that
+  touches anything. A tool that hides them does not make the
+  repository smaller, the clone cheaper, or the history shorter; it
+  only makes one view of the diff quieter, and it leaves the diff to
+  be re-read by every tool that does not know the rule. The
+  generated evidence does not belong in the history at all: it is
+  the output of a run, and a run's output is published where the
+  run happened.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "an auditor asks for the store of a commit and the artefact has expired"
+    - "a reader treats the CI artefact as a committed record of the tree"
+    - "the corpus grows an obligation whose evidence is only produced by a sweep"
+    - "a rule about the store is asserted in one place and read in
+      another: the .gitignore filter was probed by SEVEN copies of
+      one test, and each copy pinned the old name-exact glob, so the
+      change turned all seven red at once. A rule that is read in
+      seven places has to live in one place"
+    - "the store is generated, so the instrument that measures it
+      must not measure git's index: the debt ratchet read
+      `git ls-files attestations` and reported every decision as
+      unattested once the store stopped being committed. It now
+      reads the store from disk and skips a store signed for another
+      tree -- an artefact that has not been regenerated for this
+      commit is not debt, it is the freshness principle applied to a
+      generated file"

@@ -7,6 +7,6 @@
   (source_tree schemas)
   (source_tree spec)
   (source_tree tests/fixtures/self-check-fail)
-  (source_tree tests/fixtures/self-check-pass)
+  (source_tree tests/fixtures/gate-pass)
   (source_tree tests/fixtures/self-check-unknown)
   (source_tree tests/fixtures/self-check-waiver-verdict)))

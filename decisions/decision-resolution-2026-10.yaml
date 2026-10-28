@@ -4,8 +4,8 @@ id: decision-resolution
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:45727ba75bdaf173342ffa7fe0b01f44d33323ed06973c8cc0235928a9c5cc48"
-yaml_sha: "sha256:45727ba75bdaf173342ffa7fe0b01f44d33323ed06973c8cc0235928a9c5cc48"
+body_sha: "sha256:832950a0dccaea8d595aee2cefdea4a39327bee042252b9d41c9e3e131274775"
+yaml_sha: "sha256:832950a0dccaea8d595aee2cefdea4a39327bee042252b9d41c9e3e131274775"
 axiom_link:
   - A0
   - A1
@@ -252,21 +252,22 @@ commitment: |
      and not the kernel's (1, `fail`).
 
   10. THE SCOPE-INVALIDATION BREADTH GROWS BY EXACTLY ONE, and the
-      ceiling that pins it has to be raised with the reason written
-      down rather than silently. Measured with
-      `scripts/audit-scopes.py --decisions decisions --top 400`:
-      `bin/Mathc.ml` invalidates 185 decisions with this decision in
-      the corpus and 184 without it. The ceiling is 184, in
-      `tests/fixtures/scope-invalidation-breadth.sh`, and the corpus
+      ceiling that pinned it had to be raised with the reason
+      written down rather than silently. Measured by a scope
+      census over `decisions/`: `bin/Mathc.ml` invalidates 185
+      decisions with this decision in the corpus and 184 without
+      it. The ceiling was 184, in the scope-breadth fixture, and the
+      corpus
       made this exact move once before: on 2026-10-26 it was raised
       from 183 to 184 because `re-evaluation-is-not-a-check-2026-10`
       changes `bin/Mathc.ml` and "a decision whose scope does not
       cover its own change cannot be invalidated by it". This
       decision changes `bin/Mathc.ml` and its scope names it, so the
-      breadth grows by exactly one. The ceiling lives in
-      `tests/fixtures/`, which this change does not touch; the
-      one-line raise (184 -> 185) belongs to whoever owns that file,
-      and it is recorded here rather than left silent.
+      breadth grows by exactly one. That ceiling, and the census
+      that measured it, were removed on 2026-10-28 with the
+      corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml): the breadth is no
+      longer pinned by a program.
 scope:
   capabilities:
     - project-root-resolution

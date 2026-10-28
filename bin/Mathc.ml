@@ -3400,6 +3400,45 @@ let[@warning "-32"] sandbox_env_for_path_forms () =
   in
   Array.append base (Array.of_list extra)
 
+(* --- the verifier stack: a verifier that re-enters itself ---
+ *
+ * A verifier that runs a script which runs the verifier again cannot
+ * terminate. Every level spawns the next, and the fork rate is set by
+ * the tree below, not by the level.
+ *
+ * Measured on this repository (2026-10-28): the merge gate ran
+ * `scripts/check.sh`, the suite ran the fixture
+ * `tests/fixtures/gate-ref-validation.sh`, the fixture called
+ * `mathc gate HEAD~1 HEAD` again, and the cycle repeated — nine
+ * levels deep in the process tree, 40+ processes resident, load
+ * average 64 on a 4-core host. The host stopped serving the Paseo
+ * daemon: plugin RPC took 39 s, the mobile client timed out, and
+ * every agent in the UI looked dead.
+ *
+ * The cycle is invisible inside one process, so it travels through
+ * the environment: a script verifier is handed the list of the
+ * verifiers already running above it, and a script whose path is
+ * already on that list is REFUSED instead of run.
+ *
+ * The refusal is neither a pass nor a rejection. The check did not
+ * run HERE, and its verdict belongs to the run that started it, so
+ * the obligation is reported as not runnable — which is what it is. *)
+let[@warning "-32"] verifier_stack_env = "MATH_CODING_VERIFIER_STACK"
+
+let[@warning "-32"] verifier_stack () : string list =
+  match Sys.getenv_opt verifier_stack_env with
+  | None -> []
+  | Some s ->
+      List.filter (fun p -> String.trim p <> "") (String.split_on_char '\n' s)
+
+(* The environment for a child that is about to run [abs_verifier].
+   The verifier's own path joins the stack, so the child knows what is
+   running above it. *)
+let[@warning "-32"] sandbox_env_for_verifier ~abs_verifier () =
+  let base = sandbox_env_for_path_forms () in
+  let stack = verifier_stack () @ [ abs_verifier ] in
+  Array.append base [| verifier_stack_env ^ "=" ^ String.concat "\n" stack |]
+
 (* Characters that only mean something to a shell. `\n` and `\r`
    would smuggle a second command through a YAML block scalar. *)
 let[@warning "-32"] shell_metacharacters =
@@ -4007,6 +4046,24 @@ type verifier_plan_result =
   (* a form verify knows, that cannot run: `fail` + reason *)
   | Plan_ok of verifier_plan
 
+(* How a verifier string is classified BEFORE anything runs.
+ *
+ * The distinction the boolean predicate could not make: a
+ * declaration is not a check, and a check that cannot be set up is
+ * a check whose outcome is unknown. Collapsing the second into the
+ * first removes the check from the list, and the obligation is then
+ * judged on what remains. *)
+type verifier_class =
+  | Executable
+  (* a check, and it can be set up *)
+  | Not_a_check
+  (* not a check at all: a `manual-` declaration, a scheme with no
+     execution rule *)
+  | Cannot_be_set_up
+(* a check that cannot be set up: the file is missing, the scheme
+     is unknown, the arguments are malformed. Its outcome is
+     UNKNOWN, and an unknown outcome is not a pass. *)
+
 let[@warning "-32"] reject_metachars ~what tokens =
   match List.find_map first_shell_metacharacter tokens with
   | Some c ->
@@ -4097,7 +4154,24 @@ let[@warning "-32"] plan_script_form ~project_root ~args ~token =
       match Unix.access abs [ Unix.X_OK ] with
       | () -> (
           match reject_metachars ~what:token args with
-          | Plan_skip -> Plan_ok (Plan_script (abs, args))
+          | Plan_skip ->
+              (* The script is already running somewhere above this
+                 verifier. Running it again is the cycle that forks
+                 without bound, so it is refused HERE, where the
+                 refusal can be said out loud. *)
+              if List.mem abs (verifier_stack ()) then begin
+                Printf.eprintf
+                  "mathc: CIRCULAR VERIFIER: %s is already running above this \
+                   one (stack: %s). A verifier that re-enters itself can never \
+                   terminate. The check did not run here; its verdict belongs \
+                   to the run that started it.\n%!"
+                  abs (String.concat " -> " (verifier_stack ()));
+                Plan_fail
+                  (Printf.sprintf
+                     "%s: CIRCULAR VERIFIER — already running above this one"
+                     token)
+              end
+              else Plan_ok (Plan_script (abs, args))
           | other -> other)
       | exception _ -> Plan_fail (Printf.sprintf "%s: not executable" token))
 
@@ -4152,7 +4226,8 @@ let[@warning "-32"] plan_verifier ~project_root scheme args =
 (* Run one argv in the sandbox and map its status to a verdict. The
    child's stdout/stderr are captured; on a non-pass verdict an
    excerpt goes to stderr. *)
-let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
+let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog
+    ~args =
   (* A repository script arrives here as an ABSOLUTE path that
      repo_file already proved is inside the root; only a bare
      program name (`dune`) is looked up on the child's PATH. *)
@@ -4169,9 +4244,9 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
       let log = Filename.temp_file "mathc_verify_" ".log" in
       let outcome, status =
         run_with_sandbox_in_env
-          ~env:(sandbox_env_for_path_forms ())
+          ~env:(sandbox_env_for_verifier ~abs_verifier:abs_prog ())
           ~capture_to:(Some log) ~project_root ~prog:abs_prog
-          ~args:(abs_prog :: args) ~timeout_s:verify_timeout_s ~sandbox_mode
+          ~args:(abs_prog :: args) ~timeout_s ~sandbox_mode
       in
       let captured = read_capped log ~max_bytes:65536 in
       (try Sys.remove log with _ -> ());
@@ -4179,7 +4254,7 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
         match outcome with
         | Timeout ->
             Printf.eprintf "mathc verify: %s exceeded the %d s timeout\n%!" prog
-              verify_timeout_s;
+              timeout_s;
             Timeout
         | Pass -> (
             match status with
@@ -4230,18 +4305,19 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~prog ~args =
             ~max_lines:20 captured);
       verdict
 
-let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode = function
+let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
+  function
   | Plan_dune args ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune" ~args
   | Plan_script (abs, args) ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:abs ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:abs ~args
   | Plan_cram rel ->
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune"
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune"
         ~args:[ "runtest"; rel ]
   | Plan_binary (target, argv) ->
       let args = [ "exec"; target ] in
       let args = if argv = [] then args else args @ [ "--" ] @ argv in
-      run_plan_argv ~project_root ~sandbox_mode ~prog:"dune" ~args
+      run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune" ~args
 
 (* Run a single verifier string. Returns Pass | Fail | Skipped |
    Timeout. The sandbox is enforced by the scheme allowlist. In
@@ -4252,7 +4328,7 @@ let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode = function
    string is `skipped` (binary), with the human-readable reason
    surfaced through stderr by run_with_sandbox's `strict`
    branch. *)
-let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
+let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode ~timeout_s
     ~verifier_string =
   match parse_verifier_string verifier_string with
   | None -> Skipped
@@ -4264,7 +4340,19 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           | _ -> Fail)
       | "dir-exists" -> (
           match args with
-          | [ path ] -> if Sys.is_directory path then Pass else Fail
+          (* `Sys.is_directory` RAISES `Sys_error` on a path that does
+             not exist -- it is `Sys.file_exists` that answers false.
+             Asking the question the verifier actually asks ("is this
+             path a directory?") with the wrong primitive turned a
+             missing directory into an uncaught exception: the whole
+             verifier run died with "mathc: internal error:
+             Sys_error(...)" and exit 3, and the obligation was
+             reported as no verdict at all rather than as the `fail`
+             it is. The gate runs verifiers, so a verifier that
+             crashes the gate takes the gate with it. *)
+          | [ path ] ->
+              if Sys.file_exists path && Sys.is_directory path then Pass
+              else Fail
           | _ -> Fail)
       | "mathc" ->
           (* Strict mode: enforce read-only subcommand allowlist. *)
@@ -4285,20 +4373,35 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           end
           else begin
             (* Subprocess: re-invoke this binary with the same
-               env-stripped, project-root-cwd sandbox. *)
+               env-stripped, project-root-cwd sandbox.
+
+               The child's output is CAPTURED, not inherited. The
+               gate's stdout is ONE json document, and a verifier
+               that prints ("parse-ok: decisions/...") would
+               interleave its lines into that document until nothing
+               could parse it -- which is what happened the moment
+               the gate began running its own verifiers. The
+               excerpt goes to stderr, and only when the verdict is
+               not a pass: the gate's reader is the json, stderr is
+               for the human. *)
             let argv = Sys.executable_name :: args in
+            let log = Filename.temp_file "mathc_verify_" ".log" in
             let outcome, status =
-              run_with_sandbox ~project_root ~prog:Sys.executable_name
-                ~args:argv ~timeout_s:60 ~sandbox_mode
+              run_with_sandbox_in_env ~env:(sandbox_env ())
+                ~capture_to:(Some log) ~project_root ~prog:Sys.executable_name
+                ~args:argv ~timeout_s ~sandbox_mode
             in
-            match outcome with
-            | Timeout -> Timeout
-            | Pass -> (
-                match status with
-                | Unix.WEXITED 0 -> Pass
-                | Unix.WEXITED n ->
-                    Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
-                    (* The exit codes of a mathc subcommand carry
+            let captured = read_capped log ~max_bytes:65536 in
+            (try Sys.remove log with _ -> ());
+            let verdict =
+              match outcome with
+              | Timeout -> Timeout
+              | Pass -> (
+                  match status with
+                  | Unix.WEXITED 0 -> Pass
+                  | Unix.WEXITED n ->
+                      Printf.eprintf "mathc verify: mathc exited %d\n%!" n;
+                      (* The exit codes of a mathc subcommand carry
                        the KERNEL's own semantics (spec/semantics.md
                        §4.3), and they are not the semantics of a
                        shell script:
@@ -4322,12 +4425,20 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
                        So the ambiguity is gone at the source, and
                        the rule can stay simple: a subcommand that
                        did not succeed is a failure of the check. *)
-                    if n = 126 || n = 127 then Setup_fail else Fail
-                | Unix.WSIGNALED _ -> Fail
-                | Unix.WSTOPPED _ -> Fail)
-            | Fail | Skipped -> Fail
-            | Setup_fail -> Setup_fail
-            | Manual_decl -> Manual_decl
+                      if n = 126 || n = 127 then Setup_fail else Fail
+                  | Unix.WSIGNALED _ -> Fail
+                  | Unix.WSTOPPED _ -> Fail)
+              | Fail | Skipped -> Fail
+              | Setup_fail -> Setup_fail
+              | Manual_decl -> Manual_decl
+            in
+            (match verdict with
+            | Pass -> ()
+            | _ ->
+                if captured <> "" then
+                  Printf.eprintf "mathc verify: output of %s:\n%s\n%!"
+                    (String.concat " " argv) captured);
+            verdict
           end
       | _ -> (
           (* Not one of the three scheme names. The corpus writes
@@ -4339,20 +4450,60 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           | Plan_fail why ->
               Printf.eprintf "mathc verify: %s — %s\n%!" verifier_string why;
               Fail
-          | Plan_ok plan -> run_verifier_plan ~project_root ~sandbox_mode plan))
+          | Plan_ok plan ->
+              run_verifier_plan ~project_root ~sandbox_mode ~timeout_s plan))
 
 (* Aggregate per-obligation verdict. The semantics follow the
    acceptance item convention: `all` means every verifier must
    pass; `any` means at least one must pass. For v1 we report
    the strict `all` rule: pass if every verifier passes, fail
-   if any fails, skipped if every verifier is skipped. *)
+   if any fails, skipped if every verifier is skipped.
+
+   WHY `Setup_fail` OUTRANKS `Pass` HERE, AND WHY IT DID NOT BEFORE.
+
+   The order of these two tests is the whole content of the
+   function under the `all` rule, and it was wrong.
+
+   `Setup_fail` is the verdict for a verifier that COULD NOT BE
+   RUN: the tool it names is not on PATH, its file is not
+   executable, its arguments are malformed. The check did not
+   fail. The check did not happen. `Pass` is the verdict for a
+   check that ran and passed.
+
+   With `Pass` tested first, a sibling that passed masked the
+   sibling that could not run, and the obligation came out
+   `pass` -- a claim that every check passed, made by a program
+   that had run one of the two. That is the same defect the
+   constitution forbids in prose (Invariant 10: a missing, stale
+   or inconclusive state MUST remain distinguishable from a
+   passed one), reached by a different road: not by laundering a
+   missing attestation, but by laundering a missing CHECK.
+
+   Measured on this corpus on 2026-10-27: 175 of 984 obligations
+   carry more than one verifier, and at least one of those
+   verifiers is PATH-dependent (`dune`, `scripts/...`,
+   `tests/...`), so a machine without that tool could report
+   those obligations as satisfied without having run them. The
+   difference is not academic. `decisions/plan-2026-10-distro-friction`
+   obligation `d9-mathc-update-subcommand` was `pass` on a host
+   without `dune` and `fail` on a host with it -- the same
+   obligation, the same tree, two verdicts, and the false one was
+   the convenient one.
+
+   The order below is: a FAIL is decisive (a check that ran and
+   failed is a fact); a Setup_fail is next (a check that could
+   not run means the outcome is not known, and unknown is not
+   pass); only then may a Pass stand. `Manual_decl` is below
+   Pass because a manual declaration is not a check that failed
+   to run -- it is a human's word, and it neither establishes nor
+   refutes the obligation. *)
 let[@warning "-32"] aggregate_verifier_outcomes outcomes =
   match outcomes with
   | [] -> Skipped
   | _ ->
       if List.exists (fun o -> o = Fail) outcomes then Fail
-      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Setup_fail) outcomes then Setup_fail
+      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Manual_decl) outcomes then Manual_decl
       else Skipped
 
@@ -4437,12 +4588,16 @@ let[@warning "-32"] verifier_result_cache : (string, verify_outcome) Hashtbl.t =
   Hashtbl.create 512
 
 let[@warning "-32"] run_one_verifier_memoized ~project_root ~sandbox_mode
-    ~verifier_string =
-  let key = sandbox_mode ^ "\000" ^ verifier_string in
+    ~timeout_s ~verifier_string =
+  let key =
+    sandbox_mode ^ "\000" ^ string_of_int timeout_s ^ "\000" ^ verifier_string
+  in
   match Hashtbl.find_opt verifier_result_cache key with
   | Some o -> o
   | None ->
-      let o = run_one_verifier ~project_root ~sandbox_mode ~verifier_string in
+      let o =
+        run_one_verifier ~project_root ~sandbox_mode ~timeout_s ~verifier_string
+      in
       Hashtbl.replace verifier_result_cache key o;
       o
 
@@ -4542,10 +4697,33 @@ type obligation_verdict = {
    * could not be read, or it does not carry the obligation. `None`
    * when the verdict came from the verifiers themselves. *)
   ov_unnamed : string option;
+  (* A check was ATTEMPTED for this obligation: at least one of its
+   * verifiers was executable and was run.
+   *
+   * WHY THE WORD ALONE IS NOT ENOUGH. The obligation-level outcome
+   * cannot say "the check ran and could not conclude": the aggregate
+   * folds a `Timeout` into `Skipped` (a check that ran out of time is
+   * not a verdict), and `Skipped` is ALSO what an obligation with no
+   * check to run at all returns. The two are different facts and
+   * they must not be settled by the same thing:
+   *
+   *   - no check to run  -- a human's declaration; the store's record
+   *     is the evidence, and it is bound to the tree by the scope
+   *     digest.
+   *   - a check that ran and could not conclude -- the check EXISTS
+   *     and it did not establish anything. The store's record is
+   *     about an OLDER tree, so letting it settle this obligation
+   *     lets a check that did not run stand in for a check that
+   *     passed.
+   *
+   * `false` when nothing was attempted: the decision could not be
+   * read, it does not carry the obligation, its only verifiers are
+   * declarations, or it names no verifier at all. *)
+  ov_ran : bool;
 }
 
 let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
-    ~obligation_id : obligation_verdict =
+    ~obligation_id ~refuse_suite ~timeout_s : obligation_verdict =
   let path = decision_path_for_id ~root ~decision_id in
   match parse_file path with
   | Error _ ->
@@ -4553,6 +4731,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
         ov_outcome = Fail;
         ov_failing = [];
         ov_unnamed = Some "the decision could not be read";
+        ov_ran = false;
       }
   | Ok v -> (
       let obl =
@@ -4566,6 +4745,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
             ov_outcome = Fail;
             ov_failing = [];
             ov_unnamed = Some "the decision does not carry the obligation";
+            ov_ran = false;
           }
       | Some (_, verifiers) ->
           (* A verifier that cannot even be PLANNED - an unknown
@@ -4577,60 +4757,154 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
              verifier that ran and reported failure is a `fail`; one
              that could not be set up is `inconclusive`, exactly like
              an obligation nobody could execute. *)
-          (* Which verifiers CAN be executed?
+          (* How a verifier string is CLASSIFIED, before anything runs.
            *
-           * The test must mirror run_one_verifier's dispatch
-           * EXACTLY. plan_verifier alone is not enough: the three
-           * ORIGINAL schemes - file-exists, dir-exists, mathc - are
-           * handled BEFORE plan_verifier is reached, and
+           * The three answers are different facts, and the old
+           * predicate collapsed two of them:
+           *
+           *   Executable       -- this is a check, and it can be set up.
+           *   Not_a_check      -- this is not a check at all: a
+           *                       `manual-` declaration, a scheme with
+           *                       no execution rule. Nothing ran and
+           *                       nothing was expected to.
+           *   Cannot_be_set_up -- this IS a check, and it could not be
+           *                       set up: the file is missing, the
+           *                       scheme is unknown, the arguments are
+           *                       malformed.
+           *
+           * The old predicate returned a bool, so `Cannot_be_set_up`
+           * and `Not_a_check` both came back FALSE and the verifier
+           * was DROPPED from the list. A check that could not be set
+           * up therefore vanished, and the obligation was judged on
+           * the verifiers that remained -- which is how an
+           * obligation whose only executable check was unrunnable
+           * could come out `pass`. The drop is the same laundering
+           * as the one in `aggregate_verifier_outcomes`, one step
+           * earlier: the unrunnable check was removed before the
+           * question of whether it had run was ever asked.
+           *
+           * The classification must mirror run_one_verifier's
+           * dispatch EXACTLY. plan_verifier alone is not enough:
+           * the three ORIGINAL schemes - file-exists, dir-exists,
+           * mathc - are handled BEFORE plan_verifier is reached, and
            * plan_verifier knows nothing about them. Filtering on
-           * plan_verifier alone therefore dropped every
-           * file-exists and mathc verifier on the floor, and the
-           * obligation came out inconclusive - 200 obligations whose
-           * check was perfectly executable, reported as a check that
-           * could not run. *)
-          let executable s =
+           * plan_verifier alone dropped every file-exists and
+           * mathc verifier on the floor, and the obligation came
+           * out inconclusive - 200 obligations whose check was
+           * perfectly executable, reported as a check that could
+           * not run. *)
+          let classify s =
             match parse_verifier_string s with
-            | None -> false
+            | None -> Not_a_check
             | Some (scheme, args) -> (
                 match scheme with
-                | "file-exists" | "dir-exists" -> args <> []
-                | "mathc" -> args <> []
+                | "file-exists" | "dir-exists" ->
+                    if args <> [] then Executable else Not_a_check
+                | "mathc" -> if args <> [] then Executable else Not_a_check
+                | "dune" -> (
+                    if
+                      (* A `dune` verifier runs the BUILD SYSTEM. The gate
+                       runs inside CI, where the suite has already run,
+                       and inside a cram test, where a `dune runtest`
+                       inside a `dune runtest` recurses and the
+                       recursion ends in a timeout, not in a verdict.
+                       So the gate refuses it and says so: the check
+                       did not run, and the obligation is reported as
+                       "could not be run against the candidate tree",
+                       which is what it is. *)
+                      refuse_suite
+                    then begin
+                      Printf.eprintf
+                        "mathc gate: not running the dune verifier %S: it \
+                         would nest the build system inside the gate\n\
+                         %!"
+                        s;
+                      Cannot_be_set_up
+                    end
+                    else
+                      match plan_verifier ~project_root:root scheme args with
+                      | Plan_ok _ -> Executable
+                      | Plan_fail _ -> Cannot_be_set_up
+                      | Plan_skip -> Not_a_check)
+                | _ when refuse_suite && starts_with "tests/" scheme ->
+                    (* A verifier that names a TEST is the suite by
+                       another name, and the suite is a separate step:
+                       `scripts/dev verify` runs it before the gate, in
+                       CI and on a developer machine alike. Run from
+                       inside the gate it is the same recursion one
+                       level down, and it is SLOW: measured on this
+                       repository, one `tests/cli/*.t` verifier took 47
+                       seconds of a 1 m 46 s gate run, because the case
+                       builds. The gate runs CHECKS -- the kernel's own
+                       subcommands, path checks, repository scripts --
+                       and reports the suite's verdicts from the step
+                       that ran them. *)
+                    Printf.eprintf
+                      "mathc gate: not running the test verifier %S: the suite \
+                       is a separate step, and running it here would nest it \
+                       inside the gate\n\
+                       %!"
+                      s;
+                    Cannot_be_set_up
                 | _ -> (
                     match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> true
-                    | Plan_fail _ -> false
-                    | Plan_skip -> false))
+                    | Plan_ok _ -> Executable
+                    | Plan_fail _ -> Cannot_be_set_up
+                    | Plan_skip -> Not_a_check))
           in
-          let planned = List.filter executable verifiers in
+          let classified = List.map (fun s -> (s, classify s)) verifiers in
+          let planned =
+            List.filter_map
+              (fun (s, c) -> if c = Executable then Some s else None)
+              classified
+          in
+          (* The checks that could not be set up. They are NOT
+              dropped: each one is a check whose outcome is unknown,
+              and the obligation's verdict has to say so. *)
+          let unrunnable =
+            List.filter_map
+              (fun (s, c) -> if c = Cannot_be_set_up then Some s else None)
+              classified
+          in
           (* An obligation whose only verifiers are `manual:`
-             declarations is not a gap - it is a HUMAN DECLARATION, and
-             the attestation system has a class for that: `review`.
-             Treating it as inconclusive made 466 declared obligations
-             unsatisfiable, which is the opposite of what a declaration
-             is for. The declaration is still bound to a tree through
-             the scope digest, so it goes stale when the scope changes
-             - a declaration that cannot be invalidated is a
-             decoration, and that is exactly what the binding
-             prevents. *)
-          if planned = [] && verifiers <> [] then
-            { ov_outcome = Manual_decl; ov_failing = []; ov_unnamed = None }
-          else if planned = [] then
-            { ov_outcome = Skipped; ov_failing = []; ov_unnamed = None }
+              declarations is not a gap - it is a HUMAN DECLARATION, and
+              the attestation system has a class for that: `review`.
+              Treating it as inconclusive made 466 declared obligations
+              unsatisfiable, which is the opposite of what a declaration
+              is for. The declaration is still bound to a tree through
+              the scope digest, so it goes stale when the scope changes
+              - a declaration that cannot be invalidated is a
+              decoration, and that is exactly what the binding
+              prevents. *)
+          if planned = [] && unrunnable = [] && verifiers <> [] then
+            {
+              ov_outcome = Manual_decl;
+              ov_failing = [];
+              ov_unnamed = None;
+              ov_ran = false;
+            }
+          else if planned = [] && unrunnable = [] then
+            {
+              ov_outcome = Skipped;
+              ov_failing = [];
+              ov_unnamed = None;
+              ov_ran = false;
+            }
           else
             let outcomes =
               List.map
                 (fun s ->
                   ( s,
                     run_one_verifier_memoized ~project_root:root ~sandbox_mode
-                      ~verifier_string:s ))
+                      ~timeout_s ~verifier_string:s ))
                 planned
+              @ List.map (fun s -> (s, Setup_fail)) unrunnable
             in
             (* The failing verifiers are the ones whose OWN outcome was
-               `fail` - not the first of the list, and not the first one
-               that could be planned. An aggregate is `fail` if and only
-               if some outcome is, so this list is exactly the set of
-               checks that made the obligation fail. *)
+                `fail` - not the first of the list, and not the first one
+                that could be planned. An aggregate is `fail` if and only
+                if some outcome is, so this list is exactly the set of
+                checks that made the obligation fail. *)
             let failing =
               List.filter_map
                 (fun (s, o) -> if o = Fail then Some s else None)
@@ -4640,12 +4914,20 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
               ov_outcome = aggregate_verifier_outcomes (List.map snd outcomes);
               ov_failing = failing;
               ov_unnamed = None;
+              (* A check was ATTEMPTED exactly when at least one
+                 verifier was executable and was run. The aggregate
+                 folds a `Timeout` into `Skipped`, so `Skipped` alone
+                 cannot say whether a check ran and could not conclude
+                 or whether there was no check to run at all -- and the
+                 live path has to tell those apart. *)
+              ov_ran = planned <> [];
             })
 
 (* The verdict, for the callers that only need the word. *)
 let[@warning "-32"] verdict_of_obligation ~root ~sandbox_mode ~decision_id
-    ~obligation_id : verify_outcome =
-  (verdict_of_obligation_named ~root ~sandbox_mode ~decision_id ~obligation_id)
+    ~obligation_id ~refuse_suite ~timeout_s : verify_outcome =
+  (verdict_of_obligation_named ~root ~sandbox_mode ~decision_id ~obligation_id
+     ~refuse_suite ~timeout_s)
     .ov_outcome
 
 (* What a refusal says about the check that broke.
@@ -5365,7 +5647,8 @@ let[@warning "-32"] do_attest_batch () =
               if !run_per_obligation then
                 Some
                   (verdict_of_obligation_named ~root ~sandbox_mode:"none"
-                     ~decision_id:decision ~obligation_id:obligation)
+                     ~decision_id:decision ~obligation_id:obligation
+                     ~refuse_suite:false ~timeout_s:verify_timeout_s)
               else None
             in
             let kind_, result, run =
@@ -5550,6 +5833,7 @@ let[@warning "-32"] do_attest_batch () =
                 match
                   verdict_of_obligation ~root ~sandbox_mode:"none"
                     ~decision_id:decision ~obligation_id:obligation
+                    ~refuse_suite:false ~timeout_s:verify_timeout_s
                 with
                 | Pass -> (!kind, "pass", "run-per-obligation")
                 | Fail -> (!kind, "fail", "run-per-obligation")
@@ -5761,7 +6045,8 @@ let[@warning "-32"] do_verify () =
         let outcomes =
           List.map
             (fun s ->
-              run_one_verifier ~project_root ~sandbox_mode ~verifier_string:s)
+              run_one_verifier ~project_root ~sandbox_mode
+                ~timeout_s:verify_timeout_s ~verifier_string:s)
             verifier_strings
         in
         let verdict = aggregate_verifier_outcomes outcomes in
@@ -5790,24 +6075,49 @@ let[@warning "-32"] do_verify () =
         (Jsonl.stringify (Jsonl.String path))
         items);
   (* Exit code (spec/semantics.md §Kernel Output "Verdict to exit
-     code"; constitution.md Invariant 14b: "exit code 0 MUST imply
-     verdict `Pass` or `Open_with_waiver`").
+      code"; constitution.md Invariant 14b: "exit code 0 MUST imply
+      verdict `Pass` or `Open_with_waiver`").
 
-       - a decisive failure of any obligation -> `Block` -> 1;
-       - at least one obligation actually FULFILLED -> `Pass` -> 0;
-       - nothing was fulfilled -> `Unknown` -> 3.
+        - a decisive failure of any obligation -> `Block` -> 1;
+        - an obligation that was NOT verified -> `Unknown` -> 3;
+        - every obligation verified and passed -> `Pass` -> 0.
 
-     The third row is the one this command got wrong. `skipped`,
-     `setup-fail`, `timeout` and `declared` are all "the check did
-     not happen", and a command that verified nothing is not a
-     passing command: the previous code exited 0 for it, which is
-     `unknown != pass` laundering at the last place the distinction
-     can still be lost (the exit code). Measured on this repository
-     before the fix: `mathc verify` on a real decision printed seven
-     `skipped` verdicts and exited 0. *)
+     The second row is the one this command got wrong, twice, for the
+     same reason.
+
+     First: `skipped`, `setup-fail`, `timeout` and `declared` are all
+     "the check did not happen", and a command that verified nothing
+     is not a passing command: the previous code exited 0 for it,
+     which is `unknown != pass` laundering at the last place the
+     distinction can still be lost (the exit code). Measured on this
+     repository before that fix: `mathc verify` on a real decision
+     printed seven `skipped` verdicts and exited 0.
+
+     Second, and this is the subtler one: the rule that replaced it
+     was "at least one obligation was actually FULFILLED -> 0". That
+     rule says a command that verified ONE obligation and could not
+     verify ANOTHER exits 0 -- and the exit code is the last place
+     the difference between "the check passed" and "the check did not
+     run" can still be lost, so losing it there loses it for good. A
+     decision with two obligations, one executable and one not, was
+     reported as verified.
+
+     The rule now is the strict one: exit 0 means EVERY obligation
+     was verified and passed. A command that verified part of a
+     decision has not verified the decision, and saying so is the
+     whole point of the exit code. *)
   let has_fail = List.exists (fun (_, v) -> v = Fail) verdicts in
-  let has_pass = List.exists (fun (_, v) -> v = Pass) verdicts in
-  if has_fail then exit 1 else if has_pass then exit 0 else exit 3
+  (* An obligation that was not verified. `skipped`, `setup-fail`,
+     `timeout` and `declared` all mean "the check did not happen",
+     and a claim whose check did not happen is an UNKNOWN claim.
+     It is not a failed claim, and it is not a fulfilled one. *)
+  let unverified =
+    List.exists (fun (_, v) -> v <> Pass && v <> Fail) verdicts
+  in
+  if has_fail then exit 1
+  else if unverified then exit 3
+  else if verdicts <> [] then exit 0
+  else exit 3
 
 (* --- gate subcommand (gate-decision@1 scaffold) ---
  *
@@ -5837,124 +6147,55 @@ let[@warning "-32"] do_verify () =
  * MATH_CODING_ROOT in :312). *)
 (* Membership filter for the attestation store.
  *
- * An attestation names the tree it was produced against. A file that
- * exists on disk but is in no commit is not evidence about any tree,
- * so it is not evidence about the one the attestation names -- and if
- * it were read, a stray `dune runtest` would be enough to move the
- * verdict of a commit that never contained it. On this repository that
- * is not hypothetical: `attestations/t1-2-A0-*.json` is written by
- * test runs, is gitignored, and the loader used to read it, so a
- * polluted tree reported `pass` on nothing that was committed.
+ * THE STORE IS A GENERATED ARTEFACT, AND THE FILES ON DISK ARE THE
+ * STORE. The store is produced by scripts/sign-store.sh into the
+ * working tree and is no longer committed
+ * (decisions/store-not-committed-2026-10.yaml): 12337 of 12556 file
+ * touches over the last 60 commits were under attestations/, and
+ * committing a generated artefact put ~890 rewritten files into every
+ * diff that touched a decision.
  *
- * The answer comes from git, so a tree under no version control has no
- * claim to enforce and gets `any_file`. `None` from `tracked_under`
- * means "git could not answer", which is NOT the same as "git says
- * nothing is tracked" -- conflating them would silently empty the
- * store, so the distinction is preserved here. *)
-let[@warning "-32"] store_keep_for store_dir =
-  (* POSIX: a path is absolute exactly when it starts with '/'. *)
-  let[@warning "-32"] store_dir_is_relative d =
-    String.length d > 0 && d.[0] <> '/'
-  in
-  (* `git ls-files` prints paths relative to the REPOSITORY ROOT, so
-     the pathspec has to be given that way too. Passing the store's
-     absolute path makes git accept the pathspec (it resolves an
-     absolute path) and still print repository-relative paths, which
-     then fail to match any prefix and yield an empty set -- a filter
-     that silently admits nothing. Reducing the path against the
-     toplevel is what keeps the two sides speaking the same language. *)
-  let toplevel () =
-    let tmp = Filename.temp_file "mc_git_toplevel_" ".txt" in
-    Fun.protect
-      ~finally:(fun () -> try Sys.remove tmp with _ -> ())
-      (fun () ->
-        (* Ask git from the STORE's directory, not from the process's
-           working directory. The question being asked is "which
-           files of the store does the repository track", and that
-           question has the same answer whatever directory the caller
-           happens to be in. Asking it from the caller's directory
-           made the answer depend on the caller: from a directory
-           outside the repository git cannot answer at all, the
-           filter falls back to `any_file`, and `any_file` admits
-           every file on disk - including the 878 gitignored
-           attestations that test runs write into attestations/.
-           Those files carry stale material digests, so the subjects
-           they name stop being passes and fall back onto their
-           waivers. Measured on this repository: 0 open-with-waiver
-           subjects when the same binary ran from the repository
-           root, and 7 when it ran from anywhere else.
-           *
-           * The store's own directory is the one place the answer is
-           * guaranteed to exist, because it is inside the repository
-           * the store belongs to. *)
-        let cwd =
-          if Sys.file_exists store_dir then store_dir
-          else Filename.dirname store_dir
-        in
-        let cmd =
-          Printf.sprintf "git -C %s rev-parse --show-toplevel > %s 2>/dev/null"
-            (Filename.quote cwd) (Filename.quote tmp)
-        in
-        if Sys.command cmd <> 0 then None
-        else
-          let raw =
-            try In_channel.with_open_bin tmp In_channel.input_all with _ -> ""
-          in
-          let t = String.trim raw in
-          if t = "" then None else Some t)
-  in
-  (* The store directory arrives in either shape: `resolve_store_root`
-     hands back an absolute path, `Path_config.resolve_attestations_dir`
-     hands back one relative to the project root. Reducing only the
-     absolute form is how the first version of this ended up calling
-     `any_file` for every read path -- a filter that is present,
-     documented, and inert. Handle both, and treat a path outside the
-     repository as "no claim to enforce" rather than guessing. *)
-  let relative_to_toplevel top dir =
-    let a = String.trim dir in
-    if store_dir_is_relative a then Some a
-    else if a = top then Some ""
-    else
-      let k = String.length top in
-      if String.length a > k + 1 && String.sub a 0 k = top && a.[k] = '/' then
-        Some (String.sub a (k + 1) (String.length a - k - 1))
-      else None
-  in
-  match toplevel () with
-  | None -> Attestations.any_file
-  | Some top -> (
-      match relative_to_toplevel top store_dir with
-      | None -> Attestations.any_file
-      | Some rel -> (
-          (* The pathspec `rel` is relative to the REPOSITORY TOPLEVEL,
-             so git must be asked with the toplevel as its working
-             directory. Asking it from the PROCESS's working directory
-             silently asks a different question: `git -C <cwd>
-             ls-files -- attestations` resolves the pathspec against
-             <cwd>, and from a directory that is not the toplevel it
-             either fails (no repository there) or - when the
-             directory happens to be INSIDE the repository, as a cram
-             sandbox under _build/ is - succeeds with an EMPTY list.
-             An empty list means "no file of the store is tracked",
-             which empties the store: every attestation stops counting
-             as evidence, and every waiver-covered subject drops back
-             to open-with-waiver.
-             *
-             * The consequence was measured: the same binary reported
-             * 0 open-with-waiver subjects when run from the repository
-             * root and 7 when run from a sandbox inside the
-             * repository. The filter was therefore a function of the
-             * caller's working directory, which is the opposite of
-             * what the resolution comment above promises: "the gate is
-             * reproducible from any working directory".
-             *
-             * Fix: ask git from the toplevel. *)
-          match Git_diff.tracked_under ~cwd:top ~rel_dir:rel with
-          | None -> Attestations.any_file
-          | Some names ->
-              let table = Hashtbl.create ((List.length names * 2) + 1) in
-              List.iter (fun n -> Hashtbl.replace table n ()) names;
-              fun name -> Hashtbl.mem table name))
+ * So the question this function used to answer -- "which files of the
+ * store does the repository TRACK?" -- no longer has a repository to
+ * ask. The answer is now "the .json files under the store directory",
+ * and the trust anchor moves with it:
+ *
+ *   1. The sweep PRUNES the store to what the run observed, so
+ *      anything the sweep did not observe is not in the store when
+ *      the gate reads it.
+ *   2. Nothing may write into the store except the sweep:
+ *      tests/fixtures/cram-tests-do-not-write-the-source-tree.sh
+ *      lints the test sources for a write whose target is under the
+ *      source root -- attestations/ included -- and the tree is
+ *      compared before and after the suite runs.
+ *   3. CI sweeps the store immediately before the steps that read it.
+ *
+ * WHAT THIS GIVES UP, EXPLICITLY. The old filter was git's index, and
+ * it was added for a measured reason: `attestations/t1-2-A0-*.json`
+ * is written by test runs, and a tree polluted with scratch
+ * attestations reported `pass` on nothing that was committed. The
+ * guard (2) and the prune (1) replace that filter. The difference
+ * that remains is a window: between a stray write and the next
+ * sweep, a stray file would be admitted. The sweep closes that
+ * window in the flow that matters (CI sweeps, then gates), and the
+ * guard closes it in the flow that creates it (a test run).
+ *
+ * The alternative -- keeping the filter and keeping the store tracked
+ * -- keeps the churn that made the project spend 98.3% of its file
+ * touches on a generated artefact. That is the cost this function's
+ * comment used to defend; the cost is now paid on the other side. *)
+let[@warning "-32"] store_keep_for _store_dir = Attestations.any_file
+
+(*
+ * The previous implementation resolved the store's directory relative
+ * to the repository toplevel and asked git for the tracked names
+ * under it. It is kept here as the record of why the answer changed:
+ * the filter was a function of the CALLER's working directory, which
+ * is the opposite of what the resolution promise says -- the same
+ * binary reported 0 open-with-waiver subjects from the repository
+ * root and 7 from a sandbox inside the repository. The tracked
+ * filter is gone; the store is the directory.
+ *)
 
 let[@warning "-32"] resolve_store_root project_root =
   let env_path =
@@ -6130,10 +6371,70 @@ let[@warning "-32"] git_ref_resolves cwd r =
 
 let do_gate () =
   let base = ref "" and head = ref "" in
+  (* THE FOUR SWITCHES OF THE GATE.
+   *
+   * `--scope` evaluates only the decisions whose scope names a file
+   * this change touches. Without it the gate asks every active
+   * decision whether its obligations still hold -- a question about
+   * the whole history, asked on every commit, which is why a commit
+   * touching eight files was checked against 958 obligations and
+   * blocked for 752 gaps it could not have caused.
+   *
+   * `--execute` runs the verifiers of the touched decisions ON THE
+   * CANDIDATE TREE instead of reading what the store said about an
+   * older tree. The store holds evidence about a tree that has since
+   * moved; freshness is not safety.
+   *
+   * `--no-execute` turns EXECUTION OFF. It exists because execution
+   * cannot be left to the reader of the flag: a verifier that runs
+   * `dune runtest` inside a `dune runtest` RECURSES, and the
+   * recursion ends in a timeout, not in a verdict. Measured on this
+   * repository: `dune test` timed out. So a gate that is itself
+   * invoked from inside a test -- which is what the cram fixtures in
+   * tests/cli/ are -- has to be able to say "run nothing" and have
+   * that hold, whoever else passed `--execute` and whatever the
+   * default is on the day it runs.
+   *
+   * IT IS A VETO, NOT A TOGGLE. `--no-execute` wins over `--execute`
+   * whatever the order of the flags, and it wins over the default
+   * the day the default flips to "execute". A switch whose effect
+   * depends on the order of the arguments is a switch that cannot be
+   * relied on by the thing that needs it most: the test that is
+   * trying not to recurse.
+   *
+   * BOTH `--scope` AND `--execute` ARE ON BY DEFAULT NOW. The old
+   * behaviour -- every active decision, read from the store -- stays
+   * reachable with `--no-scope --no-execute`, because it is the audit
+   * question ("is the whole corpus still satisfied?") and it is a
+   * legitimate question, just not the merge gate's question. What
+   * changed is which question the merge gate asks: the one about
+   * this change. *)
+  let scope = ref true and no_scope = ref false in
+  let execute = ref true and no_execute = ref false in
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
-  (try Arg.parse [] anon "usage: mathc gate BASE HEAD"
+  let specs =
+    [
+      ( "--scope",
+        Arg.Set scope,
+        "Evaluate only the decisions the change touches (default)" );
+      ( "--no-scope",
+        Arg.Set no_scope,
+        "Evaluate every active decision, the audit question" );
+      ( "--execute",
+        Arg.Set execute,
+        "Run the touched decisions' verifiers on the candidate tree (default)"
+      );
+      ( "--no-execute",
+        Arg.Set no_execute,
+        "Run no verifier at all; the attestation store's record decides" );
+    ]
+  in
+  (try
+     Arg.parse specs anon
+       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] BASE \
+        HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
@@ -6190,9 +6491,170 @@ let do_gate () =
      empty rebuttals list and over-block every strict/exhaustive
      commit. *)
   let rebuttals = Rebuttal.all_rebuttals !head in
+  (* THE SCOPE OF THE GATE.
+   *
+   * The gate asks one question: does this change break the
+   * commitments it claims to implement? The commitments a change
+   * can break are the ones whose scope names a file the change
+   * touches, and `decisions_touching_changes` computes exactly
+   * that set -- the same function `attest-batch --only-changed`
+   * has always used.
+   *
+   * Measured on this repository on 2026-10-27: a commit that
+   * touched EIGHT files was checked against 958 obligations
+   * drawn from 266 active decisions, and produced 752 gaps (590
+   * `Unknown`), so the verdict was `block` for a change that
+   * could not have broken most of what it was asked about. The
+   * verdict was not wrong -- those obligations really were
+   * unverified -- it was answering a question nobody asked, and
+   * it made the gate unusable as a merge gate: every change was
+   * red for the same unrelated reason.
+   *
+   * A decision with an empty scope is never touched: an empty
+   * scope names no file, so no change can reach it. *)
+  let scope_map : (string, string list) Hashtbl.t = Hashtbl.create 64 in
+  List.iter
+    (fun (e : Memory.decision_entry) ->
+      Hashtbl.replace scope_map e.Memory.decision_id e.Memory.scope_paths)
+    memory.Memory.decisions;
+  let touched =
+    decisions_touching_changes ~scopes:scope_map ~changed:changed_paths
+  in
+  (* THE CHECKS RUN, NOW, ON THE CANDIDATE TREE.
+   *
+   * The store holds evidence about a tree that has since moved --
+   * that is what a digest-bound attestation IS -- so a gate that
+   * reads a store cannot say whether a change is safe. It can say
+   * whether the evidence is fresh, and freshness is not safety.
+   *
+   * Measured on this repository on 2026-10-27, on a commit that
+   * touched eight files: the scoped gate found 493 gaps, of which
+   * 283 belonged to obligations with an EXECUTABLE verifier. Those
+   * 283 were `StaleEvidence` -- the check was executable, the
+   * store's record of it was out of date, and the gate could not
+   * tell the reader whether the check would pass. Running the
+   * check settles it, and it is the check that is the promise.
+   *
+   * The cost is proportional to the change, because the set of
+   * touched decisions is: a one-file change reached 13 obligations
+   * (of 958 before the scoping), an eight-file change 161, a
+   * thirteen-file change 485.
+   *
+   * An obligation the gate could not settle by running anything --
+   * one that carries only a human declaration -- is NOT in the map,
+   * and the store is consulted for it as before. The store's
+   * remaining job is exactly this: to carry the class of claim
+   * that a program cannot check. *)
+  let live : (string * string, Gate.obligation_state) Hashtbl.t =
+    Hashtbl.create 64
+  in
+  (* THE BUDGET. A merge gate has to finish in bounded time. The work
+   * is proportional to the CHANGE, but a change that touches the
+   * kernel touches a hundred decisions, and each of them can name a
+   * check: on this repository, one commit that touched ten files
+   * reached 124 decisions carrying 69 `mathc`, 27 `dune` and 33
+   * fixture-path verifiers, and running them all took more than five
+   * minutes -- which is a gate nobody waits for, and a gate nobody
+   * waits for is not a gate.
+   *
+   * The budget is the honest way to bound it. When it runs out, the
+   * obligations that were NOT checked stay unverified, and the gate
+   * says how many they were. A gate that ran out of time does not
+   * say "everything passed"; it says "I did not check these, here
+   * is how many".
+   *
+   * MEASURED, this repository, the commit that touched ten files:
+   * with a 60 s budget the gate finished in 1 m 47 s, checked 94 of
+   * 538 obligations, and reported "the live-check budget of 60 s ran
+   * out; 444 obligation(s) were not checked". The default is
+   * therefore 30 s, and the budget is checked BETWEEN obligations:
+   * one verifier can still overrun it, by its own timeout. *)
+  let budget_s =
+    match Sys.getenv_opt "MATH_CODING_GATE_BUDGET_S" with
+    | Some s -> ( try float_of_string s with _ -> 30.0)
+    | None -> 30.0
+  in
+  let deadline = Unix.gettimeofday () +. budget_s in
+  let budget_spent = ref false in
+  let unchecked = ref 0 in
+  (* `--no-execute` is a veto: it wins over `--execute` and over the
+   * default, whatever the order of the flags. See the switch's
+   * comment above for why the veto cannot be a toggle. *)
+  if !execute && not !no_execute then
+    List.iter
+      (fun (e : Memory.decision_entry) ->
+        if List.exists (fun id -> String.equal id e.Memory.decision_id) touched
+        then
+          List.iter
+            (fun obl_id ->
+              if !budget_spent then incr unchecked
+              else if Unix.gettimeofday () > deadline then begin
+                budget_spent := true;
+                incr unchecked
+              end
+              else
+                let state =
+                  match
+                    verdict_of_obligation_named ~root ~sandbox_mode:"none"
+                      ~decision_id:e.Memory.decision_id ~obligation_id:obl_id
+                      ~refuse_suite:true ~timeout_s:10
+                  with
+                  | { ov_outcome = Pass; _ } -> Some Gate.Satisfied
+                  | { ov_outcome = Fail; _ } -> Some Gate.Failed
+                  (* A check that TIMED OUT did not conclude. Reporting it
+                   * as `Failed` says "a check ran against the candidate
+                   * tree and failed", and the remedy the gap offers is
+                   * "revert the change that broke this obligation" --
+                   * advice that accuses the change of breaking something
+                   * when the truth is that the check never finished.
+                   * `Gate.Unverified` is the state that says exactly
+                   * that: "the check exists and could not be run, or it
+                   * could not conclude". *)
+                  | { ov_outcome = Timeout; _ } -> Some Gate.Unverified
+                  | { ov_outcome = Setup_fail; _ } -> Some Gate.Unverified
+                  (* Skipped says two different things and the live path
+                   * has to tell them apart, because they must not be
+                   * settled by the same thing:
+                   *
+                   *   - `ov_ran = false`: there was NO CHECK to run --
+                   *     the obligation names no verifier at all. The
+                   *     store's record is the evidence for a claim no
+                   *     program can check, so the store decides.
+                   *   - `ov_ran = true`: a check WAS attempted and could
+                   *     not conclude. The aggregate folds a `Timeout`
+                   *     into `Skipped`, so this is the shape a check
+                   *     that ran out of time arrives in. The check
+                   *     exists and it established nothing, and the
+                   *     store's record is about an OLDER tree -- so
+                   *     letting the store settle it would let a check
+                   *     that did not run stand in for a check that
+                   *     passed. `Gate.Unverified` is the honest state.
+                   *
+                   * Manual_decl: the check is a human's word. Nothing
+                   * ran and nothing was expected to, so the store
+                   * decides. *)
+                  | { ov_outcome = Skipped; ov_ran = true; _ } ->
+                      Some Gate.Unverified
+                  | { ov_outcome = Skipped; ov_ran = false; _ } -> None
+                  | { ov_outcome = Manual_decl; _ } -> None
+                in
+                match state with
+                | Some s ->
+                    Hashtbl.replace live (e.Memory.decision_id, obl_id) s
+                | None -> ())
+            e.Memory.obligation_ids)
+      memory.Memory.decisions;
+  if !budget_spent then
+    Printf.eprintf
+      "mathc gate: the live-check budget of %.0f s ran out; %d obligation(s) \
+       were not checked\n\
+       %!"
+      budget_s !unchecked;
   let result =
     Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
       ~changed_paths ~store ~rebuttals
+      ~touched:(if !scope && not !no_scope then Some touched else None)
+      ~live
       ~materials_of_decision:
         (materials_resolver_of ~entries:memory.Memory.decisions ~tree:!head
            ~root)
@@ -6906,7 +7368,13 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
     List.filter_map
       (fun obl_id ->
         Gate.obligation_gap ~decision_id:entry.Memory.decision_id
-          ~obligation_id:obl_id ~materials_digest:materials ~store)
+          ~obligation_id:obl_id ~materials_digest:materials
+          ~store
+            (* The self-check reads the store and runs nothing: it is a
+             statement about the CORPUS, not about a candidate tree.
+             The live map is empty, so every obligation is decided by
+             the store, as before. *)
+          ~live:(Hashtbl.create 1))
       entry.Memory.obligation_ids
   in
   (* The class and the scope of a waiver.

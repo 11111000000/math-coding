@@ -57,6 +57,34 @@ The notes for v3.4.0 … v3.7.4 are below; they used to live only in
 the git tag messages, which made this file — the one that calls
 itself the single source of truth — eleven releases stale.
 
+**The corpus stops measuring itself** (`corpus-meta-layer-2026-10@1`).
+The repository carried a hand-synchronised MIRROR of its own
+attestation store: 887 committed files, 3.6 MB, regenerated whenever
+the corpus moved and pulled into every cram build as a dune
+`source_tree`. Its own coverage check reported 91 required
+(decision, obligation) pairs with no fixture file on 2026-10-27, and
+the gap grew with the corpus: the enumeration is 985 pairs today (978
+required) against 887 files. Nine scripts that measured how tidy the
+corpus was went with it - 3377 lines between them, of which
+`report-unmet-obligations.py` was 1124 against 1150 for the whole
+merge gate in `lib/gate.ml`. Over the last 60 commits, 97.9% of the
+corpus's file touches (10610 of 10842) were under `attestations/`.
+
+What replaces it is the gate. `mathc gate --scope` evaluates only the
+decisions a change touches, and `mathc gate --execute` runs their
+verifiers against the candidate tree instead of reading a store about
+an older one; a corpus-wide census is a job you run, not a script the
+repository carries. The property the mirror existed to prove is now
+proved by ten hand-written files: `tests/cli/self-check-pass.t` reads
+the same store `tests/cli/gate-pass.t` gates against.
+
+What is LOST, named: a ceiling in `tests/fixtures/*.sh` may now grow
+silently, a ceiling that stops being compared is no longer detected,
+and a scope path that names nothing is no longer detected either.
+`decisions/corpus-meta-layer-2026-10.yaml` is the record, and
+`tests/fixtures/no-shadow-corpus.sh` is the guard that keeps the
+removal from being undone by accident.
+
 ## v3.4.0 — 2026-10-23
 
 Four defects closed, each proven by a fixture that fails against the
@@ -105,8 +133,8 @@ control swallows the exit code.
 Two defects that made the verification chain report on the wrong
 thing.
 
-1. scripts/regenerate-self-check-fixture.sh regenerated the
-   self-check fixture by running scripts/generate-attestations.py -
+1. The self-check fixture builder regenerated the self-check
+   fixture by running scripts/generate-attestations.py -
    which writes to <repo_root>/attestations - and then moving the
    result with a glob over attestations/*.json. The glob matches
    the LIVE store, so every regeneration moved the live attestations

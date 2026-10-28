@@ -1,0 +1,320 @@
+---
+schema: math-coding/3.2
+id: gate-scoped-default-2026-10
+revision: 3
+state: active
+mode: light
+body_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
+yaml_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
+
+intent: |
+  The gate had two switches and no default. This decision says which
+  way they point, and the default now points that way: `mathc gate
+  BASE HEAD` with no switch evaluates only the decisions the change
+  touches, and runs their verifiers on the candidate tree. The
+  corpus-wide, store-based gate stays reachable as an on-demand
+  audit with `--no-scope --no-execute`, because it is a legitimate
+  question about the corpus -- it is just not the question a merge
+  gate should answer on every commit.
+
+  WHAT WAS MEASURED, on this repository on 2026-10-27:
+
+    - a commit touching eight files, corpus-wide gate: 962
+      obligations, 826 gaps, verdict `block`, exit 1.
+    - the same commit, scoped gate: 502 obligations, 493 gaps,
+      verdict `unknown`, exit 3.
+    - a commit touching one file, scoped gate: 13 obligations,
+      10 gaps.
+
+  The 826 gaps were true -- those obligations really were
+  unverified -- but they were about files the commit did not touch.
+  A change cannot break a commitment about a file it did not
+  change, so those gaps were not evidence about this change; they
+  were the standing state of the corpus, re-litigated on every
+  commit. The gate was not wrong. It was answering a question
+  nobody asked, and it was red for the same unrelated reason on
+  every commit, which is what a gate that has stopped carrying
+  information looks like.
+
+  The scoped gate still does not know whether the checks PASS. It
+  reads the store, and the store holds evidence about a tree that
+  has since moved. Running the checks settles it, and the check is
+  the promise. Hence scoped AND execute together, not scoped alone.
+
+  WHAT THE KERNEL SAYS, AND WHAT IT COULD NOT SAY BEFORE.
+
+  The live-execution path has three states for a check that RAN --
+  `Gate.Satisfied`, `Gate.Failed`, `Gate.Unverified` -- and one for
+  an obligation that carries no check at all, where the store's
+  record decides. The third state is the one that carries the
+  honesty: "the check exists and could not be run, or it could not
+  conclude".
+
+  It could not say the second half of that sentence. The
+  obligation-level outcome cannot distinguish "the check ran and
+  could not conclude" from "there was no check to run", because the
+  aggregate folds a `Timeout` into `Skipped`, and `Skipped` is
+  also what an obligation with no verifier at all returns. The live
+  path therefore handed a timed-out check to the store -- whose
+  record is about an OLDER tree -- and a check that did not conclude
+  could read as a check that passed.
+
+  That hole is closed. `obligation_verdict` now carries whether a
+  check was attempted, and the live path reports `Gate.Unverified`
+  for an obligation whose check ran and could not conclude instead
+  of dropping the obligation to the store. A timeout is reported as
+  "could not be run" rather than as "ran and failed", because the
+  remedy the failed gap offers -- revert the change that broke
+  this obligation -- accuses the change of breaking something when
+  the truth is that the check never finished. This is the hole the
+  recursion opens: a verifier that runs `dune runtest` inside a
+  `dune runtest` ends in a timeout, not in a verdict.
+
+  THE ESCAPE HATCH, `--no-execute`.
+
+  It turns execution off, and it is a VETO, not a toggle: it wins
+  over `--execute` whatever the order of the flags. It exists for
+  a gate that is invoked from inside a test -- a cram fixture under
+  `dune runtest` -- where a verifier that runs `dune runtest`
+  recurses until it times out, measured on this repository as a
+  `dune test` timeout. A switch whose effect depended on the order
+  of its arguments could not be relied on by the thing that needs
+  it most.
+
+  WHAT IS STILL TRUE, AND IS NAMED HERE RATHER THAN DISCOVERED
+  LATER.
+
+  A verifier form the kernel has no execution rule for is
+  classified "not a check", and the store's record decides for it
+  -- which is how a `review` attestation settles an obligation no
+  program can check. Measured on this corpus on 2026-10-28: 67
+  verifier strings name no rule the kernel implements, 52 of them
+  `mathc-*` pseudo-schemes that are declarations wearing a scheme
+  prefix and 15 of them `bash ...` commands that the project's own
+  P2 rule lists as runnable, spread over 37 of the 263 decision
+  files. They are not this decision's defect and this decision
+  does not change them; they are the backlog the switch exposes,
+  and each is closed by making the verifier runnable or by
+  declaring it `manual-...`.
+
+  A decision with an EMPTY scope is never touched by a scoped gate,
+  so its obligations are never checked. Measured on 2026-10-28: 10
+  of the 263 decision files in this corpus declare no scope path at
+  all. The empty-scope collision is still open -- the digest of an
+  empty scope is the digest of nothing -- and scoping must not
+  become a way to stop looking. The watcher that used to name the
+  dead scope paths was removed on 2026-10-28 with the rest of the
+  corpus-debt tooling (decisions/corpus-meta-layer-2026-10.yaml),
+  so from that date nothing in this repository watches for it.
+
+  THE GATE HAS TO FINISH, AND THE MEASUREMENT THAT FORCED IT.
+  Measured on this repository on 2026-10-28, on the commit that
+  touched ten files: the scoped gate reached 124 decisions carrying
+  69 `mathc`, 27 `dune` and 33 fixture-path verifiers. Running them
+  all took more than five minutes -- a gate nobody waits for is not
+  a gate. Three bounds now hold it:
+
+    1. THE GATE DOES NOT RUN THE BUILD SYSTEM. A `dune` verifier is
+       refused and named: it would nest `dune runtest` inside
+       `dune runtest`, and the recursion ends in a timeout, not in a
+       verdict. The check did not run, and the obligation says so.
+    2. THE GATE DOES NOT RUN THE SUITE. A verifier that names a
+       `tests/...` file is the suite by another name; the suite is a
+       separate step (`scripts/dev verify`), and one such verifier
+       took 47 seconds of a 1 m 46 s gate run, because the case
+       builds.
+    3. THE LIVE PATH HAS A BUDGET. 30 seconds by default
+       (`MATH_CODING_GATE_BUDGET_S` overrides it), checked BETWEEN
+       obligations, with a 10 s ceiling on one verifier. When the
+       budget runs out, the obligations that were not checked stay
+       unverified and the gate says how many they were: "the
+       live-check budget of 30 s ran out; 444 obligation(s) were not
+       checked". A gate that ran out of time does not say "everything
+       passed".
+
+  With the three bounds in place, the same gate run takes 23 seconds.
+  The verdict it returns for that commit is `block`, and the cause is
+  the STORE's stale `fail` attestations -- evidence about an older
+  tree -- not the live checks. That is the next thing the store's
+  generation has to answer: a store generated for THIS tree carries
+  no stale fail, because the sweep prunes what the run did not
+  observe.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+commitment: |
+  The default points this way, and the legacy path stays reachable:
+
+  1. `mathc gate BASE HEAD` with no switch evaluates only the
+     decisions the change touches, and runs their verifiers on the
+     candidate tree. The old corpus-wide behaviour stays available
+     as an on-demand audit and is not deleted by the switch.
+
+  2. `mathc gate --no-execute BASE HEAD` runs no verifier at all and
+     the store's record decides, whatever else is on the command
+     line. The switch is a veto, not a toggle.
+
+  3. A check that ran and could not conclude is reported as "could
+     not be run against the candidate tree", not as a failure and
+     not as settled by the store's record of an older tree.
+
+  4. The legacy corpus-wide, store-based gate is not deleted by the
+     switch. It is reachable with `--no-scope --no-execute`, and the
+     fixtures that pin it now ask for it explicitly.
+
+outcomes:
+  - id: the-gate-answers-the-change
+    statement: |
+      With the default flipped, `mathc gate BASE HEAD` evaluates
+      only the decisions whose scope names a file the change
+      touches, and runs their verifiers on the candidate tree.
+  - id: the-gate-runs-nothing-when-told-to
+    statement: |
+      `mathc gate --no-execute BASE HEAD` runs no verifier, and the
+      veto holds over `--execute` whatever the order of the flags.
+  - id: a-check-that-did-not-conclude-is-not-a-pass
+    statement: |
+      An obligation whose check ran and could not conclude is
+      reported as `Unverified` -- an `Unknown` gap -- and is not
+      settled by the attestation store's record of an older tree.
+  - id: the-legacy-path-is-still-there
+    statement: |
+      `mathc gate --no-scope --no-execute BASE HEAD` still evaluates
+      every active decision against the store's record, and the
+      fixtures that pin that contract say so explicitly.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/gate.ml"
+    - "tests/cli/gate-scoped.t"
+    - "decisions/gate-scoped-default-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-kernel-builds
+    claim: |
+      The kernel and the CLI build. A branch that does not compile
+      cannot be reviewed, and the change this decision covers --
+      a third switch on the gate, and a new field on the kernel's
+      per-obligation verdict -- is exactly the kind of half-landed
+      change that ends a session with the work unusable.
+    acceptance:
+      all:
+        - verifier: dune build --root .
+          result: pass
+  - id: the-scoped-gate-answers-the-change
+    claim: |
+      On a tree of the fixture's own making, the scoped gate
+      evaluates 4 obligations and the unscoped gate 6, from the same
+      tree and the same store, and the two differ only in the
+      obligations of the decision whose scope names a file the
+      change did not touch.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-scoped.t
+          result: pass
+  - id: the-escape-hatch-is-named-and-honoured
+    claim: |
+      `mathc gate --help` names `--no-execute`, and
+      `mathc gate --scope --no-execute BASE HEAD` runs no verifier:
+      the marker file the failing verifier writes is absent and the
+      store's record decides. The veto holds over `--execute` in
+      either order of the flags.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-scoped.t
+          result: pass
+        - verifier: mathc gate --help
+          result: pass
+  - id: a-check-that-could-not-run-is-not-a-pass
+    claim: |
+      An obligation whose verifier cannot be set up is reported as
+      an `Unknown` gap -- "a check that could not be run against the
+      candidate tree" -- and not as satisfied. A verifier that
+      crashes the kernel is a failure of the check, not of the
+      gate: `dir-exists` on a directory that does not exist is a
+      `FailedEvidence` gap and the gate still prints its verdict.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-scoped.t
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/gate-scoped-default-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/gate-scoped-default-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - a gate that can be scoped can also be scoped too narrowly, because a decision whose scope names nothing is never touched and its obligations are never checked
+    - a scoped gate reads the scopes, so a scope that names a file nothing changed protects nothing, and a scope that names a file that does not exist protects nothing either
+    - the default flip makes the store optional for the touched decisions, so a store that is empty no longer reddens the merge gate and nobody notices that the store is empty
+    - the live path runs the checks during a gate, so a check that runs dune runtest inside a dune runtest recurses, and the escape hatch has to stay reachable
+    - the scoped gate evaluates fewer obligations, so a defect that lives outside the touched set is not caught by the merge gate any more and has to be caught by an audit
+  owner: human:maintainer
+
+counterexample: |
+  The strongest objection to this decision, recorded so nobody reads
+  the switch as "the gate is now effective":
+
+  The scoped gate still does not know whether the checks PASS, and
+  the flip does not change that for the obligations it cannot run.
+  Measured on this corpus on 2026-10-28: 67 verifier strings name
+  no rule the kernel implements -- 52 `mathc-*` pseudo-schemes and
+  15 `bash ...` commands -- spread over 37 of the 263 decision
+  files. For those obligations the store's record still decides,
+  and the store's record is about an older tree. So the flip moves
+  826 gaps to 493 and leaves a class of obligation whose verdict is
+  a snapshot, not a check. The obligation count falls; the
+  assurance does not rise by the same amount.
+
+  That objection is accepted in full for the obligations it names,
+  and it is the reason the flip is not done by this decision. The
+  backlog is countable and each item has one repair: make the
+  verifier runnable, or declare it `manual-...` so that the store's
+  `review` class is what settles it, which is what a declaration
+  is for. Until that is done, the scoped gate's smaller number is
+  a smaller number of questions, not a smaller number of
+  unverified obligations.
+
+  The second objection is sharper: a decision with an empty scope
+  is never touched, so the scoped gate never checks it. 10 of the
+  263 decision files declare no scope path at all, and the watcher
+  that used to name the dead scope paths was removed on 2026-10-28
+  (decisions/corpus-meta-layer-2026-10.yaml). The scope-wide audit
+  is therefore not optional decoration: it is the only thing that
+  looks at the decisions the merge gate will never reach.
+
+antithesis: |
+  The opposite claim is that the corpus-wide gate is the point: a
+  protocol that only checks what the diff touches cannot promise
+  that the whole corpus holds, and an adopter who wants that
+  promise has no way to get it.
+
+  That claim is right, and it is the reason the corpus-wide path
+  stays. The promise is available -- as an audit, run on demand,
+  over the whole corpus -- and it is not available as the merge
+  gate, because a merge gate that returns `block` for 826 gaps on
+  every commit, whatever the commit, is not a stronger promise; it
+  is a promise no one keeps. The two questions want different
+  tools, and making one command answer both is what produced 826
+  gaps and a red gate for a month.
+
+  The second counter-position is on the escape hatch: "a switch
+  that turns execution OFF is a hole in the gate, and a gate that
+  can be told to look at nothing will be told to look at nothing."
+  Rejected, because the switch is a veto with a named caller rather
+  than a default anyone can turn off by accident: it exists for the
+  gate that runs INSIDE a test, where the alternative is a
+  recursion that ends in a timeout, and it is exercised by a
+  fixture that fails if the veto does not hold over `--execute` in
+  either order.

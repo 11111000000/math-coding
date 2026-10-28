@@ -272,7 +272,7 @@ let[@warning "-32"] obligation_gap_for_decision entry materials_digest store =
   List.filter_map
     (fun obl_id ->
       Gate.obligation_gap ~decision_id:entry.Memory.decision_id
-        ~obligation_id:obl_id ~materials_digest ~store)
+        ~obligation_id:obl_id ~materials_digest ~store ~live:(Hashtbl.create 1))
     ids
 
 (* Empty reader — no real files; we feed Memory directly. *)
@@ -297,6 +297,12 @@ let[@warning "-32"] run_filter_evaluate entries =
          pure; here the corpus is synthetic, so every decision gets
          the same constant. *)
       ~materials_of_decision:(fun _ -> "test-materials-digest")
+        (* This suite exercises the LIFECYCLE filter (which decisions
+         are active), so every decision is in scope: `touched: None`
+         means "no scoping". And no check was run, so the live map is
+         empty and the store decides -- which is the behaviour this
+         suite is about. *)
+      ~touched:None ~live:(Hashtbl.create 1)
   in
   result
 
@@ -392,8 +398,18 @@ let[@warning "-32"] test_gitignore_filter () =
   check "anchored directory rule does NOT match at depth" false "a/doc/x.md";
   check "slashless rule matches at any depth" true "lib/result";
   check "slashless rule does not over-match a sibling" false "lib/results";
-  check "prefix glob does not over-match a neighbour" false
-    "attestations/t1-2-A3-x.json";
+  (* The store is ignored as a WHOLE, at the repository root
+     (decisions/store-not-committed-2026-10.yaml). The rule is
+     root-anchored, so a source directory that merely shares the
+     name stays tracked, and a sibling that merely starts with the
+     same letters stays tracked. The old probe here pinned a
+     name-exact prefix glob over the store, which no longer exists:
+     the store is generated evidence, not a committed artefact. *)
+  check "the store directory is gitignored" true "attestations/x.json";
+  check "a source directory of the same name is NOT gitignored" false
+    "lib/attestations/attestations.ml";
+  check "a sibling of the store is NOT gitignored" false
+    "attestations-old/x.json";
 
   (* The corpus must actually be reachable from wherever this runs --
      otherwise the filter above is filtering an empty list. *)

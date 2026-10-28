@@ -1,11 +1,26 @@
 #!/usr/bin/env python3
-"""Generate math-coding attestation JSON files.
+"""Write math-coding attestation JSON files.
 
 Reads a manifest from stdin (TSV: decision<TAB>obligation<TAB>kind_<TAB>producer_identity)
-and emits one attestation JSON per row in the configured
+and writes one attestation JSON per row into the configured
 attestations directory. Id is computed as sha256: + SHA-256 of
 the canonical JSON (serialised without `id`, sorted keys, no
 whitespace).
+
+WHERE THE FILES GO. The attestation store is GENERATED evidence,
+not a committed artefact: `.gitignore` excludes `/attestations/`,
+and CI regenerates the store and uploads it as a build artefact
+instead of reading one out of the tree (decision
+decisions/store-not-committed-2026-10.yaml). The default target
+below is the working tree's store.
+
+IDEMPOTENCE. This script writes what the manifest names, and
+nothing else: running it twice over the same manifest leaves the
+same files with the same names and the same content. It does NOT
+delete files it did not write - which files belong in the store is
+the generation path's question, not this writer's
+(scripts/sign-store.sh owns it, and it answers it by dropping
+everything a run did not observe).
 
 Output directory selection (in order of precedence):
   1. $MATH_CODING_ATTESTATIONS_DIR (if set)
@@ -32,6 +47,7 @@ import hashlib
 import json
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent  # scripts/ -> repo root
@@ -43,6 +59,18 @@ ATTESTATIONS_DIR = Path(
 )
 
 ISSUED_AT = "2026-09-29T18:00:00Z"
+
+# The literal "HEAD" is a POINTER, not a fact: it resolves to
+# whatever HEAD is when the file is read, so the attestation it
+# names can be neither reproduced nor refuted. The kernel refuses to
+# write such a field (bin/Mathc.ml::resolve_candidate_tree, decision
+# candidate-tree-resolves-to-a-commit-2026-10), and this twin has
+# carried the constant since. The decision that governs the field
+# scopes itself to bin/ and lib/ and records this constant there as
+# a known, still-open defect with a named review signal; it is NOT
+# changed here, because the value is part of the id of every
+# attestation this script has ever written and re-minting those ids
+# is a decision about the corpus, not about this writer.
 CANDIDATE_TREE = "HEAD"
 
 
@@ -82,7 +110,30 @@ def emit(decision: str, obligation: str, kind_: str, identity: str, result: str 
     att["id"] = attestation_id(att)
     name = f"{decision}-{obligation}.json"
     path = ATTESTATIONS_DIR / name
-    path.write_text(json.dumps(att, indent=None, separators=(",", ":"), ensure_ascii=False) + "\n")
+    payload = json.dumps(att, indent=None, separators=(",", ":"), ensure_ascii=False) + "\n"
+    # ATOMIC. The store is read WHILE it is written - the gate reads
+    # it, the self-check reads it, and a sweep rewrites it - so a
+    # reader must never see a half-written file. The write goes to a
+    # temporary file in the SAME directory and is renamed over the
+    # target: the rename is atomic within a directory, so a reader
+    # sees either the previous file or the new one.
+    #
+    # The temporary file does NOT end in `.json`: the kernel's store
+    # loader admits every file with that extension
+    # (lib/attestations/attestations.ml), and a half-written
+    # attestation with that name would be read as evidence.
+    fd, tmp = tempfile.mkstemp(dir=str(ATTESTATIONS_DIR), prefix=".tmp-")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(payload)
+        os.chmod(tmp, 0o644)
+        os.replace(tmp, path)
+    except BaseException:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+        raise
     # validate against schema's id pattern
     import re
     assert re.match(r"^sha256:[0-9a-f]{64}$", att["id"]), att["id"]

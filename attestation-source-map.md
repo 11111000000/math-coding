@@ -408,7 +408,7 @@ container silently ignored).
   string. Validate against `schemas/attestation.json` before
   committing.
 - File naming convention: `<decision>-<obligation>.json` (matches
-  the fixture-store pattern in `tests/fixtures/self-check-pass/attestations/`).
+  the fixture-store pattern in `tests/fixtures/gate-pass/attestations/`).
 - After generation, run `MATH_CODING_ATTESTATION_STORE=attestations
   _build/install/default/bin/mathc self-check` and confirm the
   verdict is `pass` (exit 0). If it returns `unknown` or `fail`,

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scripts/resign-changed.sh — re-sign the attestations of the decisions
-# whose SCOPE a commit touched.
+# scripts/resign-changed.sh — regenerate the attestations of the
+# decisions whose SCOPE a commit touched.
 #
 # WHY THIS EXISTS. Under semantics A (see
 # decisions/materials-digest-semantics-a-2026-10), an attestation's
@@ -21,11 +21,29 @@
 # whose verifier does not execute is signed `inconclusive`, not
 # `pass`.
 #
+# ONE GENERATION PATH. The sweep, the manifest and the installation of
+# the store all live in scripts/sign-store.sh. This script decides
+# WHICH decisions to regenerate and hands them over; it signs nothing
+# itself. Two paths that write the same store differently would drift
+# apart, and the store they write is one store: the evidence in it has
+# to be a function of the tree, not of which script produced it.
+#
+# WHERE THE STORE GOES. The working tree's store, like every other
+# generation. The store is generated, not committed: `.gitignore`
+# excludes `/attestations/`, and CI regenerates the store and
+# uploads it as a build artefact. Decision:
+# decisions/store-not-committed-2026-10.yaml.
+#
 # RUN IT INSIDE THE DEV SHELL. Several verifiers are `dune ...`
 # commands, and a verifier that cannot execute produces `fail`, not
-# `pass` - which is correct, but not what you want to commit. Run:
+# `pass` - which is correct, but not what you want to keep. Run:
 #
 #   nix develop .#test --command bash scripts/resign-changed.sh [BASE] [HEAD]
+#
+# The tree must be CLEAN when this runs: the materials digest is
+# computed at HEAD and the verifier runs against the working tree, so
+# signing on a dirty tree would bind an attestation to content the
+# verifier never saw. Commit first, then re-sign.
 #
 # Usage: scripts/resign-changed.sh [BASE] [HEAD]
 #   BASE defaults to HEAD~1, HEAD to HEAD.
@@ -56,10 +74,10 @@ if ! git rev-parse --verify --quiet "$BASE" >/dev/null 2>&1; then
 fi
 
 # The attestation store is EXCLUDED from the materials digest (the
-# store is evidence ABOUT the scope, not part of it, or an
-# attestation would be stale the moment it is committed). A change
-# to the store therefore cannot invalidate anything - so it must not
-# be counted as a changed file either. Without this filter, a range
+# store is evidence ABOUT the scope, not part of it, so writing the
+# store never invalidates the attestations in it). A change to the
+# store therefore cannot invalidate anything - so it must not be
+# counted as a changed file either. Without this filter, a range
 # that contains an earlier re-signing reports every attestation file
 # as changed, and the affected set becomes the whole corpus: the
 # narrow tool silently becomes the slow one.
@@ -85,7 +103,6 @@ affected="$("$BIN" attest-batch --from=decisions --only-changed="$BASE" \
            | python3 -c '
 import sys, json
 ids = []
-skipped = 0
 skipped = 0
 for line in sys.stdin:
     line = line.strip()
@@ -121,26 +138,12 @@ fi
 
 echo "resign-changed: re-signing obligations of: $affected"
 
-# Re-sign by EXECUTING each obligation's own verifier. The scope
-# digest is recomputed from the tree; the result comes from the run.
-manifest="$(mktemp)"
-trap 'rm -f "$manifest"' EXIT
-for d in $affected; do
-  # The obligation ids of this decision, read from the decision file.
-  ids="$(sed -n 's/^[[:space:]]*-[[:space:]]*id:[[:space:]]*//p' "decisions/$d.yaml" 2>/dev/null \
-         | sed 's/^["'"'"']//;s/["'"'"']$//' || true)"
-  for o in $ids; do
-    printf '%s\t%s\ttest\tci:resign\tpass\n' "$d" "$o" >> "$manifest"
-  done
-done
-
-if [ ! -s "$manifest" ]; then
-  echo "resign-changed: no obligations found for: $affected"
-  exit 0
-fi
-
-"$BIN" attest-batch --manifest="$manifest" --out=attestations \
-  --run-per-obligation --only-changed="$BASE" || exit $?
+# The generation path. Every obligation of every affected decision is
+# re-run against the current tree, and the store's evidence for those
+# decisions is replaced by what the run observed. The decisions this
+# run did not touch keep the evidence they had.
+# shellcheck disable=SC2086
+bash scripts/sign-store.sh $affected || exit $?
 
 echo "resign-changed: done. The attestations of the affected decisions now name"
 echo "  the current tree and carry the verdict of their own verifier."

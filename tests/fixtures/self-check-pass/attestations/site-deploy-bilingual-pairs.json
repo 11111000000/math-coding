@@ -1,1 +1,0 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"site-deploy","obligation":"bilingual-pairs","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:2143aeb61e6af177c1760686c94c9d8efb0cc7a683d394605d294fa1f9f6bf33"}

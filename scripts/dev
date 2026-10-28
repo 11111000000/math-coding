@@ -245,6 +245,28 @@ case "$cmd" in
     # fixture regressions). Each step is independent so a fail in
     # step 3 doesn't skip step 4.
     cleanup_dune_lock
+    # STAGE 0: a clean when the code changed.
+    #
+    # dune's cram sandbox can keep a STALE copy of the binary it
+    # runs. Measured on 2026-10-27: after a change to bin/Mathc.ml,
+    # `dune build @install` rebuilt the installed binary and
+    # `dune runtest` STILL ran the old one -- a cram case that
+    # expected the new exit code PASSED against the old kernel. After
+    # `dune clean` the same case failed, as it should.
+    #
+    # So the suite can certify a kernel that was never run, and
+    # report green about it. That is the shape of gate this project
+    # exists to refuse, so the clean is paid here, once, and only
+    # when the sources that define the suite's meaning have changed
+    # (scripts/kernel-stamp.sh holds that one definition).
+    if [ "$(scripts/kernel-stamp.sh changed 2>/dev/null || echo changed)" = "changed" ]; then
+      echo "verify: stage 0/4 = dune clean (the code changed)"
+      run_in_shell "dune clean" || {
+        echo "verify: FAIL at stage 0 (dune clean)" >&2
+        exit 1
+      }
+    fi
+    scripts/kernel-stamp.sh record >/dev/null 2>&1 || true
     # Each step is wrapped with an explicit 'echo STAGE: ...' so
     # CI logs identify the failing sub-step. Without this, a fail
     # in step 2 looks identical to a fail in step 4 (both return

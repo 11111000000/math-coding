@@ -1,24 +1,27 @@
 ---
 schema: math-coding/3.3
 id: dead-scope-paths-2026-10
-revision: 1
-state: active
+revision: 2
+state: superseded
 mode: light
-negative_control: tests/fixtures/no-dead-scope-paths.sh
-body_sha: "sha256:b5aebbea03ee19ab084a920ec8f62b7f83f9c3bf15f38edd56b4890b97b47c81"
-yaml_sha: "sha256:b5aebbea03ee19ab084a920ec8f62b7f83f9c3bf15f38edd56b4890b97b47c81"
+body_sha: "sha256:fc903f978655d5b3cfbcad09f223308ca64544f5dc09215d15cd21893b716d52"
+yaml_sha: "sha256:fc903f978655d5b3cfbcad09f223308ca64544f5dc09215d15cd21893b716d52"
 
-intent: { source: "issue:dead-scope-paths-named-nothing-2026-10-25", text: "A decision's scope.paths names the files its attestation's materials_digest is computed over: the digest is the digest of the CONTENT of the files the scope MATCHES (lib/gate.ml::scope_materials_digest). An entry that matches no tracked file therefore contributes nothing to the matched set - it is not a weaker claim, it is NO claim - and it says nothing about what the obligation actually depends on. Measured on 2026-10-25 over the corpus's 246 decisions that declare a scope.paths list: 81 of them carried at least one entry that matched no tracked file, 162 entries in all. The most repeated were lib/render.ml in 26 decisions (the file does not exist), OCAML_BEST_PRACTICES.md in 22 (it does not exist either), site/index.md in 3, and seven bootstrap/*.yaml paths - six of them in 2 decisions each - which are paths relative to decisions/ and name nothing in the repository. Two decisions named a PLACEHOLDER - decisions/<sub-decision-id>-2026-10.yaml and attestations/<id>-*.json - and two named a path whose trailing comment sat INSIDE the quoted string, so the path the kernel read was `decisions/audit-0.0.21-fixes.yaml\"  # read-only reference`: a path that names nothing, carrying a comment that documented a reference the scope was supposed to point at. A dead path is not merely harmless, it is a TRAP: it matches nothing today, and the day somebody creates a file with that name it starts silently invalidating attestations that nobody re-signed." }
+# 2026-10-28: the negative control of this decision was the fixture that
+#   checked the corpus for dead scope paths. It was removed with the
+#   corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml);
+#   the decision no longer has an executable verifier to demonstrate.
+
+intent: { source: "issue:dead-scope-paths-named-nothing-2026-10-25", text: "A decision's scope.paths names the files its attestation's materials_digest is computed over: the digest is the digest of the CONTENT of the files the scope MATCHES (lib/gate.ml::scope_materials_digest). An entry that matches no tracked file therefore contributes nothing to the matched set - it is not a weaker claim, it is NO claim - and it says nothing about what the obligation actually depends on. Measured on 2026-10-25 over the corpus's 246 decisions that declare a scope.paths list: 81 of them carried at least one entry that matched no tracked file, 162 entries in all. The most repeated were lib/render.ml in 26 decisions (the file does not exist), OCAML_BEST_PRACTICES.md in 22 (it…" }
 
 commitment: |
-  After this decision closes:
+  At revision 1, after this decision closed:
 
-  1. The dead scope paths are GONE from the corpus. Every one of the
-     162 entries that matched no tracked file has been removed from
-     the scope.paths of the 81 decisions that carried it. The removal
-     is done by scripts/prune-dead-scope-paths.py, which uses the
-     KERNEL's glob rules (Gate.glob_match, imported from
-     scripts/audit-scopes.py rather than re-implemented) and the
+  1. The dead scope paths were GONE from the corpus. Every one of the
+     162 entries that matched no tracked file was removed from the
+     scope.paths of the 81 decisions that carried it. The removal
+     was done by a script that used the KERNEL's glob rules
+     (Gate.glob_match, imported rather than re-implemented) and the
      kernel's scope extraction (lib/memory.ml::extract_scope_paths).
   2. Nothing was deleted SILENTLY. Each decision that was touched
      carries the removed entries in its own text, as a comment under
@@ -30,14 +33,20 @@ commitment: |
      additionalProperties: false, and a comment under the scope is the
      corpus's own idiom for a note about a scope entry
      (decisions/attestation-producer-vocab-2026-10.yaml carries one).
-  3. The corpus is CHECKED, not trusted. The fixture
-     tests/fixtures/no-dead-scope-paths.sh asserts that no decision
-     names a scope path that matches no tracked file, and it carries a
-     live NEGATIVE CONTROL: the same check over a throwaway copy of
-     the corpus that carries a dead path must find it and must exit
-     non-zero. A check that cannot fail is not a check.
-  4. The RULE this establishes: a scope may name only what the
+  3. The corpus was CHECKED, not trusted. The fixture asserted that
+     no decision names a scope path that matches no tracked file, and
+     it carried a live NEGATIVE CONTROL: the same check over a
+     throwaway copy of the corpus that carries a dead path must find
+     it and must exit non-zero. A check that cannot fail is not a
+     check.
+  4. The RULE this established: a scope may name only what the
      obligation actually depends on, and only paths that resolve.
+
+  AT REVISION 2 the CHECK is gone. The pruner and the fixture that
+  exercised it were removed on 2026-10-28 with the corpus-debt
+  meta-layer (decisions/corpus-meta-layer-2026-10.yaml). The PRUNE
+  stands — the 162 entries are still out of the corpus — and the RULE
+  stands, but a dead scope path is no longer detected by a program.
 
 axiom_link:
   - A0
@@ -62,7 +71,7 @@ counterexample: |
   meant the file the repair names.
 
   (b) "Prune the dead entries under scope.exclusions and
-  scope.decisions too, so that scripts/audit-scopes.py reports no
+  scope.decisions too, so that the scope census reports no
   dead path at all." Rejected on the kernel's definition of a scope:
   lib/gate.ml::scope_materials_digest reads the decision's
   scope.paths and nothing else - the exclusions are documentation the
@@ -75,6 +84,14 @@ counterexample: |
   "no kernel change", "the active policy", "owned by another session"
   - which are the only thing those lines ever said. A line that says
   nothing about a file is not a false claim about a dependency.
+
+  (c) "Keep the check, drop the pruner." That is not a middle
+  position: the check NEEDED the pruner, because the pruner held the
+  kernel's own glob rules and the check imported them rather than
+  re-implementing them. Two tools that share one implementation of
+  the kernel's matching rules are one tool and its fixture. At
+  revision 2 both are gone, and the rule is enforced by the corpus
+  reading rather than by a program.
 
 antithesis: |
   The opposite claim is that a scope path which matches nothing is
@@ -108,49 +125,60 @@ antithesis: |
 outcomes:
   - id: no-decision-names-a-dead-scope-path
     statement: |
-      No decision names a scope path that matches no tracked file.
+      RETIRED at revision 2. No decision names a scope path that
+      matches no tracked file — and nothing checks it any more. The
+      pruner and the fixture that exercised it were removed on
+      2026-10-28 with the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: tests/fixtures/no-dead-scope-paths.sh
+        - verifier: manual-dead-scope-path-check-removed
           result: pass
 
   - id: the-check-is-live
     claim: |
-      The same check over a corpus carrying a dead scope path finds
-      it and exits non-zero, so the clean measurement is not
-      vacuously true.
+      RETIRED at revision 2. The same check over a corpus carrying a
+      dead scope path used to find it and exit non-zero; the check is
+      gone, so a dead scope path can be added without anything
+      noticing.
     acceptance:
       all:
-        - verifier: tests/fixtures/no-dead-scope-paths.sh
+        - verifier: manual-dead-scope-path-check-removed
           result: pass
 
 scope:
   paths:
-    - "scripts/prune-dead-scope-paths.py"
-    - "tests/fixtures/no-dead-scope-paths.sh"
     - "decisions/dead-scope-paths-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "scripts/sign-store.sh"
+  # 2026-10-28: two paths left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   pruner and the fixture that exercised it. Their names are in
+  #   that decision, which is the record of the removal.
 
 obligations:
   - id: the-corpus-names-only-resolvable-paths
     claim: |
-      Every scope path in decisions/*.yaml matches at least one
-      tracked file, under the kernel's glob rules.
+      RETIRED at revision 2. Every scope path in decisions/*.yaml
+      matched at least one tracked file, under the kernel's glob
+      rules, when the pruner ran; nothing checks it now. The pruner
+      was removed on 2026-10-28 with the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: tests/fixtures/no-dead-scope-paths.sh
+        - verifier: manual-dead-scope-path-check-removed
           result: pass
 
   - id: the-removals-are-recorded
     claim: |
       Every decision whose scope was pruned names the removed
       entries in its own text, with the reason each one named
-      nothing.
+      nothing. That record survives; it is comments under the scopes
+      of the 81 decisions, and it is what the removed pruner wrote.
     acceptance:
       all:
-        - verifier: tests/fixtures/no-dead-scope-paths.sh
+        - verifier: manual-the-pruned-entries-are-still-recorded
           result: pass
 
 risk:
@@ -173,3 +201,9 @@ assumptions:
       removes evidence of an intended dependency. The pruning is
       therefore recorded per decision rather than applied silently,
       and the entries are recoverable from the decisions' own text.
+
+relations:
+  addresses: []
+  supersedes: []
+  superseded_by:
+    - corpus-meta-layer-2026-10@1

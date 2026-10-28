@@ -218,7 +218,7 @@ let test_parity_mc_counterexample_missing_actions () =
 let[@warning "-32"] test_gap_missing_evidence_has_actions () =
   match
     Gate.obligation_gap ~decision_id:"d-x" ~obligation_id:"obl-1"
-      ~materials_digest:"abc" ~store:[]
+      ~materials_digest:"abc" ~store:[] ~live:(Hashtbl.create 1)
   with
   | None -> Alcotest.fail "expected gap"
   | Some g ->
@@ -255,7 +255,7 @@ let[@warning "-32"] test_gap_stale_evidence_has_actions () =
   in
   match
     Gate.obligation_gap ~decision_id:"d-x" ~obligation_id:"obl-1"
-      ~materials_digest:"abc" ~store:[ stale ]
+      ~materials_digest:"abc" ~store:[ stale ] ~live:(Hashtbl.create 1)
   with
   | None -> Alcotest.fail "expected gap"
   | Some g ->

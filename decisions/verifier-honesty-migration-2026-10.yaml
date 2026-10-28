@@ -4,10 +4,13 @@ id: verifier-honesty-migration-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:90eb085a0244901f48df23d91e4d8761acf97e947a1080738f6cdc6d28d73be3"
-yaml_sha: "sha256:90eb085a0244901f48df23d91e4d8761acf97e947a1080738f6cdc6d28d73be3"
+body_sha: "sha256:d182776f1eff88a85d49010c225b0d8cabf87b3d753e231ba73067b06b756d4f"
+yaml_sha: "sha256:d182776f1eff88a85d49010c225b0d8cabf87b3d753e231ba73067b06b756d4f"
 
-negative_control: scripts/migrate-verifiers.py
+# 2026-10-28: the negative control of this decision was the migration
+#   script itself. It was removed with the corpus-debt meta-layer
+#   (decisions/corpus-meta-layer-2026-10.yaml); the corpus it rewrote
+#   survives, and the decision has no executable verifier to demonstrate.
 
 intent: { source: "issue:corpus-claims-machine-checks-it-does-not-have-2026-10-23", text: "The corpus carried 327 verifier strings that were PROSE - a sentence, not a reference to anything executable - and 139 that were TAUTOLOGIES: a scheme name with no argument, which can never fail and therefore proves nothing. P2 accepted all of them, so the corpus LOOKED machine-verified. It was not. Of the 327, some were real commands written in a syntax the kernel cannot read (`mathc validate decisions/x.yaml`, where the kernel's mathc scheme takes ONE subcommand), and the rest named checks that were never implemented at all (`file-grep-zero`, `contains-section`, `git-no-paths` - names, not files)." }
 
@@ -23,9 +26,11 @@ commitment: |
   4. `this-decision-file-present` becomes
      `file-exists decisions/<id>.yaml` - a real, per-decision,
      machine-checkable fact instead of a tautology.
-  5. The migration is a SCRIPT, not a one-off edit:
-     scripts/migrate-verifiers.py, idempotent, with a dry-run
-     default.
+  5. The migration was a SCRIPT, not a one-off edit: idempotent, with
+     a dry-run default. The script was removed on 2026-10-28 with the
+     corpus-debt meta-layer
+     (decisions/corpus-meta-layer-2026-10.yaml); the corpus it
+     rewrote is what survives.
   6. `mathc packages --format=json` reports the verifier string,
      or the empty string when there is none. It no longer
      substitutes the obligation's own id.
@@ -84,17 +89,22 @@ outcomes:
       than as the obligation's own id.
   - id: migration-is-a-tool
     statement: |
-      scripts/migrate-verifiers.py performs the migration, is
-      idempotent (a second run changes zero files), and defaults to
-      a dry run.
+      The migration was performed by a script, not by hand: it was
+      idempotent (a second run changed zero files) and defaulted to
+      a dry run. The script itself was removed on 2026-10-28 with
+      the corpus-debt meta-layer
+      (decisions/corpus-meta-layer-2026-10.yaml).
 
 scope:
   paths:
-    - "scripts/migrate-verifiers.py"
     - "lib/packages.ml"
     - "decisions/**"
     - "decisions/verifier-honesty-migration-2026-10.yaml"
     - "attestations/verifier-honesty-migration-2026-10-*.json"
+  # 2026-10-28: one path left this scope with the corpus-debt
+  #   meta-layer (decisions/corpus-meta-layer-2026-10.yaml): the
+  #   migration script. Its name is in that decision, which is the
+  #   record of the removal.
   exclusions:
     - "spec/**"
     - "axioms/**"

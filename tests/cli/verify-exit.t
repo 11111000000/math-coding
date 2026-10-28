@@ -13,11 +13,21 @@ unevaluated claim is `unknown`, and `unknown` is exit 3.
 Measured before the fix, on this repository: `mathc verify` on a
 real decision printed seven `skipped` verdicts and exited 0.
 
-The three exit codes, from the verdict table: `0` is `Pass` (at
-least one obligation was actually fulfilled), `1` is `Block` (an
-obligation failed decisively) and `3` is `Unknown` (nothing was
-verified -- all obligations landed on skipped / setup-fail /
-timeout / declared).
+The three exit codes, from the verdict table: `1` is `Block` (an
+obligation failed decisively), `3` is `Unknown` (an obligation was
+not verified -- it landed on skipped / setup-fail / timeout /
+declared), and `0` is `Pass` (EVERY obligation was verified and
+passed).
+
+The `0` row is the strict one, and it was not always. The first
+version of this contract was "at least one obligation was actually
+fulfilled -> 0", and the second was "nothing was fulfilled -> 3".
+Both let a command that verified PART of a decision exit 0. The
+exit code is the last place the difference between "the check
+passed" and "the check did not run" can still be lost, so a rule
+that loses it there loses it for good: a caller that reads the exit
+code -- a CI step, a gate, a script -- was told "verified" for a
+decision half of which nobody checked. Scenario 4 is that case.
 
 Acceptance gate for obligation `verify-exit-is-honest` in
 `decisions/exit-honesty-waivers-2026-10.yaml`.
@@ -177,10 +187,25 @@ Scenario 3 -- every obligation fulfilled: exit 0.
   $ cd /
   $ rm -rf "$tmp"
 
-Scenario 4 -- one obligation fulfilled and one skipped: exit 0.
-The command verified SOMETHING, so it is not the "nothing was
-verified" case; the skipped obligation is visible in the output, and
-the per-obligation verdict stays the per-obligation verdict.
+Scenario 4 -- one obligation fulfilled and one skipped: exit 3.
+The command verified SOMETHING, and it did not verify everything.
+The exit code is the last place the difference between "the check
+passed" and "the check did not run" can still be lost, so losing it
+there loses it for good: a command that verified ONE obligation of
+a two-obligation decision has not verified the decision, and exit 0
+says it has.
+
+The earlier rule here was "at least one obligation was actually
+FULFILLED -> 0". It was defended as "the skipped obligation is
+visible in the output, and the per-obligation verdict stays the
+per-obligation verdict". That defence is about the OUTPUT, and the
+question at hand is the EXIT CODE. A caller that reads the exit
+code -- which is what a CI step, a gate, and a script do -- was
+told "verified" for a decision half of which nobody checked.
+
+So: exit 0 means every obligation was verified and passed. Exit 3
+means the outcome is unknown, which is what "one of them did not
+run" is.
 
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
@@ -236,6 +261,7 @@ the per-obligation verdict stays the per-obligation verdict.
   verify: probe.yaml
     passing-obligation: pass
     skipped-obligation: skipped
+  [3]
   $ cd /
   $ rm -rf "$tmp"
 

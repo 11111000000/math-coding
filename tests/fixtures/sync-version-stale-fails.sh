@@ -42,7 +42,16 @@ sed -i.bak "s|^compatible_with: mathc@>=.*|$stale|" "$skill"
 
 # Assert --check exits non-zero. Capture stderr to surface drift info.
 check_log=$(mktemp) || { echo "FAIL: mktemp" >&2; exit 1; }
-trap 'rm -f "$check_log" "$skill.bak"' EXIT INT TERM
+restore() {
+  # Restore the file this fixture perturbed, on EVERY exit path. A
+  # trap that only DELETED the backup left the tracked file with the
+  # stale sentinel in it whenever the fixture was interrupted -- and a
+  # tracked file that a test leaves modified is a change the next
+  # commit can pick up by accident.
+  if [ -f "$skill.bak" ]; then mv "$skill.bak" "$skill"; fi
+  rm -f "$check_log"
+}
+trap restore EXIT INT TERM
 
 if scripts/sync-version.sh --check >"$check_log" 2>&1; then
   echo "FAIL: sync-version --check exited 0 on a stale tree"

@@ -1,0 +1,205 @@
+---
+schema: math-coding/3.2
+id: verify-honesty-2026-10
+revision: 1
+state: active
+mode: light
+body_sha: "sha256:144e71909146acd51450c800df4ea3db00b8e6b84d35a9f3aedaa508aaadde67"
+yaml_sha: "sha256:144e71909146acd51450c800df4ea3db00b8e6b84d35a9f3aedaa508aaadde67"
+
+intent: |
+  Make the verifier path honest about the difference between a check
+  that ran and passed, and a check that never ran.
+  The protocol already says this in prose, and says it well:
+  constitution.md Invariant 10 requires that "missing, stale, failed,
+  inconclusive, infrastructure error, waived and passed states MUST
+  remain distinguishable", and Invariant 14b requires that an exit
+  code of 0 imply a verdict of `Pass`. What the prose forbids, the
+  implementation was doing in three places, and all three were the
+  same defect reached by a road the prose does not describe: not the
+  laundering of a missing ATTESTATION, but the laundering of a
+  missing CHECK.
+
+  The aggregate. `aggregate_verifier_outcomes` tested `Pass` before
+  `Setup_fail`, so under the `all` rule a verifier that passed
+  masked a sibling that could not be run, and the obligation came
+  out `pass` -- a claim that every check passed, made by a program
+  that had run one of the two. Measured on this corpus on
+  2026-10-27: 175 of 984 obligations carry more than one verifier,
+  and at least one of those is PATH-dependent (`dune`, `scripts/...`,
+  `tests/...`), so a machine without that tool reported those
+  obligations as satisfied without having run them.
+
+  The difference is not academic. The obligation
+  `d9-mathc-update-subcommand` of `plan-2026-10-distro-friction`
+  was `pass` on a host without `dune` and `fail` on a host with it:
+  the same obligation, the same tree, two verdicts, and the false one
+  was the convenient one. A host is not a property of a change.
+
+  The filter. The boolean predicate that decided which verifiers
+  "can be executed" returned false both for a declaration (not a
+  check) and for a check that could not be set up (the file is
+  missing, the scheme is unknown, the arguments are malformed), and
+  the second case was DROPPED from the list before anything ran. The
+  predicate is now a three-way classification, and a check that
+  cannot be set up becomes a `Setup_fail` outcome instead of
+  vanishing.
+
+  The exit code. `mathc verify` exited 0 when at least one
+  obligation was fulfilled, so a decision with two obligations --
+  one executable and one not -- was reported as verified. The exit
+  code is the last place the difference between "the check passed"
+  and "the check did not run" can still be lost, so a rule that
+  loses it there loses it for good: a CI step, a gate, and a script
+  all read the exit code, not the transcript.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+commitment: |
+  A verifier that could not be run is reported as such, and it is
+  never masked by a sibling that could; `mathc verify` exits 0 only
+  when every obligation was verified and passed.
+
+  And the toolchain must not be able to certify a kernel that was
+  never run: dune's cram sandbox can keep a stale copy of the
+  binary it runs, so the clean that refreshes it is paid exactly
+  when the code changed, and the question "has the code changed?"
+  has ONE definition.
+
+outcomes:
+  - id: an-unrunnable-check-is-never-masked
+    statement: |
+      Under the `all` rule, a verifier that could not be set up
+      makes the obligation `skipped` even when a sibling verifier
+      passed.
+  - id: an-unrunnable-check-is-not-dropped
+    statement: |
+      A verifier that is a check but could not be set up produces a
+      `Setup_fail` outcome instead of being removed from the list
+      before anything ran.
+  - id: verify-exit-zero-means-everything-was-verified
+    statement: |
+      `mathc verify` exits 0 only when every obligation was
+      verified and passed; an obligation that was not verified makes
+      the command exit 3, and a decisive failure makes it exit 1.
+  - id: the-suite-runs-this-tree's-kernel
+    statement: |
+      The conformance suite runs the binary this tree builds, and
+      the clean that guarantees it is paid exactly when the code
+      changed.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "scripts/kernel-stamp.sh"
+    - "scripts/dev"
+    - "scripts/check.sh"
+    - "tests/cli/verify-exit.t"
+    - "tests/fixtures/the-kernel-stamp-flips-when-the-code-changes.sh"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: a-masked-setup-fail-is-reported
+    claim: |
+      A decision with one obligation whose verifier passes and one
+      whose verifier cannot run is `skipped`, not `pass`.
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-exit.t
+          result: pass
+  - id: the-exit-code-separates-verified-from-unverified
+    claim: |
+      `mathc verify` exits 3 when an obligation was not verified,
+      even though another obligation was.
+    acceptance:
+      all:
+        - verifier: tests/cli/verify-exit.t
+          result: pass
+  - id: the-stamp-flips-exactly-when-the-code-changes
+    claim: |
+      The kernel stamp reports "changed" when a file under lib/
+      changes and "unchanged" when nothing does, and the negative
+      control -- the probe file itself -- proves the comparison can
+      fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/the-kernel-stamp-flips-when-the-code-changes.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/verify-honesty-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/verify-honesty-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - the stricter aggregate turns obligations that used to be
+      `pass` into `skipped`, and the corpus's pass count drops; that
+      is the intended direction, but a drop that nobody reads is a
+      drop nobody acts on
+    - the clean on a kernel change makes the local loop slower, and
+      the loop is what people actually run
+    - the stamp covers lib, bin, tests, scripts and schemas, so a
+      change outside them leaves the sandbox stale -- the current
+      stale-binary mechanism was measured inside those directories,
+      and a stale binary from outside them would not be caught
+    - the exit-code change makes `mathc verify` exit 3 on decisions
+      that carry a `manual-` obligation, and an adopter may read
+      that as "the tool is broken" rather than "this claim was not
+      checked"
+  owner: human:maintainer
+
+counterexample: |
+  Two counter-positions considered and rejected.
+
+  (a) "The `Setup_fail` case is rare and the aggregate is not
+  worth changing: a verifier that cannot be set up is a broken
+  repository, and a broken repository is already red."
+  Rejected on the measurement, and on the shape of the failure. The
+  175 affected obligations are not broken repositories: they are
+  obligations whose verifiers need a tool that the HOST does not
+  have. The same obligation on the same tree gives two verdicts
+  depending on the machine, and the machine that gives the
+  convenient one is the one without the tool. A gate whose result
+  depends on the host is not a gate; it is a coin.
+
+  (b) "Exit 3 for a partially verified decision is too strict: the
+  per-obligation verdicts are already in the output, so a caller
+  that cares can read them."
+  Rejected because the exit code is the interface. A CI step, a
+  gate and a script read the exit code; the transcript is read by a
+  person, and only when something has already gone wrong. The
+  project already tried the weaker rule and it produced a suite
+  that certified a kernel which was never run -- measured, and
+  reproduced in this decision's intent. The stronger rule is the
+  one that makes `exit 0` mean what the constitution says it means.
+
+antithesis: |
+  The opposite claim is that the aggregate and the exit code were
+  right, and that the measurements above are a property of the
+  corpus rather than of the code.
+
+  It is partly right, and the concession matters. The 175 affected
+  obligations are a property of THIS corpus: its verifiers lean on
+  `dune` and on the tests directory, so a host without a toolchain
+  hits them. A corpus of pure `file-exists` verifiers would not
+  have produced the symptom, and the aggregate would have been
+  right for it.
+
+  The claim is rejected anyway, for a reason that is not about this
+  corpus: the kernel is a PRODUCT, and the product's job is to
+  work on a host that is not the author's. An adopter's CI runner
+  does not have the author's toolchain, and an adopter's decision
+  file carries their verifiers, not ours. The rule "a check that
+  could not run is a check that passed" is not a quirk of our
+  corpus; it is the default behaviour of any code that treats a
+  missing tool as a success, and it is the single most common way
+  for a CI suite to go green without having run anything.

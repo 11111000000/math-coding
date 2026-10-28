@@ -1,1 +1,0 @@
-{"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"infrastructure-honesty","obligation":"fix-ci-targets","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-09-29T18:00:00Z","id":"sha256:bc1dd6de281f3c8c56dce264669020f41398cd0ce93ca7b8f0010f6abea240e6"}

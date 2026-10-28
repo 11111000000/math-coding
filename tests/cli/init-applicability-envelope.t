@@ -1,17 +1,20 @@
-The applicability envelope is default-on: `mathc init` installs the
-kernel for any project expected to outlive the next refactor, a
-single maintainer included (spec/algebra-3.2.md §28 rev 2,
-decision `solo-default-on-2026-10@1`). The single Path C class is
-`prototype_or_throwaway`.
-
-Three surfaces are pinned here:
+The scaffolded policy is the adopter's FIRST decision, and it is
+about the adopter's own tree. Three surfaces are pinned here:
 1. `mathc init` prints the envelope at deploy time, and the print
 names the single-maintainer default explicitly.
 2. Neither the print nor the scaffolded policy carries the rev-1
 exclusion ("A single person maintains it without AI assistance",
 Path B) that this decision removed.
-3. The scaffolded policy's `counterexample` is the friction objection
-reframed as a mode choice, not as a reason to skip.
+3. The scaffolded policy's obligation is EXECUTABLE and names the
+adopter's own tree -- `file-exists` on the first entry of
+`scope.paths` -- and NOT the kernel's own `mathc self-check`. A
+scaffold that hands the adopter a self-referential obligation gives
+them an infinite road on day one: the claim "the corpus is healthy"
+is not a claim about their change.
+4. The scaffolded policy's `counterexample` is a SLOT with an
+instruction in it, not an argument written FOR the adopter. The
+kernel used to ship a counterexample whose text argued against
+skipping the protocol -- an argument the adopter had not made.
 
 Unlike the older `init*.t` fixtures, no expected line here embeds a
 `mktemp -d` path: the assertions are greps over captured output, so
@@ -41,17 +44,21 @@ The rev-1 exclusion is gone from the print.
   $ ! grep -q 'without AI assistance' init.log && echo "rev-1 solo exclusion gone: ok"
   rev-1 solo exclusion gone: ok
 
-The scaffolded policy still validates, and its counterexample now
-argues mode choice rather than skip.
+The scaffolded policy still validates, and it now asks the adopter
+about THEIR tree instead of about the kernel's own corpus.
 
   $ mathc validate .mc/policy.yaml > /dev/null && echo "scaffolded policy: parse-ok"
   scaffolded policy: parse-ok
-  $ grep -q 'default-on' .mc/policy.yaml && echo "counterexample cites default-on: ok"
-  counterexample cites default-on: ok
+  $ grep -q 'verifier: file-exists src' .mc/policy.yaml && echo "obligation names the adopter's tree: ok"
+  obligation names the adopter's tree: ok
+  $ ! grep -q 'verifier: mathc self-check' .mc/policy.yaml && echo "no self-referential obligation: ok"
+  no self-referential obligation: ok
   $ ! grep -q 'Path B' .mc/policy.yaml && echo "no Path B in scaffold: ok"
   no Path B in scaffold: ok
-  $ grep -q 'mode_floor: light' .mc/policy.yaml && echo "counterexample names light floor: ok"
-  counterexample names light floor: ok
+  $ grep -q 'TODO(adopter)' .mc/policy.yaml && echo "counterexample is a slot, not a written argument: ok"
+  counterexample is a slot, not a written argument: ok
+  $ ! grep -q 'default-on' .mc/policy.yaml && echo "no fabricated default-on argument: ok"
+  no fabricated default-on argument: ok
 
 Cleanup.
 

@@ -20,13 +20,13 @@ The protocol does not prove software correctness. It refuses to.
 
 ## When to apply
 
-Default: apply. The kernel goes into a project that is expected to
-still exist next month — including a project with exactly one
-maintainer. Per `spec/algebra-3.2.md` §28 the burden of proof sits
-on the exclusion, not on the adoption: to skip this skill you must
-name the project as throwaway, not as small.
+Opt-in. The protocol is a tool, not a default: apply it when one of
+the signals below holds, and leave it out when none of them does. The
+burden of proof sits on the application — an adopter who applies this
+skill names the signal that pays for it, and an adopter who does not
+apply it says why the protocol does not fit the project.
 
-Signals that lift the ceremony above the light floor:
+Signals that make the protocol pay for itself:
 
 - Two or more AI agents (or humans) edit the same repository and need a
   shared authority model.
@@ -37,26 +37,38 @@ Signals that lift the ceremony above the light floor:
   Code you did not write is code you cannot recall; the counterexample
   paragraph is where you find out it was wrong.
 
+Where the protocol does apply, start at the light floor: declare
+`mode_floor: light` in the project's `policies.yaml` and the per-commit
+cost is `{commitment, counterexample}` — a `decision:<id>@<rev>` git
+trailer satisfies the gate without a sibling YAML. Raise the floor only
+when a signal above says the trail has to outlive the commit.
+
+The cost is real and it is measured. The project's own adoption
+experiment on five external projects put the with-protocol arm at
+~10 minutes a session against ~3 minutes for the control arm, and
+refuted three of its own hypotheses
+(`decisions/adoption-experiment-results-2026-10.yaml`). Ten minutes
+buys a trail a regulator or a second agent will read. It buys nothing
+for a script nobody reads twice.
+
 ## When not to apply
 
-Exactly one class — `prototype_or_throwaway(P)` in §28, i.e. the
-project has no expected continuity:
+Every project that matches none of the signals above. "Only one
+maintainer", "no formal audit", and "an informal lgtm is enough" are
+exclusion criteria again: the protocol's minutes are paid by the
+adopter, so the adopter decides whether they are worth paying.
+
+The one class that needs no argument is `prototype_or_throwaway(P)` in
+§28, i.e. the project has no expected continuity:
 
 - The project is a prototype, MVP, hackathon, or throwaway script
   whose code nobody will read again after the next refactor.
 
-That is the whole list. "Only one maintainer", "no formal audit", and
-"an informal lgtm is enough" are no longer exclusion criteria. A solo
-maintainer declares `mode_floor: light` in the project's
-`policies.yaml` and gets the cheapest rung of Path A — per-commit cost
-is `{commitment, counterexample}` and a `decision:<id>@<rev>` git
-trailer satisfies the gate without a sibling YAML — rather than an
-opt-out that leaves nothing behind.
-
-Skipping requires stating the throwaway rationale where a reader will
-find it (the project README, or the commit that starts the project).
-Everything else: run `mathc init .` — it prints the envelope it
-assumed, so the choice lands in the record instead of in a habit.
+Skipping requires stating the rationale where a reader will find it
+(the project README, or the commit that starts the project). Applying
+requires the same in the other direction: name the signal. Then run
+`mathc init .` — it prints the envelope it assumed, so the choice
+lands in the record instead of in a habit.
 
 ## Step 1. Install the kernel
 
@@ -75,6 +87,8 @@ mathc version
 
 > For Docker or Nix: see USAGE.md §Install. For a three-command
 > quickstart of the whole adoption, see [QUICKSTART.md](QUICKSTART.md).
+> For the ten-minute path from an empty repository to a green gate,
+> see [docs/adoption-quickstart.md](../docs/adoption-quickstart.md).
 
 If `~/.local/bin` is not on `$PATH`, the line above sets it for the
 current shell. Add it to your shell rc (`~/.bashrc`, `~/.zshrc`) for

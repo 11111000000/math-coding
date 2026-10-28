@@ -127,7 +127,7 @@ REJECTED -- a runtime-class pass that names no run and declares no
 machine class. The obligation is not discharged, the gap names the
 class, and the verdict is `unknown` (exit 3, never exit 0).
 
-  $ mathc gate HEAD~1 HEAD > /tmp/evc-unanchored.json; echo "exit=$?"
+  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-unanchored.json; echo "exit=$?"
   exit=3
   $ jq -c '{verdict, gap_kind: .gaps[0].kind, class_named: ([.gaps[0].causes[] | select(contains("source class is not established"))] | length > 0), remedy_named: ([.gaps[0].remedies[] | select(contains("producer.run"))] | length > 0)}' < /tmp/evc-unanchored.json
   {"verdict":"unknown","gap_kind":"Unknown","class_named":true,"remedy_named":true}
@@ -139,7 +139,7 @@ establishes the class.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci-bot","run":"dune runtest"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000002"}
   > JSON
-  $ mathc gate HEAD~1 HEAD > /tmp/evc-run.json; echo "exit=$?"
+  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-run.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-run.json
   {"verdict":"pass","gaps":0}
@@ -149,7 +149,7 @@ ACCEPTED -- the second anchor: a declared machine producer, no run.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000003"}
   > JSON
-  $ mathc gate HEAD~1 HEAD > /tmp/evc-ci.json; echo "exit=$?"
+  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-ci.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-ci.json
   {"verdict":"pass","gaps":0}
@@ -161,7 +161,7 @@ not the declaration.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000004"}
   > JSON
-  $ mathc gate HEAD~1 HEAD > /tmp/evc-review.json; echo "exit=$?"
+  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-review.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-review.json
   {"verdict":"pass","gaps":0}
