@@ -169,7 +169,7 @@ let[@warning "-32"] tracked_names ~root ~store =
 let[@warning "-32"] load_corpus () =
   let root = project_root () in
   let store = Fs.concat root "attestations" in
-  if not (Sys.is_directory store) then None
+  if not (Sys.file_exists store && Sys.is_directory store) then None
   else
     let kind_string = function
       | `Test -> "test"

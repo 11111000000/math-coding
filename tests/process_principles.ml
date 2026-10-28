@@ -809,7 +809,7 @@ let[@warning "-32"] test_p5 () =
         (String.concat ", " cram_t)
       (* Even without a filename match, tests/cram/ should not exist
      as a directory. *)
-    else if Sys.is_directory legacy_cram then
+    else if Sys.file_exists legacy_cram && Sys.is_directory legacy_cram then
       Alcotest.failf
         "P5: %s exists as a directory; tests/cram/ should not exist (cram is \
          retired)"

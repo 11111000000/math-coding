@@ -326,7 +326,7 @@ let[@warning "-32"] dispatch dir path =
 
 let[@warning "-32"] list_dir dir =
   let p = Filename.concat fixture_root dir in
-  match Sys.is_directory p with
+  match Sys.file_exists p && Sys.is_directory p with
   | false -> []
   | true ->
       let entries = Sys.readdir p in
@@ -647,7 +647,7 @@ let[@warning "-32"] legacy_decision_files () =
   (* Parsed once, not per entry: 206 decisions x a file re-read would
      dominate the run time of a test that is otherwise I/O trivial. *)
   let rules = gitignore_rules () in
-  match Sys.is_directory d with
+  match Sys.file_exists d && Sys.is_directory d with
   | false -> []
   | true ->
       Sys.readdir d |> Array.to_list

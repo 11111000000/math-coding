@@ -92,8 +92,11 @@ let[@warning "-32"] test_the_store_is_the_directory () =
   | Some root -> (
       if not (Sys.file_exists (Fs.concat root ".git")) then
         Printf.printf "  n/a  not inside a git checkout\n"
-      else if not (Sys.is_directory (Fs.concat root "attestations")) then
-        Printf.printf "  n/a  no attestation store\n"
+      else if
+        not
+          (Sys.file_exists (Fs.concat root "attestations")
+          && Sys.is_directory (Fs.concat root "attestations"))
+      then Printf.printf "  n/a  no attestation store\n"
       else
         (* The store is GENERATED and it can be swept away while this
            test is reading it -- the sweep runs the corpus's own

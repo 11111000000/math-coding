@@ -1,0 +1,138 @@
+---
+schema: math-coding/3.2
+id: missing-directory-is-not-a-crash-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:7157102a2d932aefff7580d434b0f8d680f1180b525284759719d5a621dd00e3"
+yaml_sha: "sha256:7157102a2d932aefff7580d434b0f8d680f1180b525284759719d5a621dd00e3"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  `Sys.is_directory` RAISES. On a path that does not exist, OCaml's
+  `Sys.is_directory` raises `Sys_error "No such file or directory"`
+  -- it does not answer `false`. (`Sys.file_exists` answers false;
+  `Sys.is_directory` raises. The project's own traps fixture
+  documents this: tests/traps.ml §11.11 "Sys.is_directory raises
+  Sys_error on a non-existent path".)
+
+  Seven places in this repository asked a directory a question with
+  the wrong operator. Two of them are in the KERNEL:
+
+    - lib/path_config.ml::resolve_with -- `MATH_CODING_ROOT` that
+      points at a directory which does not exist crashed the tool
+      instead of falling through to the next layout;
+    - bin/Mathc.ml::root_with_env_precedence -- the same crash, on
+      the same variable, on the other path to the same answer.
+
+  The rest were in the tests, and they are what made this visible:
+  the store is GENERATED now, so a checkout has no `attestations/`
+  until the sweep runs, and every test that asked "is the store a
+  directory?" crashed instead of saying "there is no store here".
+  CI failed eight consecutive runs on exactly this, while the same
+  tree passed locally -- locally the developer has a store on disk
+  from the last sweep, and CI does not.
+
+  That is the whole shape of the defect: a question whose answer
+  "does not exist" is a legitimate answer, asked with an operator
+  that treats it as an error. The corpus was taught the difference
+  in a fixture and the code did not learn it.
+
+commitment: |
+  1. Every `Sys.is_directory` on a path that may be absent is
+     preceded by `Sys.file_exists` on the same path.
+  2. A missing artefact is an EMPTY RESULT, not an exception:
+     no store means no evidence, no axioms directory means no
+     axioms, and a root that does not exist means the next layout
+     is tried.
+  3. The two kernel paths (`MATH_CODING_ROOT` resolution) answer
+     with the layout they can serve, and never crash on a root the
+     operator pointed at by mistake.
+
+outcomes:
+  - id: a-missing-directory-is-an-empty-result
+    statement: |
+      With the store absent, with the axioms directory absent and
+      with `MATH_CODING_ROOT` pointing at a path that does not
+      exist, every command answers instead of raising.
+  - id: the-suite-is-the-same-without-a-store
+    statement: |
+      `dune test` passes on a checkout with no generated store,
+      which is the state of every fresh CI checkout.
+
+scope:
+  paths:
+    - "lib/path_config.ml"
+    - "bin/Mathc.ml"
+    - "tests/conformance.ml"
+    - "tests/process_principles.ml"
+    - "tests/producer_vocab.ml"
+    - "tests/store_admission.ml"
+    - "decisions/missing-directory-is-not-a-crash-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-suite-passes-without-a-store
+    claim: |
+      `dune test` passes on a tree with no `attestations/` directory.
+    acceptance:
+      all:
+        - verifier: bash scripts/check.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "the check is written as `Sys.file_exists p && Sys.is_directory p`
+      on one line and later someone reorders it into
+      `Sys.is_directory p && Sys.file_exists p` -- the order matters,
+      because is_directory raises before the second operand is read"
+    - "a new call site uses `Sys.is_directory` without the guard, and
+      the tree it asks about is absent only on CI"
+  owner: human:maintainer
+
+counterexample: |
+  "`Sys.is_directory` raising on a missing path is documented
+  behaviour, and a tool that is pointed at a directory that does not
+  exist SHOULD fail loudly -- a typo in MATH_CODING_ROOT should not
+  be silently ignored."
+
+  The objection is right about the OPERATOR's typo and wrong about
+  the mechanism. A typo in `MATH_CODING_ROOT` must be loud, and it
+  is: the resolver falls through to the next layout, the tool runs
+  against the project it can find, and the layout it chose is
+  reported. What the objection misses is that the same question is
+  asked of artefacts the operator never named: the store, the axioms
+  directory, the decisions directory. Those are not operator typos;
+  they are states. A tree with no store is a tree where the sweep
+  has not run, and the answer the tool owes is "no evidence here",
+  not a stack trace from a directory walk.
+
+antithesis: |
+  The opposite claim is that the guards are noise: the store is
+  generated in CI before the tools that read it, the axioms directory
+  is in every checkout, and `MATH_CODING_ROOT` is set by a human
+  who means it.
+
+  That is the world before the store was generated, and it is why
+  the defect was invisible: every directory the code asked about
+  happened to exist on the machine where the code was written. The
+  moment one of them can legitimately be absent -- and the store
+  becoming a generated artefact made exactly that true -- the same
+  question broke eight CI runs in a row while the developer machine
+  stayed green. The guard is not noise; it is the difference between
+  a tool that answers and a tool that crashes on a state it will
+  meet again.

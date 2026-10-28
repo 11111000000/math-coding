@@ -79,7 +79,9 @@ let[@warning "-32"] effective_root ?root () =
   | Some r when String.trim r <> "" -> Some r
   | Some _ | None -> (
       match Sys.getenv_opt "MATH_CODING_ROOT" with
-      | Some r when String.trim r <> "" && Sys.is_directory r -> Some r
+      | Some r
+        when String.trim r <> "" && Sys.file_exists r && Sys.is_directory r ->
+          Some r
       | _ -> None)
 
 (* Layout choice, made ONCE per project. Three independent

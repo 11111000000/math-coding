@@ -1592,7 +1592,9 @@ let[@warning "-32"] find_project_root start =
    Decision `path-probe-anchoring-2026-11`. *)
 let[@warning "-32"] root_with_env_precedence () =
   match Sys.getenv_opt "MATH_CODING_ROOT" with
-  | Some r when String.trim r <> "" && Sys.is_directory r -> r
+  | Some r when String.trim r <> "" && Sys.file_exists r && Sys.is_directory r
+    ->
+      r
   | _ ->
       (* The CWD wins over the binary's own tree.
 
