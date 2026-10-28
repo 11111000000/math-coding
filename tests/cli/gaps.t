@@ -5,13 +5,13 @@ The report says HOW MANY obligations are undecided. This command says
 WHICH, and what can be done about each one. The classification is the
 kernel's own dispatch, and this fixture pins all four classes:
 
-  declaration     the verifier is a `manual-` declaration: the kernel
-                  does not execute it and says so.
-  unknown-scheme  the verifier names a command the kernel does not
-                  know: neither a check nor a declaration.
-  checkable       the kernel can execute it here; the gap is about
-                  EVIDENCE.
-  unidentified    the obligation has no id, so no gate ever decides it.
+declaration     the verifier is a `manual-` declaration: the kernel
+does not execute it and says so.
+unknown-scheme  the verifier names a command the kernel does not
+know: neither a check nor a declaration.
+checkable       the kernel can execute it here; the gap is about
+EVIDENCE.
+unidentified    the obligation has no id, so no gate ever decides it.
 
 The worklist is built by the SAME code the gate uses to decide an
 obligation's evidence (`Gate.obligation_gap`), so it cannot disagree
