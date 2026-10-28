@@ -79,6 +79,23 @@ CEILING_LEGACY=16
 # attestation is written by the re-signing, which this change does
 # not run. The ceiling is pinned at 1, the number the truth is now.
 # It may only fall - and after the re-signing it must.
+#
+# MEASURED 2026-10-28, the MEASURE was corrected, not the ceiling.
+# The debt was counting every decision in decisions/ that carries no
+# attestation, INCLUDING the ones that are not in force: a
+# superseded, retired or draft decision is not a rule, the sweep does
+# not sign it (it signs what is in force), and its absence from the
+# store is not a debt -- it is the correct state of a decision that
+# has been replaced. The count now covers the LIVE rules only, with
+# the kernel's own default (a decision with no `state:` is active).
+#
+# The ceiling STAYS at 1. A narrower measurement would be a cheat if
+# it hid a live decision; here it names a live decision that the
+# census cannot move yet (other decisions still reference it) and
+# that the sweep cannot sign (its verifier is scripts/check.sh, which
+# contains this fixture: a cycle). The cycle is a known debt of its
+# own kind, and the number that is pinned here is still the number
+# the truth is.
 CEILING_UNATTESTED=1
 # The DECLARED inconclusive - a `manual:` obligation, which the
 # kernel does not execute and says so - is not debt. The UNDECLARED
@@ -157,8 +174,16 @@ unattested = 0
 for f in sorted(glob.glob('decisions/*.yaml')):
     if '/waivers/' in f:
         continue
-    m = re.search(r'^id:\s*(\S+)', open(f).read(), re.M)
-    if m and m.group(1) not in have:
+    text = open(f).read()
+    m = re.search(r'^id:\s*(\S+)', text, re.M)
+    # THE DEBT IS ABOUT LIVE RULES. A decision that is not in force
+    # is not a rule: the sweep does not sign it, and its absence from
+    # the store is the correct state of a decision that has been
+    # replaced. `state:` absent means active -- the kernel's own
+    # default (lib/codec.ml::parse_decision_state).
+    st = re.search(r'^state:\s*(\S+)', text, re.M)
+    state = st.group(1) if st else 'active'
+    if m and state == 'active' and m.group(1) not in have:
         unattested += 1
 print(legacy, unattested)
 PY
