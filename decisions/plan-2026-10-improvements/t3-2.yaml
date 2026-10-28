@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-2
 revision: 1
 state: active
-body_sha: "sha256:c5f6a097f69b3ac62ee7cadf2e3231b1dad0f2eacaf512a80aef6209d19c40d4"
-yaml_sha: "sha256:c5f6a097f69b3ac62ee7cadf2e3231b1dad0f2eacaf512a80aef6209d19c40d4"
+body_sha: "sha256:32df369de9a60c0a099cd0f918cb1a7cc9b8f2a444810e7d33f2ca8e8c71d48c"
+yaml_sha: "sha256:32df369de9a60c0a099cd0f918cb1a7cc9b8f2a444810e7d33f2ca8e8c71d48c"
 axiom_link:
   - A0
   - A1
@@ -289,7 +289,7 @@ obligations:
       `{name, verdict} = {"name":"t3-2-test-decision","verdict":"pass"}`.
     acceptance:
       all:
-        - verifier: tests/cli/gate-waiver-scope.t scenario 1 (positive)
+        - verifier: tests/cli/gate-waiver-scope.t
           result: pass
   - id: dual-failure-evidence-negative
     outcome: waiver-scope-narrow
@@ -304,7 +304,7 @@ obligations:
       `{name, verdict} = {"name":"t3-2-test-decision","verdict":"unknown"}`.
     acceptance:
       all:
-        - verifier: tests/cli/gate-waiver-scope.t scenario 2 (strict negative)
+        - verifier: tests/cli/gate-waiver-scope.t
           result: pass
   - id: legacy-global-back-compat
     outcome: waiver-scope-narrow
@@ -322,7 +322,7 @@ obligations:
       `decisions/waivers/*.yaml` files keep working unchanged.
     acceptance:
       all:
-        - verifier: tests/cli/gate-waiver-scope.t scenario 3 (legacy global)
+        - verifier: tests/cli/gate-waiver-scope.t
           result: pass
   - id: cross-decision-negative
     outcome: waiver-scope-narrow
@@ -338,7 +338,7 @@ obligations:
       `{name, verdict} = {"name":"t3-2-test-decision","verdict":"unknown"}`.
     acceptance:
       all:
-        - verifier: tests/cli/gate-waiver-scope.t scenario 4 (cross-decision negative)
+        - verifier: tests/cli/gate-waiver-scope.t
           result: pass
   - id: a3-protected-transition-human-review-marker
     outcome: waiver-scope-narrow
@@ -366,7 +366,7 @@ obligations:
       all:
         - verifier: text-scan-decisions-t3-2-yaml-dual-failure-obligations
           result: pass
-        - verifier: attestations/t3-2-a3-review-marker.json exists
+        - verifier: file-exists attestations/t3-2-a3-review-marker.json
           result: pass
 
 reversal:
