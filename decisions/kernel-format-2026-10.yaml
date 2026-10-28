@@ -6,8 +6,8 @@ state: active
 mode: tiny
 change_kind: editorial
 
-body_sha: "sha256:723ee673aa51ce8b4c4aa49cac8e98ad29a6cfb00dce1514a46b042e218099b3"
-yaml_sha: "sha256:723ee673aa51ce8b4c4aa49cac8e98ad29a6cfb00dce1514a46b042e218099b3"
+body_sha: "sha256:4f467eb897c0865a3a1ad1262e2c9815939d17594fdb8f2d0d34e667e4529602"
+yaml_sha: "sha256:4f467eb897c0865a3a1ad1262e2c9815939d17594fdb8f2d0d34e667e4529602"
 
 axiom_link:
   - A0
@@ -65,10 +65,10 @@ obligations:
 
 risk:
   declared_triggers:
-    - "the formatter's output differs from the file's semantics: a
+    - "the formatter's output differs from the file's semantics, and a
       rewrap inside a string literal that drops or adds a space
-      changes the message, and only the byte-for-byte comparison of
-      the literal proves otherwise"
+      changes the message; only the byte-for-byte comparison of the
+      literal proves otherwise"
   owner: human:maintainer
 
 counterexample: |

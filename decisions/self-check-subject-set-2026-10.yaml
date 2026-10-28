@@ -1,12 +1,12 @@
 ---
-schema: math-coding/3.2
+schema: math-coding/3.3
 id: self-check-subject-set-2026-10
-revision: 1
+revision: 2
 state: active
-mode: light
+mode: standard
 
-body_sha: "sha256:af9150c4e1c27bf81a32dc609c99c8e5398c06b7281090f22fc7e52662c458ed"
-yaml_sha: "sha256:af9150c4e1c27bf81a32dc609c99c8e5398c06b7281090f22fc7e52662c458ed"
+body_sha: "sha256:973f4d3f5f949766fcd7c48ac31e9bfaf70ec5108465852862388703239470c8"
+yaml_sha: "sha256:973f4d3f5f949766fcd7c48ac31e9bfaf70ec5108465852862388703239470c8"
 
 axiom_link:
   - A0
@@ -15,80 +15,87 @@ axiom_link:
 intent: |
   THE OLD SUBJECT SET WAS THE CORPUS. Every decision in decisions/
   was a subject of `mathc self-check`, so the report was a report
-  about the corpus -- and the corpus was 88% unknown, because most of
-  it was prose: plans expressed as decisions, site pages, one-off fix
-  batches, and 771 `manual-` obligations that no program can keep.
+  about the corpus -- and the corpus was mostly `unknown`, because
+  most of it carries DECLARED gaps: `manual-` obligations and
+  `unverified_obligation` markers that no program can keep.
 
-  88% unknown is an HONEST reading of an honest corpus. It is also a
-  reading nobody can act on, because the remedy the report implies
-  ("attest more of it") is not available for a declaration: a
-  `manual-` obligation cannot be attested by running anything, and
-  the corpus it sits in grows every time somebody writes a note down
-  as a decision.
+  Most of that is honest. What the report did not say is WHERE the
+  corpus ends and the CODE begins. A reader saw 191 subjects and
+  could not tell which of them are checks and which are notes, and a
+  project that wanted to act on the report could not: the remedy the
+  report implies ("attest more of it") is not available for a
+  declaration.
 
-  THE NEW SUBJECT SET IS WHAT THE KERNEL CAN DECIDE:
+  THE SUBJECT SET IS THE POLICY. `subjects[]` is every decision in
+  force that carries at least one OBLIGATION, named by its id. A
+  decision with no obligations at all is PROSE -- a plan, a note, a
+  page -- and prose is not a rule; the count of excluded decisions is
+  reported, so the exclusion is visible rather than silent.
 
-    kernel             -- the kernel loaded the corpus, the schemas
-                          and the spec, and hashed itself;
-    schema/<file>      -- each schema loads as a document;
-    conformance/<file> -- each conformance fixture behaves as its
-                          name promises: `positive-` is accepted,
-                          `negative-` is rejected;
-    invariant/<n>      -- each invariant the constitution states is
-                          checked against the corpus that executes
-                          the kernel-enforced rules (invariant 13:
-                          every kernel-enforced rule has an
-                          accepting and a rejecting fixture);
-    decision/<id>      -- the decisions that are STANDING RULES: in
-                          force, and carrying at least one obligation
-                          a program can run.
+  THE CORPUS IS AN INSTRUMENT, AND IT IS REPORTED AS ONE. The
+  schemas, the conformance fixtures and the invariants those fixtures
+  execute are not policy: they are the machinery that decides
+  whether the policy can be decided at all. They live in their own
+  block in the report, with their own verdict:
 
-  A decision whose obligations are all `manual-` declarations is
-  PROSE, and prose is not a subject: the kernel cannot keep it, so
-  asking about it produces a permanent `unknown` that says nothing
-  about the code. The report says how many decisions were excluded
-  (`excluded_decisions`), so the exclusion is visible rather than
-  silent -- and the doctrine's `unknown != pass` is not weakened:
-  the subject set is not a way to turn a red verdict green, it is a
-  statement about what the kernel is able to check at all.
+    corpus.schema[]        each schema loads as a document
+    corpus.conformance[]   each fixture behaves as its name promises
+                            (`positive-` accepted, `negative-` rejected)
+    corpus.invariants[]    each invariant the constitution states,
+                            checked against that corpus
+    corpus.verdict         the corpus is green or it is not
 
-  MEASURED on this repository, 2026-10-28, after the census:
+  The corpus is folded into the top-level verdict where there IS one:
+  the bootstrap-gate condition is "the kernel checks this repository
+  AND its conformance corpus". A project with no corpus has made no
+  corpus claim; the absence is reported in the block and does not
+  decide the verdict.
 
-    subjects: 201 = 1 kernel + 6 schema + 19 conformance
-                   + 16 invariant + 159 decision
-    excluded decisions (prose only): 36
-    before this decision: 184 subjects, all of them decisions, 88%
-      unknown, exit 3
+  A decision whose obligations are all DECLARED IS A SUBJECT. Its gap
+  is `unknown`, or `open-with-waiver` when a waiver covers it. This
+  is the part the first version of this decision got wrong, and the
+  corpus's own contract tests are what caught it -- see the
+  counterexample.
 
-  The corpus that the subject set walks is still the whole corpus;
-  what changed is WHICH of it the kernel claims to have checked.
+  MEASURED on this repository, 2026-10-28:
+
+    subjects: 191 (the decisions in force that carry an obligation)
+    excluded decisions (no obligations at all): 7
+    corpus: 6 schemas + 19 conformance fixtures + 16 invariants,
+            verdict pass
+    top-level verdict: unknown (exit 3) -- the policy has gaps
 
 commitment: |
-  1. `mathc self-check` reports the kernel, the schemas, the
-     conformance corpus, the constitution's invariants and the
-     standing rules -- and nothing it cannot decide.
-  2. A decision whose obligations are all `manual-` declarations is
-     excluded from the subject set, and the count of excluded
-     decisions is reported.
-  3. The verdict and the exit code are unchanged in meaning: a
-     subject that is not decided makes the aggregate `unknown`
-     (exit 3). `unknown != pass` is not relaxed by narrowing the
-     subject set.
-  4. The conformance corpus is a subject set of its own: a
+  1. `subjects[]` is the policy: the decisions in force that carry an
+     obligation, named by their id. The corpus is reported in its own
+     block, and the two are not mixed.
+  2. A decision with no obligations is prose and is not a subject; the
+     count of excluded decisions is reported.
+  3. A decision whose obligations are all DECLARED is a subject. It
+     reports `unknown` when nothing covers its gap and
+     `open-with-waiver` when a waiver does.
+  4. The verdict and the exit code keep their meaning: a subject that
+     is not decided makes the aggregate `unknown` (exit 3).
+     `unknown != pass` is not relaxed by choosing a subject set.
+  5. The conformance corpus is checked against its own names: a
      `positive-` fixture that is rejected, or a `negative-` one that
      is accepted, fails the report.
 
 outcomes:
-  - id: the-report-is-about-what-can-be-checked
+  - id: the-report-separates-policy-from-instrument
     statement: |
-      The self-check report names the kernel, the schemas, the
-      conformance corpus, the invariants and the standing rules, and
-      it says how many decisions it excluded and why.
+      The report names the decisions in `subjects[]` and the
+      instrument in `corpus`, and says how many decisions it excluded
+      and why.
+  - id: a-declared-gap-is-still-a-subject
+    statement: |
+      A decision whose only obligation is a declared gap appears in
+      `subjects[]` with the verdict its gap deserves: `unknown`, or
+      `open-with-waiver` under a waiver in force.
   - id: the-corpus-is-still-green-only-when-it-is-green
     statement: |
       A standing rule whose evidence is missing or stale is still
-      `unknown`, and the aggregate is still `unknown`; narrowing the
-      subject set did not make any unchecked claim into a checked one.
+      `unknown`, and the aggregate is still `unknown`.
 
 scope:
   paths:
@@ -102,8 +109,7 @@ scope:
 obligations:
   - id: the-kernel-builds
     claim: |
-      The kernel with the new subject set compiles and the suite
-      passes.
+      The kernel with the subject set compiles and the suite passes.
     acceptance:
       all:
         - verifier: dune test --root .
@@ -119,56 +125,66 @@ obligations:
 
 risk:
   declared_triggers:
-    - "a decision that was a rule is classified as prose and stops
-      being checked; the classification is the kernel's own dispatch
-      (a scheme the kernel cannot execute is not a check), so a
-      decision whose verifiers are all `manual-` is prose by the
-      kernel's own account"
-    - "the conformance corpus becomes the only thing standing between
-      the invariants and a claim; a corpus that shrinks stops
-      covering, and the report says only that the corpus is green"
-    - "the exclusion count grows while the corpus stays the same: a
-      decision written as prose but meant as a rule is invisible to
-      the report"
+    - "a decision that was a rule is classified as prose because it
+      carries no obligation, and stops being checked; the count of
+      excluded decisions is the only sign"
+    - "the corpus is deleted from the repository and the verdict stays
+      green, because an absent corpus has no claim to violate; the
+      corpus block reports the absence, and the gate that requires the
+      corpus is the CI step, not the kernel"
+    - "a decision with only declared obligations is read as noise and
+      dropped from the subject set again, and the report goes green
+      over an uncovered gap"
   owner: human:maintainer
 
 counterexample: |
-  "Narrowing the subject set is how a project makes its gate green
-  without making its code better."
+  "The first version of this decision was reasonable and it was
+  wrong, and the corpus caught it in a week."
 
-  The objection is the right one to fear, and the design answers it
-  in two places. First, the subject set is decided by the KERNEL'S OWN
-  DISPATCH, not by a list of file names someone liked: a decision is a
-  standing rule when it is in force AND carries at least one
-  obligation the kernel can execute (`file-exists`, `mathc …`, a
-  script, a test). A decision whose obligations are all `manual-`
-  declarations could never have been discharged by any evidence, so
-  removing it from the subject set removes no claim that was ever
-  checkable.
+  Revision 1 said: a standing rule is a decision that is in force AND
+  carries at least one obligation A PROGRAM CAN RUN; a decision whose
+  obligations are all `manual-` declarations is prose, and prose is
+  not a subject. The reasoning was sound: no evidence could ever
+  discharge a declaration, so asking about it produces a permanent
+  `unknown`.
 
-  Second, and this is the part that matters: the report still says
-  `unknown` when a standing rule has no fresh evidence, and the
-  aggregate is still `unknown` (exit 3). A narrower subject set makes
-  the report SHORTER and more honest; it does not make a red verdict
-  green. If the standing rules' evidence is missing, the answer is
-  still exit 3.
+  The corpus's contract tests said otherwise, and they were right.
+  `tests/cli/self-check-waiver-verdict.t` and
+  `tests/cli/waiver-scope.t` build a decision whose only obligation is
+  a DECLARED gap, cover the gap with a waiver, and require the report
+  to say `open-with-waiver` (exit 0); then they let the waiver expire
+  and require `unknown` (exit 3). With revision 1's filter, that
+  decision was not a subject at all: the report had nothing to report
+  about the gap, the aggregate had no `unknown` left in it, and the
+  command exited 0 where the contract says exit 3.
+
+  That is the `unknown != pass` violation this repository keeps
+  finding in one shape or another: an uncovered gap that the report
+  cannot see is a gap the report has laundered. A declared gap is not
+  prose -- it is a gap, declared, and the waiver machinery exists
+  exactly to say whether it is covered.
+
+  The second thing revision 1 broke was the shape of the report: it
+  put the kernel, the schemas, the fixtures and the invariants into
+  `subjects[]` alongside the decisions. `tests/cli/adoption-path-p0.t`
+  prints the WHOLE subject list of a scaffolded project and pins it
+  to the decisions that project has. The corpus is an instrument, not
+  a policy, and the report now says so in its own block.
 
 antithesis: |
   The opposite claim is that the subject set should stay the whole
-  corpus, and that a report which excludes 36 decisions is a report
-  that hides 36 decisions.
+  corpus, and that a report which excludes seven decisions is a
+  report that hides seven decisions.
 
   The claim is right about the hiding, and the design names the
-  number rather than hiding it: `excluded_decisions` is in the report,
-  and the decisions it names are the ones whose obligations no
-  program can run. A corpus-wide report that says "184 subjects, 88%
-  unknown" hides the far more important fact -- that the 88% are
-  obligations no program can ever discharge, and that the number is
-  therefore a property of how the corpus was WRITTEN, not of whether
-  the code is any good.
+  number rather than hiding it: `excluded_decisions` is in the
+  report, and the decisions it names are the ones with no obligation
+  at all -- a plan written as a decision, a note, a page. There is
+  nothing in them to keep, and a report that carried them would
+  report `pass` over a document that claims nothing.
 
   The concession is real: a decision written as prose but meant as a
-  rule is invisible to the report. That is why the count is reported
-  and why the census that produced it is a separate decision
-  (`corpus-census-2026-10`): the subject set says what the kernel
-  checks; the census decides what the corpus is for.
+  rule is invisible to the report. That is why the count is reported,
+  and why the census that decided what the corpus is for is a
+  separate decision (`corpus-census-2026-10`): the subject set says
+  what the kernel checks; the census decides what the corpus is for.

@@ -457,31 +457,38 @@ existence. Output JSON objects use sorted keys for reproducibility.
   `open-with-waiver` when every subject is `pass` or
   `open-with-waiver` and at least one is `open-with-waiver`; a
   wholly passing repository still reports `pass`.
-  **The subject set.** `subjects[]` is not the corpus: it is what
-  the kernel can decide, and it is named so a reader can tell which
-  is which.
-  - `kernel` — the kernel loaded the corpus, the schemas and the
-    spec, and hashed itself.
-  - `schema/<file>` — each schema under `schemas/` loads as a
+  **The subject set.** `subjects[]` is the POLICY: every decision in
+  force that carries at least one obligation, named by its id. A
+  decision with no obligations at all is prose -- a plan, a note, a
+  page -- and prose is not a rule and is not a subject; the count of
+  excluded decisions is reported in `excluded_decisions`, so the
+  exclusion is visible rather than silent. A decision whose
+  obligations are all DECLARED (`manual-` declarations,
+  `unverified_obligation` markers) IS a subject: its gap is
+  `unknown`, or `open-with-waiver` when a waiver in force covers it.
+  Excluding a subject does not relax the aggregate: a standing rule
+  with no fresh evidence is still `unknown`, and the aggregate is
+  still `unknown`.
+  **The corpus block.** The schemas, the conformance fixtures and the
+  invariants those fixtures execute are the INSTRUMENT, not the
+  policy, and they are reported apart from `subjects[]`, in `corpus`:
+  - `corpus.schema[]` — each schema under `schemas/` loads as a
     document.
-  - `conformance/<file>` — each fixture under
+  - `corpus.conformance[]` — each fixture under
     `fixtures/conformance/` behaves as its name promises: a
     `positive-` fixture MUST be accepted and a `negative-` one MUST
     be rejected. This is where the kernel-enforced rules are
     EXECUTED (constitution.md Invariant 13).
-  - `invariant/<n>` — each invariant `spec/constitution.md` states,
-    checked against that corpus.
-  - `decision/<id>` — a decision that is a STANDING RULE: its state
-    is in force and it carries at least one obligation a program can
-    run.
-  A decision whose obligations are all `manual-` declarations is
-  PROSE, and prose is not a subject: no evidence could ever
-  discharge it, so asking about it produces a permanent `unknown`
-  that says nothing about the code. The count of excluded decisions
-  is reported in `excluded_decisions`, so the exclusion is visible
-  rather than silent. Excluding a subject does not relax the
-  aggregate: a standing rule with no fresh evidence is still
-  `unknown`, and the aggregate is still `unknown`.
+  - `corpus.invariants[]` — each invariant `spec/constitution.md`
+    states, checked against that corpus.
+  - `corpus.verdict` — `pass` when the corpus is green, `fail` when a
+    fixture or a schema does not hold, `unknown` when the project has
+    no corpus at all.
+  The corpus verdict is folded into the top-level verdict where a
+  corpus exists (the bootstrap-gate condition is "the kernel checks
+  this repository AND its conformance corpus"). A project with no
+  corpus has made no corpus claim: the absence is reported in the
+  block and does not decide the verdict.
 - **Exit code**: `0` on `pass` and on `open-with-waiver`; `1` on
   `fail`; `3` on
   `unknown` / infrastructure error (per `OCAML_BEST_PRACTICES.md`

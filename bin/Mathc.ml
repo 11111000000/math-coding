@@ -7845,14 +7845,11 @@ let[@warning "-32"] do_negative_control () =
  *
  * THE OLD SUBJECT SET WAS THE CORPUS. Every decision in decisions/
  * was a subject, so the report was a report about the corpus -- and
- * the corpus was 88% unknown, because most of it was prose: plans
- * expressed as decisions, site pages, one-off fix batches, and 771
- * `manual-` obligations that no program can keep. 88% unknown is an
- * honest reading of an honest corpus, and it is a reading nobody can
- * act on, because the remedy ("attest more of it") is not available
- * for a declaration.
+ * the corpus was mostly `unknown`, because most of it carries
+ * DECLARED gaps: `manual-` obligations and `unverified_obligation`
+ * markers that no program can keep.
  *
- * THE NEW SUBJECT SET IS WHAT THE KERNEL CAN DECIDE:
+ * THE SUBJECT SET IS WHAT THE KERNEL CAN DECIDE:
  *
  *   kernel             -- the kernel loaded the corpus, the schemas
  *                         and the spec, and hashed itself;
@@ -7867,15 +7864,21 @@ let[@warning "-32"] do_negative_control () =
  *                         form of the rules;
  *   invariant/<n>      -- each invariant the constitution states is
  *                         checked against that corpus;
- *   decision/<id>      -- the decisions that are STANDING RULES: in
- *                         force, and carrying at least one obligation
- *                         a program can run.
+ *   decision/<id>      -- every decision in force that carries at
+ *                         least one OBLIGATION.
  *
- * A decision whose obligations are all `manual-` declarations is
- * PROSE, and prose is not a subject: the kernel cannot keep it, so
- * asking about it produces a permanent `unknown` that says nothing
- * about the code. The report says how many decisions were excluded
- * and why, so the exclusion is visible rather than silent.
+ * A decision with no obligations at all is PROSE -- a plan, a note,
+ * a page -- and prose is not a rule and is not a subject. The count
+ * of excluded decisions is reported, so the exclusion is visible
+ * rather than silent.
+ *
+ * A decision whose obligations are all DECLARED is NOT prose. It is
+ * a rule with a declared gap, and the waiver machinery exists
+ * exactly for it: it reports `unknown` when nothing covers the gap
+ * and `open-with-waiver` when a waiver does. The first version of
+ * this subject set demanded an EXECUTABLE obligation and excluded
+ * those decisions; the corpus's own contract tests said otherwise
+ * and they were right -- see `standing_rule` below.
  *
  * Decision `self-check-subject-set-2026-10`. *)
 
@@ -7896,29 +7899,45 @@ let[@warning "-32"] selfcheck_subject ~name ~verdict ~causes ~remedies =
     sc_waived = [];
   }
 
+(* A list of subjects as JSON. The same shape for the policy's
+   subjects and for the corpus block's, so a reader can read both
+   with one eye. *)
+let[@warning "-32"] subjects_to_json (subjects : selfcheck_subject list) =
+  "["
+  ^ String.concat ","
+      (List.map
+         (fun (s : selfcheck_subject) ->
+           subject_to_json s.sc_name
+             (verdict_to_pass_fail_unknown s.sc_verdict)
+             s.sc_causes s.sc_remedies s.sc_waived)
+         subjects)
+  ^ "]"
+
 (* A decision is a STANDING RULE when it is in force AND it carries
-   at least one obligation a program can run. The classification
-   mirrors the kernel's own dispatch: a scheme the kernel cannot
-   execute is not a check, and a decision that carries no check
-   carries no evidence to be missing. *)
-let[@warning "-32"] standing_rule ~root (e : Memory.decision_entry) =
+   at least one OBLIGATION. The obligation may be executable (a
+   program can run it) or DECLARED (a `manual-` declaration, an
+   `unverified_obligation` marker); both are commitments the corpus
+   holds, and both belong in the report.
+
+   The first version of this filter demanded an EXECUTABLE
+   obligation, on the theory that a declaration no program can run is
+   prose. The corpus's own contract tests say otherwise, and they are
+   right. A decision whose only obligation is a declared gap is still
+   a rule, and a rule with a declared gap must report `unknown` when
+   nothing covers the gap and `open-with-waiver` when a waiver does
+   -- and it can report either only if it is a subject at all.
+   Excluding it made the report say `pass` (exit 0) where the
+   contract says `unknown` (exit 3), which is the `unknown != pass`
+   violation this repository keeps finding in one shape or another.
+   The contract tests that caught it: tests/cli/self-check-waiver-verdict.t
+   and tests/cli/waiver-scope.t. *)
+let[@warning "-32"] standing_rule (e : Memory.decision_entry) =
   let in_force =
     match e.Memory.state with
     | `Active | `Draft -> true
     | `Retired | `Superseded -> false
   in
-  let executable v =
-    match parse_verifier_string v with
-    | None -> false
-    | Some (scheme, args) -> (
-        match scheme with
-        | "file-exists" | "dir-exists" | "mathc" -> args <> []
-        | _ -> (
-            match plan_verifier ~project_root:root scheme args with
-            | Plan_ok _ -> true
-            | Plan_fail _ | Plan_skip -> false))
-  in
-  in_force && List.exists executable e.Memory.verifier_per_obligation
+  in_force && e.Memory.obligations > 0
 
 (* Every file under a directory, with the path relative to it. *)
 let[@warning "-32"] selfcheck_walk_files dir =
@@ -8095,31 +8114,54 @@ let[@warning "-32"] do_self_check () =
     materials_resolver_of ~entries ~tree:"HEAD" ~root
   in
   let now = now_iso () in
-  (* THE SUBJECTS. The kernel, the schemas, the conformance corpus,
-     the invariants the corpus executes, and the decisions that are
-     standing rules. A decision that is prose -- in force, but
-     carrying only `manual-` declarations -- is not a subject: the
-     kernel cannot keep it, and asking about it produces a permanent
-     `unknown` that says nothing about the code. The count of the
+  (* THE SUBJECTS. `subjects[]` is the POLICY: every decision in force
+     that carries an obligation, named by its id. The corpus -- the
+     schemas, the conformance fixtures, and the invariants those
+     fixtures execute -- is reported in its OWN block, because the
+     corpus is an INSTRUMENT, not a policy. The contract tests pin
+     `subjects[]` as the list of the decisions and nothing else
+     (tests/cli/adoption-path-p0.t prints the whole list), and a
+     project that has no corpus must still report its own policy.
+
+     A decision with no obligations is prose -- a plan, a note, a page
+     -- and prose is not a rule and is not a subject; the count of
      excluded decisions is reported, so the exclusion is visible
-     rather than silent. *)
+     rather than silent. A decision whose obligations are all DECLARED
+     IS a subject: its gap is `unknown`, or `open-with-waiver` when a
+     waiver covers it, and a report that dropped it would say `pass`
+     where the contract says `unknown`. *)
+  let schema_subjects = selfcheck_schema_subjects root in
   let conformance_subjects = selfcheck_conformance_subjects root in
   let corpus_green =
     List.for_all
       (fun (s : selfcheck_subject) -> s.sc_verdict = Gate.Pass)
       conformance_subjects
   in
-  let kernel_subject =
-    let digest = kernel_digest_of () in
-    let has_digest = String.length digest > 0 in
-    selfcheck_subject ~name:"kernel"
-      ~verdict:(if has_digest then Gate.Pass else Gate.Unknown)
-      ~causes:
-        (if has_digest then [] else [ "the kernel could not hash itself" ])
-      ~remedies:
-        (if has_digest then [] else [ "the kernel's sources are not readable" ])
+  let invariant_subjects = selfcheck_invariant_subjects root corpus_green in
+  let corpus_subjects =
+    schema_subjects @ conformance_subjects @ invariant_subjects
   in
-  let standing, prose = List.partition (standing_rule ~root) entries in
+  (* The corpus verdict. An EMPTY corpus is not a failure: a project
+     that has no conformance corpus has made no corpus claim, and the
+     report says so in its own block instead of inventing a subject
+     for it. *)
+  let corpus_verdict =
+    match corpus_subjects with
+    | [] -> Gate.Unknown
+    | _ ->
+        if
+          List.exists
+            (fun (s : selfcheck_subject) -> s.sc_verdict = Gate.Block)
+            corpus_subjects
+        then Gate.Block
+        else if
+          List.for_all
+            (fun (s : selfcheck_subject) -> s.sc_verdict = Gate.Pass)
+            corpus_subjects
+        then Gate.Pass
+        else Gate.Unknown
+  in
+  let standing, prose = List.partition standing_rule entries in
   let decision_subjects =
     List.map
       (fun entry ->
@@ -8129,7 +8171,7 @@ let[@warning "-32"] do_self_check () =
             ~store ~waivers ~now entry
         in
         {
-          sc_name = "decision/" ^ entry.Memory.decision_id;
+          sc_name = entry.Memory.decision_id;
           sc_verdict = verdict;
           sc_causes = causes;
           sc_remedies = remedies;
@@ -8137,12 +8179,7 @@ let[@warning "-32"] do_self_check () =
         })
       standing
   in
-  let evaluated =
-    (kernel_subject :: selfcheck_schema_subjects root)
-    @ conformance_subjects
-    @ selfcheck_invariant_subjects root corpus_green
-    @ decision_subjects
-  in
+  let evaluated = decision_subjects in
   (* Top-level aggregation. Empty decision set is treated as
      `unknown` (not `pass`) — a kernel with no decisions to check
      cannot honestly claim to have checked the policy.
@@ -8158,7 +8195,7 @@ let[@warning "-32"] do_self_check () =
      exits 0, which is what Invariant 14b allows, and it is
      distinguished from `pass` in the JSON so a reader can see
      that the green is borrowed. *)
-  let top_verdict =
+  let policy_verdict =
     match evaluated with
     | [] -> Gate.Unknown
     | _ ->
@@ -8174,20 +8211,43 @@ let[@warning "-32"] do_self_check () =
         then Gate.Open_with_waiver
         else Gate.Unknown
   in
+  (* The corpus is folded into the verdict where there IS one: the
+     bootstrap-gate condition is "the kernel checks this repository
+     AND its conformance corpus" (spec/semantics.md, `self-check`).
+     A project with no corpus has no corpus claim to violate, so its
+     absence is reported in the corpus block and does not decide the
+     verdict. *)
+  let top_verdict =
+    match corpus_subjects with
+    | [] -> policy_verdict
+    | _ -> (
+        match (policy_verdict, corpus_verdict) with
+        | Gate.Block, _ | _, Gate.Block -> Gate.Block
+        | Gate.Open_with_waiver, Gate.Open_with_waiver -> Gate.Open_with_waiver
+        | Gate.Open_with_waiver, Gate.Pass -> Gate.Open_with_waiver
+        | Gate.Pass, Gate.Pass -> Gate.Pass
+        | _ -> Gate.Unknown)
+  in
   let top_string = verdict_to_pass_fail_unknown top_verdict in
-  let subjects_json =
-    "["
+  let subjects_json = subjects_to_json evaluated in
+  let corpus_json =
+    "{"
     ^ String.concat ","
         (List.map
-           (fun (s : selfcheck_subject) ->
-             subject_to_json s.sc_name
-               (verdict_to_pass_fail_unknown s.sc_verdict)
-               s.sc_causes s.sc_remedies s.sc_waived)
-           evaluated)
-    ^ "]"
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           [
+             ("conformance", subjects_to_json conformance_subjects);
+             ("invariants", subjects_to_json invariant_subjects);
+             ("schema", subjects_to_json schema_subjects);
+             ( "verdict",
+               Jsonl.stringify
+                 (Jsonl.String (verdict_to_pass_fail_unknown corpus_verdict)) );
+           ])
+    ^ "}"
   in
   let fields =
     [
+      ("corpus", corpus_json);
       ("kernel_digest", Jsonl.stringify (Jsonl.String (kernel_digest_of ())));
       ("now", Jsonl.stringify (Jsonl.String (now_iso ())));
       ( "repository_digest",
