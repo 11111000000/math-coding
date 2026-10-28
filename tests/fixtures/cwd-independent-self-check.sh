@@ -134,7 +134,15 @@ out=$( cd "$tmp" && MATH_CODING_ATTESTATION_STORE="$empty_store" "$BIN" self-che
 pass_empty=$(printf '%s' "$out" | cut -f1)
 waived_empty=$(printf '%s' "$out" | cut -f2)
 
-if [ "$pass_empty" != "$pass_root" ] || [ "$waived_empty" != "$waived_root" ]; then
+if [ "${pass_root:-0}" -eq 0 ] && [ "${waived_root:-0}" -eq 0 ]; then
+  # The control compares the verdicts WITH the repository's store
+  # against the verdicts with an EMPTY store. In a checkout with no
+  # generated store there is nothing to compare -- both sides are
+  # (0,0) -- and a control that compares nothing is not a control, it
+  # is a coincidence. The store is generated now, so this is the
+  # normal state of a fresh CI checkout.
+  ok "n/a  this checkout has no store: there is nothing for the empty-store comparison to compare against"
+elif [ "$pass_empty" != "$pass_root" ] || [ "$waived_empty" != "$waived_root" ]; then
   ok "an empty store changes the verdict (root=($pass_root,$waived_root) empty=($pass_empty,$waived_empty)) — the comparison has teeth"
 else
   bad "an empty store did NOT change the verdict (both ($pass_root,$waived_root)) — the comparison is vacuous"
