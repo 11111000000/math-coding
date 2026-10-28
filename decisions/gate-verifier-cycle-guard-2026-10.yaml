@@ -1,0 +1,151 @@
+---
+schema: math-coding/3.2
+id: gate-verifier-cycle-guard-2026-10
+revision: 1
+state: active
+body_sha: "sha256:5fe5970a857011547bda6d5368c1c4069fb820e6491336f5e0a2e2cd72c7baa1"
+yaml_sha: "sha256:5fe5970a857011547bda6d5368c1c4069fb820e6491336f5e0a2e2cd72c7baa1"
+
+axiom_link:
+  - A1
+  - A3
+
+intent: |
+  A verifier that re-enters itself must be refused, not executed.
+
+  The kernel runs verifiers, and a verifier may be a repository script.
+  A repository script may call the kernel again -- `scripts/check.sh`
+  runs the fixture `tests/fixtures/gate-ref-validation.sh`, and that
+  fixture calls `mathc gate HEAD~1 HEAD`. That is a CYCLE: every level
+  spawns the next, and the fork rate is set by the tree below, not by
+  the level. Nothing in the cycle can conclude, because the thing each
+  level waits for is the thing the next level is producing.
+
+  Measured on this repository (2026-10-28): the cycle repeated nine
+  levels deep in the process tree, 40+ processes resident, load average
+  64 on a 4-core host, CPU pressure at 99 %. The host stopped serving
+  the Paseo daemon that shares it -- plugin RPC took 39 s, the mobile
+  client timed out, and every agent in the UI looked dead. The cause
+  was not the gate, and not the plugin, and not the agent: it was a
+  verifier that could not terminate.
+
+commitment: |
+  The kernel refuses a verifier whose script is already running above
+  it, says so out loud, and reports the obligation as not runnable --
+  the check did not run HERE, and its verdict belongs to the run that
+  started it.
+
+outcomes:
+  - id: the-cycle-is-refused-not-forked
+    statement: |
+      A verifier whose script is already running above it is refused
+      before it is executed, and the refusal names the cycle.
+  - id: the-obligation-is-not-runnable-here
+    statement: |
+      The refused obligation is reported as not runnable, so the gate
+      answers `unknown` rather than inventing a pass or blaming the
+      change for a check that never ran.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/gate-cycle-guard.t"
+    - "decisions/gate-verifier-cycle-guard-2026-10.yaml"
+
+obligations:
+  - id: the-cycle-is-refused-not-forked
+    claim: |
+      A verifier whose script is already running above it is refused
+      before it is executed, and the refusal names the cycle.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-cycle-guard.t
+          result: pass
+  - id: the-refusal-is-said-out-loud
+    claim: |
+      The refusal is reported on stderr with the name of the cycle, so
+      an operator reading the log learns that the check did not run
+      rather than inferring it from a timeout.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-cycle-guard.t
+          result: pass
+  - id: the-refusal-is-not-a-verdict-about-the-change
+    claim: |
+      The refused obligation is reported as not runnable, and the gate
+      that runs above it answers `unknown` about that obligation
+      rather than `pass`.
+    acceptance:
+      all:
+        - verifier: manual-review-refusal-is-not-a-verdict-about-the-change
+          result: pass
+
+assumptions:
+  - id: verifier-identity-is-the-resolved-path
+    state: assumed
+    statement: |
+      A verifier's identity is its resolved absolute path inside the
+      repository, so the same script named by two decisions is the
+      same verifier for the purpose of the cycle check.
+    owner: human:maintainer
+    consequence_if_false: |
+      If two distinct scripts resolve to one path (a symlink), the
+      cycle check refuses both. The failure is a refusal where a run
+      was expected -- an obligation that reads as not runnable -- not
+      a wrong verdict.
+    review_on:
+      - signal: an-obligation-reads-as-not-runnable-without-a-cycle
+  - id: the-environment-reaches-the-child
+    state: assumed
+    statement: |
+      The verifier stack travels in `MATH_CODING_VERIFIER_STACK` and
+      the path forms forward it to their children, so the refusal
+      holds through any number of intermediate scripts.
+    owner: human:maintainer
+    consequence_if_false: |
+      If a child strips the variable, the cycle is not detected and
+      the kernel forks as before. The symptom is the same fork
+      signature the refusal was written for, and the guard would have
+      to move from the environment to a file the sandbox cannot
+      rewrite.
+    review_on:
+      - signal: fork-signature-returns-without-a-refusal-in-the-log
+
+reversal: |
+  If the stack turns out to be too coarse -- a script that is genuinely
+  re-entrant because it runs the same file twice in a row, with no
+  cycle -- then the refusal is wrong, and the fix is to carry an
+  invocation depth as well as the path set: the depth counts the
+  levels, the path set detects the cycle. What would NOT be a
+  reversal: the kernel runs the verifier anyway and lets the operator's
+  timeout deal with it. That is the behaviour this decision exists to
+  end.
+
+risk:
+  declared_triggers:
+    - |
+      A verifier that legitimately re-enters itself is refused and its
+      obligation reads as not runnable. The symptom is an obligation
+      that never settles and a gate that reports `unknown` where it
+      used to report a verdict.
+    - |
+      The stack is forwarded only to the path forms, so a `mathc`
+      scheme verifier that re-enters the gate is not caught by this
+      guard. The corpus has no such verifier today; one would need the
+      same treatment.
+  owner: human:maintainer
+
+counterexample: |
+  Suppose `scripts/check.sh` is a verifier of an obligation, and it is
+  ALSO the script that runs the fixture which calls `mathc gate`. Under
+  this decision the nested gate refuses `scripts/check.sh` and reports
+  the obligation as not runnable. The outer gate then sees a failed
+  verifier and may block the change. Is that the right answer? No --
+  and that is the point of the distinction the refusal draws: the
+  outer gate's verdict about `scripts/check.sh` is the verdict, and the
+  nested gate must not re-litigate it. The nested gate's `unknown` is
+  the honest answer to "what does the suite say?", because the suite
+  is running ABOVE it and its result is not yet known. If the outer
+  run then fails, the change is blocked with a named reason; if it
+  passes, the obligation is settled by the run that actually executed
+  the check.
