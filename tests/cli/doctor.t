@@ -30,7 +30,7 @@ The exact-match lines below lock in the canonical verdicts
 on a healthy install. A regression that flips `install`
 or `config` to `warn`/`fail` will surface here.
 
-  $ mathc doctor | sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/'
+  $ mathc doctor | sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' -e 's/^\[attestations\] (pass|warn|fail)$/[attestations] <PASS-or-WARN>/'
   [install] pass
     Install
   [path] warn
@@ -41,7 +41,7 @@ or `config` to `warn`/`fail` will surface here.
     Config
   [decisions] <PASS-or-WARN>
     Decisions
-  [attestations] pass
+  [attestations] <PASS-or-WARN>
     Attestations
   [self_check] skip
     Self-check
@@ -77,7 +77,7 @@ verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
 
   $ doctmp=$(mktemp -d)
   $ mathc doctor > "$doctmp/doctor.txt"; ec=$?
-  $ sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' "$doctmp/doctor.txt"
+  $ sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' -e 's/^\[attestations\] (pass|warn|fail)$/[attestations] <PASS-or-WARN>/' "$doctmp/doctor.txt"
   [install] pass
     Install
   [path] warn
@@ -88,7 +88,7 @@ verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
     Config
   [decisions] <PASS-or-WARN>
     Decisions
-  [attestations] pass
+  [attestations] <PASS-or-WARN>
     Attestations
   [self_check] skip
     Self-check

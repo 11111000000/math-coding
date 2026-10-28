@@ -38,7 +38,7 @@ Total obligation count is consistent: the buckets partition
 the whole. We compute the sum from the JSON fields directly
 so the test does not pin a stale literal count:
 
-  $ buckets=$(jq '[.counts.pass, .counts.fail, .counts.missing, .counts.stale, .counts.unknown, .counts.waived] | add' /tmp/packages.json)
+  $ buckets=$(jq '[.counts.pass, .counts.fail, .counts.missing, .counts.stale, .counts.unknown, .counts.waived, .counts.no_store] | add' /tmp/packages.json)
   $ total=$(jq '.counts.total' /tmp/packages.json)
   $ if [ "$total" = "$buckets" ]; then echo "PASS: total == sum-of-buckets (partition holds)"; else echo "FAIL: total=$total buckets_sum=$buckets"; fi
   PASS: total == sum-of-buckets (partition holds)

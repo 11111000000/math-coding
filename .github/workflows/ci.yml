@@ -97,22 +97,42 @@ jobs:
       - name: Prepare nix build dir
         run: mkdir -p /tmp/nix-build
 
+
+      - name: scripts/dev verify
+        # The verify script:
+        #   1. cleans stale dune lock
+        #   2. dune build (full release profile)
+        #   3. dune test (kernel conformance + xfail digest vectors)
+        #   4. scripts/fmt-check.sh (dune fmt --preview under profile)
+        #   5. scripts/check.sh (26 shell fixtures)
+        # ~3-5 min on a 4-core runner.
+        run: ./scripts/dev verify
+        timeout-minutes: 15
+
       - name: generate attestation store
         # The store is GENERATED evidence, not a committed artefact:
         # `.gitignore` excludes `/attestations/`, so this checkout
-        # carries no store and every step below that reads one would
-        # read an empty one. The store is generated HERE, before the
-        # first consumer, and uploaded as a build artefact at the end
-        # of the job (decision
-        # decisions/store-not-committed-2026-10.yaml).
+        # carries no store, and the steps that read one would read an
+        # empty one. The store is generated HERE, before its first
+        # consumer, and uploaded as a build artefact at the end of the
+        # job (decision decisions/store-not-committed-2026-10.yaml).
         #
-        # `scripts/sign-store.sh` runs every obligation's own
-        # verifier and writes the evidence into the working tree. It
-        # needs the dev shell - many verifiers are `dune ...`
-        # commands - and a BUILT kernel: the sweep is executed BY the
-        # kernel, and the step below (`scripts/dev verify`) is what
-        # builds it. So this step builds first, and the sweep follows.
-        # The sweep took 574 s on 2026-10-25 with the verifier
+        # IT RUNS AFTER THE TEST SUITE, and that order is not
+        # cosmetic. The sweep runs every obligation's own verifier,
+        # and some of those verifiers are `dune runtest` -- so the
+        # sweep runs the cram suite as a side effect, and dune records
+        # the outcome in its cram cache. `dune test` then REPLAYS that
+        # recorded outcome instead of running the case, and the
+        # replayed outcome is from the middle of the sweep, not from
+        # the tree under test. On 2026-10-28 that showed up as a CI
+        # run whose suite failed in 0.3 s with a diff against a
+        # transcript the suite had never produced. The suite does not
+        # need the store -- every pin that reads it tolerates its
+        # absence -- so the store is generated after it.
+        #
+        # The sweep needs the dev shell (many verifiers are `dune ...`
+        # commands) and a BUILT kernel, so this step builds first. The
+        # sweep took 574 s on 2026-10-25 with the verifier
         # memoisation in place, and ~12 min on 2026-10-28 with the
         # verifiers running live, so the step is given 25 minutes.
         #
@@ -126,17 +146,6 @@ jobs:
           nix develop .#test --command bash -c \
             'dune build --root . && bash scripts/sign-store.sh'
         timeout-minutes: 25
-
-      - name: scripts/dev verify
-        # The verify script:
-        #   1. cleans stale dune lock
-        #   2. dune build (full release profile)
-        #   3. dune test (kernel conformance + xfail digest vectors)
-        #   4. scripts/fmt-check.sh (dune fmt --preview under profile)
-        #   5. scripts/check.sh (26 shell fixtures)
-        # ~3-5 min on a 4-core runner.
-        run: ./scripts/dev verify
-        timeout-minutes: 15
 
       - name: mathc self-check (bootstrap-gate block)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
