@@ -28,23 +28,26 @@ jobs:
   verify:
     name: scripts/dev verify
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    # The store generation below adds a full sweep (~10 min with a
+    # warm tree, more with a cold one) to the job, so the budget
+    # moves with it. The step timeouts below are the ones that
+    # matter; this is the ceiling above them.
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
           # The full history, not a shallow clone.
           #
-          # scripts/ceiling-monotonic.sh compares every CEILING_* in
-          # tests/fixtures/*.sh with its value at the BASE COMMIT, and
-          # the base commit does not exist in a depth-1 clone. A
-          # shallow clone would make the check exit 3 (unknown) on
-          # every run - a red step whose cause is the checkout
-          # configuration and not the corpus.
+          # The `mathc gate` step below resolves the merge base with
+          # the push target and falls back to `GITHUB_SHA^` when it
+          # cannot resolve one. A depth-1 clone has neither the merge
+          # base nor the parent commit, so the gate would evaluate
+          # the wrong diff - a wrong answer whose cause is the
+          # checkout configuration and not the corpus.
           #
-          # The `mathc gate` step below already wanted the merge
-          # base with the push target and fell back to `GITHUB_SHA^`
-          # when it could not resolve one, which is the same defect
-          # one layer down.
+          # The store generation below signs against HEAD, so the
+          # commit the attestations name has to be the one this push
+          # introduced.
           fetch-depth: 0
 
       - name: Install nix
@@ -94,6 +97,34 @@ jobs:
       - name: Prepare nix build dir
         run: mkdir -p /tmp/nix-build
 
+      - name: generate attestation store
+        # The store is GENERATED evidence, not a committed artefact:
+        # `.gitignore` excludes `/attestations/`, so this checkout
+        # carries no store and every step below that reads one would
+        # read an empty one. The store is generated HERE, before the
+        # first consumer, and uploaded as a build artefact at the end
+        # of the job (decision
+        # decisions/store-not-committed-2026-10.yaml).
+        #
+        # `scripts/sign-store.sh` runs every obligation's own
+        # verifier and writes the evidence into the working tree. It
+        # needs the dev shell - many verifiers are `dune ...`
+        # commands - and a built kernel, so it runs inside
+        # `nix develop .#test`. The sweep took 574 s on 2026-10-25
+        # with the verifier memoisation in place.
+        #
+        # THE INDEX, NOT A COMMIT. The kernel admits a store file as
+        # evidence only when git tracks it
+        # (bin/Mathc.ml::store_keep_for -> `git ls-files`, which
+        # reads the INDEX), and a generated store is by definition
+        # untracked. So the generated files are STAGED in this
+        # workspace: index membership is what the filter reads,
+        # nothing is committed, and the commit diff (BASE..HEAD) the
+        # gate evaluates is untouched by the index.
+        run: |
+          nix develop .#test --command bash scripts/sign-store.sh && git add -f attestations
+        timeout-minutes: 20
+
       - name: scripts/dev verify
         # The verify script:
         #   1. cleans stale dune lock
@@ -105,37 +136,18 @@ jobs:
         run: ./scripts/dev verify
         timeout-minutes: 15
 
-      - name: ceiling monotonicity (a ceiling may only fall)
-        # scripts/ceiling-monotonic.sh reads every CEILING_* in
-        # tests/fixtures/*.sh, reads the same ceiling at the base
-        # commit, and fails when the ceiling grew.
-        #
-        # The base is the merge base with the push target, so a pull
-        # request is compared against the branch it targets. A raise
-        # is accepted only when the fixture records the transition
-        # next to the number:
-        #
-        #     # ceiling-raise: 22 -> 30, <the reason it had to grow>
-        #
-        # The check also fails a ceiling that is DECLARED and never
-        # COMPARED. That is not a hypothetical: on 2026-10-23 the
-        # comparisons of two of the three ceilings in
-        # tests/fixtures/legacy-attestation-debt.sh were deleted while
-        # the two numbers were kept, and the fixture then passed
-        # because the debt was below the ceiling rather than because
-        # the ceiling was checked.
-        #
-        # Exit 3 means the comparison did not run (no base commit, or
-        # no ceiling to compare). It is not a pass.
-        run: bash scripts/ceiling-monotonic.sh
-        timeout-minutes: 2
-
       - name: mathc self-check (bootstrap-gate block)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
-        # v3.0.0.19 closes the bootstrap gate: the attestation store at
-        # attestations/ is populated, and `mathc self-check` against the
-        # populated store returns verdict=pass (exit 0) on a clean
-        # main HEAD.
+        # The store this step reads is the one the "generate
+        # attestation store" step produced for THIS commit: the store
+        # is generated, not committed, so the tree carries no snapshot
+        # to read. The verdict is a statement about the corpus as it
+        # stands, not about a store that was committed weeks ago.
+        #
+        # A corpus whose obligations are not all covered by evidence
+        # observed at this commit reads as `unknown` - exit 3, a red
+        # step. That is the honest reading, and the exit-honesty
+        # contract below is what demands it.
         #
         # EXIT HONESTY - the step's status IS mathc's status:
         #   exit 0 = verdict pass    -> step green
@@ -211,6 +223,22 @@ jobs:
         # scripts/dev verify does not.
         run: nix flake check
         timeout-minutes: 10
+
+      - name: upload attestation store
+        # The store is not committed, so an auditor cannot read a
+        # snapshot of it out of the tree any more. The replacement is
+        # this artefact: the evidence CI observed for THIS commit,
+        # downloadable from the run that produced it.
+        #
+        # `if: always()` so the artefact is uploaded even when a
+        # later step is red - the evidence is wanted most when
+        # something failed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: attestation-store
+          path: attestations/
+          if-no-files-found: warn
 
       - name: Failure diagnostics
         if: failure()

@@ -1,0 +1,215 @@
+---
+schema: math-coding/3.2
+id: adopter-path-2026-10
+revision: 1
+state: active
+mode: light
+negative_control: tests/cli/init-defaults.t
+body_sha: "sha256:cdd803947707078b4b7a87392d2ee1682445fb6efc07c6762d14e88bce87b38b"
+yaml_sha: "sha256:cdd803947707078b4b7a87392d2ee1682445fb6efc07c6762d14e88bce87b38b"
+
+intent: |
+  The first ten minutes of an adoption should cost what the protocol is
+  worth, and the scaffold should not make commitments the adopter did
+  not make.
+
+  MEASURED, by the project's own adoption experiment (2026-10-17, five
+  external projects: click, express, cobra, ripgrep, sinatra):
+
+    the with-math-coding arm ran a median of ~10 minutes a session
+    the control arm ran a median of ~3 minutes a session
+    the gap is 3-4x, and the experiment REFUTED three of its own
+    hypotheses (H3 schema coverage, H4 throughput, H8 attest-batch)
+
+  The experiment is also honest about what the gap was made of: it was
+  dominated by repeated diagnosis of the env-var defect, not by
+  math-coding per se, and once the layout was locked the per-decision
+  overhead fell to ~1-2 minutes of content writing. Both readings are
+  kept here, because both cost the adopter minutes.
+
+  WHAT THE SCAFFOLD DID. `mathc init` wrote a master policy whose
+  single obligation was `verifier: mathc self-check` -- an obligation
+  the corpus discharges by attesting itself, which is the circularity
+  the kernel's own source calls out ("an obligation verified by `mathc
+  self-check` asserts the health of the corpus it is itself part of,
+  which is self-reference, and sixteen such verifiers have been
+  declared rather than left circular"). The same file carried a
+  pre-written counterexample arguing that "adopting math-coding is
+  overhead for a project where one developer works alone" and that the
+  argument does not justify skipping: an argument about a project the
+  kernel cannot see, written by the kernel, in the first file the
+  adopter reads.
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  After this decision closes:
+
+  1. `mathc init` writes ONE decision -- the master policy -- and it
+     carries ONE executable obligation about the adopter's own tree:
+     `file-exists src`, the first entry of `scope.paths`. No obligation
+     in the scaffold is verified by `mathc self-check`. The scaffolded
+     policy validates cleanly: `parse-ok`, `obligations: 1`, exit 0,
+     no stderr (pinned by tests/cli/init-defaults.t).
+
+  2. The scaffold's counterexample slot carries the instruction to
+     write it, not a paragraph the kernel wrote for the adopter. The
+     slot itself stays: at mode >= standard an empty counterexample
+     is a Block, and at any mode its absence prints
+     MC-COUNTEREXAMPLE-MISSING on every validate (measured, both).
+
+  3. `adoption/SKILL.md` §"When to apply" is OPT-IN. The burden of
+     proof sits on the application: an adopter who applies the skill
+     names the signal that pays for it, an adopter who does not says
+     why the protocol does not fit. The light floor is the entry
+     point, and the measured cost is stated in the document.
+
+  4. `docs/adoption-quickstart.md` takes an adopter from an empty
+     repository to a green `mathc self-check` in one page: the exact
+     commands, the exact expected output, and what `unknown` means.
+
+outcomes:
+  - id: the-scaffold-asks-for-nothing-the-adopter-did-not-write
+    statement: |
+      The file `mathc init` writes carries no obligation the corpus
+      discharges by attesting itself, and no argument the adopter did
+      not make.
+
+  - id: the-protocol-is-opt-in
+    statement: |
+      The adoption skill says when to apply the protocol, puts the
+      burden of proof on the application, and names the light floor as
+      the cheapest rung.
+
+  - id: the-first-ten-minutes-are-written-down
+    statement: |
+      One page takes an adopter from an empty repository to a green
+      gate, with the commands and the outputs the commands print.
+
+scope:
+  paths:
+    - "lib/init/init.ml"
+    - "adoption/SKILL.md"
+    - "docs/adoption-quickstart.md"
+    - "decisions/adopter-path-2026-10.yaml"
+  exclusions:
+    - "_build/**"
+    - "attestations/**"
+
+obligations:
+  - id: the-scaffold-asks-for-nothing-the-adopter-did-not-write
+    claim: |
+      The master policy `mathc init` writes carries no `mathc
+      self-check` verifier and no pre-written counterexample, and the
+      scaffolded policy still validates cleanly with exactly one
+      obligation.
+    acceptance:
+      all:
+        - verifier: bash -c "! grep -q 'verifier: mathc self-check' lib/init/init.ml"
+          result: pass
+        - verifier: bash -c "grep -q 'verifier: file-exists src' lib/init/init.ml"
+          result: pass
+        - verifier: tests/cli/init-defaults.t
+          result: pass
+        - verifier: mathc validate decisions/adopter-path-2026-10.yaml
+          result: pass
+
+  - id: the-protocol-is-opt-in
+    claim: |
+      The adoption skill states that the protocol is opt-in, puts the
+      burden of proof on the application, points at the light floor,
+      and carries the measured cost of the protocol.
+    acceptance:
+      all:
+        - verifier: bash -c "grep -q 'Opt-in' adoption/SKILL.md"
+          result: pass
+        - verifier: bash -c "grep -q 'burden of proof sits on the application' adoption/SKILL.md"
+          result: pass
+        - verifier: bash -c "grep -q 'mode_floor: light' adoption/SKILL.md"
+          result: pass
+        - verifier: scripts/check-adoption-doc-freshen.sh
+          result: pass
+
+  - id: the-first-ten-minutes-are-written-down
+    claim: |
+      One page takes an adopter from an empty repository to a green
+      `mathc self-check`, and it says what `unknown` means.
+    acceptance:
+      all:
+        - verifier: bash -c "test -f docs/adoption-quickstart.md"
+          result: pass
+        - verifier: bash -c "grep -q 'What .unknown. means' docs/adoption-quickstart.md"
+          result: pass
+        - verifier: bash -c "grep -q 'mathc self-check' docs/adoption-quickstart.md"
+          result: pass
+
+counterexample: |
+  The strongest objection is that the measurement does not say what this
+  decision says it says. The experiment itself writes that the 10-vs-3
+  gap was "dominated by repeated diagnosis of the env-var defect, not
+  by math-coding per se", and that once the layout was locked the
+  per-decision overhead fell to ~1-2 minutes. On that reading the
+  protocol is cheap, H4 was refuted by a kernel defect rather than by
+  the method, and the conclusion this decision draws -- that the method
+  costs more than it saves when applied blindly -- is not in the data.
+
+  The objection is right about the experiment and wrong about the
+  decision. The experiment measured two things at once: the price of
+  the protocol, and the price of the parts of the protocol that were
+  broken. The second is fixed. The first is what an adopter paid on
+  the day, in every session, and it is still what the protocol asks
+  for: a decision, a set of obligations, and evidence, per change. An
+  adopter who applies the protocol to a project where nobody will read
+  the trail pays the first price and gets none of the benefit. That is
+  the blindness this decision removes, and it is visible in the same
+  experiment: the with-protocol arm was 3-4x slower on tasks whose
+  control arm did the same work in ~3 minutes.
+
+  A second objection: the new obligation does not pass until the
+  adopter points the policy at their own tree, so the scaffold hands
+  over a check that is red before the adopter has done anything. That
+  is accepted as a cost. The obligation names the first entry of
+  `scope.paths`, the adopter edits that entry and the verifier to the
+  path they actually have, and the alternative -- an obligation that
+  always passes -- is the tautology this decision is removing.
+
+  A third objection, measured while writing it: the natural verifier
+  for "this directory exists" is `dir-exists`, and `dir-exists` on a
+  path that does not exist CRASHED the kernel -- `Sys.is_directory`
+  raises `Sys_error`, and `mathc verify` exited 3 with "mathc:
+  internal error" instead of reporting the failure the obligation
+  deserved. The crash was reported and fixed in the same cycle, in
+  bin/Mathc.ml (the `dir-exists` arm now asks `Sys.file_exists path
+  && Sys.is_directory path`), by the owner of that file. The scaffold
+  still uses `file-exists`: it answers false for a path that does not
+  exist, and it does not make the template depend on a file outside
+  this decision's scope. The crash is written down here because the
+  next person to write this verifier will reach for `dir-exists`.
+
+antithesis: |
+  The opposite claim would be that the rule was never the problem: keep
+  the protocol default-on, apply it everywhere, and fix only the
+  scaffold's wording. The counterexample the kernel wrote was a
+  formatting mistake; the self-check obligation was a house style; the
+  ten minutes were a defect that is now fixed.
+
+  That claim is rejected on the cost, not on taste. The default-on rule
+  is what put a self-check obligation and a written argument into the
+  first file every adopter reads, and it did so for projects whose
+  maintainers would never look at either. The experiment's own numbers
+  are the cost: the with-protocol arm ran 3-4x the control arm on the
+  same tasks, and the arm that benefits is the arm where somebody will
+  read the trail -- an audit, a second agent, a team that outlives its
+  authors. Applying the protocol where nobody reads it is not a
+  cheaper way to get the benefit; it is the full price for none of it.
+  The scaffold's wording was the symptom, and the rule was the cause.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "an adopter who never sees the skill never applies the protocol and no trail is ever created"
+    - "the corpus of applying projects stops growing because the rule to apply became a question"
+    - "the applicability envelope printed by mathc init still carries the default-on wording while the skill says opt-in"
+    - "the new scaffold obligation is edited into a tautology that always passes"

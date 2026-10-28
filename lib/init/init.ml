@@ -74,6 +74,33 @@ let string_of_agent = function
 
 (* --- minimal master-policy template ------------------------------- *)
 
+(* The scaffold is a blank form, not an argument. Two rules:
+
+   (a) No obligation may be verified by `mathc self-check`. An
+       obligation whose verifier asks the corpus to attest itself
+       can only be discharged by the corpus attesting itself: the
+       check is circular, and the adopter inherits a road that never
+       ends. The obligation below names a path of THIS project
+       instead -- something the adopter satisfies by pointing the
+       policy at their own tree.
+
+       The scheme is `file-exists`, not `dir-exists`: the adopter's
+       path usually does not exist yet, and `Sys.is_directory` raises
+       on a path that does not (the `dir-exists` arm of
+       bin/Mathc.ml::run_one_verifier turned that into an internal
+       error; the arm was fixed in the same cycle, but the scaffold
+       does not depend on a file outside its scope). `Sys.file_exists`
+       answers false and lets the obligation report a plain failure.
+
+   (b) No argument the adopter did not make. The previous template
+       shipped a counterexample that argued against skipping
+       math-coding ("overhead for a project where one developer
+       works alone"), written by the kernel, about a project the
+       kernel cannot see. The slot itself stays -- at mode >= standard
+       an empty counterexample is a Block, and at any mode its absence
+       prints MC-COUNTEREXAMPLE-MISSING on every validate -- but what
+       it carries now is the instruction to write it, not a paragraph
+       the adopter did not write. *)
 let master_policy_template =
   "schema: math-coding/3.2\n\
    id: bootstrap-v3\n\
@@ -89,23 +116,15 @@ let master_policy_template =
   \  - A3\n\
    commitment: |\n\
   \  Replace the placeholder paths in `scope.paths` with the\n\
-  \  directories that hold your kernel, scripts, and specs.\n\
-  \  The kernel is offline and side-effect-free; everything\n\
-  \  outside `scope.paths` is untracked by `mathc self-check`.\n\
+  \  directories that hold your source, and point the obligation\n\
+  \  below at one of them. The kernel is offline and\n\
+  \  side-effect-free; everything outside `scope.paths` is untracked\n\
+  \  by `mathc self-check`.\n\
    counterexample: |\n\
-  \  The strongest objection considered and rejected: \"Adopting\n\
-  \  math-coding is overhead for a project where one developer\n\
-  \  works alone.\" That fails as a reason to skip. The\n\
-  \  applicability envelope (spec/algebra-3.2.md §28) is\n\
-  \  default-on: its only Path C class is prototype_or_throwaway,\n\
-  \  and \"we are small\" is not a membership test. The friction\n\
-  \  observation survives as a mode choice rather than an exit —\n\
-  \  declare `mode_floor: light` in this project's policies.yaml\n\
-  \  and the per-commit cost falls to {commitment, counterexample}\n\
-  \  plus a `decision:` trailer. What stays behind is the part\n\
-  \  that outlives the maintainer's memory. What would change the\n\
-  \  verdict: if this project turns out to be a spike nobody\n\
-  \  reopens, delete this tree and say why in the README.\n\
+  \  TODO(adopter): state the strongest plausible case where this\n\
+  \  policy is wrong, and what would change your verdict. One\n\
+  \  paragraph. An empty slot means a reader sees the commitment\n\
+  \  without its counterweight.\n\
    scope:\n\
   \  paths:\n\
   \    - \"src/**\"\n\
@@ -122,13 +141,16 @@ let master_policy_template =
   \      This file is the active policy; `mathc self-check`\n\
   \      reads it on every invocation.\n\
    obligations:\n\
-  \  - id: scope-paths-match-tree\n\
+  \  - id: scope-names-this-tree\n\
   \    claim: |\n\
-  \      Every source file under version control appears in\n\
-  \      `scope.paths` or is explicitly excluded.\n\
+  \      The path this obligation names -- the first entry of\n\
+  \      `scope.paths` -- exists in this project, so the kernel\n\
+  \      watches the code that changes here. If your source lives\n\
+  \      elsewhere, change that entry and this verifier to the same\n\
+  \      path.\n\
   \    acceptance:\n\
   \      all:\n\
-  \        - verifier: mathc self-check\n\
+  \        - verifier: file-exists src\n\
   \          result: pass\n\
    risk:\n\
   \  declared_triggers:\n\
