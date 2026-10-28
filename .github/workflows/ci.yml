@@ -109,21 +109,23 @@ jobs:
         # `scripts/sign-store.sh` runs every obligation's own
         # verifier and writes the evidence into the working tree. It
         # needs the dev shell - many verifiers are `dune ...`
-        # commands - and a built kernel, so it runs inside
-        # `nix develop .#test`. The sweep took 574 s on 2026-10-25
-        # with the verifier memoisation in place.
+        # commands - and a BUILT kernel: the sweep is executed BY the
+        # kernel, and the step below (`scripts/dev verify`) is what
+        # builds it. So this step builds first, and the sweep follows.
+        # The sweep took 574 s on 2026-10-25 with the verifier
+        # memoisation in place, and ~12 min on 2026-10-28 with the
+        # verifiers running live, so the step is given 25 minutes.
         #
-        # THE INDEX, NOT A COMMIT. The kernel admits a store file as
-        # evidence only when git tracks it
-        # (bin/Mathc.ml::store_keep_for -> `git ls-files`, which
-        # reads the INDEX), and a generated store is by definition
-        # untracked. So the generated files are STAGED in this
-        # workspace: index membership is what the filter reads,
-        # nothing is committed, and the commit diff (BASE..HEAD) the
-        # gate evaluates is untouched by the index.
+        # NOTHING IS STAGED. The admission rule is the store
+        # DIRECTORY now (bin/Mathc.ml::store_keep_for reads the files
+        # on disk), so the generated store is evidence for the gate
+        # without being in git's index -- and an index that holds 1829
+        # generated files is a tree that looks dirty to every step
+        # after this one.
         run: |
-          nix develop .#test --command bash scripts/sign-store.sh && git add -f attestations
-        timeout-minutes: 20
+          nix develop .#test --command bash -c \
+            'dune build --root . && bash scripts/sign-store.sh'
+        timeout-minutes: 25
 
       - name: scripts/dev verify
         # The verify script:
