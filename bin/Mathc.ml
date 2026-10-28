@@ -4164,8 +4164,10 @@ let[@warning "-32"] plan_script_form ~project_root ~args ~token =
                   "mathc: CIRCULAR VERIFIER: %s is already running above this \
                    one (stack: %s). A verifier that re-enters itself can never \
                    terminate. The check did not run here; its verdict belongs \
-                   to the run that started it.\n%!"
-                  abs (String.concat " -> " (verifier_stack ()));
+                   to the run that started it.\n\
+                   %!"
+                  abs
+                  (String.concat " -> " (verifier_stack ()));
                 Plan_fail
                   (Printf.sprintf
                      "%s: CIRCULAR VERIFIER — already running above this one"

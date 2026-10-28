@@ -1,0 +1,103 @@
+---
+schema: math-coding/3.3
+id: format-circular-verifier-message-2026-10
+revision: 1
+state: active
+mode: light
+change_kind: editorial
+
+body_sha: "sha256:2901b7a9fb3701e8baac4518701109d0c325e6b85b8e8505cafc6a0a8979cfef"
+yaml_sha: "sha256:2901b7a9fb3701e8baac4518701109d0c325e6b85b8e8505cafc6a0a8979cfef"
+
+axiom_link:
+  - A1
+  - A0
+
+intent: |
+  `dune fmt` refused to leave the tree unformatted, and the file it
+  wanted to change is `bin/Mathc.ml` -- a kernel file, so the
+  pre-commit hook's P1 asks for a decision beside it.
+
+  The change is provably editorial. The diff is the re-wrapping of
+  ONE format-string literal and the layout of its argument:
+
+      -  "mathc: CIRCULAR VERIFIER: %s is already running above this \
+      -   one (stack: %s). ... to the run that started it.\n%!"
+      -  abs (String.concat " -> " (verifier_stack ()));
+      +  "... to the run that started it.\n\
+      +  %!"
+      +  abs
+      +  (String.concat " -> " (verifier_stack ()));
+
+  The backslash continuation keeps the string BYTE-FOR-BYTE the same
+  text: the same words, the same `%s` placeholders, the same `\n`,
+  in the same order. The argument is the same expression in the same
+  position. No verdict, no exit code, no message text and no
+  evaluation order changes; `dune test` is green on this tree with
+  the change in place.
+
+  The reason the file needed formatting at all is a merge, not an
+  edit: commit 7638f4f3 brought a message into `bin/Mathc.ml` whose
+  lines were longer than the formatter's limit, and the branch that
+  was merged in afterwards did not carry that commit, so the
+  formatter never saw it. This decision records the formatting of
+  that message and nothing else.
+
+commitment: |
+  The only change to `bin/Mathc.ml` in this commit is the layout of
+  the circular-verifier message: the format string is re-wrapped
+  with a backslash continuation and the argument is laid out on its
+  own line. The message text, the placeholders, the argument and
+  the verdict are unchanged.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/format-circular-verifier-message-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+counterexample: |
+  "A formatting change to a kernel file is exactly the kind of edit
+  that a decision should be about, and declaring it editorial is a
+  way of dodging the rule."
+
+  The objection has force in general: a reformat CAN hide a
+  behaviour change, and "it is only formatting" is a claim, not a
+  proof. It is answered here by the diff itself, which is nine lines
+  long and shows the whole change: a format string split with a
+  continuation backslash, and an argument moved to its own line.
+  Both preserve the value exactly -- `\` inside a string literal
+  continues the literal, and the argument order is untouched. The
+  suite is green.
+
+  What this decision does NOT do is exempt future formatting from
+  review. P2's editorial exemption is scoped to this file, and the
+  next kernel edit that changes behaviour needs a decision that says
+  what the behaviour now is.
+
+obligations:
+  - id: the-tree-is-formatted
+    claim: |
+      `dune fmt --preview` exits 0 on this tree: the kernel file the
+      merge brought in is formatted like every other kernel file.
+    acceptance:
+      all:
+        - verifier: dune fmt --preview
+          result: pass
+
+outcomes:
+  - id: the-tree-is-formatted
+    statement: |
+      `dune fmt --preview` exits 0 on this tree, and the only change
+      to `bin/Mathc.ml` is the layout of the circular-verifier
+      message.
+
+risk:
+  declared_triggers:
+    - "the re-wrapped string is not byte-identical to the original
+      (a continuation backslash inside the literal changes the text)"
+    - "the argument's evaluation order changes relative to the
+      format string"
+  owner: human:maintainer
