@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: ux-3-minimal-pollution-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:8cd37ebc166022c935206cc3903cd29eb9ccedc0c28e9d5821d4e78b6ac1e717"
-yaml_sha: "sha256:8cd37ebc166022c935206cc3903cd29eb9ccedc0c28e9d5821d4e78b6ac1e717"
+body_sha: "sha256:88e2a68575437161d0617c46b4acd9578e72a65c6d9309a9eaf2d338049ec80f"
+yaml_sha: "sha256:88e2a68575437161d0617c46b4acd9578e72a65c6d9309a9eaf2d338049ec80f"
 intent: |
   Adopt a `.math-coding/` directory layout as the default for new
   `mathc init` runs and add three env-var overrides
@@ -28,13 +28,20 @@ intent: |
   Pollution reduction is the second axis: `mathc init` against an
   empty directory previously left `schemas/` as a top-level
   directory whose contents the kernel never read at runtime. The
-  embedded-schemas change drops that directory from the brownfield
-  footprint; the `mathc init` output shrinks from `decisions/
+  `mathc init` output shrinks from `decisions/
   attestations/ schemas/` (3 dirs) to `.math-coding/{decisions,
-  attestations, policy.yaml}` (1 dir + 1 file). A maintainer who
-  wants the schemas on disk for tooling can copy them from
-  `lib/schema_embedded.ml` to their preferred location; the
-  project no longer mandates the copy.
+  attestations, policy.yaml}` (1 dir + 1 file).
+
+  REVISION 2 (2026-10-28). The embedded copy of the schemas never
+  found a reader: the kernel parses by hand and consults no
+  JSON-Schema file, and `mathc init` writes no `schemas/` directory.
+  `lib/schema_embedded.ml` (724 lines) and the unused
+  `Templates_embedded.readme_md` were therefore removed
+  (`decisions/dead-code-removal-2026-10.yaml`). The schemas remain
+  the DOCUMENTATION of the formats; the parser is the law. A
+  maintainer who wants the schemas on disk for their own tooling can
+  copy them from `schemas/`; the project no longer mandates the
+  copy, and does not carry a second, unread copy of them.
 
 axiom_link:
   - A0
@@ -83,13 +90,13 @@ commitment: |
      default vs legacy decision is a single `Sys.file_exists` on
      the default.
 
-  2. `lib/schema_embedded.ml` (NEW) embeds the six JSON schemas
-     (`decision.json`, `attestation.json`, `obligation.json`,
-     `waiver.json`, `policy.json`, `common.json`) as OCaml string
-     constants via `{|...|}` quoting. The kernel does NOT consult
-     these constants at validate time — the OCaml decision parser
-     in `lib/decision.ml` is the authoritative implementation. The
-     embed is for `mathc init` to drop into a brownfield project as
+  2. The six JSON schemas (`decision.json`, `attestation.json`,
+     `obligation.json`, `waiver.json`, `policy.json`, `common.json`)
+     are DOCUMENTATION: the kernel does NOT consult them at validate
+     time — the OCaml decision parser in `lib/decision.ml` is the
+     authoritative implementation. Revision 1 carried a second copy
+     of them as OCaml string constants for `mathc init` to drop into
+     a brownfield project as
      a one-shot documentation copy, not a runtime reference.
 
   3. `lib/templates_embedded.ml` (NEW) embeds `templates/ci.yml`
@@ -114,9 +121,8 @@ commitment: |
      policy equivalent; no string literal `"decisions"` /
      `"attestations"` survives in the kernel.
 
-  5. `lib/dune` lists the three new modules (`path_config`,
-     `schema_embedded`, `templates_embedded`) in the
-     `mathcoding_core` library. `bin/dune` does not need changes
+  5. `lib/dune` lists the new modules (`path_config`,
+     `templates_embedded`) in the `mathcoding_core` library. `bin/dune` does not need changes
      because the new modules are accessible through the existing
      `(libraries mathcoding_core ...)` dependency.
 
@@ -161,11 +167,11 @@ outcomes:
       does not own.
   - id: schemas-and-templates-embedded
     statement: |
-      `lib/schema_embedded.ml` exposes the six schemas as string
-      constants; `lib/templates_embedded.ml` exposes
-      `ci_yml` and `readme_md`. The OCaml decision parser does not
-      read these constants; the embed is a brownfield-doc convenience,
-      not a runtime reference.
+      `lib/templates_embedded.ml` exposes `ci_yml`, which
+      `mathc init` writes into a brownfield project. The schemas
+      themselves are NOT embedded in the kernel: the OCaml decision
+      parser does not read them, and the unread copy was removed in
+      revision 2.
   - id: backward-compat-untouched-existing-projects
     statement: |
       The 154 active decisions under `decisions/` continue to

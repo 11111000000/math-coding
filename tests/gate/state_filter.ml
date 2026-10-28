@@ -250,7 +250,7 @@ let[@warning "-32"] make_entry ?(state = `Active)
     Memory.risk_triggers = [];
     Memory.scope_paths = [];
     Memory.state;
-    Memory.verifier_per_obligation = [];
+    Memory.obligation_details = [];
   }
 
 let[@warning "-32"] empty_store : Attestations.t = []

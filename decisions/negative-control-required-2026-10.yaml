@@ -67,7 +67,6 @@ outcomes:
 scope:
   paths:
     - "lib/diagnostic.ml"
-    - "lib/schema_embedded.ml"
     - "schemas/decision.json"
     - "bin/Mathc.ml"
     - "tests/fixtures/negative-control-debt.sh"

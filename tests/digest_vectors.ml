@@ -32,7 +32,7 @@
      intent: SHA-256 hand-rolled implementation produces RFC 6234
        §4.1–§4.3 + boundary vectors; closes D4.
      change_kind: implementation
-     affected_capabilities: [Digest.sha256_hex, Digest.sha256_text]
+     affected_capabilities: [Digest.sha256_hex]
      must_preserve:
        - public API: Digest.sha256_hex : string -> string unchanged
        - hand-rolled rationale (no new runtime dep)

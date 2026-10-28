@@ -155,11 +155,6 @@ let team_member_full ~org ~team ~user : [> outcome ] =
    response). The 1-hour in-memory cache survives across calls
    within the same binary; expired entries re-fetch on next
    access. *)
-let team_member ~org ~team ~user : bool =
-  match team_member_full ~org ~team ~user with
-  | `Queried true -> true
-  | `Queried false | `NotConfigured | `CurlFailure -> false
-
 (* parse_principal: best-effort split of a `kind:name` string
    into (kind, name). Returns (kind, "") when the input has no
    colon (the caller decides whether `""` is acceptable). Used
@@ -181,7 +176,3 @@ let[@warning "-32"] parse_principal (s : string) : string * string =
       in
       (kind, name)
   | None -> (String.trim s, "")
-
-(* clear_cache: exposed for test teardown so successive test
-   cases start from a cold cache. Production code never calls it. *)
-let[@warning "-32"] clear_cache () = Hashtbl.reset cache

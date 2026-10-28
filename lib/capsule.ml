@@ -28,14 +28,6 @@ let[@warning "-32"] priority_rank = function
   | Supporting -> 4
   | Historical -> 5
 
-let[@warning "-32"] priority_name = function
-  | RequiredForGate -> "RequiredForGate"
-  | Changed -> "Changed"
-  | HighRisk -> "HighRisk"
-  | Unresolved -> "Unresolved"
-  | Supporting -> "Supporting"
-  | Historical -> "Historical"
-
 type item = {
   kind : priority;
   summary : string;

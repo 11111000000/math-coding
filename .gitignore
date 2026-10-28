@@ -86,6 +86,7 @@ decisions/1-use-postgresql.yaml
 assets/_renders/
 tools/winget/scripts/__pycache__/
 .dev/
+.work/
 
 # Cram fixtures that log to the repo root (tests/cli/adopt-real-arc42.t
 # and init-*): scratch output, not committed artefacts.

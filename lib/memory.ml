@@ -293,6 +293,16 @@ let[@warning "-32"] extract_scope_paths lines =
   in
   find_scope lines
 
+(* One obligation as the corpus states it: the id it carries ("" when
+   it carries none) and the verifier strings its acceptance block
+   names. The gate decides obligations BY ID, so an obligation with
+   no id is never decided -- `mathc gaps` reports that fact rather
+   than passing over it, and this type is how it sees it. *)
+type obligation_detail = {
+  od_id : string;
+  od_verifiers : string list;
+}
+
 type decision_entry = {
   decision_id : string;
   revision : string option;
@@ -308,16 +318,11 @@ type decision_entry = {
      them. Empty when the decision declares no scope. *)
   scope_paths : string list;
   state : decision_state;
-  (* Real verifier strings extracted from each obligation's
-     `acceptance.all[*].verifier` (or `acceptance.any[*].verifier`)
-     YAML field (decisions/kernel-bugs-v3.4-2026-10). The list is
-     ordered by obligation order in the YAML; an obligation with
-     no verifier (or no acceptance block) contributes zero entries.
-     `lib/packages.ml::obligation_view.verifier` consumes this list
-     so the JSON output of `mathc packages --format=json` reports
-     the actual verifier path instead of the obligation-id
-     placeholder that the pre-fix implementation used. *)
-  verifier_per_obligation : string list;
+  (* The same obligations, one entry each, in the order the corpus
+     states them: the id ("" when there is none) and the verifier
+     strings. This is what the worklist (`mathc gaps`) reads to tell
+     a promise with a check from a promise with a declaration. *)
+  obligation_details : obligation_detail list;
 }
 
 type spec_doc = { path : string; body : string }
@@ -333,16 +338,6 @@ type t = {
   recent_commits : commit_entry list;
   changed_paths : changed_path list;
 }
-
-let[@warning "-32"] empty =
-  {
-    decisions = [];
-    spec = [];
-    axioms = [];
-    best_practices = None;
-    recent_commits = [];
-    changed_paths = [];
-  }
 
 (* --- helpers --- *)
 
@@ -443,12 +438,12 @@ let[@warning "-32"] parse_decision_yaml raw =
         in
         let rev = extract_string_field ps [ "revision" ] in
         let obligations = count_array_field ps "obligations" in
-        let obligation_ids, verifier_pair_obligation =
+        let obligation_ids, obligation_details =
           match Schema.take_array ps "obligations" with
           | Some xs ->
-              let ids, vers =
+              let ids, dets =
                 List.fold_left
-                  (fun (ids, accs) ob ->
+                  (fun (ids, dets) ob ->
                     match ob with
                     | Jsonl.Object ops ->
                         let obid =
@@ -457,11 +452,12 @@ let[@warning "-32"] parse_decision_yaml raw =
                           | None -> ""
                         in
                         let vers = extract_obligation_verifiers ops in
-                        ((if obid <> "" then obid :: ids else ids), accs @ vers)
-                    | _ -> (ids, accs))
+                        ( (if obid <> "" then obid :: ids else ids),
+                          dets @ [ { od_id = obid; od_verifiers = vers } ] )
+                    | _ -> (ids, dets))
                   ([], []) xs
               in
-              (List.rev ids, vers)
+              (List.rev ids, dets)
           | None -> ([], [])
         in
         (* Same extractor as the line-scanner path, applied to the
@@ -495,7 +491,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               risk_triggers;
               scope_paths;
               state;
-              verifier_per_obligation = verifier_pair_obligation;
+              obligation_details;
             }
     | _ -> None
   with _ -> None
@@ -557,7 +553,7 @@ let[@warning "-32"] load_decisions reader root =
                       risk_triggers = [];
                       scope_paths = [];
                       state = `Active;
-                      verifier_per_obligation = [];
+                      obligation_details = [];
                     })))
     paths
 

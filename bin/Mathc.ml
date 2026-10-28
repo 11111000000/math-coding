@@ -386,9 +386,9 @@ let[@warning "-32"] collect_verifier_scheme_diagnostics v =
  * `needle:`) key on an acceptance item is therefore dropped at parse
  * time with no diagnostic. `schemas/common.json` already forbids it
  * (`additionalProperties: false`, properties = verifier/result/review),
- * but nothing enforces that schema: `lib/schema_embedded.ml` is the only
- * copy of the schemas inside the kernel and has no referrer in lib/ or
- * bin/, so `additionalProperties: false` is documentation, not a check.
+ * but nothing enforces that schema: the kernel parses by hand and
+ * reads no JSON-Schema file at all, so `additionalProperties: false` is
+ * documentation, not a check.
  *
  * The consequence measured on this corpus (2026-10-22) before this rule:
  * 83 acceptance items named an absolute path, 28 of them into
@@ -5184,24 +5184,6 @@ let[@warning "-32"] extract_obligation_ids lines =
 (* The verifier strings a document names, read off its lines: a
    sequence item that begins with `verifier:`. The value is the rest of
    the line, unquoted. *)
-let[@warning "-32"] extract_verifier_strings (lines : string list) =
-  List.filter_map
-    (fun line ->
-      let t = String.trim line in
-      if String.length t > 10 && String.sub t 0 10 = "- verifier" then
-        match String.index_opt t ':' with
-        | Some i ->
-            let v =
-              String.trim (String.sub t (i + 1) (String.length t - i - 1))
-            in
-            let n = String.length v in
-            if n >= 2 && v.[0] = '"' && v.[n - 1] = '"' then
-              Some (String.sub v 1 (n - 2))
-            else Some v
-        | None -> None
-      else None)
-    lines
-
 let[@warning "-32"] decision_entry_of_raw ~id raw =
   if id = "" then None
   else
@@ -5224,13 +5206,6 @@ let[@warning "-32"] decision_entry_of_raw ~id raw =
           | None -> `Active)
       | None -> `Active
     in
-    (* The verifier strings, read off the document's own lines. A
-       line scanner is used rather than the YAML parser on purpose: the
-       corpus is read on every command, and the parser is the slow
-       part; the strings themselves are read by the kernel's own
-       `parse_verifier_string` when it runs them, so the two cannot
-       disagree about what a verifier IS. *)
-    let verifiers = extract_verifier_strings lines in
     let stub : Memory.decision_entry =
       {
         Memory.decision_id = id;
@@ -5242,7 +5217,7 @@ let[@warning "-32"] decision_entry_of_raw ~id raw =
         Memory.risk_triggers = [];
         Memory.scope_paths;
         Memory.state;
-        Memory.verifier_per_obligation = verifiers;
+        Memory.obligation_details = [];
       }
     in
     Some stub

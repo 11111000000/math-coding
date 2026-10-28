@@ -1,10 +1,5 @@
 open Stdlib
 
-let[@warning "-32"] empty = function Jsonl.Null -> true | _ -> false
-let string_opt v = match v with Jsonl.String s -> Some s | _ -> None
-let array_opt v = match v with Jsonl.Array xs -> Some xs | _ -> None
-let object_pairs v = match v with Jsonl.Object ps -> ps | _ -> []
-
 (* `take_string` accepts Jsonl.String and Jsonl.Int; the YAML loader
    parses bare digits as Int (see lib/codec.ml:parse_yaml_scalar),
    so YAML-form fields like `revision: 2` produce Int 2. The strict
