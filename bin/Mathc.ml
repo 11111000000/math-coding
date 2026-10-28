@@ -3400,6 +3400,45 @@ let[@warning "-32"] sandbox_env_for_path_forms () =
   in
   Array.append base (Array.of_list extra)
 
+(* --- the verifier stack: a verifier that re-enters itself ---
+ *
+ * A verifier that runs a script which runs the verifier again cannot
+ * terminate. Every level spawns the next, and the fork rate is set by
+ * the tree below, not by the level.
+ *
+ * Measured on this repository (2026-10-28): the merge gate ran
+ * `scripts/check.sh`, the suite ran the fixture
+ * `tests/fixtures/gate-ref-validation.sh`, the fixture called
+ * `mathc gate HEAD~1 HEAD` again, and the cycle repeated — nine
+ * levels deep in the process tree, 40+ processes resident, load
+ * average 64 on a 4-core host. The host stopped serving the Paseo
+ * daemon: plugin RPC took 39 s, the mobile client timed out, and
+ * every agent in the UI looked dead.
+ *
+ * The cycle is invisible inside one process, so it travels through
+ * the environment: a script verifier is handed the list of the
+ * verifiers already running above it, and a script whose path is
+ * already on that list is REFUSED instead of run.
+ *
+ * The refusal is neither a pass nor a rejection. The check did not
+ * run HERE, and its verdict belongs to the run that started it, so
+ * the obligation is reported as not runnable — which is what it is. *)
+let[@warning "-32"] verifier_stack_env = "MATH_CODING_VERIFIER_STACK"
+
+let[@warning "-32"] verifier_stack () : string list =
+  match Sys.getenv_opt verifier_stack_env with
+  | None -> []
+  | Some s ->
+      List.filter (fun p -> String.trim p <> "") (String.split_on_char '\n' s)
+
+(* The environment for a child that is about to run [abs_verifier].
+   The verifier's own path joins the stack, so the child knows what is
+   running above it. *)
+let[@warning "-32"] sandbox_env_for_verifier ~abs_verifier () =
+  let base = sandbox_env_for_path_forms () in
+  let stack = verifier_stack () @ [ abs_verifier ] in
+  Array.append base [| verifier_stack_env ^ "=" ^ String.concat "\n" stack |]
+
 (* Characters that only mean something to a shell. `\n` and `\r`
    would smuggle a second command through a YAML block scalar. *)
 let[@warning "-32"] shell_metacharacters =
@@ -4115,7 +4154,24 @@ let[@warning "-32"] plan_script_form ~project_root ~args ~token =
       match Unix.access abs [ Unix.X_OK ] with
       | () -> (
           match reject_metachars ~what:token args with
-          | Plan_skip -> Plan_ok (Plan_script (abs, args))
+          | Plan_skip ->
+              (* The script is already running somewhere above this
+                 verifier. Running it again is the cycle that forks
+                 without bound, so it is refused HERE, where the
+                 refusal can be said out loud. *)
+              if List.mem abs (verifier_stack ()) then begin
+                Printf.eprintf
+                  "mathc: CIRCULAR VERIFIER: %s is already running above this \
+                   one (stack: %s). A verifier that re-enters itself can never \
+                   terminate. The check did not run here; its verdict belongs \
+                   to the run that started it.\n%!"
+                  abs (String.concat " -> " (verifier_stack ()));
+                Plan_fail
+                  (Printf.sprintf
+                     "%s: CIRCULAR VERIFIER — already running above this one"
+                     token)
+              end
+              else Plan_ok (Plan_script (abs, args))
           | other -> other)
       | exception _ -> Plan_fail (Printf.sprintf "%s: not executable" token))
 
@@ -4188,7 +4244,7 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog
       let log = Filename.temp_file "mathc_verify_" ".log" in
       let outcome, status =
         run_with_sandbox_in_env
-          ~env:(sandbox_env_for_path_forms ())
+          ~env:(sandbox_env_for_verifier ~abs_verifier:abs_prog ())
           ~capture_to:(Some log) ~project_root ~prog:abs_prog
           ~args:(abs_prog :: args) ~timeout_s ~sandbox_mode
       in
