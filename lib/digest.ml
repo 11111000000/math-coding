@@ -172,4 +172,3 @@ let digest_string s =
   String.concat "" (List.map hex (Array.to_list h))
 
 let sha256_hex = digest_string
-let sha256_text s = digest_string s

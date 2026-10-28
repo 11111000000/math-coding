@@ -6,7 +6,6 @@
   canonical
   jsonl
   schema
-  schema_embedded
   templates_embedded
   diagnostic
   digest

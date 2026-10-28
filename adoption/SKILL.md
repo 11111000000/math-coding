@@ -367,11 +367,10 @@ You only edit these in the target repository:
   `attestations/*.json` on the pre-3.4 legacy layout).
 - `.math-coding/policy.yaml` — the active policy (or
   `decisions/decision.yaml` on the pre-3.4 legacy layout).
-- **NOT** `schemas/*.json` — they were embedded into the kernel
-  in v3.4 (`lib/schema_embedded.ml`); a brownfield repository does
-  not need `schemas/` on disk for `mathc validate` to work. Only
-  pin a local copy if you are deliberately targeting a pre-v3.4
-  schema version.
+- **NOT** `schemas/*.json` — the kernel parses by hand and reads
+  no JSON-Schema file, so a brownfield repository does not need
+  `schemas/` on disk for `mathc validate` to work. Only pin a local
+  copy if you are deliberately targeting a pre-v3.4 schema version.
 
 You do not read or edit `spec/`, `axioms/`, `lib/`, or any
 math-coding-internal documentation while adopting the protocol in a

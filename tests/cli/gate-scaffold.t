@@ -35,8 +35,17 @@ than it is.
 The cap is a cap: the printed list never exceeds it, and the total
 is reported beside it.
 
-  $ mathc gate --no-execute --gaps-limit 3 main HEAD | jq -c '{shown: (.gaps | length), within_cap: ((.gaps | length) <= 3)}'
-  {"shown":0,"within_cap":true}
+The assertion is the CAP, not the count. This fixture used to pin
+`shown: 0` as well, and that number held only while `main..HEAD` was
+an empty diff -- that is, only on the default branch. On any branch
+with a change in it, the merge gate has gaps to report and the count
+is the size of that change, not a property of the gate. The contract
+this fixture pins is "the printed list never exceeds the cap"; the
+number beside it is the change's, and the change is not the fixture's
+to predict.
+
+  $ mathc gate --no-execute --gaps-limit 3 main HEAD | jq -c '{within_cap: ((.gaps | length) <= 3)}'
+  {"within_cap":true}
 
 `--gaps-limit 0` means "print them all" -- the escape hatch for a
 reader that needs every gap.

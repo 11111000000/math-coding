@@ -74,8 +74,8 @@ regression pin for the P2 axiom_link + counterexample template fix
     assumptions: 0
 
 The init MUST NOT create a `schemas/` directory in the project root.
-Brownfield projects don't need on-disk JSON schemas (the kernel
-embeds them per `lib/schema_embedded.ml`).
+Brownfield projects don't need on-disk JSON schemas: the kernel
+parses by hand and reads no JSON-Schema file.
 
   $ test ! -d schemas && echo "no schemas/ on disk: ok"
   no schemas/ on disk: ok

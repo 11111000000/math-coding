@@ -1,0 +1,175 @@
+---
+schema: math-coding/3.3
+id: dead-code-removal-2026-10
+revision: 2
+state: active
+mode: standard
+
+body_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
+yaml_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  THE REPOSITORY CARRIES CODE NOTHING READS, AND IT CARRIES IT
+  QUIETLY. This decision removes what the census found, and says how
+  each removal was checked.
+
+  The largest item is `lib/schema_embedded.ml` (724 lines): an OCaml
+  copy of the six JSON schemas, written so that `mathc init` could
+  drop them into a brownfield project. Nothing ever read it. The
+  kernel's validator parses by hand and consults no JSON-Schema file,
+  and `mathc init` writes no `schemas/` directory at all — the
+  decision that introduced the module
+  (`decisions/ux-3-minimal-pollution-2026-10.yaml`) says so in its
+  own commitment ("The kernel does NOT consult these constants at
+  validate time"). The module was a promise the code never kept, and
+  the test that claimed to cover it
+  (`tests/cli/embedded-schemas.t`) was checking an observation that
+  was true for a different reason: the validator needs no schema file
+  either way. The test keeps its observation and loses its false
+  premise.
+
+  The rest is smaller and of the same kind: helpers with no caller
+  (`Schema.empty`, `Schema.string_opt`, `Schema.array_opt`,
+  `Schema.object_pairs`, `Schema.take_diag`, `Digest.sha256_text`,
+  `Forge.team_member`, `Forge.clear_cache`, `Capsule.priority_name`,
+  `Memory.empty`, `Templates_embedded.readme_md`), two scripts
+  nothing invokes (`scripts/fix-attr.sh`, `scripts/dev-fast` — note
+  that `scripts/dev-fast-test` is a DIFFERENT file and stays), and a
+  generated report the repository had been carrying in its index
+  (`.work/report.json`, 431 lines).
+
+  WHY IT MATTERS FOR THE METHODOLOGY, beyond the lines. A repository
+  that carries unread code cannot be audited: every reader must
+  decide whether the second parser is the authoritative one, and the
+  corpus's own doctrine says the authority is in the code, not in the
+  prose. One copy of a rule, and one reader of it, is the only shape
+  in which "the kernel enforces this" is a checkable claim.
+
+commitment: |
+  1. `lib/schema_embedded.ml` is gone, and `lib/dune` no longer
+     lists it. `decisions/negative-control-required-2026-10.yaml`
+     no longer names it in its scope, and the comment in
+     `bin/Mathc.ml` that used it as an example now says the truth:
+     the schema is documentation, not a check.
+  2. The eleven helpers with no caller are gone. `scripts/dev-fast`
+     and `scripts/fix-attr.sh` are gone; `scripts/dev-fast-test`
+     stays, and `scripts/dev` still calls it.
+  3. `.work/` is ignored by git and `.work/report.json` is no longer
+     tracked. It was a generated report; git history keeps it.
+  4. The two decisions whose text described the removed module as a
+     delivered fact state the truth instead:
+     `ux-3-minimal-pollution-2026-10` is at revision 2, and
+     `tests/cli/embedded-schemas.t` keeps its observation and loses
+     its false premise.
+  5. The two files the removal touched (`lib/memory.ml`,
+     `lib/templates_embedded.ml`) are `dune fmt` clean: the
+     removal left a fold the formatter would rewrap and a trailing
+     blank line, and the formatter's output is the tree's shape.
+
+outcomes:
+  - id: one-copy-per-rule
+    statement: |
+      The schemas exist once, as documentation under `schemas/`, and
+      the kernel reads none of them.
+  - id: the-tests-state-what-they-check
+    statement: |
+      The two tests that named the removed module say what they
+      actually verify.
+
+scope:
+  paths:
+    - "lib/schema_embedded.ml"
+    - "lib/schema.ml"
+    - "lib/digest.ml"
+    - "lib/forge.ml"
+    - "lib/capsule.ml"
+    - "lib/memory.ml"
+    - "lib/templates_embedded.ml"
+    - "lib/dune"
+    - "bin/Mathc.ml"
+    - "scripts/fix-attr.sh"
+    - "scripts/dev-fast"
+    - ".work/report.json"
+    - ".gitignore"
+    - "tests/cli/embedded-schemas.t"
+    - "tests/cli/init-defaults.t"
+    - "decisions/ux-3-minimal-pollution-2026-10.yaml"
+    - "decisions/negative-control-required-2026-10.yaml"
+    - "decisions/dead-code-removal-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-kernel-builds
+    claim: |
+      The kernel without the removed code builds and the suite passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: no-reader-remains
+    claim: |
+      Nothing in the repository references the removed module or the
+      removed helpers.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-dead-references.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/dead-code-removal-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/dead-code-removal-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a reader of the removed module existed outside this
+      repository (a downstream project vendored it): the module had no
+      reader IN this repository, and git history keeps it"
+    - "the removed helpers were exported API for a downstream
+      consumer of the library: there are no `.mli` files in this
+      repository, so the public surface was the whole module, and the
+      helpers had no callers in it"
+  owner: human:maintainer
+
+counterexample: |
+  "The schema copy was not dead; it was there so that a downstream
+  project could copy the schemas out of the binary."
+
+  The claim was true as an intention and false as a mechanism: a
+  module that nothing reads is not a source a downstream project can
+  copy from, because the copy path is `mathc init`, and `mathc init`
+  never wrote a `schemas/` directory — the decision that introduced
+  the module says so in its own commitment, and
+  `tests/cli/init-defaults.t` asserts the directory is absent. What
+  a downstream project actually needs is the schema FILES, and those
+  are in the repository, in one place, where they can be copied from.
+  The second copy in OCaml was not reachable by anyone.
+
+  The second objection is about the tests: if the observation was
+  true anyway, the test was still worth keeping, and it is. What was
+  not worth keeping was its explanation: a test that says "the
+  schemas are embedded" teaches the next reader a false thing about
+  the kernel, and that reader then looks for the embed. The test now
+  says what it verifies and what is false.
+
+antithesis: |
+  The opposite claim is that dead code is cheap insurance: if the
+  hand-written parser is ever replaced by a schema-driven one, the
+  embedded copy is there and the schemas are already in the binary.
+
+  The claim is reasonable as a matter of taste and wrong as a matter
+  of cost: 724 lines of second copy, a second reader of every format
+  rule, and a test that explains the wrong mechanism. An insurance
+  policy that is never claimed and cannot be claimed is a cost with
+  no payoff. If the parser is ever replaced, the schemas in
+  `schemas/` are the source to migrate FROM, and they are twelve
+  times smaller than the copy that was carrying them.

@@ -1,12 +1,17 @@
 `mathc validate` works in a directory that has NO `schemas/`
-subdirectory. The JSON schemas (`schemas/decision.json`,
-`schemas/attestation.json`, `schemas/obligation.json`,
-`schemas/waiver.json`, `schemas/policy.json`, `schemas/common.json`)
-are now embedded as OCaml string constants in
-`lib/schema_embedded.ml` (per `decisions/ux-3-minimal-pollution-2026-10.yaml`),
-so a brownfield project that does not carry a `schemas/` tree still
-gets full validation. PLAN.md §0.4 records this as the
-"prune should drop `schemas/`" closure.
+subdirectory.
+
+WHAT IS TRUE HERE: the kernel's validator parses by hand and reads
+no JSON-Schema file, so a brownfield project that does not carry a
+`schemas/` tree still gets full validation, and `mathc init` does not
+create one (`tests/cli/init-defaults.t`).
+
+WHAT WAS FALSE, and is corrected here: this file used to say that the
+six JSON schemas are "embedded as OCaml string constants in
+`lib/schema_embedded.ml`". They were not: that module had no reader in
+lib/ or bin/ and was removed (`decisions/dead-code-removal-2026-10.yaml`).
+The schemas remain the DOCUMENTATION of the formats; the parser is the
+law, and it is written in OCaml.
 
 This is the surface test for that contract: pick a tmpdir with
 neither `.math-coding/` nor `schemas/`, drop a JSON fixture in it,
