@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: dead-code-removal-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 
-body_sha: "sha256:148b77b3e5d0e1a256e9ed22f01ddaf2c588e4ada594925ddbadd7ccad0ea6c3"
-yaml_sha: "sha256:148b77b3e5d0e1a256e9ed22f01ddaf2c588e4ada594925ddbadd7ccad0ea6c3"
+body_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
+yaml_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
 
 axiom_link:
   - A0
@@ -65,6 +65,10 @@ commitment: |
      `ux-3-minimal-pollution-2026-10` is at revision 2, and
      `tests/cli/embedded-schemas.t` keeps its observation and loses
      its false premise.
+  5. The two files the removal touched (`lib/memory.ml`,
+     `lib/templates_embedded.ml`) are `dune fmt` clean: the
+     removal left a fold the formatter would rewrap and a trailing
+     blank line, and the formatter's output is the tree's shape.
 
 outcomes:
   - id: one-copy-per-rule

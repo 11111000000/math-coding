@@ -298,10 +298,7 @@ let[@warning "-32"] extract_scope_paths lines =
    names. The gate decides obligations BY ID, so an obligation with
    no id is never decided -- `mathc gaps` reports that fact rather
    than passing over it, and this type is how it sees it. *)
-type obligation_detail = {
-  od_id : string;
-  od_verifiers : string list;
-}
+type obligation_detail = { od_id : string; od_verifiers : string list }
 
 type decision_entry = {
   decision_id : string;

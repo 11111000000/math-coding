@@ -65,4 +65,3 @@ jobs:
       - name: Self-check
         run: mathc self-check
 |}
-
