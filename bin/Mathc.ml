@@ -4750,6 +4750,70 @@ type obligation_verdict = {
   ov_ran : bool;
 }
 
+(* The kernel's OWN classification of a verifier string, in one place.
+ *
+ * The worklist (`mathc gaps`) and the runner (the sweep's) must
+ * agree about what a check is: two copies of this dispatch is how
+ * a corpus ends up with two answers to one question. The body
+ * below is the runner's, moved here verbatim. *)
+let[@warning "-32"] classify_verifier ~root ~refuse_suite s =
+  match parse_verifier_string s with
+  | None -> Not_a_check
+  | Some (scheme, args) -> (
+      match scheme with
+      | "file-exists" | "dir-exists" ->
+          if args <> [] then Executable else Not_a_check
+      | "mathc" -> if args <> [] then Executable else Not_a_check
+      | "dune" -> (
+          if
+            (* A `dune` verifier runs the BUILD SYSTEM. The gate
+                     runs inside CI, where the suite has already run,
+                     and inside a cram test, where a `dune runtest`
+                     inside a `dune runtest` recurses and the
+                     recursion ends in a timeout, not in a verdict.
+                     So the gate refuses it and says so: the check
+                     did not run, and the obligation is reported as
+                     "could not be run against the candidate tree",
+                     which is what it is. *)
+            refuse_suite
+          then begin
+            Printf.eprintf
+              "mathc gate: not running the dune verifier %S: it would nest the \
+               build system inside the gate\n\
+               %!"
+              s;
+            Cannot_be_set_up
+          end
+          else
+            match plan_verifier ~project_root:root scheme args with
+            | Plan_ok _ -> Executable
+            | Plan_fail _ -> Cannot_be_set_up
+            | Plan_skip -> Not_a_check)
+      | _ when refuse_suite && starts_with "tests/" scheme ->
+          (* A verifier that names a TEST is the suite by
+                     another name, and the suite is a separate step:
+                     `scripts/dev verify` runs it before the gate, in
+                     CI and on a developer machine alike. Run from
+                     inside the gate it is the same recursion one
+                     level down, and it is SLOW: measured on this
+                     repository, one `tests/cli/*.t` verifier took 47
+                     seconds of a 1 m 46 s gate run, because the case
+                     builds. The gate runs CHECKS -- the kernel's own
+                     subcommands, path checks, repository scripts --
+                     and reports the suite's verdicts from the step
+                     that ran them. *)
+          Printf.eprintf
+            "mathc gate: not running the test verifier %S: the suite is a \
+             separate step, and running it here would nest it inside the gate\n\
+             %!"
+            s;
+          Cannot_be_set_up
+      | _ -> (
+          match plan_verifier ~project_root:root scheme args with
+          | Plan_ok _ -> Executable
+          | Plan_fail _ -> Cannot_be_set_up
+          | Plan_skip -> Not_a_check))
+
 let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
     ~obligation_id ~refuse_suite ~timeout_s : obligation_verdict =
   let path = decision_path_for_id ~root ~decision_id in
@@ -4821,65 +4885,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
            * out inconclusive - 200 obligations whose check was
            * perfectly executable, reported as a check that could
            * not run. *)
-          let classify s =
-            match parse_verifier_string s with
-            | None -> Not_a_check
-            | Some (scheme, args) -> (
-                match scheme with
-                | "file-exists" | "dir-exists" ->
-                    if args <> [] then Executable else Not_a_check
-                | "mathc" -> if args <> [] then Executable else Not_a_check
-                | "dune" -> (
-                    if
-                      (* A `dune` verifier runs the BUILD SYSTEM. The gate
-                       runs inside CI, where the suite has already run,
-                       and inside a cram test, where a `dune runtest`
-                       inside a `dune runtest` recurses and the
-                       recursion ends in a timeout, not in a verdict.
-                       So the gate refuses it and says so: the check
-                       did not run, and the obligation is reported as
-                       "could not be run against the candidate tree",
-                       which is what it is. *)
-                      refuse_suite
-                    then begin
-                      Printf.eprintf
-                        "mathc gate: not running the dune verifier %S: it \
-                         would nest the build system inside the gate\n\
-                         %!"
-                        s;
-                      Cannot_be_set_up
-                    end
-                    else
-                      match plan_verifier ~project_root:root scheme args with
-                      | Plan_ok _ -> Executable
-                      | Plan_fail _ -> Cannot_be_set_up
-                      | Plan_skip -> Not_a_check)
-                | _ when refuse_suite && starts_with "tests/" scheme ->
-                    (* A verifier that names a TEST is the suite by
-                       another name, and the suite is a separate step:
-                       `scripts/dev verify` runs it before the gate, in
-                       CI and on a developer machine alike. Run from
-                       inside the gate it is the same recursion one
-                       level down, and it is SLOW: measured on this
-                       repository, one `tests/cli/*.t` verifier took 47
-                       seconds of a 1 m 46 s gate run, because the case
-                       builds. The gate runs CHECKS -- the kernel's own
-                       subcommands, path checks, repository scripts --
-                       and reports the suite's verdicts from the step
-                       that ran them. *)
-                    Printf.eprintf
-                      "mathc gate: not running the test verifier %S: the suite \
-                       is a separate step, and running it here would nest it \
-                       inside the gate\n\
-                       %!"
-                      s;
-                    Cannot_be_set_up
-                | _ -> (
-                    match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> Executable
-                    | Plan_fail _ -> Cannot_be_set_up
-                    | Plan_skip -> Not_a_check))
-          in
+          let classify s = classify_verifier ~root ~refuse_suite s in
           let classified = List.map (fun s -> (s, classify s)) verifiers in
           let planned =
             List.filter_map
@@ -8306,69 +8312,46 @@ let[@warning "-32"] gap_state_name
   | `NoAttestationStore -> "no-store"
   | `Unknown -> "unknown"
 
+(* The class of a promise, in the kernel's OWN words: the same
+   classification the sweep's runner uses (`classify_verifier`), so
+   the worklist and the sweep cannot disagree about what a check is.
+   A second copy of that dispatch is how a corpus ends up with two
+   answers to one question. *)
 let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
-  if vs = [] then `Unidentified
-  else if
-    List.exists
-      (fun v -> String.length v >= 7 && String.sub v 0 7 = "manual-")
-      vs
-  then `Declaration
+  if vs = [] then None
   else
-    (* TWO questions, because they have two different answers. Is the
-       SCHEME one the kernel knows? And can the kernel RUN this
-       string? A known scheme with arguments the scheme does not
-       take (`tests/x.t (positive case)`) is neither: the scheme is
-       right and the string is wrong, and the honest name for that is
-       malformed, not "unknown". *)
-    let runnable, known =
-      List.fold_left
-        (fun (run, kn) v ->
-          match parse_verifier_string v with
-          | None -> (false, kn)
-          | Some (scheme, args) ->
-              let kn = kn && known_verifier_scheme scheme in
-              let run =
-                match scheme with
-                | "file-exists" | "dir-exists" | "mathc" -> args <> []
-                | _ -> (
-                    match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> true
-                    | Plan_fail _ | Plan_skip -> false)
-              in
-              (run && run, kn))
-        (true, true) vs
-    in
-    if runnable then `Checkable
-    else if known then `Malformed
-    else `Unknown_scheme
+    let vclass = classify_verifier ~root ~refuse_suite:false (List.hd vs) in
+    if
+      vclass = Executable
+      && List.for_all
+           (fun v -> classify_verifier ~root ~refuse_suite:false v = Executable)
+           vs
+    then Some Executable
+    else Some vclass
 
 let[@warning "-32"] gap_class_name = function
-  | `Declaration -> "declaration"
-  | `Unknown_scheme -> "unknown-scheme"
-  | `Malformed -> "malformed"
-  | `Checkable -> "checkable"
-  | `Unidentified -> "unidentified"
+  | Some Executable -> "checkable"
+  | Some Not_a_check -> "not-a-check"
+  | Some Cannot_be_set_up -> "cannot-be-set-up"
+  | None -> "unidentified"
 
 let[@warning "-32"] gap_action cls state =
   match (cls, state) with
-  | `Declaration, _ ->
-      "the verifier is a declaration: write the check, cover the gap with a \
-       dated waiver, or drop the promise"
-  | `Unknown_scheme, _ ->
-      "the verifier names a command the kernel does not know: implement it, or \
-       declare what it was checking"
-  | `Malformed, _ ->
-      "the verifier names a scheme the kernel knows and a string it cannot \
-       run: fix the string, or name the check another way"
-  | `Unidentified, _ ->
+  | Some Not_a_check, _ ->
+      "this is not a check the kernel can run: write the check, cover the gap \
+       with a dated waiver, or drop the promise"
+  | Some Cannot_be_set_up, _ ->
+      "this IS a check and it could not be set up: the scheme is unknown, the \
+       arguments are malformed, or the file it names is missing"
+  | None, _ ->
       "the obligation has no id, so no gate ever decides it: give it an id, or \
        drop the promise"
-  | `Checkable, "missing" ->
+  | Some Executable, "missing" ->
       "the check exists and the evidence does not: run scripts/sign-store.sh"
-  | `Checkable, "stale" -> "the evidence is stale: re-run the sweep"
-  | `Checkable, "failed" ->
+  | Some Executable, "stale" -> "the evidence is stale: re-run the sweep"
+  | Some Executable, "failed" ->
       "the check ran and failed: fix the code, or fix the promise"
-  | `Checkable, _ ->
+  | Some Executable, _ ->
       "the check could not be decided here: run it by hand and read what it \
        says"
 
@@ -8432,7 +8415,7 @@ let[@warning "-32"] do_gaps () =
                   "unknown",
                   [],
                   "the obligation carries no id, so no gate decides it",
-                  gap_action `Unidentified "unknown" )
+                  gap_action None "unknown" )
                 :: !open_items
             end
             else
