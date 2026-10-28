@@ -138,11 +138,23 @@ let[@warning "-32"] gitignore_rules () =
           let dir_only = n > 0 && body.[n - 1] = '/' in
           let body = if dir_only then String.sub body 0 (n - 1) else body in
           let m = String.length body in
-          let anchored = m > 0 && body.[0] = '/' in
-          let body = if anchored then String.sub body 1 (m - 1) else body in
-          if body = "" then None else Some (body, dir_only, negated))
+          let leading_slash = m > 0 && body.[0] = '/' in
+          let body =
+            if leading_slash then String.sub body 1 (m - 1) else body
+          in
+          (* A rule with a slash in it is anchored to the directory the
+             .gitignore lives in; a rule without one matches a component
+             at any depth. That is git's rule, and the difference is
+             load-bearing: `/attestations/` must not swallow
+             `lib/attestations/attestations.ml`, and
+             `decisions/1-foo.yaml` must swallow exactly that file.
+             This matcher used to decide anchoring by the pattern's
+             slashes AFTER the leading one had been stripped, so the
+             first of the two was answered wrongly. *)
+          let anchored = leading_slash || String.contains body '/' in
+          if body = "" then None else Some (body, dir_only, negated, anchored))
 
-let[@warning "-32"] rule_matches (pat, dir_only, _negated) rel =
+let[@warning "-32"] rule_matches (pat, dir_only, _negated, anchored) rel =
   let segs = String.split_on_char '/' pat in
   let path_segs = String.split_on_char '/' rel in
   let rec exact ps ss =
@@ -179,7 +191,7 @@ let[@warning "-32"] rule_matches (pat, dir_only, _negated) rel =
     | [] | [ _ ] -> false
     | s :: tl -> glob_segment pat s || any_ancestor tl
   in
-  if String.contains pat '/' then
+  if anchored then
     ((not dir_only) && exact segs path_segs)
     || (dir_only && inside segs path_segs)
   else if dir_only then any_ancestor path_segs
@@ -189,7 +201,7 @@ let[@warning "-32"] rule_matches (pat, dir_only, _negated) rel =
 let[@warning "-32"] gitignored rel =
   let rec last_match = function
     | [] -> None
-    | [ (_, _, negated) ] -> Some negated
+    | [ (_, _, negated, _) ] -> Some negated
     | _ :: tl -> last_match tl
   in
   match
