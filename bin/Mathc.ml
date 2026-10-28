@@ -1287,6 +1287,10 @@ let print_usage oc =
     \                                   verdicts + attestations (T1.2)\n\
     \  self-check                       print JSON self-check verdict; exits \
      0|1|3\n\
+    \  gaps [--format=json|text]        list every open promise: the \
+     obligation, its class (declaration, unknown-scheme, checkable,\n\
+    \                                     unidentified), its state, and \
+     what can be done about it\n\
     \  session-start                    write .local/session-start ISO timestamp\n\
     \  record --decision-id ID ...      append event to \
      decisions/execution-logs.jsonl\n\
@@ -3858,6 +3862,7 @@ let[@warning "-32"] mathc_scheme_allowlist =
     "assess";
     "find";
     "self-check";
+    "gaps";
     "explain";
     "explain-diagnostic";
     "context";
@@ -8253,6 +8258,326 @@ let[@warning "-32"] do_self_check () =
   | Gate.Block -> exit 1
   | Gate.Unknown -> exit 3
 
+(* --- gaps: the worklist the corpus's open promises make --------------
+ *
+ * `mathc self-check` says HOW MANY obligations are undecided. This
+ * command says WHICH, and -- the part that makes it a worklist
+ * rather than a report -- WHAT CAN BE DONE ABOUT EACH ONE.
+ *
+ * The classification is the kernel's own dispatch, not a guess:
+ *
+ *   declaration     the verifier is a `manual-` declaration: the
+ *                   kernel does not execute it and says so. The
+ *                   promise is real, the check is not there. Three
+ *                   honest answers: write the check, cover the gap
+ *                   with a dated waiver, or drop the promise.
+ *   unknown-scheme  the verifier names a command the kernel does not
+ *                   know (a `mathc-self-check-verdict` that was
+ *                   never a command). It is neither a check nor a
+ *                   declaration: it is empty.
+ *   checkable       the kernel can execute it here. The gap is about
+ *                   EVIDENCE: missing, stale, or failed.
+ *   unidentified    the obligation has no id, so the gate never
+ *                   decides it. It is invisible to every verdict.
+ *
+ * The state (missing / stale / failed / unknown / missing-review) is
+ * read from the store by the SAME code the gate uses
+ * (`Gate.obligation_gap`), so the worklist cannot disagree with the
+ * verdict about an obligation's evidence.
+ *
+ * A gap that a waiver in force covers is not an open gap: it is a
+ * borrowed green with a date on it. Those are reported apart, with
+ * the waiver and its expiry, because the number of them is a
+ * measure of how much of the corpus rests on time.
+ *)
+let[@warning "-32"] gap_state_name
+    (kind :
+      [ `MissingEvidence
+      | `StaleEvidence
+      | `FailedEvidence
+      | `MissingReview
+      | `NoAttestationStore
+      | `Unknown ]) =
+  match kind with
+  | `MissingEvidence -> "missing"
+  | `StaleEvidence -> "stale"
+  | `FailedEvidence -> "failed"
+  | `MissingReview -> "missing-review"
+  | `NoAttestationStore -> "no-store"
+  | `Unknown -> "unknown"
+
+let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
+  if vs = [] then `Unidentified
+  else if
+    List.exists
+      (fun v ->
+        String.length v >= 7 && String.sub v 0 7 = "manual-")
+      vs
+  then `Declaration
+  else
+    let runnable =
+      List.for_all
+        (fun v ->
+          match parse_verifier_string v with
+          | None -> false
+          | Some (scheme, args) -> (
+              match scheme with
+              | "file-exists" | "dir-exists" | "mathc" -> args <> []
+              | _ -> (
+                  match
+                    plan_verifier ~project_root:root scheme args
+                  with
+                  | Plan_ok _ -> true
+                  | Plan_fail _ | Plan_skip -> false)))
+        vs
+    in
+    if runnable then `Checkable else `Unknown_scheme
+
+let[@warning "-32"] gap_class_name = function
+  | `Declaration -> "declaration"
+  | `Unknown_scheme -> "unknown-scheme"
+  | `Checkable -> "checkable"
+  | `Unidentified -> "unidentified"
+
+let[@warning "-32"] gap_action cls state =
+  match (cls, state) with
+  | `Declaration, _ ->
+      "the verifier is a declaration: write the check, cover the gap \
+       with a dated waiver, or drop the promise"
+  | `Unknown_scheme, _ ->
+      "the verifier names a command the kernel does not know: implement \
+       it, or declare what it was checking"
+  | `Unidentified, _ ->
+      "the obligation has no id, so no gate ever decides it: give it an \
+       id, or drop the promise"
+  | `Checkable, "missing" ->
+      "the check exists and the evidence does not: run \
+       scripts/sign-store.sh"
+  | `Checkable, "stale" -> "the evidence is stale: re-run the sweep"
+  | `Checkable, "failed" ->
+      "the check ran and failed: fix the code, or fix the promise"
+  | `Checkable, _ ->
+      "the check could not be decided here: run it by hand and read what \
+       it says"
+
+let[@warning "-32"] do_gaps () =
+  let format = ref "json" in
+  let anon _ = raise (Arg.Bad "no positional arguments expected") in
+  Arg.current := 1;
+  (try
+     Arg.parse
+       [
+         ( "--format",
+           Arg.String (fun s -> format := s),
+           "output format: json | text" );
+       ]
+       anon "usage: mathc gaps [--format=json|text]"
+   with Arg.Bad m ->
+     Printf.fprintf stderr "mathc gaps: %s\n" m;
+     exit 2);
+  if !format <> "json" && !format <> "text" then begin
+    Printf.eprintf "mathc gaps: --format must be json or text\n";
+    exit 2
+  end;
+  let root = find_project_root (Sys.getcwd ()) in
+  let decisions_dir =
+    Filename.concat root (Path_config.resolve_decisions_dir ~root ())
+  in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  (* The EXACT loader, not the line scanner the fast commands use.
+     This command makes a claim about every individual obligation --
+     its verifier, its state, what to do about it -- and a line
+     scanner's mistake would put the wrong obligation on the
+     worklist. `Memory.load_decisions` is the same loader the site
+     and the packages view read, so the worklist and the report
+     cannot disagree about what an obligation is. *)
+  let entries = Memory.load_decisions reader root in
+  let store_root = resolve_store_root root in
+  let store =
+    Attestations.load ~keep:(store_keep_for store_root) ~reader ~root:store_root
+  in
+  let waivers_dir = Filename.concat decisions_dir "waivers" in
+  let waivers = Waiver.load ~reader ~root:waivers_dir in
+  let materials_of_decision =
+    materials_resolver_of ~entries ~tree:"HEAD" ~root
+  in
+  let now = now_iso () in
+  let live = Hashtbl.create 1 in
+  let open_items = ref [] in
+  let waived_items = ref [] in
+  List.iter
+    (fun (entry : Memory.decision_entry) ->
+      if standing_rule entry then
+        List.iter
+          (fun (detail : Memory.obligation_detail) ->
+            if detail.Memory.od_id = "" then begin
+              open_items :=
+                ( entry.Memory.decision_id,
+                  "",
+                  "unidentified",
+                  "unknown",
+                  [],
+                  "the obligation carries no id, so no gate decides it",
+                  gap_action `Unidentified "unknown" )
+                :: !open_items
+            end
+            else
+              let gap =
+                Gate.obligation_gap ~decision_id:entry.Memory.decision_id
+                  ~obligation_id:detail.Memory.od_id
+                  ~materials_digest:
+                    (materials_of_decision entry.Memory.decision_id)
+                  ~store ~live
+              in
+              match gap with
+              | None -> ()
+              | Some g ->
+                  let cls =
+                    gap_class_of_verifiers ~root detail.Memory.od_verifiers
+                  in
+                  let state = gap_state_name g.Gate.kind in
+                  let cause =
+                    match g.Gate.causes with [] -> "" | c :: _ -> c
+                  in
+                  let covered =
+                    Waiver.covers waivers ~decision_id:entry.Memory.decision_id
+                      ~obligation_id:detail.Memory.od_id ~now
+                  in
+                  match covered with
+                  | Some w ->
+                      waived_items :=
+                        ( entry.Memory.decision_id,
+                          detail.Memory.od_id,
+                          (w.Domain.id, w.Domain.issuer, w.Domain.expires_at) )
+                        :: !waived_items
+                  | None ->
+                      open_items :=
+                        ( entry.Memory.decision_id,
+                          detail.Memory.od_id,
+                          gap_class_name cls,
+                          state,
+                          detail.Memory.od_verifiers,
+                          cause,
+                          gap_action cls state )
+                        :: !open_items)
+          entry.Memory.obligation_details)
+    entries;
+  let open_items = List.rev !open_items in
+  let waived_items = List.rev !waived_items in
+  let count_by f items =
+    List.fold_left
+      (fun (acc : (string * int) list) item ->
+        let key = f item in
+        match List.assoc_opt key acc with
+        | Some n -> (key, n + 1) :: List.remove_assoc key acc
+        | None -> (key, 1) :: acc)
+      [] items
+    |> List.sort compare
+  in
+  let counts_json pairs =
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) ->
+             Jsonl.stringify (Jsonl.String k) ^ ":"
+             ^ Jsonl.stringify (Jsonl.Int v))
+           pairs)
+    ^ "}"
+  in
+  if !format = "text" then begin
+    Printf.printf "open gaps: %d\n" (List.length open_items);
+    List.iter
+      (fun (d, o, c, s, _vs, _cause, action) ->
+        Printf.printf "  %s/%s  %s %s\n    %s\n" d o c s action)
+      open_items;
+    Printf.printf "waived gaps: %d\n" (List.length waived_items);
+    List.iter
+      (fun (d, o, (wid, issuer, expires)) ->
+        Printf.printf "  %s/%s  waiver %s by %s, expires %s\n" d o wid issuer
+          expires)
+      waived_items;
+    Printf.printf "by class: %s\n"
+      (String.concat ", "
+         (List.map (fun (k, v) -> Printf.sprintf "%s=%d" k v)
+            (count_by (fun (_, _, c, _, _, _, _) -> c) open_items)));
+    Printf.printf "by state: %s\n"
+      (String.concat ", "
+         (List.map (fun (k, v) -> Printf.sprintf "%s=%d" k v)
+            (count_by (fun (_, _, _, s, _, _, _) -> s) open_items)));
+    exit 0
+  end;
+  let item_json item =
+    let (d, o, c, s, vs, cause, action) = item in
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           [
+             ("decision", Jsonl.stringify (Jsonl.String d));
+             ("obligation", Jsonl.stringify (Jsonl.String o));
+             ("class", Jsonl.stringify (Jsonl.String c));
+             ("state", Jsonl.stringify (Jsonl.String s));
+             ( "verifiers",
+               Jsonl.stringify
+                 (Jsonl.Array (List.map (fun v -> Jsonl.String v) vs)) );
+             ("cause", Jsonl.stringify (Jsonl.String cause));
+             ("action", Jsonl.stringify (Jsonl.String action));
+           ])
+    ^ "}"
+  in
+  let waived_json item =
+    let (d, o, (wid, issuer, expires)) = item in
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           [
+             ("decision", Jsonl.stringify (Jsonl.String d));
+             ("obligation", Jsonl.stringify (Jsonl.String o));
+             ("waiver", Jsonl.stringify (Jsonl.String wid));
+             ("issuer", Jsonl.stringify (Jsonl.String issuer));
+             ("expires_at", Jsonl.stringify (Jsonl.String expires));
+           ])
+    ^ "}"
+  in
+  let counts_body =
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           [
+             ("open", Jsonl.stringify (Jsonl.Int (List.length open_items)));
+             ("waived", Jsonl.stringify (Jsonl.Int (List.length waived_items)));
+             ( "by_class",
+               counts_json
+                 (count_by (fun (_, _, c, _, _, _, _) -> c) open_items) );
+             ( "by_state",
+               counts_json
+                 (count_by (fun (_, _, _, s, _, _, _) -> s) open_items) );
+           ])
+    ^ "}"
+  in
+  let body =
+    "{"
+    ^ String.concat ","
+        (List.map
+           (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
+           [
+             ("now", Jsonl.stringify (Jsonl.String now));
+             ("counts", counts_body);
+             ( "open",
+               "[" ^ String.concat "," (List.map item_json open_items) ^ "]" );
+             ( "waived",
+               "[" ^ String.concat "," (List.map waived_json waived_items)
+               ^ "]" );
+           ])
+    ^ "}\n"
+  in
+  print_string body;
+  exit 0
+
 (* --- render subcommand (bootstrap decision site-deploy@2) ---
  *
  * `mathc render [--out DIR] [--lang en|ru|zh|both|all] [--site-base HREF]
@@ -11274,6 +11599,7 @@ let dispatch () =
   | "re-evaluate" -> do_re_evaluate ()
   | "re-evaluate-decisions" -> do_re_evaluate_decisions ()
   | "self-check" -> do_self_check ()
+  | "gaps" -> do_gaps ()
   | "negative-control" -> do_negative_control ()
   | "find" -> do_find ()
   | "precommit" -> do_precommit ()

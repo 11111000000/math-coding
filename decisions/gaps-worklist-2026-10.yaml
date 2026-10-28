@@ -1,0 +1,172 @@
+---
+schema: math-coding/3.3
+id: gaps-worklist-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:40976ae3f2c6fa4341ae2db8490fb990ac3fef9dba405be7399697405db11d0b"
+yaml_sha: "sha256:40976ae3f2c6fa4341ae2db8490fb990ac3fef9dba405be7399697405db11d0b"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  `mathc self-check` says HOW MANY obligations are undecided. It is a
+  report about the corpus, and a report about a corpus of 191 rules
+  that are 58% unknown is a report nobody can act on: the remedy it
+  implies ("attest more of it") is not available for a declaration,
+  and it does not say WHICH promise to touch first.
+
+  `mathc gaps` is that list. For every open promise it names the
+  decision, the obligation, the CLASS of the promise, its state, and
+  what can be done about it. The classes are the kernel's own
+  dispatch, not a guess:
+
+  declaration     the verifier is a `manual-` declaration: the
+  kernel does not execute it and says so. The
+  promise is real, the check is not there.
+  unknown-scheme  the verifier names a command the kernel does not
+  know. It is neither a check nor a declaration: it
+  is empty. Twenty-four of them are named after
+  `mathc self-check` subcommands that were never
+  commands.
+  checkable       the kernel can execute it here. The gap is about
+  EVIDENCE: missing, stale, or failed.
+  unidentified    the obligation carries no id, so the gate never
+  decides it and no verdict can ever mention it.
+
+  MEASURED on this repository, 2026-10-28, against the store of a
+  tree two commits behind:
+
+  578 open promises
+  checkable       224   the evidence is missing, stale or failed
+  declaration     281   a promise no program can run
+  unknown-scheme   62   a verifier that names nothing
+  unidentified     11   a promise no gate can name
+  by state: missing 28, stale 441, unknown 109
+
+  WHAT THE TOOL DOES NOT DECIDE. It does not say which promises the
+  project intends to keep. That is the owner's call, and the corpus's
+  own doctrine reserves it: the kernel MUST NOT determine "whether
+  obligations are complete" or "whether an intent is desirable"
+  (spec/constitution.md §Authority Boundary). The tool's job is to
+  make the choice POSSIBLE: every entry carries the action that the
+  class admits -- write the check, cover the gap with a dated waiver,
+  or drop the promise.
+
+  The evidence state is read by `Gate.obligation_gap`, the same
+  function the gate uses, so the worklist cannot disagree with the
+  verdict about what is missing. And the corpus is read by the EXACT
+  loader (`Memory.load_decisions`), not the line scanner the fast
+  commands use: this command makes a claim about every individual
+  obligation, and a scanner's mistake would put the wrong promise on
+  the list.
+
+commitment: |
+  1. `mathc gaps [--format=json|text]` lists every open promise with
+  its decision, obligation, class, state and action.
+  2. The four classes are the kernel's own dispatch, and the state
+  comes from the same function the gate uses.
+  3. The corpus is read by the exact loader, so no individual
+  obligation can be misread.
+  4. A gap covered by a waiver in force is not an open gap: it is
+  reported apart, with the waiver, its issuer and its expiry --
+  because the number of those is a measure of how much of the
+  corpus rests on time.
+  5. The command is read-only and is in the allowlist a verifier may
+  invoke.
+
+outcomes:
+  - id: every-open-promise-is-named
+    statement: |
+      Every open promise appears in the worklist with its class and
+      the action its class admits.
+  - id: the-worklist-cannot-disagree-with-the-gate
+    statement: |
+      The state of an obligation in the worklist is the state the
+      gate computes for it.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "lib/memory.ml"
+    - "spec/semantics.md"
+    - "tests/cli/gaps.t"
+    - "decisions/gaps-worklist-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-classes-are-pinned
+    claim: |
+      The four classes are distinguished by the worklist, and the
+      fixture says which promise lands in which class.
+    acceptance:
+      all:
+        - verifier: tests/cli/gaps.t
+          result: pass
+  - id: the-kernel-builds
+    claim: |
+      The kernel with the worklist builds and the suite passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/gaps-worklist-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/gaps-worklist-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "the worklist's classes are treated as a verdict, and a reader
+      forgets that a `declaration` is a PROMISE, not a failure, and
+      starts deleting obligations instead of keeping or dating them"
+    - "the worklist is used as a substitute for the verdict, it lists
+      the gaps, and a reader concludes the repository passes because
+      the list is short"
+    - "the exact loader makes the command slow enough that people
+      stop running it, and the worklist goes stale"
+  owner: human:maintainer
+
+counterexample: |
+  A worklist is a to-do list, and to-do lists get closed by deleting
+  things.
+
+  The risk is real, and it is the reason the tool names an ACTION per
+  entry rather than a verdict. A `declaration` is not a failure: it is
+  a promise the corpus made and no program keeps. The three honest
+  answers are to write the check, to cover the gap with a waiver that
+  EXPIRES, or to drop the promise -- and the third one is a deletion,
+  which is exactly what the tool's owner must be able to choose
+  deliberately. What the tool must not do is decide, and it does not:
+  the kernel's authority boundary says it MUST NOT determine whether
+  obligations are complete or whether an intent is desirable.
+
+  The second objection is sharper: the worklist says what is open, so
+  a reader might take it for the verdict. It is not one. The verdict
+  is `mathc self-check`'s, and it is `unknown` while 281 promises rest
+  on declarations. The worklist is the map of the way out, not the
+  map of where you are.
+
+antithesis: |
+  The opposite claim is that the corpus does not need a worklist: the
+  right number of open promises is ZERO, and a tool that enumerates
+  them gives the debt a shape and the debt a life.
+
+  The claim is right about the zero and wrong about the shape. The
+  281 declarations are not a list to be worked through; most of them
+  are the corpus's way of saying something that was true once. The
+  worklist's value is not that it gives them an order -- it does not
+  -- but that it says, per promise, WHICH of the three answers is
+  available. A declaration with a live check behind it wants the
+  check; a declaration with an owner and a date wants a waiver; a
+  declaration with neither wants to be deleted. That distinction is
+  invisible in a count and visible in a list.

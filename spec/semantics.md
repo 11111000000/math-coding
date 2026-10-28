@@ -503,6 +503,33 @@ is a kernel verdict, not a CLI invocation fault). The table is
    Tier-1 #2. The `open-with-waiver` value and the `waivers[]`
    array are `decisions/self-check-waiver-verdict-coherence-2026-10.yaml`.
 
+### `gaps [--format=json|text]`
+
+- **Synopsis**: `mathc gaps [--format=json|text]`
+- **Input**: none. Reads `decisions/`, the attestation store, and the
+  waivers, exactly as `mathc self-check` does.
+- **Output**: with `--format=json` (the default), a single JSON object
+  on stdout with the keys `now`, `counts`, `open`, `waived`.
+  `counts` carries `open`, `waived`, `by_class` and `by_state`.
+  Every entry of `open` carries `decision`, `obligation`, `class`
+  (`declaration` | `unknown-scheme` | `checkable` | `unidentified`),
+  `state` (`missing` | `stale` | `failed` | `unknown` |
+  `missing-review` | `no-store`), `verifiers[]`, `cause` and `action`.
+  Every entry of `waived` carries `decision`, `obligation`, `waiver`,
+  `issuer` and `expires_at`. With `--format=text`, the same list as
+  lines: `decision/obligation  class state`, then the action, then
+  the counts.
+  The CLASS is the kernel's own dispatch: `declaration` (the verifier
+  is a `manual-` declaration the kernel does not execute),
+  `unknown-scheme` (the verifier names a command the kernel does not
+  know), `checkable` (the kernel can execute it here; the gap is about
+  evidence), `unidentified` (the obligation carries no id, so no gate
+  decides it). The `state` is read by `Gate.obligation_gap`, the same
+  function the gate uses.
+- **Exit code**: `0` on success; `2` on an unknown `--format` value.
+- **Justification**: `decisions/gaps-worklist-2026-10.yaml`; the
+  classes are pinned by `tests/cli/gaps.t`.
+
 ### `packages [--format=text|json|html]`
 
 - **Synopsis**: `mathc packages [--format=text|json|html]`
