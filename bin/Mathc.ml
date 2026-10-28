@@ -8314,25 +8314,38 @@ let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
       vs
   then `Declaration
   else
-    let runnable =
-      List.for_all
-        (fun v ->
+    (* TWO questions, because they have two different answers. Is the
+       SCHEME one the kernel knows? And can the kernel RUN this
+       string? A known scheme with arguments the scheme does not
+       take (`tests/x.t (positive case)`) is neither: the scheme is
+       right and the string is wrong, and the honest name for that is
+       malformed, not "unknown". *)
+    let runnable, known =
+      List.fold_left
+        (fun (run, kn) v ->
           match parse_verifier_string v with
-          | None -> false
-          | Some (scheme, args) -> (
-              match scheme with
-              | "file-exists" | "dir-exists" | "mathc" -> args <> []
-              | _ -> (
-                  match plan_verifier ~project_root:root scheme args with
-                  | Plan_ok _ -> true
-                  | Plan_fail _ | Plan_skip -> false)))
-        vs
+          | None -> (false, kn)
+          | Some (scheme, args) ->
+              let kn = kn && known_verifier_scheme scheme in
+              let run =
+                match scheme with
+                | "file-exists" | "dir-exists" | "mathc" -> args <> []
+                | _ -> (
+                    match plan_verifier ~project_root:root scheme args with
+                    | Plan_ok _ -> true
+                    | Plan_fail _ | Plan_skip -> false)
+              in
+              (run && run, kn))
+        (true, true) vs
     in
-    if runnable then `Checkable else `Unknown_scheme
+    if runnable then `Checkable
+    else if known then `Malformed
+    else `Unknown_scheme
 
 let[@warning "-32"] gap_class_name = function
   | `Declaration -> "declaration"
   | `Unknown_scheme -> "unknown-scheme"
+  | `Malformed -> "malformed"
   | `Checkable -> "checkable"
   | `Unidentified -> "unidentified"
 
@@ -8344,6 +8357,9 @@ let[@warning "-32"] gap_action cls state =
   | `Unknown_scheme, _ ->
       "the verifier names a command the kernel does not know: implement it, or \
        declare what it was checking"
+  | `Malformed, _ ->
+      "the verifier names a scheme the kernel knows and a string it cannot \
+       run: fix the string, or name the check another way"
   | `Unidentified, _ ->
       "the obligation has no id, so no gate ever decides it: give it an id, or \
        drop the promise"
