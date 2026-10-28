@@ -4282,7 +4282,19 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode
           | _ -> Fail)
       | "dir-exists" -> (
           match args with
-          | [ path ] -> if Sys.is_directory path then Pass else Fail
+          (* `Sys.is_directory` RAISES `Sys_error` on a path that does
+             not exist -- it is `Sys.file_exists` that answers false.
+             Asking the question the verifier actually asks ("is this
+             path a directory?") with the wrong primitive turned a
+             missing directory into an uncaught exception: the whole
+             verifier run died with "mathc: internal error:
+             Sys_error(...)" and exit 3, and the obligation was
+             reported as no verdict at all rather than as the `fail`
+             it is. The gate runs verifiers, so a verifier that
+             crashes the gate takes the gate with it. *)
+          | [ path ] ->
+              if Sys.file_exists path && Sys.is_directory path then Pass
+              else Fail
           | _ -> Fail)
       | "mathc" ->
           (* Strict mode: enforce read-only subcommand allowlist. *)
@@ -4622,6 +4634,29 @@ type obligation_verdict = {
    * could not be read, or it does not carry the obligation. `None`
    * when the verdict came from the verifiers themselves. *)
   ov_unnamed : string option;
+  (* A check was ATTEMPTED for this obligation: at least one of its
+   * verifiers was executable and was run.
+   *
+   * WHY THE WORD ALONE IS NOT ENOUGH. The obligation-level outcome
+   * cannot say "the check ran and could not conclude": the aggregate
+   * folds a `Timeout` into `Skipped` (a check that ran out of time is
+   * not a verdict), and `Skipped` is ALSO what an obligation with no
+   * check to run at all returns. The two are different facts and
+   * they must not be settled by the same thing:
+   *
+   *   - no check to run  -- a human's declaration; the store's record
+   *     is the evidence, and it is bound to the tree by the scope
+   *     digest.
+   *   - a check that ran and could not conclude -- the check EXISTS
+   *     and it did not establish anything. The store's record is
+   *     about an OLDER tree, so letting it settle this obligation
+   *     lets a check that did not run stand in for a check that
+   *     passed.
+   *
+   * `false` when nothing was attempted: the decision could not be
+   * read, it does not carry the obligation, its only verifiers are
+   * declarations, or it names no verifier at all. *)
+  ov_ran : bool;
 }
 
 let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
@@ -4633,6 +4668,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
         ov_outcome = Fail;
         ov_failing = [];
         ov_unnamed = Some "the decision could not be read";
+        ov_ran = false;
       }
   | Ok v -> (
       let obl =
@@ -4646,6 +4682,7 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
             ov_outcome = Fail;
             ov_failing = [];
             ov_unnamed = Some "the decision does not carry the obligation";
+            ov_ran = false;
           }
       | Some (_, verifiers) ->
           (* A verifier that cannot even be PLANNED - an unknown
@@ -4732,9 +4769,19 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
               decoration, and that is exactly what the binding
               prevents. *)
           if planned = [] && unrunnable = [] && verifiers <> [] then
-            { ov_outcome = Manual_decl; ov_failing = []; ov_unnamed = None }
+            {
+              ov_outcome = Manual_decl;
+              ov_failing = [];
+              ov_unnamed = None;
+              ov_ran = false;
+            }
           else if planned = [] && unrunnable = [] then
-            { ov_outcome = Skipped; ov_failing = []; ov_unnamed = None }
+            {
+              ov_outcome = Skipped;
+              ov_failing = [];
+              ov_unnamed = None;
+              ov_ran = false;
+            }
           else
             let outcomes =
               List.map
@@ -4759,6 +4806,13 @@ let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
               ov_outcome = aggregate_verifier_outcomes (List.map snd outcomes);
               ov_failing = failing;
               ov_unnamed = None;
+              (* A check was ATTEMPTED exactly when at least one
+                 verifier was executable and was run. The aggregate
+                 folds a `Timeout` into `Skipped`, so `Skipped` alone
+                 cannot say whether a check ran and could not conclude
+                 or whether there was no check to run at all -- and the
+                 live path has to tell those apart. *)
+              ov_ran = planned <> [];
             })
 
 (* The verdict, for the callers that only need the word. *)
@@ -6274,7 +6328,7 @@ let[@warning "-32"] git_ref_resolves cwd r =
 
 let do_gate () =
   let base = ref "" and head = ref "" in
-  (* THE TWO SWITCHES OF THE GATE.
+  (* THE THREE SWITCHES OF THE GATE.
    *
    * `--scope` evaluates only the decisions whose scope names a file
    * this change touches. Without it the gate asks every active
@@ -6288,12 +6342,30 @@ let do_gate () =
    * older tree. The store holds evidence about a tree that has since
    * moved; freshness is not safety.
    *
-   * BOTH ARE OFF BY DEFAULT. The gate's old behaviour is what CI has
-   * been running for months, and it is not switched over before the
-   * new path has been measured and the fixtures that pin the old
-   * semantics have been rewritten to pin the new ones. Parallel path
-   * first, switch second, delete the old path third. *)
-  let scope = ref false and execute = ref false in
+   * `--no-execute` turns EXECUTION OFF. It exists because execution
+   * cannot be left to the reader of the flag: a verifier that runs
+   * `dune runtest` inside a `dune runtest` RECURSES, and the
+   * recursion ends in a timeout, not in a verdict. Measured on this
+   * repository: `dune test` timed out. So a gate that is itself
+   * invoked from inside a test -- which is what the cram fixtures in
+   * tests/cli/ are -- has to be able to say "run nothing" and have
+   * that hold, whoever else passed `--execute` and whatever the
+   * default is on the day it runs.
+   *
+   * IT IS A VETO, NOT A TOGGLE. `--no-execute` wins over `--execute`
+   * whatever the order of the flags, and it wins over the default
+   * the day the default flips to "execute". A switch whose effect
+   * depends on the order of the arguments is a switch that cannot be
+   * relied on by the thing that needs it most: the test that is
+   * trying not to recurse.
+   *
+   * BOTH `--scope` AND `--execute` ARE OFF BY DEFAULT. The gate's
+   * old behaviour is what CI has been running for months, and it is
+   * not switched over before the new path has been measured and the
+   * fixtures that pin the old semantics have been rewritten to pin
+   * the new ones. Parallel path first, switch second, delete the
+   * old path third. *)
+  let scope = ref false and execute = ref false and no_execute = ref false in
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
@@ -6305,9 +6377,14 @@ let do_gate () =
       ( "--execute",
         Arg.Set execute,
         "Run the touched decisions' verifiers on the candidate tree" );
+      ( "--no-execute",
+        Arg.Set no_execute,
+        "Run no verifier at all; the attestation store's record decides" );
     ]
   in
-  (try Arg.parse specs anon "usage: mathc gate [--scope] [--execute] BASE HEAD"
+  (try
+     Arg.parse specs anon
+       "usage: mathc gate [--scope] [--execute] [--no-execute] BASE HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
@@ -6421,7 +6498,10 @@ let do_gate () =
   let live : (string * string, Gate.obligation_state) Hashtbl.t =
     Hashtbl.create 64
   in
-  if !execute then
+  (* `--no-execute` is a veto: it wins over `--execute` and over the
+   * default, whatever the order of the flags. See the switch's
+   * comment above for why the veto cannot be a toggle. *)
+  if !execute && not !no_execute then
     List.iter
       (fun (e : Memory.decision_entry) ->
         if List.exists (fun id -> String.equal id e.Memory.decision_id) touched
@@ -6435,12 +6515,41 @@ let do_gate () =
                 with
                 | { ov_outcome = Pass; _ } -> Some Gate.Satisfied
                 | { ov_outcome = Fail; _ } -> Some Gate.Failed
-                | { ov_outcome = Timeout; _ } -> Some Gate.Failed
+                (* A check that TIMED OUT did not conclude. Reporting it
+                 * as `Failed` says "a check ran against the candidate
+                 * tree and failed", and the remedy the gap offers is
+                 * "revert the change that broke this obligation" --
+                 * advice that accuses the change of breaking something
+                 * when the truth is that the check never finished.
+                 * `Gate.Unverified` is the state that says exactly
+                 * that: "the check exists and could not be run, or it
+                 * could not conclude". *)
+                | { ov_outcome = Timeout; _ } -> Some Gate.Unverified
                 | { ov_outcome = Setup_fail; _ } -> Some Gate.Unverified
-                (* Skipped: there was no check to run. Manual_decl: the
-                 check is a human's word. Neither is settled by
-                 running something, so the store decides. *)
-                | { ov_outcome = Skipped; _ } -> None
+                (* Skipped says two different things and the live path
+                 * has to tell them apart, because they must not be
+                 * settled by the same thing:
+                 *
+                 *   - `ov_ran = false`: there was NO CHECK to run --
+                 *     the obligation names no verifier at all. The
+                 *     store's record is the evidence for a claim no
+                 *     program can check, so the store decides.
+                 *   - `ov_ran = true`: a check WAS attempted and could
+                 *     not conclude. The aggregate folds a `Timeout`
+                 *     into `Skipped`, so this is the shape a check
+                 *     that ran out of time arrives in. The check
+                 *     exists and it established nothing, and the
+                 *     store's record is about an OLDER tree -- so
+                 *     letting the store settle it would let a check
+                 *     that did not run stand in for a check that
+                 *     passed. `Gate.Unverified` is the honest state.
+                 *
+                 * Manual_decl: the check is a human's word. Nothing
+                 * ran and nothing was expected to, so the store
+                 * decides. *)
+                | { ov_outcome = Skipped; ov_ran = true; _ } ->
+                    Some Gate.Unverified
+                | { ov_outcome = Skipped; ov_ran = false; _ } -> None
                 | { ov_outcome = Manual_decl; _ } -> None
               in
               match state with

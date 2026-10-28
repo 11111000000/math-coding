@@ -892,8 +892,13 @@ let[@warning "-32"] active_entries (memory : Memory.t) :
  *
  * A decision whose scope does not name the changed file is not
  * checked, and that is only as good as the scope. A scope that
- * names nothing real is a gap in the corpus, not in the gate;
- * `tests/fixtures/no-dead-scope-paths.sh` is what watches for it. *)
+ * names nothing real is a gap in the corpus, not in the gate, and
+ * NO program in this repository watches for it: the watcher was
+ * removed on 2026-10-28 with the rest of the corpus-debt tooling
+ * (decisions/corpus-meta-layer-2026-10.yaml). The scope of a
+ * decision is therefore only as good as the person who wrote it,
+ * and the gate says so by scoping itself to what the change
+ * touches rather than by pretending to have checked the rest. *)
 let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
     ~rebuttals ~materials_of_decision ~touched ~live =
   let active_decisions = active_entries memory in
