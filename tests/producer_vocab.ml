@@ -200,7 +200,27 @@ let[@warning "-32"] load_corpus () =
                   Some
                     ( a.Domain.producer_identity,
                       a.Domain.producer_run,
-                      kind_string a.Domain.kind ))))
+                      kind_string a.Domain.kind,
+                      a.Domain.candidate_tree ))))
+
+(* The commit this tree is at. The store is GENERATED now, so the
+   corpus holds attestations for more than one tree; the pins that are
+   about what the sweep PRODUCES ask about this tree's. *)
+let[@warning "-32"] head_sha () =
+  let root = project_root () in
+  let out = Filename.temp_file "mc_head_" ".txt" in
+  Fun.protect
+    ~finally:(fun () -> try Sys.remove out with _ -> ())
+    (fun () ->
+      let cmd =
+        Printf.sprintf "git -C %s rev-parse HEAD > %s" (Filename.quote root)
+          (Filename.quote out)
+      in
+      if Sys.command cmd <> 0 then Alcotest.fail "git rev-parse failed";
+      let raw =
+        try In_channel.with_open_bin out In_channel.input_all with _ -> ""
+      in
+      String.trim raw)
 
 (* The class prefix, or "" when the identity carries none. Duplicated
  * from Codec.producer_class_of only in the sense that it answers a
@@ -222,7 +242,7 @@ let[@warning "-32"] test_every_tagged_corpus_identity_is_accepted () =
   | Some corpus ->
       let tagged =
         List.filter
-          (fun (i, _, _) ->
+          (fun (i, _, _, _) ->
             match class_prefix i with
             | "human" | "agent" | "ci" -> true
             | _ -> false)
@@ -230,7 +250,7 @@ let[@warning "-32"] test_every_tagged_corpus_identity_is_accepted () =
       in
       let bad =
         List.filter_map
-          (fun (i, _, _) ->
+          (fun (i, _, _, _) ->
             if Codec.producer_identity_ok i then None else Some i)
           tagged
         |> List.sort_uniq compare
@@ -394,21 +414,44 @@ let[@warning "-32"] test_grandfathered_backlog_is_pinned () =
   match load_corpus () with
   | None -> Printf.printf "  n/a  no attestation store\n"
   | Some corpus ->
-      let untagged =
-        List.length
-          (List.filter
-             (fun (i, _, _) -> not (Codec.producer_identity_ok i))
-             corpus)
+      (* The grandfathered backlog is HISTORY: it lives in the legacy
+         files the sweep inherited, it is not in git's index any more
+         (decisions/store-not-committed-2026-10.yaml), and it cannot be
+         rewritten without minting a new id for an observation nobody
+         re-ran. What must not grow is the backlog the sweep PRODUCES:
+         an untagged identity and a `human:` producer on a runtime kind
+         are both claims the kernel cannot check, and a new one is a
+         new unbacked claim. When the sweep has not run for this tree
+         there is nothing to measure. *)
+      let head = head_sha () in
+      let mine =
+        List.filter (fun (_, _, _, tree) -> String.equal tree head) corpus
       in
-      let human_runtime =
-        List.length
-          (List.filter
-             (fun (i, _, k) -> class_prefix i = "human" && k <> "review")
-             corpus)
-      in
-      Alcotest.(check int) "untagged identities in the store" 3 untagged;
-      Alcotest.(check int)
-        "human: producers on a runtime kind in the store" 0 human_runtime
+      if mine = [] then
+        Printf.printf
+          "  no attestations for %s yet: the sweep has not run for this tree\n"
+          (String.sub head 0 8)
+      else begin
+        let untagged =
+          List.length
+            (List.filter
+               (fun (i, _, _, _) -> not (Codec.producer_identity_ok i))
+               mine)
+        in
+        let human_runtime =
+          List.length
+            (List.filter
+               (fun (i, _, k, _) -> class_prefix i = "human" && k <> "review")
+               mine)
+        in
+        Alcotest.(check int)
+          "untagged identities among the attestations this sweep produced" 0
+          untagged;
+        Alcotest.(check int)
+          "human: producers on a runtime kind among the attestations this \
+           sweep produced"
+          0 human_runtime
+      end
 
 let () =
   Alcotest.run

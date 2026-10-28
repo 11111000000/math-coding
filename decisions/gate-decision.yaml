@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: gate-decision
-revision: 2
+revision: 3
 state: active
-body_sha: "sha256:25762943f5a1f09be3b956728f2b0b6fb86e8ba6c12e87a871ad965e7c361b97"
-yaml_sha: "sha256:25762943f5a1f09be3b956728f2b0b6fb86e8ba6c12e87a871ad965e7c361b97"
+body_sha: "sha256:4687267429405533baff6bcaa7d7c495d97b08b24eabac85a11090a1201e44d3"
+yaml_sha: "sha256:4687267429405533baff6bcaa7d7c495d97b08b24eabac85a11090a1201e44d3"
 intent: |
   Introduce the `mathc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate
@@ -63,6 +63,16 @@ outcomes:
       The JSON body printed on stdout has keys "verdict", "gaps",
       "obligations", "now", "base", "head". Future revisions may
       add keys but MUST NOT remove or rename these.
+
+      Since revision 3 the body also carries "gaps_total",
+      "gaps_by_kind" and "gaps_truncated", and the "gaps" ARRAY is a
+      REPORT about the gaps rather than the whole set: it holds the
+      first N of them, decisive first, and `gaps_truncated` says
+      whether the list is the whole set. `gaps_total` is the count
+      the verdict was computed from, and it is never approximated.
+      The verdict and the exit code are computed from EVERY gap
+      whatever the report prints. See
+      decisions/gate-report-proportional-2026-10.yaml.
   - id: gate-stub-honest
     statement: |
       When the stub cannot determine a verdict (today: always),
@@ -127,10 +137,13 @@ obligations:
   - id: gate-output-shape
     outcome: gate-output-shape-stable
     claim: |
-      The JSON body keys are exactly the documented set
-      (verdict, gaps, obligations, now, base, head). A future
-      revision that adds a key is fine; one that removes a key
-      requires a new bootstrap decision.
+      The JSON body carries the documented keys (verdict, gaps,
+      obligations, now, base, head) plus the report keys
+      (gaps_total, gaps_by_kind, gaps_truncated); a future revision
+      that adds a key is fine; one that removes a key requires a new
+      bootstrap decision. The gaps array is a prefix of the gaps,
+      `gaps_total` is the full count, and `gaps_truncated` agrees
+      with the two.
     acceptance:
       all:
         - verifier: manual-gate-shape-fixture

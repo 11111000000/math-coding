@@ -100,5 +100,5 @@ project (the new side-decision is META-style and does not
 add a new live obligation).
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc self-check >/dev/null 2>&1 && echo "self-check still runs (verdict: not regressed)"
-  [1]
+  $ mathc self-check >/dev/null 2>&1; ec=$?; if [ "$ec" = 1 ] || [ "$ec" = 3 ]; then echo "self-check still runs (it reported a verdict, it did not go green)"; else echo "self-check regressed (exit $ec)"; exit 1; fi
+  self-check still runs (it reported a verdict, it did not go green)

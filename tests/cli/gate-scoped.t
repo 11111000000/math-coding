@@ -199,8 +199,8 @@ decision and reads the store: six obligations, five gaps, verdict
 `unknown`, exit 3. The document's keys are pinned: a revision that
 renames one of them fails here.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > "$tmp/all.json" 2> "$tmp/all.err"; ec=$?; jq -c "{keys: keys, obligations, gaps: (.gaps|length), verdict}" < "$tmp/all.json"; echo "exit=$ec"; echo "stderr_bytes=$(wc -c < "$tmp/all.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
-  {"keys":["base","gaps","head","now","obligations","verdict"],"obligations":6,"gaps":5,"verdict":"unknown"}
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > "$tmp/all.json" 2> "$tmp/all.err"; ec=$?; jq -c "{keys: keys, obligations, gaps: .gaps_total, verdict}" < "$tmp/all.json"; echo "exit=$ec"; echo "stderr_bytes=$(wc -c < "$tmp/all.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
+  {"keys":["base","gaps","gaps_by_kind","gaps_total","gaps_truncated","head","now","obligations","verdict"],"obligations":6,"gaps":5,"verdict":"unknown"}
   exit=3
   stderr_bytes=0
   marker=absent
@@ -211,7 +211,7 @@ evaluated, and the untouched decision's two obligations are not in the
 question at all. `--no-execute` keeps the store's record in charge, so
 this question differs from the audit one in scope and not in what ran.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --no-execute HEAD~1 HEAD > "$tmp/scoped.json" 2> "$tmp/scoped.err"; ec=$?; jq -c "{obligations, gaps: (.gaps|length), ids: [.gaps[].obligation_id], verdict}" < "$tmp/scoped.json"; echo "exit=$ec"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --no-execute HEAD~1 HEAD > "$tmp/scoped.json" 2> "$tmp/scoped.err"; ec=$?; jq -c "{obligations, gaps: .gaps_total, ids: [.gaps[].obligation_id], verdict}" < "$tmp/scoped.json"; echo "exit=$ec"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
   {"obligations":4,"gaps":3,"ids":["probe-fails","dir-missing","sibling-cannot-be-set-up"],"verdict":"unknown"}
   exit=3
   marker=absent
@@ -220,7 +220,7 @@ this question differs from the audit one in scope and not in what ran.
 verdict and the exit code are the scoped gate's, and the marker file
 the failing verifier would have written is absent: no verifier ran.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --no-execute HEAD~1 HEAD > "$tmp/noexec.json" 2> "$tmp/noexec.err"; ec=$?; jq -c "{obligations, gaps: (.gaps|length), kinds: [.gaps[].kind], verdict}" < "$tmp/noexec.json"; echo "exit=$ec"; echo "stderr_bytes=$(wc -c < "$tmp/noexec.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --no-execute HEAD~1 HEAD > "$tmp/noexec.json" 2> "$tmp/noexec.err"; ec=$?; jq -c "{obligations, gaps: .gaps_total, kinds: [.gaps[].kind], verdict}" < "$tmp/noexec.json"; echo "exit=$ec"; echo "stderr_bytes=$(wc -c < "$tmp/noexec.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
   {"obligations":4,"gaps":3,"kinds":["MissingEvidence","MissingEvidence","MissingEvidence"],"verdict":"unknown"}
   exit=3
   stderr_bytes=0
@@ -255,7 +255,7 @@ runs the suite inside the suite is exactly what `--no-execute` exists
 for, and it is why every invocation here that only asks a question
 carries it.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --execute HEAD~1 HEAD > "$tmp/exec.json" 2> "$tmp/exec.err"; ec=$?; jq -c "{obligations, gaps: (.gaps|length), kinds: [.gaps[].kind], ids: [.gaps[].obligation_id], verdict}" < "$tmp/exec.json"; echo "exit=$ec"; echo "verifier_reported=$(grep -c "exited 1" "$tmp/exec.err")"; echo "crashed=$(grep -c "internal error" "$tmp/exec.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --scope --execute HEAD~1 HEAD > "$tmp/exec.json" 2> "$tmp/exec.err"; ec=$?; jq -c "{obligations, gaps: .gaps_total, kinds: [.gaps[].kind], ids: [.gaps[].obligation_id], verdict}" < "$tmp/exec.json"; echo "exit=$ec"; echo "verifier_reported=$(grep -c "exited 1" "$tmp/exec.err")"; echo "crashed=$(grep -c "internal error" "$tmp/exec.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
   {"obligations":4,"gaps":3,"kinds":["FailedEvidence","FailedEvidence","Unknown"],"ids":["probe-fails","dir-missing","sibling-cannot-be-set-up"],"verdict":"block"}
   exit=1
   verifier_reported=1
@@ -270,7 +270,7 @@ kinds, same verdict, same exit code -- and the marker file is written
 again, so the verifiers ran under the default too.
 
   $ rm -f "$tmp/marker.txt"
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate HEAD~1 HEAD > "$tmp/default.json" 2> "$tmp/default.err"; ec=$?; jq -c "{obligations, gaps: (.gaps|length), kinds: [.gaps[].kind], ids: [.gaps[].obligation_id], verdict}" < "$tmp/default.json"; echo "exit=$ec"; echo "verifier_reported=$(grep -c "exited 1" "$tmp/default.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate HEAD~1 HEAD > "$tmp/default.json" 2> "$tmp/default.err"; ec=$?; jq -c "{obligations, gaps: .gaps_total, kinds: [.gaps[].kind], ids: [.gaps[].obligation_id], verdict}" < "$tmp/default.json"; echo "exit=$ec"; echo "verifier_reported=$(grep -c "exited 1" "$tmp/default.err")"; echo "marker=$(test -f "$tmp/marker.txt" && echo present || echo absent)"'
   {"obligations":4,"gaps":3,"kinds":["FailedEvidence","FailedEvidence","Unknown"],"ids":["probe-fails","dir-missing","sibling-cannot-be-set-up"],"verdict":"block"}
   exit=1
   verifier_reported=1
@@ -289,7 +289,7 @@ decisions this change touches. Everything else is the default's, so
 the obligation count is the difference between the two questions -- six
 against four -- and the default's count is the narrow one.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --no-scope HEAD~1 HEAD > "$tmp/noscope.json" 2> "$tmp/noscope.err"; ec=$?; jq -c "{obligations, gaps: (.gaps|length), verdict}" < "$tmp/noscope.json"; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc gate --no-scope HEAD~1 HEAD > "$tmp/noscope.json" 2> "$tmp/noscope.err"; ec=$?; jq -c "{obligations, gaps: .gaps_total, verdict}" < "$tmp/noscope.json"; echo "exit=$ec"'
   {"obligations":6,"gaps":5,"verdict":"block"}
   exit=1
 
@@ -319,7 +319,7 @@ The switch is named in the usage string, so a reader of `mathc gate
 --help` learns that it exists without reading the source.
 
   $ mathc gate --help 2>&1 | head -1
-  usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] BASE HEAD
+  usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] [--gaps-limit N] BASE HEAD
   $ mathc gate --help 2>&1 | grep -c -- "--no-execute"
   2
 

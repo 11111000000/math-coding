@@ -6265,6 +6265,60 @@ let[@warning "-32"] gap_to_json (g : Gate.gap) =
          sorted)
   ^ "}"
 
+(* The gap KIND, as a name. One name per kind, so the histogram and
+   the list agree on what a kind is called. *)
+let[@warning "-32"] gap_kind_name (g : Gate.gap) =
+  match g.kind with
+  | `MissingEvidence -> "MissingEvidence"
+  | `StaleEvidence -> "StaleEvidence"
+  | `FailedEvidence -> "FailedEvidence"
+  | `MissingReview -> "MissingReview"
+  | `NoAttestationStore -> "NoAttestationStore"
+  | `Unknown -> "Unknown"
+
+(* THE HISTOGRAM OF GAP KINDS.
+ *
+ * A reader asks "what KIND of gap is this?" before "which gap is
+ * this?". With 529 gaps the list is a wall, and the shape of the
+ * problem is in the counts, not in the first entry: 493 StaleEvidence
+ * and 5 FailedEvidence are different problems with different
+ * remedies, and a reader who has to count them by hand will not. *)
+let[@warning "-32"] gaps_by_kind_json (gaps : Gate.gap list) =
+  let counts = Hashtbl.create 8 in
+  List.iter
+    (fun g ->
+      let k = gap_kind_name g in
+      let n = match Hashtbl.find_opt counts k with Some n -> n | None -> 0 in
+      Hashtbl.replace counts k (n + 1))
+    gaps;
+  let names =
+    Hashtbl.fold (fun k v acc -> (k, v) :: acc) counts []
+    |> List.sort (fun (a, _) (b, _) -> String.compare a b)
+  in
+  "{"
+  ^ String.concat ","
+      (List.map
+         (fun (k, v) ->
+           Jsonl.stringify (Jsonl.String k) ^ ":" ^ string_of_int v)
+         names)
+  ^ "}"
+
+(* THE ORDER THE READER SEES. A decisive failure first, then the
+   gaps that are a check that could not conclude, then the rest. The
+   ORDER of the list is not the verdict -- the verdict is computed
+   from every gap -- but it decides which gap a reader reads first. *)
+let[@warning "-32"] gap_severity (g : Gate.gap) =
+  match g.kind with
+  | `FailedEvidence -> 0
+  | `Unknown -> 1
+  | `MissingEvidence -> 2
+  | `StaleEvidence -> 3
+  | `MissingReview -> 4
+  | `NoAttestationStore -> 5
+
+let[@warning "-32"] gap_sort (gaps : Gate.gap list) =
+  List.stable_sort (fun a b -> compare (gap_severity a) (gap_severity b)) gaps
+
 (* Map a Gate verdict to the process exit code. Per constitution.md
    Invariant 14 ("a blocking verdict MUST produce nonzero exit code")
    and the symmetric Invariant 14b ("exit 0 MUST imply verdict = Pass
@@ -6279,11 +6333,49 @@ let[@warning "-32"] verdict_to_exit = function
   | Gate.Block -> 1
   | Gate.Unknown -> 3
 
-let[@warning "-32"] gate_to_json (g : Gate.t) =
+(* THE GATE'S REPORT. The verdict is computed from EVERY gap; the LIST
+   is a report about them, and a report that grows with the corpus is
+   a report nobody reads.
+ *
+ * Measured on this repository on 2026-10-28: the whole-corpus gate
+ * printed 392 KB of JSON -- 529 gaps, each with its causes and its
+ * remedies -- for one commit. That output lands in the context of
+ * whoever reads it (a CI log, an agent, a person) and it is the same
+   size for every commit, so the part that matters is the part that
+   gets skimmed.
+ *
+ * So the report says three things about the gaps instead of
+   printing all of them:
+ *
+ *   - `gaps_total`: how many there are. The count is never
+ *     approximated; it is the number the verdict was computed from.
+ *   - `gaps_by_kind`: the histogram. The shape of the problem.
+ *   - `gaps`: the first N, decisive first. `gaps_truncated` says
+ *     whether the list is the whole set.
+ *
+ * The old keys are not renamed and not removed: `verdict`, `gaps`,
+ * `obligations`, `now`, `base`, `head` all stay, and `gaps` is still
+ * an array of gap objects. What changed is that the array may be a
+ * prefix of the gaps, and the report says so. *)
+let[@warning "-32"] gate_to_json ~gaps_limit (g : Gate.t) =
+  let total = List.length g.gaps in
+  let shown =
+    if gaps_limit <= 0 then gap_sort g.gaps
+    else
+      let rec take n l =
+        match (n, l) with
+        | 0, _ | _, [] -> []
+        | n, x :: tl -> x :: take (n - 1) tl
+      in
+      take gaps_limit (gap_sort g.gaps)
+  in
   let fields =
     [
       ("base", Jsonl.stringify (Jsonl.String g.base));
-      ("gaps", "[" ^ String.concat "," (List.map gap_to_json g.gaps) ^ "]");
+      ("gaps", "[" ^ String.concat "," (List.map gap_to_json shown) ^ "]");
+      ("gaps_by_kind", gaps_by_kind_json g.gaps);
+      ("gaps_total", string_of_int total);
+      ("gaps_truncated", if List.length shown < total then "true" else "false");
       ("head", Jsonl.stringify (Jsonl.String g.head));
       ("now", Jsonl.stringify (Jsonl.String g.now));
       ("obligations", string_of_int g.obligation_count);
@@ -6416,6 +6508,10 @@ let do_gate () =
   let positionals : string list ref = ref [] in
   let anon s = positionals := s :: !positionals in
   Arg.current := 1;
+  (* How many gaps the REPORT prints. The verdict is computed from
+     every gap either way; this bounds what the reader has to read.
+     0 means "print them all". *)
+  let gaps_limit = ref 50 in
   let specs =
     [
       ( "--scope",
@@ -6431,12 +6527,16 @@ let do_gate () =
       ( "--no-execute",
         Arg.Set no_execute,
         "Run no verifier at all; the attestation store's record decides" );
+      ( "--gaps-limit",
+        Arg.Set_int gaps_limit,
+        "How many gaps to print (0 = all). The verdict is computed from every \
+         gap either way." );
     ]
   in
   (try
      Arg.parse specs anon
-       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] BASE \
-        HEAD"
+       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] \
+        [--gaps-limit N] BASE HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);
@@ -6723,7 +6823,7 @@ let do_gate () =
      `unknown != pass` laundering: a script that gates on the exit
      code would silently treat a kernel that could not determine a
      verdict as if it had determined "pass". *)
-  print_string (gate_to_json result);
+  print_string (gate_to_json ~gaps_limit:!gaps_limit result);
   exit (verdict_to_exit result.verdict)
 
 (* --- mode subcommand (algebra 3.2 §2 risk function) ---

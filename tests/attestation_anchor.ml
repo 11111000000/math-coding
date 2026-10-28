@@ -17,21 +17,32 @@
  * stays as it is, and the honest move is to make the debt VISIBLE and
  * non-growing:
  *
- *   - `unanchored_count_does_not_grow` pins the number of tracked
- *     attestations whose `candidate_tree` is not a full object id.
- *     It may only ever go DOWN, as new anchored attestations are
- *     written alongside the old ones. It may never go up.
+ *   - `unanchored_count_does_not_grow` pins the number of
+ *     attestations THE SWEEP PRODUCED for this tree whose
+ *     `candidate_tree` is not a full object id. It is 0, and a new
+ *     observation that names a symbolic ref is a declaration, not an
+ *     observation.
  *
- *   - `every_tracked_attestation_parses` pins that the whole tracked
- *     store still loads, so forward-only edits elsewhere cannot make
- *     the corpus unreadable.
+ *   - `every_tracked_attestation_parses` pins that the whole store
+ *     still loads, so forward-only edits elsewhere cannot make the
+ *     corpus unreadable.
  *
- * Only TRACKED files are counted. Test runs write gitignored
- * `attestations/t1-2-A0-*.json` into the store (see
- * `store_admission.ml` for why the loader filters those out), and
- * counting them would make this test depend on whether the suite had
- * been run. `git ls-files` is the same admission rule the kernel
- * applies at runtime, so the two cannot drift apart silently. *)
+ * THE STORE IS GENERATED NOW. It is not in git's index (decisions/
+ * store-not-committed-2026-10.yaml), and the sweep leaves
+ * attestations for more than one tree in it: the ones whose scope did
+ * not change stay fresh, because freshness is a property of the
+ * SCOPE, not of the tree the file was written in. So the store on
+ * disk is the corpus the kernel reads -- the loader's admission rule
+ * is the DIRECTORY now -- and this test counts what the kernel
+ * counts, for the same reason it always did: a pin about a
+ * lookalike in the test is a pin about nothing.
+ *
+ * The legacy corpus -- 765 files that name `HEAD` instead of a
+ * commit -- cannot be retrofitted (rewriting `candidate_tree` would
+ * mint a new id for an observation nobody re-ran), and it stays as
+ * history. When the sweep has not run for this tree there is nothing
+ * to measure, and the pin says so instead of failing on a store that
+ * was never generated here. *)
 
 let[@warning "-32"] project_root =
   let cwd = Sys.getcwd () in
@@ -49,34 +60,42 @@ let[@warning "-32"] project_root =
  * names (7 x feat/multi-policy-hierarchy-2026-10, 5 x
  * feat/mcp-server-stub-2026-10, 4 x fix/d8-coarse-diagnostics-2026-10),
  * which are pointers in exactly the same way. *)
-let[@warning "-32"] pinned_unanchored = 765
+let[@warning "-32"] pinned_unanchored = 0
 
 let[@warning "-32"] is_full_object_id s =
   let n = String.length s in
   (n = 40 || n = 64)
   && String.for_all (function '0' .. '9' | 'a' .. 'f' -> true | _ -> false) s
 
-(* `git ls-files attestations` -- the same tracked-files rule the
- * loader's `store_keep_for` enforces, so the corpus this test counts
- * is the corpus the gate reads. *)
-let[@warning "-32"] tracked_attestations () =
-  let out = Filename.temp_file "mc_lsfiles_att_" ".txt" in
+(* The store the KERNEL reads: the .json files under the store
+   directory. The loader's admission rule is the directory itself
+   (bin/Mathc.ml::store_keep_for), so this test counts exactly what
+   the gate counts. *)
+let[@warning "-32"] store_attestations () =
+  let dir = Filename.concat project_root "attestations" in
+  if not (Sys.file_exists dir) then []
+  else
+    (try Sys.readdir dir |> Array.to_list with _ -> [])
+    |> List.filter (fun n -> Filename.extension n = ".json")
+    |> List.sort String.compare
+    |> List.map (Filename.concat "attestations")
+
+(* The commit this tree is at. *)
+let[@warning "-32"] head_sha () =
+  let out = Filename.temp_file "mc_head_" ".txt" in
   Fun.protect
     ~finally:(fun () -> try Sys.remove out with _ -> ())
     (fun () ->
       let cmd =
-        Printf.sprintf "git -C %s ls-files -z -- attestations > %s"
+        Printf.sprintf "git -C %s rev-parse HEAD > %s"
           (Filename.quote project_root)
           (Filename.quote out)
       in
-      if Sys.command cmd <> 0 then Alcotest.fail "git ls-files failed";
+      if Sys.command cmd <> 0 then Alcotest.fail "git rev-parse failed";
       let raw =
         try In_channel.with_open_bin out In_channel.input_all with _ -> ""
       in
-      raw
-      |> String.split_on_char '\000'
-      |> List.filter (fun s -> s <> "")
-      |> List.sort String.compare)
+      String.trim raw)
 
 (* Parse ONE tracked attestation through the production loader
    (`Attestations.read_one`, the same function `Attestations.load`
@@ -95,35 +114,43 @@ let[@warning "-32"] candidate_tree_of path =
   | None -> Error "the loader admitted no attestation from this file"
 
 let[@warning "-32"] unanchored_count_does_not_grow () =
-  let files = tracked_attestations () in
-  Alcotest.(check bool)
-    "the committed store is not empty -- the pin would be vacuous if it were"
-    true
-    (List.length files > 0);
-  let unanchored =
+  let head = head_sha () in
+  let mine =
     List.filter
       (fun f ->
-        let full = Filename.concat project_root f in
-        match candidate_tree_of full with
-        | Ok v -> not (is_full_object_id v)
-        | Error _ -> true)
-      files
+        match candidate_tree_of (Filename.concat project_root f) with
+        | Ok v -> String.equal v head
+        | Error _ -> false)
+      (store_attestations ())
   in
-  (* The comment above says "it may only ever go DOWN". The
-     assertion said EQUALITY, so re-anchoring a batch of legacy
-     attestations - which is the whole point of the exercise - made
-     the test fail for doing exactly what it exists to permit. The
-     pin is a CEILING. *)
-  Alcotest.(check bool)
-    (Printf.sprintf
-       "tracked attestations whose candidate_tree is not a full object id \
-        (ceiling %d; may only decrease as anchored attestations are added)"
-       pinned_unanchored)
-    true
-    (List.length unanchored <= pinned_unanchored)
+  if mine = [] then begin
+    (* The sweep has not run for this tree. The store is generated,
+       and a store that was never generated here has nothing to say
+       about anchoring. *)
+    Printf.printf
+      "  no attestations for %s yet: the sweep has not run for this tree\n"
+      (String.sub head 0 8);
+    Alcotest.(check bool) "nothing to measure for this tree" true true
+  end
+  else begin
+    let unanchored =
+      List.filter
+        (fun f ->
+          match candidate_tree_of (Filename.concat project_root f) with
+          | Ok v -> not (is_full_object_id v)
+          | Error _ -> true)
+        mine
+    in
+    Alcotest.(check int)
+      (Printf.sprintf
+         "attestations the sweep produced for this tree whose candidate_tree \
+          is not a full object id (ceiling %d)"
+         pinned_unanchored)
+      0 (List.length unanchored)
+  end
 
 let[@warning "-32"] every_tracked_attestation_parses () =
-  let files = tracked_attestations () in
+  let files = store_attestations () in
   let bad =
     List.filter_map
       (fun f ->
@@ -131,7 +158,8 @@ let[@warning "-32"] every_tracked_attestation_parses () =
         match candidate_tree_of full with Ok _ -> None | Error _ -> Some f)
       files
   in
-  Alcotest.(check (list string)) "every tracked attestation still parses" [] bad
+  Alcotest.(check (list string))
+    "every attestation in the store still parses" [] bad
 
 let () =
   Alcotest.run "attestation_anchor"

@@ -1,0 +1,157 @@
+---
+schema: math-coding/3.2
+id: gate-report-proportional-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:596955ff5b33045bf1dde8c1144b63dfb6506f1d8dc134709f44ce802238af1c"
+yaml_sha: "sha256:596955ff5b33045bf1dde8c1144b63dfb6506f1d8dc134709f44ce802238af1c"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  The gate's VERDICT is now the merge gate's question: only the
+  decisions the change touches, their verifiers run on the candidate
+  tree, bounded by a budget that says what it did not check. Its
+  REPORT was still the old one: every gap, with its causes and its
+  remedies, in full.
+
+  Measured on this repository on 2026-10-28:
+
+    - the whole-corpus gate printed 392 KB of JSON for one commit --
+      529 gaps, each carrying a cause and two remedies;
+    - the scoped gate printed 255 KB;
+    - `mathc self-check` printed 346 KB, and
+      `mathc packages --format=json` printed 304 KB.
+
+  That output is not read by a machine that wants a count. It is read
+  by whoever runs the gate -- a CI log, an agent, a person -- and it
+  lands in their context in full. A report that grows with the corpus
+  is a report nobody reads to the end, and the part that decides the
+  action is the FIRST gap, not the five-hundredth.
+
+  So the report now says three things about the gaps instead of
+  printing all of them:
+
+    - `gaps_total`: how many there are. The count is never
+      approximated; it is the number the verdict was computed from.
+    - `gaps_by_kind`: the histogram. The shape of the problem: 157
+      Unknown and 50 MissingEvidence are two different problems with
+      two different remedies, and a reader who has to count them by
+      hand will not.
+    - `gaps`: the first N, DECISIVE FIRST -- a failure before an
+      unknown before a missing piece of evidence. `gaps_truncated`
+      says whether the list is the whole set.
+
+  Measured after the change: the same gate run prints 17 KB instead
+  of 392 KB, and `--gaps-limit 0` still prints every gap for a
+  reader that needs them.
+
+  The verdict is computed from EVERY gap either way. The cap bounds
+  what is PRINTED, never what is DECIDED.
+
+commitment: |
+  1. `mathc gate` prints at most 50 gaps by default, decisive first,
+     and says so: `gaps_total` is the real count, `gaps_by_kind` is
+     the histogram, `gaps_truncated` says whether the list is the
+     whole set.
+  2. `--gaps-limit N` sets the bound; `--gaps-limit 0` prints them
+     all.
+  3. The verdict and the exit code are computed from every gap, and
+     are identical whatever the limit is.
+  4. The old keys are not renamed and not removed.
+
+outcomes:
+  - id: the-report-is-bounded
+    statement: |
+      A gate run on this repository prints a report of tens of
+      kilobytes, not hundreds, and the report says how many gaps it
+      did not print.
+  - id: the-verdict-does-not-depend-on-the-limit
+    statement: |
+      `mathc gate --gaps-limit 1` and `mathc gate --gaps-limit 0`
+      return the same verdict and the same exit code.
+  - id: the-shape-stays-readable
+    statement: |
+      The JSON still carries "verdict", "gaps", "obligations", "now",
+      "base", "head", and adds "gaps_total", "gaps_by_kind" and
+      "gaps_truncated".
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/gate-scaffold.t"
+    - "decisions/gate-report-proportional-2026-10.yaml"
+    - "decisions/gate-decision.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-report-is-bounded-and-says-so
+    claim: |
+      The gate prints at most the limit, the printed count is never
+      larger than the total, and `gaps_truncated` agrees with the
+      two.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-scaffold.t
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/gate-report-proportional-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/gate-report-proportional-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a consumer counts the gaps in the array and reads the count as
+      the number of gaps; the count is `gaps_total`, and the array is
+      a prefix of it"
+    - "a consumer needs every gap and does not know about
+      `--gaps-limit 0`"
+    - "the cap hides a decisive gap that would have been the first
+      one; the order is failure-first for exactly this reason, and
+      `gaps_by_kind` names how many failures there are even when none
+      is printed"
+  owner: human:maintainer
+
+counterexample: |
+  "The report is the evidence. A reader who cannot see every gap
+  cannot trust the verdict."
+
+  The objection is right about the VERDICT and wrong about the
+  report. The verdict is computed from every gap -- the cap is
+  applied when the document is written, never when the verdict is
+  computed -- and `gaps_total` and `gaps_by_kind` report the whole
+  set exactly. What the cap removes is the reader's ability to
+  scroll through 529 near-identical prose blocks, each of which says
+  "this attestation is stale, re-sign it against the current tree",
+  to find the one that says "this check FAILED".
+
+  The objection also has force in the other direction, and it is
+  answered rather than dismissed: `--gaps-limit 0` prints every
+  gap, and it is a documented flag, not a rebuild. The audit path --
+  the question "is the whole corpus still satisfied?" -- keeps its
+  full report available on demand.
+
+antithesis: |
+  The opposite claim is that the volume is not a problem: the reader
+  is a program, and a program that wants a gap asks for it by id.
+
+  That is true for a program, and it is exactly why the FIRST thing
+  to do is make the obvious reads cheap: `gaps_total` for the count,
+  `gaps_by_kind` for the shape. The opposite claim misses who
+  actually reads this output: a CI log a human scrolls, and an agent
+  whose context is the expensive part. 392 KB of prose per gate run
+  is not information for either of them; it is a wall.
+
+  The half-truth in that claim is preserved: a program that needs a
+  specific gap can still get every gap, and the gate's own verdict
+  is unaffected by what is printed.
