@@ -4757,16 +4757,16 @@ type obligation_verdict = {
  * a corpus ends up with two answers to one question. The body
  * below is the runner's, moved here verbatim. *)
 let[@warning "-32"] classify_verifier ~root ~refuse_suite s =
-          match parse_verifier_string s with
-          | None -> Not_a_check
-          | Some (scheme, args) -> (
-              match scheme with
-              | "file-exists" | "dir-exists" ->
-                  if args <> [] then Executable else Not_a_check
-              | "mathc" -> if args <> [] then Executable else Not_a_check
-              | "dune" -> (
-                  if
-                    (* A `dune` verifier runs the BUILD SYSTEM. The gate
+  match parse_verifier_string s with
+  | None -> Not_a_check
+  | Some (scheme, args) -> (
+      match scheme with
+      | "file-exists" | "dir-exists" ->
+          if args <> [] then Executable else Not_a_check
+      | "mathc" -> if args <> [] then Executable else Not_a_check
+      | "dune" -> (
+          if
+            (* A `dune` verifier runs the BUILD SYSTEM. The gate
                      runs inside CI, where the suite has already run,
                      and inside a cram test, where a `dune runtest`
                      inside a `dune runtest` recurses and the
@@ -4775,22 +4775,22 @@ let[@warning "-32"] classify_verifier ~root ~refuse_suite s =
                      did not run, and the obligation is reported as
                      "could not be run against the candidate tree",
                      which is what it is. *)
-                    refuse_suite
-                  then begin
-                    Printf.eprintf
-                      "mathc gate: not running the dune verifier %S: it \
-                       would nest the build system inside the gate\n\
-                       %!"
-                      s;
-                    Cannot_be_set_up
-                  end
-                  else
-                    match plan_verifier ~project_root:root scheme args with
-                    | Plan_ok _ -> Executable
-                    | Plan_fail _ -> Cannot_be_set_up
-                    | Plan_skip -> Not_a_check)
-              | _ when refuse_suite && starts_with "tests/" scheme ->
-                  (* A verifier that names a TEST is the suite by
+            refuse_suite
+          then begin
+            Printf.eprintf
+              "mathc gate: not running the dune verifier %S: it would nest the \
+               build system inside the gate\n\
+               %!"
+              s;
+            Cannot_be_set_up
+          end
+          else
+            match plan_verifier ~project_root:root scheme args with
+            | Plan_ok _ -> Executable
+            | Plan_fail _ -> Cannot_be_set_up
+            | Plan_skip -> Not_a_check)
+      | _ when refuse_suite && starts_with "tests/" scheme ->
+          (* A verifier that names a TEST is the suite by
                      another name, and the suite is a separate step:
                      `scripts/dev verify` runs it before the gate, in
                      CI and on a developer machine alike. Run from
@@ -4802,18 +4802,17 @@ let[@warning "-32"] classify_verifier ~root ~refuse_suite s =
                      subcommands, path checks, repository scripts --
                      and reports the suite's verdicts from the step
                      that ran them. *)
-                  Printf.eprintf
-                    "mathc gate: not running the test verifier %S: the suite \
-                     is a separate step, and running it here would nest it \
-                     inside the gate\n\
-                     %!"
-                    s;
-                  Cannot_be_set_up
-              | _ -> (
-                  match plan_verifier ~project_root:root scheme args with
-                  | Plan_ok _ -> Executable
-                  | Plan_fail _ -> Cannot_be_set_up
-                  | Plan_skip -> Not_a_check))
+          Printf.eprintf
+            "mathc gate: not running the test verifier %S: the suite is a \
+             separate step, and running it here would nest it inside the gate\n\
+             %!"
+            s;
+          Cannot_be_set_up
+      | _ -> (
+          match plan_verifier ~project_root:root scheme args with
+          | Plan_ok _ -> Executable
+          | Plan_fail _ -> Cannot_be_set_up
+          | Plan_skip -> Not_a_check))
 
 let[@warning "-32"] verdict_of_obligation_named ~root ~sandbox_mode ~decision_id
     ~obligation_id ~refuse_suite ~timeout_s : obligation_verdict =
@@ -8335,7 +8334,6 @@ let[@warning "-32"] gap_class_name = function
   | Some Not_a_check -> "not-a-check"
   | Some Cannot_be_set_up -> "cannot-be-set-up"
   | None -> "unidentified"
-
 
 let[@warning "-32"] gap_action cls state =
   match (cls, state) with

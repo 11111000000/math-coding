@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: gaps-worklist-2026-10
-revision: 5
+revision: 6
 state: active
 mode: standard
 
-body_sha: "sha256:089d9ae13ad196d3ff0ab58dab04711a763f59ab1568821a93ddf2d12fd4dced"
-yaml_sha: "sha256:089d9ae13ad196d3ff0ab58dab04711a763f59ab1568821a93ddf2d12fd4dced"
+body_sha: "sha256:780dadff287f6dddaa0379e04c6e7f1735a047d0cec789e06ceefd2cedf816f4"
+yaml_sha: "sha256:780dadff287f6dddaa0379e04c6e7f1735a047d0cec789e06ceefd2cedf816f4"
 
 axiom_link:
   - A0
@@ -91,7 +91,9 @@ commitment: |
   6. The worklist's code is `dune fmt` clean: it was written by hand
   and the formatter rewrapped it, and the formatter's output is the
   tree's shape.
-  7. The CLASS of a promise is the kernel's own classification --
+  7. The classification was lifted out of the runner by hand and the
+  formatter rewrapped it; the formatter's output is the tree's shape.
+  8. The CLASS of a promise is the kernel's own classification --
   the one the sweep's runner uses (`classify_verifier`, extracted
   from it so that there is ONE dispatch). Two copies of that
   dispatch is how a corpus ends up with two answers to one question:
