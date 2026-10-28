@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: gaps-worklist-2026-10
-revision: 2
+revision: 3
 state: active
 mode: standard
 
-body_sha: "sha256:fb585fd306a162aa153060ee6e9c70703a594954ca0f83d8c700b331b8a0b1d8"
-yaml_sha: "sha256:fb585fd306a162aa153060ee6e9c70703a594954ca0f83d8c700b331b8a0b1d8"
+body_sha: "sha256:63efe2343c6ee6e1b9ebc6e3b863db5d7d47101cb2724ccfb3db8912623a4230"
+yaml_sha: "sha256:63efe2343c6ee6e1b9ebc6e3b863db5d7d47101cb2724ccfb3db8912623a4230"
 
 axiom_link:
   - A0
@@ -32,6 +32,10 @@ intent: |
   is empty. Twenty-four of them are named after
   `mathc self-check` subcommands that were never
   commands.
+  malformed       the verifier names a scheme the kernel KNOWS and
+  a string it cannot run (`tests/x.t (positive case)` -- a path
+  verifier with a case label after it). The scheme is right and the
+  string is wrong, and the honest name for that is not "unknown".
   checkable       the kernel can execute it here. The gap is about
   EVIDENCE: missing, stale, or failed.
   unidentified    the obligation carries no id, so the gate never
@@ -40,12 +44,18 @@ intent: |
   MEASURED on this repository, 2026-10-28, against the store of a
   tree two commits behind:
 
-  578 open promises
-  checkable       224   the evidence is missing, stale or failed
-  declaration     281   a promise no program can run
-  unknown-scheme   62   a verifier that names nothing
+  319 open promises, against a store signed for this tree:
+  declaration     239   a promise no program can run
+  unknown-scheme   32   a verifier that names a command nobody has
+  malformed        20   a known scheme, a string it cannot run
+  checkable        17   the evidence is missing or stale
   unidentified     11   a promise no gate can name
-  by state: missing 28, stale 441, unknown 109
+  by state: missing 52, unknown 267
+
+  The earlier measurement of 578 was taken against a store two
+  commits behind this tree, so 441 of those were stale evidence
+  rather than open promises. The number that survives a sweep is
+  the one above.
 
   WHAT THE TOOL DOES NOT DECIDE. It does not say which promises the
   project intends to keep. That is the owner's call, and the corpus's

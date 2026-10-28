@@ -81,14 +81,29 @@ classification itself and not a count that moves with the real corpus.
   >         - verifier: file-exists present.txt
   >           result: pass
   > YAML
+  $ cat > decisions/malformed-probe.yaml <<'YAML'
+  > schema: math-coding/3.3
+  > id: malformed-probe
+  > revision: 1
+  > state: active
+  > intent: a decision whose verifier names a known scheme with arguments it does not take
+  > commitment: the string is wrong
+  > obligations:
+  >   - id: malformed-string
+  >     claim: a path verifier with a case label after it
+  >     acceptance:
+  >       all:
+  >         - verifier: tests/cli/does-not-exist.t (positive case)
+  >           result: pass
+  > YAML
   $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -c '{open: (.open|length), classes: ([.open[].class]|sort)}'
-  {"open":4,"classes":["checkable","declaration","unidentified","unknown-scheme"]}
+  {"open":5,"classes":["checkable","declaration","malformed","unidentified","unknown-scheme"]}
   $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -c '[.open[] | {decision, obligation, class}] | sort_by(.class)'
-  [{"decision":"checkable-probe","obligation":"real-check","class":"checkable"},{"decision":"decl-probe","obligation":"declared-gap","class":"declaration"},{"decision":"noid-probe","obligation":"","class":"unidentified"},{"decision":"scheme-probe","obligation":"imaginary-command","class":"unknown-scheme"}]
+  [{"decision":"checkable-probe","obligation":"real-check","class":"checkable"},{"decision":"decl-probe","obligation":"declared-gap","class":"declaration"},{"decision":"malformed-probe","obligation":"malformed-string","class":"malformed"},{"decision":"noid-probe","obligation":"","class":"unidentified"},{"decision":"scheme-probe","obligation":"imaginary-command","class":"unknown-scheme"}]
   $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -r '[.open[] | select(.class=="declaration") | .action] | .[0]'
   the verifier is a declaration: write the check, cover the gap with a dated waiver, or drop the promise
   $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=text | head -2
-  open gaps: 4
+  open gaps: 5
     checkable-probe/real-check  checkable missing
   $ cd /
   $ rm -rf "$tmpdir"
