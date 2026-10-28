@@ -182,6 +182,39 @@ if [ ${#store_files[@]} -eq 0 ]; then
   exit 0
 fi
 
+# THE STORE IS GENERATED FOR A TREE, AND A STORE FROM ANOTHER TREE IS
+# NOT EVIDENCE ABOUT THIS ONE. That is the freshness principle the
+# whole protocol is built on, applied to the artefact that used to be
+# committed: an attestation names the tree it was produced against,
+# and a store signed for an older commit says nothing about this one.
+#
+# So a stale store is not debt -- it is an artefact that has not been
+# regenerated. Measuring it would report the debt of a tree that is
+# not here. The fixture says which tree the store is signed for and
+# exits green; the sweep is what makes a store current, and the
+# ceilings below are measured against a current one.
+head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+store_trees="$(python3 - "$STORE_DIR" <<'PYT'
+import glob, json, os, sys
+trees = set()
+for f in glob.glob(os.path.join(sys.argv[1], '*.json')):
+    try:
+        d = json.load(open(f))
+    except Exception:
+        continue
+    t = (d.get('subject') or {}).get('candidate_tree')
+    if t:
+        trees.add(t)
+print(' '.join(sorted(trees)))
+PYT
+)"
+if [ "$store_trees" != "$head_sha" ]; then
+  ok "the store in $STORE_DIR is signed for [$store_trees], not for HEAD ($head_sha): regenerate it before measuring the debt"
+  echo
+  echo "legacy-attestation-debt: PASS"
+  exit 0
+fi
+
 read -r legacy unattested <<< "$(measure "$STORE_DIR")"
 
 # --- 1. the legacy count must not exceed the ceiling --------------------

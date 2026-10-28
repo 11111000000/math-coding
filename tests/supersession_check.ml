@@ -254,8 +254,11 @@ let[@warning "-32"] test_gitignore_filter () =
   check "anchored directory rule does NOT match at depth" false "a/doc/x.md";
   check "slashless rule matches at any depth" true "lib/result";
   check "slashless rule does not over-match a sibling" false "lib/results";
-  check "prefix glob does not over-match a neighbour" false
-    "attestations/t1-2-A3-x.json";
+  check "the store directory is gitignored" true "attestations/x.json";
+  check "a source directory of the same name is NOT gitignored" false
+    "lib/attestations/attestations.ml";
+  check "a sibling of the store is NOT gitignored" false
+    "attestations-old/x.json";
   (* The corpus must actually be reachable from wherever this runs --
      otherwise the filter below is filtering an empty list. *)
   Alcotest.(check bool)

@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.2
 id: store-not-committed-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:b9547f91794667a514959c2d8653b48d4a72e0196dc147f67731a11f65b47e9c"
-yaml_sha: "sha256:b9547f91794667a514959c2d8653b48d4a72e0196dc147f67731a11f65b47e9c"
+body_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
+yaml_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
 
 intent: |
   The attestation store was a COMMITTED artefact. It was generated
@@ -206,3 +206,16 @@ risk:
     - "an auditor asks for the store of a commit and the artefact has expired"
     - "a reader treats the CI artefact as a committed record of the tree"
     - "the corpus grows an obligation whose evidence is only produced by a sweep"
+    - "a rule about the store is asserted in one place and read in
+      another: the .gitignore filter was probed by SEVEN copies of
+      one test, and each copy pinned the old name-exact glob, so the
+      change turned all seven red at once. A rule that is read in
+      seven places has to live in one place"
+    - "the store is generated, so the instrument that measures it
+      must not measure git's index: the debt ratchet read
+      `git ls-files attestations` and reported every decision as
+      unattested once the store stopped being committed. It now
+      reads the store from disk and skips a store signed for another
+      tree -- an artefact that has not been regenerated for this
+      commit is not debt, it is the freshness principle applied to a
+      generated file"

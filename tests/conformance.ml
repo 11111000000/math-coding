@@ -636,8 +636,11 @@ let[@warning "-32"] test_gitignore_filter () =
   check "slashless directory rule covers a descendant" true "dist/a/b";
   (* Prefix glob (.gitignore:37) must not swallow its neighbour. *)
   check "prefix glob matches its own prefix" true "attestations/t1-2-A0-x.json";
-  check "prefix glob does not over-match a neighbour" false
-    "attestations/t1-2-A3-x.json"
+  check "the store directory is gitignored" true "attestations/x.json";
+  check "a source directory of the same name is NOT gitignored" false
+    "lib/attestations/attestations.ml";
+  check "a sibling of the store is NOT gitignored" false
+    "attestations-old/x.json"
 
 let[@warning "-32"] legacy_decision_files () =
   let d = decisions_dir () in

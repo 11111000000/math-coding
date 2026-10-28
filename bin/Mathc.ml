@@ -6312,8 +6312,8 @@ let do_gate () =
         "Evaluate every active decision, the audit question" );
       ( "--execute",
         Arg.Set execute,
-        "Run the touched decisions' verifiers on the candidate tree \
-         (default)" );
+        "Run the touched decisions' verifiers on the candidate tree (default)"
+      );
       ( "--no-execute",
         Arg.Set no_execute,
         "Run no verifier at all; the attestation store's record decides" );
@@ -6321,8 +6321,8 @@ let do_gate () =
   in
   (try
      Arg.parse specs anon
-       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] \
-        BASE HEAD"
+       "usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] BASE \
+        HEAD"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc gate: %s\n" m;
      exit 2);

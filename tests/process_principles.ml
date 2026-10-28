@@ -230,8 +230,18 @@ let[@warning "-32"] test_gitignore_filter () =
   in
   let[@warning "-32"] () =
     Alcotest.(check bool)
-      "prefix glob does not over-match its neighbour" false
-      (gitignored "attestations/t1-2-A3-x.json")
+      "the store directory is gitignored" true
+      (gitignored "attestations/x.json")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "a source directory of the same name is NOT gitignored" false
+      (gitignored "lib/attestations/attestations.ml")
+  in
+  let[@warning "-32"] () =
+    Alcotest.(check bool)
+      "a sibling of the store is NOT gitignored" false
+      (gitignored "attestations-old/x.json")
   in
   (* `.gitignore:6` is the bare word `result`: no slash, no trailing
      slash, so git matches that basename at any depth. *)
