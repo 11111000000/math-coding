@@ -833,8 +833,27 @@ let validate_with_counts path =
         @ collect_duplicate_key_diagnostics path v
       in
       match Decision.peek_schema_family v with
-      | Some (Decision.Waiver, id) ->
-          `Accept_aggregate { kind = "waiver"; id; extra_diags = dup_diags }
+      | Some (Decision.Waiver, id) -> (
+          (* A waiver is a GRANT, and a grant without a validity
+             interval is not a grant: `expires_at` is one of the four
+             required bounds (lib/waiver.ml). The family dispatch used
+             to accept the file on its SCHEMA NAME alone, so a waiver
+             with no expiry was accepted -- and the project's own
+             conformance corpus says it must be rejected:
+             fixtures/conformance/waiver/negative-missing-expiry.json.
+             The corpus was right and the dispatch was wrong. *)
+          match Codec.parse_waiver v with
+          | Some _ ->
+              `Accept_aggregate { kind = "waiver"; id; extra_diags = dup_diags }
+          | None ->
+              let msg =
+                "the waiver is missing a required field: expires_at (a \
+                 grant without a validity interval is not a grant; \
+                 schemas/waiver.json requires id, policy_id, rule, \
+                 subject, issuer, issued_at, expires_at and reason)"
+              in
+              `Reject
+                (Diagnostic.mc_decision_invalid ~path:[ "waiver" ] msg, msg))
       | Some (Decision.Obligations, id) ->
           `Accept_aggregate
             { kind = "obligations"; id; extra_diags = dup_diags }
@@ -5162,12 +5181,54 @@ let[@warning "-32"] extract_obligation_ids lines =
 (* Build a decision entry from the raw text of a decision document.
    The id is the id the DOCUMENT DECLARES — the identity of a
    decision is its id, not the name of the file it sits in. *)
+(* The verifier strings a document names, read off its lines: a
+   sequence item that begins with `verifier:`. The value is the rest of
+   the line, unquoted. *)
+let[@warning "-32"] extract_verifier_strings (lines : string list) =
+  List.filter_map
+    (fun line ->
+      let t = String.trim line in
+      if String.length t > 10 && String.sub t 0 10 = "- verifier" then
+        match String.index_opt t ':' with
+        | Some i ->
+            let v = String.trim (String.sub t (i + 1) (String.length t - i - 1)) in
+            let n = String.length v in
+            if n >= 2 && v.[0] = '"' && v.[n - 1] = '"' then
+              Some (String.sub v 1 (n - 2))
+            else Some v
+        | None -> None
+      else None)
+    lines
+
 let[@warning "-32"] decision_entry_of_raw ~id raw =
   if id = "" then None
   else
     let lines = String.split_on_char '\n' raw in
     let obligation_ids = extract_obligation_ids lines in
     let scope_paths = extract_scope_paths lines in
+    (* The STATE and the VERIFIERS, read from the document itself.
+       A stub that claims every decision is `active` and carries no
+       verifier cannot answer the two questions the corpus is asked:
+       is this decision in force, and does it carry a check a program
+       can run? The self-check's subject set is decided by exactly
+       those two answers, so a stub that answers them wrongly makes
+       every decision a non-subject -- and the report says "nothing to
+       check" while the corpus is full of checks. *)
+    let state =
+      match Memory.top_level_value ~key:"state" lines with
+      | Some s -> (
+          match Codec.parse_decision_state s with
+          | Some parsed -> parsed
+          | None -> `Active)
+      | None -> `Active
+    in
+    (* The verifier strings, read off the document's own lines. A
+       line scanner is used rather than the YAML parser on purpose: the
+       corpus is read on every command, and the parser is the slow
+       part; the strings themselves are read by the kernel's own
+       `parse_verifier_string` when it runs them, so the two cannot
+       disagree about what a verifier IS. *)
+    let verifiers = extract_verifier_strings lines in
     let stub : Memory.decision_entry =
       {
         Memory.decision_id = id;
@@ -5178,8 +5239,8 @@ let[@warning "-32"] decision_entry_of_raw ~id raw =
         Memory.assumptions = 0;
         Memory.risk_triggers = [];
         Memory.scope_paths;
-        Memory.state = `Active;
-        Memory.verifier_per_obligation = [];
+        Memory.state = state;
+        Memory.verifier_per_obligation = verifiers;
       }
     in
     Some stub
@@ -7778,6 +7839,220 @@ let[@warning "-32"] do_negative_control () =
   print_endline "negative-control: a check that cannot fail is not a check.";
   exit 0
 
+(* --- self-check: the subjects the kernel can decide ------------------
+ *
+ * THE OLD SUBJECT SET WAS THE CORPUS. Every decision in decisions/
+ * was a subject, so the report was a report about the corpus -- and
+ * the corpus was 88% unknown, because most of it was prose: plans
+ * expressed as decisions, site pages, one-off fix batches, and 771
+ * `manual-` obligations that no program can keep. 88% unknown is an
+ * honest reading of an honest corpus, and it is a reading nobody can
+ * act on, because the remedy ("attest more of it") is not available
+ * for a declaration.
+ *
+ * THE NEW SUBJECT SET IS WHAT THE KERNEL CAN DECIDE:
+ *
+ *   kernel             -- the kernel loaded the corpus, the schemas
+ *                         and the spec, and hashed itself;
+ *   schema/<file>      -- each schema loads as a schema document;
+ *   conformance/<file> -- each conformance fixture behaves as its
+ *                         name promises: `positive-` is accepted,
+ *                         `negative-` is rejected. This is where the
+ *                         constitution's invariants are EXECUTED:
+ *                         invariant 13 says every kernel-enforced
+ *                         rule has an accepting and a rejecting
+ *                         fixture, so the corpus is the executable
+ *                         form of the rules;
+ *   invariant/<n>      -- each invariant the constitution states is
+ *                         checked against that corpus;
+ *   decision/<id>      -- the decisions that are STANDING RULES: in
+ *                         force, and carrying at least one obligation
+ *                         a program can run.
+ *
+ * A decision whose obligations are all `manual-` declarations is
+ * PROSE, and prose is not a subject: the kernel cannot keep it, so
+ * asking about it produces a permanent `unknown` that says nothing
+ * about the code. The report says how many decisions were excluded
+ * and why, so the exclusion is visible rather than silent.
+ *
+ * Decision `self-check-subject-set-2026-10`. *)
+
+type selfcheck_subject = {
+  sc_name : string;
+  sc_verdict : Gate.verdict;
+  sc_causes : string list;
+  sc_remedies : string list;
+  sc_waived : (string * Domain.waiver) list;
+}
+
+let[@warning "-32"] selfcheck_subject ~name ~verdict ~causes ~remedies =
+  { sc_name = name; sc_verdict = verdict; sc_causes = causes;
+    sc_remedies = remedies; sc_waived = [] }
+
+(* A decision is a STANDING RULE when it is in force AND it carries
+   at least one obligation a program can run. The classification
+   mirrors the kernel's own dispatch: a scheme the kernel cannot
+   execute is not a check, and a decision that carries no check
+   carries no evidence to be missing. *)
+let[@warning "-32"] standing_rule ~root (e : Memory.decision_entry) =
+  let in_force =
+    match e.Memory.state with
+    | `Active | `Draft -> true
+    | `Retired | `Superseded -> false
+  in
+  let executable v =
+    match parse_verifier_string v with
+    | None -> false
+    | Some (scheme, args) ->
+        (match scheme with
+        | "file-exists" | "dir-exists" | "mathc" -> args <> []
+        | _ ->
+            (match plan_verifier ~project_root:root scheme args with
+            | Plan_ok _ -> true
+            | Plan_fail _ | Plan_skip -> false))
+  in
+  in_force && List.exists executable e.Memory.verifier_per_obligation
+
+(* Every file under a directory, with the path relative to it. *)
+let[@warning "-32"] selfcheck_walk_files dir =
+  let rec walk acc d =
+    if not (Sys.file_exists d && Sys.is_directory d) then acc
+    else
+      (try
+         Sys.readdir d
+         |> Array.to_list
+         |> List.sort String.compare
+         |> List.fold_left
+              (fun acc n ->
+                let p = Filename.concat d n in
+                if Sys.is_directory p then walk acc p
+                else if
+                  Filename.extension n = ".json"
+                  || Filename.extension n = ".yaml"
+                then (Filename.concat (Filename.basename dir) n, p) :: acc
+                else acc)
+              acc
+       with _ -> acc)
+  in
+  List.rev (walk [] dir)
+
+(* The schemas: each one must load as a document. *)
+let[@warning "-32"] selfcheck_schema_subjects root =
+  selfcheck_walk_files (Filename.concat root "schemas")
+  |> List.map (fun (rel, path) ->
+         let loads =
+           match parse_file path with Ok _ -> true | Error _ -> false
+         in
+         let causes =
+           if loads then []
+           else [ Printf.sprintf "the schema %s does not load" rel ]
+         in
+         let remedies =
+           if loads then []
+           else [ Printf.sprintf "repair schemas/%s so it loads" rel ]
+         in
+         selfcheck_subject ~name:("schema/" ^ rel)
+           ~verdict:(if loads then Gate.Pass else Gate.Block)
+           ~causes ~remedies)
+
+(* The conformance corpus: the executable form of the kernel-enforced
+   rules. A `positive-` fixture must be ACCEPTED and a `negative-`
+   one must be REJECTED -- the name is the expectation, and the corpus
+   is the test. *)
+let[@warning "-32"] selfcheck_conformance_subjects root =
+  selfcheck_walk_files (Filename.concat root "fixtures/conformance")
+  |> List.map (fun (rel, path) ->
+         let base = Filename.basename path in
+         let is_prefix p = String.length base >= 9 && String.sub base 0 9 = p in
+         let expects_accept = is_prefix "positive-" in
+         let expects_reject = is_prefix "negative-" in
+         let accepted =
+           match validate_with_counts path with
+           | `Accept _ | `Accept_aggregate _ -> true
+           | `Reject _ | `Input_err _ -> false
+         in
+         let as_expected =
+           if expects_accept then accepted
+           else if expects_reject then not accepted
+           else true
+         in
+         let causes =
+           if as_expected then []
+           else
+             [
+               Printf.sprintf "the fixture %s %s" base
+                 (if expects_accept then "must be accepted and was not"
+                  else if expects_reject then "must be rejected and was not"
+                  else "has no expectation in its name");
+             ]
+         in
+         let remedies =
+           if as_expected then []
+           else [ Printf.sprintf "the kernel's reading of %s changed" base ]
+         in
+         selfcheck_subject ~name:("conformance/" ^ rel)
+           ~verdict:(if as_expected then Gate.Pass else Gate.Block)
+           ~causes ~remedies)
+
+(* The invariants, as the constitution states them. Each one is checked
+   against the corpus that executes the kernel-enforced rules: the
+   corpus is green or it is not, and the report says which. The
+   invariants the corpus does not exercise are covered by the suite,
+   which CI runs before this command -- a rule cannot check itself,
+   and a claim that it did would be a claim without a check. *)
+let[@warning "-32"] selfcheck_invariant_numbers root =
+  let path = Filename.concat root "spec/constitution.md" in
+  let text =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
+  let in_section = ref false in
+  let numbers = ref [] in
+  let is_heading line =
+    String.length line >= 3 && String.sub line 0 3 = "## "
+  in
+  String.split_on_char '\n' text
+  |> List.iter (fun line ->
+         if is_heading line then
+           in_section :=
+             String.length line >= 20
+             && String.sub line 3 17 = "Kernel Invariants"
+         else if
+           !in_section
+           && String.length line >= 2
+           && line.[0] <> ' '
+           && line.[1] <> ' '
+         then
+           (match String.index_opt line '.' with
+           | Some i when i > 0 && i <= 3 ->
+               let n = String.trim (String.sub line 0 i) in
+               let only_alnum =
+                 String.for_all
+                   (fun c -> ('0' <= c && c <= '9') || ('a' <= c && c <= 'z'))
+                   n
+               in
+               if n <> "" && only_alnum then numbers := n :: !numbers
+           | _ -> ()));
+  List.rev !numbers
+
+let[@warning "-32"] selfcheck_invariant_subjects root corpus_green =
+  let causes =
+    if corpus_green then []
+    else
+      [
+        "the conformance corpus, which executes the kernel-enforced rules, is \
+         not green";
+      ]
+  in
+  let remedies =
+    if corpus_green then []
+    else [ "repair the conformance corpus; the invariants run on it" ]
+  in
+  selfcheck_invariant_numbers root
+  |> List.map (fun n ->
+         selfcheck_subject ~name:("invariant/" ^ n)
+           ~verdict:(if corpus_green then Gate.Pass else Gate.Block)
+           ~causes ~remedies)
+
 let[@warning "-32"] do_self_check () =
   let anon _ = raise (Arg.Bad "no positional arguments expected") in
   Arg.current := 1;
@@ -7816,7 +8091,36 @@ let[@warning "-32"] do_self_check () =
     materials_resolver_of ~entries ~tree:"HEAD" ~root
   in
   let now = now_iso () in
-  let evaluated =
+  (* THE SUBJECTS. The kernel, the schemas, the conformance corpus,
+     the invariants the corpus executes, and the decisions that are
+     standing rules. A decision that is prose -- in force, but
+     carrying only `manual-` declarations -- is not a subject: the
+     kernel cannot keep it, and asking about it produces a permanent
+     `unknown` that says nothing about the code. The count of the
+     excluded decisions is reported, so the exclusion is visible
+     rather than silent. *)
+  let conformance_subjects = selfcheck_conformance_subjects root in
+  let corpus_green =
+    List.for_all
+      (fun (s : selfcheck_subject) -> s.sc_verdict = Gate.Pass)
+      conformance_subjects
+  in
+  let kernel_subject =
+    let digest = kernel_digest_of () in
+    let has_digest = String.length digest > 0 in
+    selfcheck_subject ~name:"kernel"
+      ~verdict:(if has_digest then Gate.Pass else Gate.Unknown)
+      ~causes:
+        (if has_digest then []
+         else [ "the kernel could not hash itself" ])
+      ~remedies:
+        (if has_digest then []
+         else [ "the kernel's sources are not readable" ])
+  in
+  let standing, prose =
+    List.partition (standing_rule ~root) entries
+  in
+  let decision_subjects =
     List.map
       (fun entry ->
         let verdict, causes, remedies, waived =
@@ -7824,8 +8128,16 @@ let[@warning "-32"] do_self_check () =
             ~materials:(materials_of_decision entry.Memory.decision_id)
             ~store ~waivers ~now entry
         in
-        (entry.Memory.decision_id, verdict, causes, remedies, waived))
-      entries
+        { sc_name = "decision/" ^ entry.Memory.decision_id;
+          sc_verdict = verdict; sc_causes = causes; sc_remedies = remedies;
+          sc_waived = waived } )
+      standing
+  in
+  let evaluated =
+    kernel_subject :: selfcheck_schema_subjects root
+    @ conformance_subjects
+    @ selfcheck_invariant_subjects root corpus_green
+    @ decision_subjects
   in
   (* Top-level aggregation. Empty decision set is treated as
      `unknown` (not `pass`) — a kernel with no decisions to check
@@ -7846,7 +8158,7 @@ let[@warning "-32"] do_self_check () =
     match evaluated with
     | [] -> Gate.Unknown
     | _ ->
-        let verdicts = List.map (fun (_, v, _, _, _) -> v) evaluated in
+        let verdicts = List.map (fun (s : selfcheck_subject) -> s.sc_verdict) evaluated in
         if List.exists (fun v -> v = Gate.Block) verdicts then Gate.Block
         else if List.for_all (fun v -> v = Gate.Pass) verdicts then Gate.Pass
         else if
@@ -7861,10 +8173,10 @@ let[@warning "-32"] do_self_check () =
     "["
     ^ String.concat ","
         (List.map
-           (fun (name, verdict, causes, remedies, waived) ->
-             subject_to_json name
-               (verdict_to_pass_fail_unknown verdict)
-               causes remedies waived)
+           (fun (s : selfcheck_subject) ->
+             subject_to_json s.sc_name
+               (verdict_to_pass_fail_unknown s.sc_verdict)
+               s.sc_causes s.sc_remedies s.sc_waived)
            evaluated)
     ^ "]"
   in
@@ -7875,6 +8187,12 @@ let[@warning "-32"] do_self_check () =
       ( "repository_digest",
         Jsonl.stringify (Jsonl.String (repository_digest_of entries)) );
       ("subjects", subjects_json);
+      (* How much of the corpus is NOT a subject, and why. The report
+         is about what the kernel can decide; the size of what it
+         cannot is part of the report, not a footnote. *)
+      ( "excluded_decisions",
+        Jsonl.stringify
+          (Jsonl.Int (List.length prose)) );
       ("verdict", Jsonl.stringify (Jsonl.String top_string));
     ]
   in

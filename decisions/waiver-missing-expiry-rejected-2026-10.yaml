@@ -1,0 +1,120 @@
+---
+schema: math-coding/3.2
+id: waiver-missing-expiry-rejected-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:83e6b25baf900ecaab3edc7f628cd802717ffa5e59254a60e9d8da3841e34f83"
+yaml_sha: "sha256:83e6b25baf900ecaab3edc7f628cd802717ffa5e59254a60e9d8da3841e34f83"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  A WAIVER IS A GRANT, AND A GRANT WITHOUT A VALIDITY INTERVAL IS NOT
+  A GRANT. `expires_at` is one of the four required bounds
+  (lib/waiver.ml: the interval, the scope, the issuer and the
+  subject), and Invariant 11 says a waiver MUST apply only to its
+  named gap, scope, revisions, gate and validity interval.
+
+  The kernel's validator did not enforce it. `mathc validate`
+  dispatched on the top-level `schema:` field: a file whose schema
+  names the waiver family was accepted on the strength of its NAME,
+  with the waiver's own fields never parsed. A waiver with no
+  `expires_at` was accepted.
+
+  The project's own conformance corpus said otherwise and had said
+  so for a long time:
+  `fixtures/conformance/waiver/negative-missing-expiry.json` -- a
+  waiver with no expiry, whose NAME says it must be rejected. It was
+  never checked by anything that ran in CI: the corpus was walked by
+  the TEST SUITE, where the waiver family is parsed by a different
+  path, and the self-check did not look at the corpus at all.
+
+  The new subject set (decisions/self-check-subject-set-2026-10)
+  walks the corpus as a subject set of its own, and the corpus
+  immediately said what it had been saying: the fixture is accepted
+  and must not be.
+
+commitment: |
+  1. `mathc validate` parses a waiver before accepting it. A waiver
+     that does not parse is rejected, with the missing field named.
+  2. The conformance corpus is checked against its own names: a
+     `negative-` fixture that is accepted fails the self-check, and a
+     `positive-` fixture that is rejected fails it too.
+  3. The dispatch that skips the DECISION parser for the waiver and
+     obligations families is kept -- those files legitimately lack
+     the decision's fields -- but it no longer skips the family's own
+     parser.
+
+outcomes:
+  - id: a-waiver-without-an-expiry-is-rejected
+    statement: |
+      `mathc validate fixtures/conformance/waiver/negative-missing-expiry.json`
+      exits 1 and names the missing field.
+  - id: the-corpus-is-checked
+    statement: |
+      The self-check's conformance subjects cover every fixture in the
+      corpus, and the corpus is green.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "decisions/waiver-missing-expiry-rejected-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-missing-expiry-is-rejected
+    claim: |
+      A waiver without `expires_at` is rejected by the validator.
+    acceptance:
+      all:
+        - verifier: mathc validate fixtures/conformance/waiver/negative-missing-expiry.json
+          result: fail
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/waiver-missing-expiry-rejected-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/waiver-missing-expiry-rejected-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a waiver family document that the waiver parser rejects for a
+      different reason (a scope the kernel cannot read) is now
+      rejected too, and its author sees a message about the waiver
+      rather than about the decision"
+    - "the obligations family keeps the looser dispatch, and a
+      malformed aggregator is still accepted"
+  owner: human:maintainer
+
+counterexample: |
+  "The dispatch on the schema name exists precisely so that files
+  which are not decisions are not held to the decision's rules.
+  Parsing them with their own parser breaks that."
+
+  The dispatch is not weakened: it still routes the waiver and the
+  obligations families AWAY from the decision parser, which is what it
+  was for. What it wrongly did was route them away from EVERY
+  parser -- the family's own rules included. A document is held to
+  the rules of its family; a waiver is held to the waiver's rules, and
+  one of those rules is that a grant expires.
+
+antithesis: |
+  The opposite claim is that the corpus is a TEST FIXTURE and the
+  fixture is what is wrong: a waiver without an expiry is a legal
+  document, and the fixture should say so.
+
+  The schema settles it: `schemas/waiver.json` requires
+  `expires_at`, lib/waiver.ml lists the validity interval among the
+  four required bounds, and Invariant 11 names the validity interval
+  as one of the bounds a waiver MUST respect. A grant that never
+  expires is not a bound grant, it is a permanent exemption with a
+  name on it. The fixture is right, and it was right when it was
+  written.

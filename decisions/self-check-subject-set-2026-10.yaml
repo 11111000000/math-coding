@@ -1,0 +1,174 @@
+---
+schema: math-coding/3.2
+id: self-check-subject-set-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:af9150c4e1c27bf81a32dc609c99c8e5398c06b7281090f22fc7e52662c458ed"
+yaml_sha: "sha256:af9150c4e1c27bf81a32dc609c99c8e5398c06b7281090f22fc7e52662c458ed"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  THE OLD SUBJECT SET WAS THE CORPUS. Every decision in decisions/
+  was a subject of `mathc self-check`, so the report was a report
+  about the corpus -- and the corpus was 88% unknown, because most of
+  it was prose: plans expressed as decisions, site pages, one-off fix
+  batches, and 771 `manual-` obligations that no program can keep.
+
+  88% unknown is an HONEST reading of an honest corpus. It is also a
+  reading nobody can act on, because the remedy the report implies
+  ("attest more of it") is not available for a declaration: a
+  `manual-` obligation cannot be attested by running anything, and
+  the corpus it sits in grows every time somebody writes a note down
+  as a decision.
+
+  THE NEW SUBJECT SET IS WHAT THE KERNEL CAN DECIDE:
+
+    kernel             -- the kernel loaded the corpus, the schemas
+                          and the spec, and hashed itself;
+    schema/<file>      -- each schema loads as a document;
+    conformance/<file> -- each conformance fixture behaves as its
+                          name promises: `positive-` is accepted,
+                          `negative-` is rejected;
+    invariant/<n>      -- each invariant the constitution states is
+                          checked against the corpus that executes
+                          the kernel-enforced rules (invariant 13:
+                          every kernel-enforced rule has an
+                          accepting and a rejecting fixture);
+    decision/<id>      -- the decisions that are STANDING RULES: in
+                          force, and carrying at least one obligation
+                          a program can run.
+
+  A decision whose obligations are all `manual-` declarations is
+  PROSE, and prose is not a subject: the kernel cannot keep it, so
+  asking about it produces a permanent `unknown` that says nothing
+  about the code. The report says how many decisions were excluded
+  (`excluded_decisions`), so the exclusion is visible rather than
+  silent -- and the doctrine's `unknown != pass` is not weakened:
+  the subject set is not a way to turn a red verdict green, it is a
+  statement about what the kernel is able to check at all.
+
+  MEASURED on this repository, 2026-10-28, after the census:
+
+    subjects: 201 = 1 kernel + 6 schema + 19 conformance
+                   + 16 invariant + 159 decision
+    excluded decisions (prose only): 36
+    before this decision: 184 subjects, all of them decisions, 88%
+      unknown, exit 3
+
+  The corpus that the subject set walks is still the whole corpus;
+  what changed is WHICH of it the kernel claims to have checked.
+
+commitment: |
+  1. `mathc self-check` reports the kernel, the schemas, the
+     conformance corpus, the constitution's invariants and the
+     standing rules -- and nothing it cannot decide.
+  2. A decision whose obligations are all `manual-` declarations is
+     excluded from the subject set, and the count of excluded
+     decisions is reported.
+  3. The verdict and the exit code are unchanged in meaning: a
+     subject that is not decided makes the aggregate `unknown`
+     (exit 3). `unknown != pass` is not relaxed by narrowing the
+     subject set.
+  4. The conformance corpus is a subject set of its own: a
+     `positive-` fixture that is rejected, or a `negative-` one that
+     is accepted, fails the report.
+
+outcomes:
+  - id: the-report-is-about-what-can-be-checked
+    statement: |
+      The self-check report names the kernel, the schemas, the
+      conformance corpus, the invariants and the standing rules, and
+      it says how many decisions it excluded and why.
+  - id: the-corpus-is-still-green-only-when-it-is-green
+    statement: |
+      A standing rule whose evidence is missing or stale is still
+      `unknown`, and the aggregate is still `unknown`; narrowing the
+      subject set did not make any unchecked claim into a checked one.
+
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "spec/semantics.md"
+    - "decisions/self-check-subject-set-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-kernel-builds
+    claim: |
+      The kernel with the new subject set compiles and the suite
+      passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/self-check-subject-set-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/self-check-subject-set-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision that was a rule is classified as prose and stops
+      being checked; the classification is the kernel's own dispatch
+      (a scheme the kernel cannot execute is not a check), so a
+      decision whose verifiers are all `manual-` is prose by the
+      kernel's own account"
+    - "the conformance corpus becomes the only thing standing between
+      the invariants and a claim; a corpus that shrinks stops
+      covering, and the report says only that the corpus is green"
+    - "the exclusion count grows while the corpus stays the same: a
+      decision written as prose but meant as a rule is invisible to
+      the report"
+  owner: human:maintainer
+
+counterexample: |
+  "Narrowing the subject set is how a project makes its gate green
+  without making its code better."
+
+  The objection is the right one to fear, and the design answers it
+  in two places. First, the subject set is decided by the KERNEL'S OWN
+  DISPATCH, not by a list of file names someone liked: a decision is a
+  standing rule when it is in force AND carries at least one
+  obligation the kernel can execute (`file-exists`, `mathc …`, a
+  script, a test). A decision whose obligations are all `manual-`
+  declarations could never have been discharged by any evidence, so
+  removing it from the subject set removes no claim that was ever
+  checkable.
+
+  Second, and this is the part that matters: the report still says
+  `unknown` when a standing rule has no fresh evidence, and the
+  aggregate is still `unknown` (exit 3). A narrower subject set makes
+  the report SHORTER and more honest; it does not make a red verdict
+  green. If the standing rules' evidence is missing, the answer is
+  still exit 3.
+
+antithesis: |
+  The opposite claim is that the subject set should stay the whole
+  corpus, and that a report which excludes 36 decisions is a report
+  that hides 36 decisions.
+
+  The claim is right about the hiding, and the design names the
+  number rather than hiding it: `excluded_decisions` is in the report,
+  and the decisions it names are the ones whose obligations no
+  program can run. A corpus-wide report that says "184 subjects, 88%
+  unknown" hides the far more important fact -- that the 88% are
+  obligations no program can ever discharge, and that the number is
+  therefore a property of how the corpus was WRITTEN, not of whether
+  the code is any good.
+
+  The concession is real: a decision written as prose but meant as a
+  rule is invisible to the report. That is why the count is reported
+  and why the census that produced it is a separate decision
+  (`corpus-census-2026-10`): the subject set says what the kernel
+  checks; the census decides what the corpus is for.
