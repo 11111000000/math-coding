@@ -45,8 +45,13 @@ if [ -z "$bin" ]; then
   exit 1
 fi
 
-out="$("$bin" gaps 2>/dev/null)"
-if [ -z "$out" ]; then
+# The report goes through a FILE, not through a shell variable: the
+# worklist of a real corpus is a few hundred kilobytes, and a shell
+# variable that size is an argument list the kernel cannot exec.
+out="$(mktemp)"
+trap 'rm -f "$out"' EXIT
+"$bin" gaps >"$out" 2>/dev/null
+if [ ! -s "$out" ]; then
   bad "mathc gaps produced no output"
   echo
   echo "no-invisible-promises: FAIL"
@@ -54,12 +59,12 @@ if [ -z "$out" ]; then
 fi
 
 for cls in cannot-be-set-up unidentified; do
-  n="$(printf '%s' "$out" | jq -r --arg c "$cls" '[.open[] | select(.class == $c)] | length')"
-  if [ "$n" -eq 0 ]; then
+  n="$(jq -r --arg c "$cls" '[.open[] | select(.class == $c)] | length' "$out")"
+  if [ "$n" = "0" ]; then
     ok "no promise is $cls"
   else
     bad "$n promise(s) are $cls:"
-    printf '%s' "$out" | jq -r --arg c "$cls" '.open[] | select(.class == $c) | "      \(.decision)/\(.obligation): \(.verifiers | join("; "))"'
+    jq -r --arg c "$cls" '.open[] | select(.class == $c) | "      \(.decision)/\(.obligation): \(.verifiers | join("; "))"' "$out"
   fi
 done
 
