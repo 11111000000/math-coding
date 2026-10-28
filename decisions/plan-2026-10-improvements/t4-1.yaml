@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-1-diagnostics-actionable
 revision: 1
 state: active
-body_sha: "sha256:f3176e78682eeb4696b7b3aed16be89ee08d1a29ca068c4521a6cb6948fa1371"
-yaml_sha: "sha256:f3176e78682eeb4696b7b3aed16be89ee08d1a29ca068c4521a6cb6948fa1371"
+body_sha: "sha256:9214ead79417995837b3ff24a51bdbd7c32767fe556da3a6db766cbc6e8423a7"
+yaml_sha: "sha256:9214ead79417995837b3ff24a51bdbd7c32767fe556da3a6db766cbc6e8423a7"
 axiom_link:
   - A0
   - A1
@@ -278,6 +278,5 @@ assumptions:
 relations:
   addresses:
     - plan-2026-10-improvements@1
-    - validator-actionable-error@1
   supersedes: []
   superseded_by: []

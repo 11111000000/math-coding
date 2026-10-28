@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/no-shadow-corpus.sh
-body_sha: "sha256:427b37fbe7aa9479b3dabe3ea51599dba119fe923cb0d0d5611495b6e8cd4c7e"
-yaml_sha: "sha256:427b37fbe7aa9479b3dabe3ea51599dba119fe923cb0d0d5611495b6e8cd4c7e"
+body_sha: "sha256:3def8d951929f28660b06083dec560ba68d0bebd407125363d15447b68027561"
+yaml_sha: "sha256:3def8d951929f28660b06083dec560ba68d0bebd407125363d15447b68027561"
 
 # The paths this decision removed, 2026-10-28. The fixture that guards
 # the removal reads this list, so the list lives in ONE place and the
@@ -337,13 +337,11 @@ reversal:
 relations:
   addresses:
     - ceiling-monotonic-2026-10@1
-    - dead-scope-paths-2026-10@1
     - scope-invalidation-breadth-2026-10@1
     - self-check-fixture-coverage-honest-2026-10@1
     - audit-0.0.21-fixes@3::self-check-verdict-is-pass
   supersedes:
     - ceiling-monotonic-2026-10@1
-    - dead-scope-paths-2026-10@1
     - scope-invalidation-breadth-2026-10@1
     - self-check-fixture-coverage-honest-2026-10@1
   superseded_by: []

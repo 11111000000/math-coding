@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:46e81a2d12344178458768b0da188452836546c117172c5eec93a9dabdd55104"
-yaml_sha: "sha256:46e81a2d12344178458768b0da188452836546c117172c5eec93a9dabdd55104"
+body_sha: "sha256:f5dd5faa0f3d41f854401fcd61fdc658cafd4b9561eb42ae5d49efaa8c71298e"
+yaml_sha: "sha256:f5dd5faa0f3d41f854401fcd61fdc658cafd4b9561eb42ae5d49efaa8c71298e"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -518,7 +518,6 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@2
-    - site-version-from-file-2026-10@1
     - version-sync-2026-10@1
     - cli-canonical-name@2
     - cli-cram-tests@1

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:d70ad8ab94b72ef860a8fd4b8c01bc38508385114378b4c297d892d9254ef88e"
-yaml_sha: "sha256:d70ad8ab94b72ef860a8fd4b8c01bc38508385114378b4c297d892d9254ef88e"
+body_sha: "sha256:d511ebe5f5c42d2b84c369ec7984aa53568a1d4099cd7cbad0d3bc4b5a382f5b"
+yaml_sha: "sha256:d511ebe5f5c42d2b84c369ec7984aa53568a1d4099cd7cbad0d3bc4b5a382f5b"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -360,7 +360,5 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@3
-    - plan-2026-10-ux-friction@1
     - plan-2026-10-distro-friction@1
     - adoption-experiment-design-2026-10@1
-    - adoption-experiment-results-2026-10@1

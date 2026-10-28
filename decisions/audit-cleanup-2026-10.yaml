@@ -35,7 +35,7 @@ scope:
     - "flake.nix"
     - "bin/Mathc.ml"
     - "tests/cli/telemetry-stub.t"
-    - "decisions/considered-mode-migration-2026-10.yaml"
+    - "archive/decisions/considered-mode-migration-2026-10.yaml"
     - "decisions/docker-arm64-image-2026-10.yaml"
     - "attestations/fix-mcp-sigpipe-*.json"
     - "attestations/fix-curl-exit-code-*.json"
@@ -129,7 +129,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-risk-block-present
-        - verifier: mathc validate decisions/considered-mode-migration-2026-10.yaml
+        - verifier: mathc validate archive/decisions/considered-mode-migration-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/docker-arm64-image-2026-10.yaml
           result: pass

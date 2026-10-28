@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:e9af1d3b08f740b7cc53e050085c9486fd6bcc205423548456e88edce5d48d3a"
-yaml_sha: "sha256:e9af1d3b08f740b7cc53e050085c9486fd6bcc205423548456e88edce5d48d3a"
+body_sha: "sha256:304a6502299ef50ab954fe4d43ac01bae7271d4fd5e911057e33bf5c22898119"
+yaml_sha: "sha256:304a6502299ef50ab954fe4d43ac01bae7271d4fd5e911057e33bf5c22898119"
 
 intent: |
   Add a release-pending CI gate that blocks merge of any PR
@@ -207,6 +207,5 @@ risk:
 
 relations:
   addresses:
-    - plan-2026-11-validation-cleanup-2026-10@1
     - release-workflow-failure-mode-2026-11@1
     - ci-blocking-list-config@1

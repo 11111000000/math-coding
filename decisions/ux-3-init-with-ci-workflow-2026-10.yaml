@@ -4,8 +4,8 @@ id: ux-3-init-with-ci-workflow-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:6fbe1a5286b49fdc7375d1997b8dbfe85e16944273a31ed28cdcf7a0abd92034"
-yaml_sha: "sha256:6fbe1a5286b49fdc7375d1997b8dbfe85e16944273a31ed28cdcf7a0abd92034"
+body_sha: "sha256:72a57d28143c1ca54e11aba897c7c93f1db5320c36f8225820223ddbc78eb2a5"
+yaml_sha: "sha256:72a57d28143c1ca54e11aba897c7c93f1db5320c36f8225820223ddbc78eb2a5"
 intent: |
   Phase 6 of the ux-3 workstream. Land the activation
   surface for `mathc init --with-ci-workflow`: the flag
@@ -206,7 +206,6 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@3
-    - ux-3-init-subcommand-2026-10@2
     - ux-3-init-copies-ci-workflow-2026-10@1
   supersedes: []
   superseded_by: []

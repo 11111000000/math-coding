@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:5900ba7b975d5a1a2b578e7609c856bd28df2ee20f82f19a7a2ef27e545a09c0"
-yaml_sha: "sha256:5900ba7b975d5a1a2b578e7609c856bd28df2ee20f82f19a7a2ef27e545a09c0"
+body_sha: "sha256:3ab32eb691a2a620ff8e81f303cc02b5a88eb59c37b1535f453e6235d7eeca63"
+yaml_sha: "sha256:3ab32eb691a2a620ff8e81f303cc02b5a88eb59c37b1535f453e6235d7eeca63"
 
 axiom_link:
   - A0
@@ -88,7 +88,7 @@ scope:
     - binary-signing
     - cli-surface
   paths: []
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  # 2026-10-25: pruned from this scope, per archive/archive/archive/archive/archive/decisions/dead-scope-paths-2026-10.yaml
   #   "decisions/<id>-2026-10.yaml"   # 13 sub-decisions - a placeholder, never a path
   #   "attestations/<id>-*.json"     # the attestations - a placeholder, never a path
   #   "scripts/install-tooling/install.sh"   # D2, D3 - malformed: a comment inside the quoted path
@@ -110,7 +110,7 @@ scope:
     - "axioms/**"
     - "decisions/decision.yaml"   # the active policy
     - "decisions/plan-2026-10-improvements.yaml"  # the prior plan
-    - "decisions/plan-2026-10-ux-friction.yaml"   # the parallel plan
+    - "archive/archive/archive/archive/archive/decisions/plan-2026-10-ux-friction.yaml"   # the parallel plan
 
 outcomes:
   - id: thirteen-distro-improvements-shipped
@@ -230,7 +230,7 @@ obligations:
   - id: d1-install-ps1
     outcome: thirteen-distro-improvements-shipped
     claim: |
-      `decisions/ux-3-install-ps1-2026-10.yaml` exists
+      `archive/archive/archive/archive/archive/decisions/ux-3-install-ps1-2026-10.yaml` exists
       with state: active. `scripts/install-tooling/install.ps1`
       implements the PowerShell one-liner installer for
       Windows hosts. The script: (a) takes no argument
@@ -250,7 +250,7 @@ obligations:
       all:
         - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
-        - verifier: mathc validate decisions/ux-3-install-ps1-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/decisions/ux-3-install-ps1-2026-10.yaml
           result: pass
         - verifier: manual-bash-n-scripts-install-tooling-install-ps1
           result: pass
@@ -316,7 +316,7 @@ obligations:
   - id: d4-sha256sums-windows
     outcome: thirteen-distro-improvements-shipped
     claim: |
-      `decisions/release-sha256sums-windows-2026-10.yaml`
+      `archive/archive/archive/archive/archive/decisions/release-sha256sums-windows-2026-10.yaml`
       exists. The `release.yml` publish step generates
       `SHA256SUMS` including the Windows binary
       (`mathc-windows-x86_64.exe`). The bash glob
@@ -328,7 +328,7 @@ obligations:
       all:
         - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
-        - verifier: mathc validate decisions/release-sha256sums-windows-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/decisions/release-sha256sums-windows-2026-10.yaml
           result: pass
         - verifier: manual-yq-spec-github-workflows-release-yml
           result: pass
@@ -338,7 +338,7 @@ obligations:
   - id: d5-winget-manifest
     outcome: thirteen-distro-improvements-shipped
     claim: |
-      `decisions/winget-manifest-pr-2026-10.yaml` exists.
+      `archive/archive/archive/archive/archive/decisions/winget-manifest-pr-2026-10.yaml` exists.
       `tools/winget/manifests/m/mathcoding/mathc/<version>/`
       contains the four required YAML files
       (`mathcoding.mathc.installer.yaml`,
@@ -355,7 +355,7 @@ obligations:
       all:
         - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
-        - verifier: mathc validate decisions/winget-manifest-pr-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/decisions/winget-manifest-pr-2026-10.yaml
           result: pass
         - verifier: manual-tools-winget-manifests-m-mathcoding-mathc-3-3-0-
           result: pass
@@ -493,7 +493,7 @@ obligations:
   - id: d11-scoop-manifest
     outcome: thirteen-distro-improvements-shipped
     claim: |
-      `decisions/scoop-manifest-pr-2026-10.yaml` exists.
+      `archive/archive/archive/archive/archive/decisions/scoop-manifest-pr-2026-10.yaml` exists.
       `tools/scoop/mathc.json` is a valid Scoop
       manifest for `scoop install mathc` on Windows,
       pointing at the `mathc-windows-x86_64.exe` and
@@ -506,7 +506,7 @@ obligations:
       all:
         - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
-        - verifier: mathc validate decisions/scoop-manifest-pr-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/decisions/scoop-manifest-pr-2026-10.yaml
           result: pass
         - verifier: manual-jq-version-tools-scoop-mathc-json-dev-null
           result: pass
@@ -514,7 +514,7 @@ obligations:
   - id: d12-homebrew-tap-formula
     outcome: thirteen-distro-improvements-shipped
     claim: |
-      `decisions/homebrew-tap-formula-2026-10.yaml` exists.
+      `archive/archive/archive/archive/archive/decisions/homebrew-tap-formula-2026-10.yaml` exists.
       `tools/homebrew/Formula/mathc.rb` is a valid
       Homebrew formula for `brew install 11111000000/tap/mathc`
       (macOS) and `brew install linuxbrew-x64/tap/mathc`
@@ -531,7 +531,7 @@ obligations:
       all:
         - verifier: file-exists decisions/plan-2026-10-distro-friction.yaml
           result: pass
-        - verifier: mathc validate decisions/homebrew-tap-formula-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/decisions/homebrew-tap-formula-2026-10.yaml
           result: pass
         - verifier: manual-brew-audit-strict-tools-homebrew-formula-mathc-r
           result: pass
@@ -624,6 +624,5 @@ relations:
   addresses:
     - bootstrap-v3@3
     - plan-2026-10-improvements@1
-    - plan-2026-10-ux-friction@1
   supersedes: []
   superseded_by: []

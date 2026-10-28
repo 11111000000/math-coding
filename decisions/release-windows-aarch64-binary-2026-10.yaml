@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:df497cf713482d7ca7d90abd816f6df63f5419b1e9fb95d7a5178b7318a33d51"
-yaml_sha: "sha256:df497cf713482d7ca7d90abd816f6df63f5419b1e9fb95d7a5178b7318a33d51"
+body_sha: "sha256:625d0919874aa095407c375c94f8f983b522d20def6a63ea28d2e16322cf230c"
+yaml_sha: "sha256:625d0919874aa095407c375c94f8f983b522d20def6a63ea28d2e16322cf230c"
 
 axiom_link:
   - A0
@@ -280,6 +280,5 @@ relations:
   addresses:
     - bootstrap-v3@3
     - plan-2026-10-distro-friction@1
-    - release-sha256sums-windows-2026-10@1
   supersedes: []
   superseded_by: []

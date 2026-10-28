@@ -4,8 +4,8 @@ id: decision-resolution
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:832950a0dccaea8d595aee2cefdea4a39327bee042252b9d41c9e3e131274775"
-yaml_sha: "sha256:832950a0dccaea8d595aee2cefdea4a39327bee042252b9d41c9e3e131274775"
+body_sha: "sha256:22d67018bab4b6e9a859d7ba3beef2411e58277ea30541735af930ac1f47007f"
+yaml_sha: "sha256:22d67018bab4b6e9a859d7ba3beef2411e58277ea30541735af930ac1f47007f"
 axiom_link:
   - A0
   - A1
@@ -401,7 +401,6 @@ risk:
   owner: human:maintainer
 relations:
   addresses:
-    - decision-resolves-by-id-2026-10@2
     - adoption-friction-p0-2026-10@1
     - path-probe-anchoring-2026-11@1
   revises: []

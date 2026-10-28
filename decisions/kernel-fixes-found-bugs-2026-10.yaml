@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-fixes-found-bugs-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5a998b9751e2870c0cfe6be6a7b426983463c5af696022c1a8c67b4c495cf424"
-yaml_sha: "sha256:5a998b9751e2870c0cfe6be6a7b426983463c5af696022c1a8c67b4c495cf424"
+body_sha: "sha256:d242057a92383dbeafb37244736a53fd07e1627eceb5c922b4acf1613ce8f374"
+yaml_sha: "sha256:d242057a92383dbeafb37244736a53fd07e1627eceb5c922b4acf1613ce8f374"
 intent: |
   Six defects found while landing `solo-default-on-2026-10@1`, of
   which three are data-integrity bugs rather than cosmetics, fixed as
@@ -343,7 +343,6 @@ relations:
     - bootstrap-v3@3
     - solo-default-on-2026-10@1
     - ux-3-adopt-subcommand-2026-10@1
-    - ux-3-attest-batch-subcommand-2026-10@1
     - ux-3-minimal-pollution-2026-10@1
     - verifier-scheme-convention-2026-11@1
   supersedes: []

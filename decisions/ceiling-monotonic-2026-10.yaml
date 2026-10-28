@@ -4,8 +4,8 @@ id: ceiling-monotonic
 revision: 2
 state: superseded
 mode: light
-body_sha: "sha256:5404fc64ac60d7222b511d886dcfd9844304d719bf8e0bc9efe339a3eeac0205"
-yaml_sha: "sha256:5404fc64ac60d7222b511d886dcfd9844304d719bf8e0bc9efe339a3eeac0205"
+body_sha: "sha256:1ccc6d83f1010ad27c2cc8ac11e56e28025a8644a645cbedff17e2930b1c5751"
+yaml_sha: "sha256:1ccc6d83f1010ad27c2cc8ac11e56e28025a8644a645cbedff17e2930b1c5751"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -258,7 +258,6 @@ risk:
 relations:
   addresses:
     - legacy-attestation-debt-2026-10@1
-    - legacy-debt-paydown-2026-10@1
     - executed-evidence-census-2026-10@1
     - scope-invalidation-breadth-2026-10@1
     - negative-control-required-2026-10@1

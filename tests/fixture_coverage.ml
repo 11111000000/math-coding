@@ -743,7 +743,11 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
      the suite is already red, which is precisely when nobody is looking
      for the number. Pinning makes the debt fail loudly in both
      directions -- a new leak fails the run, and paying debt down fails
-     until the pin is updated, which is the point. *)
+     until the pin is updated, which is the point.
+
+     The baseline was 55 and is 39 since 2026-10-28: the corpus census
+     archived 16 decisions that carried absolute verifier paths, and a
+     debt that is paid down is a debt that is paid down. *)
   let remaining =
     List.filter
       (fun (_, p) -> is_absolute_path p && not (is_worktree_path p))
@@ -756,7 +760,7 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
     List.iter (fun (k, p) -> Printf.printf "  %s: %s\n" k p) remaining
   end;
   Alcotest.(check int)
-    "remaining absolute verifier paths match the recorded debt baseline" 55
+    "remaining absolute verifier paths match the recorded debt baseline" 39
     n_remaining
 
 let () =

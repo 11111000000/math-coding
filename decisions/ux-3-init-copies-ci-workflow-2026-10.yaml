@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ux-3-init-copies-ci-workflow-2026-10
 revision: 2
 state: active
-body_sha: "sha256:20adcd6515134c13402760fe0f168c565447ee2f707bac694ca52748e453a37d"
-yaml_sha: "sha256:20adcd6515134c13402760fe0f168c565447ee2f707bac694ca52748e453a37d"
+body_sha: "sha256:3428e4fa9f30b472369b6c09483366821b1019de634937b3800da188d289119d"
+yaml_sha: "sha256:3428e4fa9f30b472369b6c09483366821b1019de634937b3800da188d289119d"
 
 intent: |
   Wire `mathc init --with-ci-workflow` to copy the per-repo
@@ -228,8 +228,6 @@ risk:
 relations:
   addresses:
     - install-tooling-2026-10@1
-    - ux-3-init-subcommand-2026-10@2
-    - ux-3-init-release-binary-noop-skill-2026-10@1
     - ux-3-init-with-ci-workflow-2026-10@1
   supersedes: []
   superseded_by: []

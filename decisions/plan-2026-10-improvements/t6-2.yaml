@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-2-counterexample-required
 revision: 1
 state: active
-body_sha: "sha256:d088d219ee465256756ba7e43377eda8ae05672270524e612192a2088358bb8d"
-yaml_sha: "sha256:d088d219ee465256756ba7e43377eda8ae05672270524e612192a2088358bb8d"
+body_sha: "sha256:3408bd754de45505965ccb105ef2b4e15d6e44bd0cdbd710eb7e33b3d345c810"
+yaml_sha: "sha256:3408bd754de45505965ccb105ef2b4e15d6e44bd0cdbd710eb7e33b3d345c810"
 intent: |
   Enforce the schema-level required-ness of the `counterexample`
   field for decisions whose `mode` is `>= standard`.
@@ -636,7 +636,5 @@ relations:
   addresses:
     - plan-2026-10-improvements@1
     - bootstrap-v3@2
-    - t6-2-prep@1
-    - counterexample-legacy-sweep@1
   supersedes: []
   superseded_by: []

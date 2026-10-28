@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:b3d0902d96508f7fc9a9f315a1aae34abedecccc9585bf7a793e2c61554ca024"
-yaml_sha: "sha256:b3d0902d96508f7fc9a9f315a1aae34abedecccc9585bf7a793e2c61554ca024"
+body_sha: "sha256:3d960f91606cc0d6505be822cb2717e611318cfee4c542e993dd4f23489dc595"
+yaml_sha: "sha256:3d960f91606cc0d6505be822cb2717e611318cfee4c542e993dd4f23489dc595"
 
 intent: |
   Convert the 9 recommendations from the 2026-10-17 adoption
@@ -66,7 +66,7 @@ scope:
     - "scripts/generate-attestations.py"
     - "docs/experiments/adoption-2026-10.md"
     - "docs/experiments/brownfield-experiment-v2-2026-10.md"
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  # 2026-10-25: pruned from this scope, per archive/archive/archive/archive/archive/archive/decisions/dead-scope-paths-2026-10.yaml
   #   decisions/<sub-decision-id>-2026-10.yaml - a placeholder, never a path
   #   attestations/<sub-decision-id>-*.json - a placeholder, never a path
   #   lib/yaml_mini.ml - no tracked file matches it
@@ -158,23 +158,23 @@ obligations:
 
   - id: a3-attest-batch-shipped
     claim: |
-      `decisions/ship-attest-batch-2026-10.yaml` exists with
+      `archive/archive/archive/archive/archive/archive/decisions/ship-attest-batch-2026-10.yaml` exists with
       `state: active`; `mathc attest-batch` is registered in
       the dispatch table and accepts `--manifest=`, `--from=`,
       `--kind=`, `--producer=`, `--dry-run`, `--result=` flags.
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/ship-attest-batch-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/ship-attest-batch-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/ship-attest-batch-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/ship-attest-batch-2026-10.yaml
           result: pass
         - verifier: tests/cli/attest-batch.t
           result: pass
 
   - id: a4-generate-attestations-env-honoured
     claim: |
-      `decisions/fix-generate-attestations-env-2026-10.yaml`
+      `archive/archive/archive/archive/archive/archive/decisions/fix-generate-attestations-env-2026-10.yaml`
       exists with `state: active`;
       `scripts/generate-attestations.py` honours
       `MATH_CODING_ATTESTATIONS_DIR` and writes JSONs to the
@@ -182,9 +182,9 @@ obligations:
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/fix-generate-attestations-env-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/fix-generate-attestations-env-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/fix-generate-attestations-env-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/fix-generate-attestations-env-2026-10.yaml
           result: pass
         - verifier: tests/scripts/generate-attestations-env.t
           result: pass
@@ -210,23 +210,23 @@ obligations:
 
   - id: b2-counterexample-warn-tightened
     claim: |
-      `decisions/tighten-counterexample-warn-2026-10.yaml`
+      `archive/archive/archive/archive/archive/archive/decisions/tighten-counterexample-warn-2026-10.yaml`
       exists with `state: active`; the warning fires only
       when `counterexample:` is genuinely absent after the A2
       parser fix lands.
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/tighten-counterexample-warn-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/tighten-counterexample-warn-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/tighten-counterexample-warn-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/tighten-counterexample-warn-2026-10.yaml
           result: pass
         - verifier: tests/cli/counterexample-warn.t
           result: pass
 
   - id: c1-friction-taxonomy-revised
     claim: |
-      `decisions/revise-friction-taxonomy-2026-10.yaml` exists
+      `archive/archive/archive/archive/archive/archive/decisions/revise-friction-taxonomy-2026-10.yaml` exists
       with `state: active`;
       `docs/experiments/adoption-2026-10.md` §7 collapses the
       8-category taxonomy to 4 mutually-exclusive categories;
@@ -234,9 +234,9 @@ obligations:
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/revise-friction-taxonomy-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/revise-friction-taxonomy-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/revise-friction-taxonomy-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/revise-friction-taxonomy-2026-10.yaml
           result: pass
 
   - id: c2-axiom-link-inference-shipped
@@ -257,23 +257,23 @@ obligations:
 
   - id: c3-mathc-doctor-ship-status-verified
     claim: |
-      `decisions/verify-mathc-doctor-ships-2026-10.yaml` exists
+      `archive/archive/archive/archive/archive/archive/decisions/verify-mathc-doctor-ships-2026-10.yaml` exists
       with `state: active`; `mathc doctor` either ships (and
       the experiment prompt mentions it) or is added to the
       dispatch table.
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/verify-mathc-doctor-ships-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/verify-mathc-doctor-ships-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/verify-mathc-doctor-ships-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/verify-mathc-doctor-ships-2026-10.yaml
           result: pass
         - verifier: mathc doctor --help
           result: pass
 
   - id: c4-brownfield-experiment-v2-planned
     claim: |
-      `decisions/plan-brownfield-experiment-v2-2026-10.yaml`
+      `archive/archive/archive/archive/archive/archive/decisions/plan-brownfield-experiment-v2-2026-10.yaml`
       exists with `state: active`;
       `docs/experiments/brownfield-experiment-v2-2026-10.md`
       exists with the experiment design (methodology,
@@ -281,9 +281,9 @@ obligations:
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: /home/az/Projects/math-coding/decisions/plan-brownfield-experiment-v2-2026-10.yaml
+          path: /home/az/Projects/math-coding/archive/archive/archive/archive/archive/archive/decisions/plan-brownfield-experiment-v2-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/plan-brownfield-experiment-v2-2026-10.yaml
+        - verifier: mathc validate archive/archive/archive/archive/archive/archive/decisions/plan-brownfield-experiment-v2-2026-10.yaml
           result: pass
         - verifier: manual-file-exists-unqualified
           path: /home/az/Projects/math-coding/docs/experiments/brownfield-experiment-v2-2026-10.md
@@ -362,7 +362,5 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@3
-    - plan-2026-10-ux-friction@1
     - plan-2026-10-distro-friction@1
     - adoption-experiment-design-2026-10@1
-    - adoption-experiment-results-2026-10@1

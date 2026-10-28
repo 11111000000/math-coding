@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e2d5f85a9fdb2b1fe92c31aad4fa7a941f383c7f139ecec6cd232ac2bd78aee3"
-yaml_sha: "sha256:e2d5f85a9fdb2b1fe92c31aad4fa7a941f383c7f139ecec6cd232ac2bd78aee3"
+body_sha: "sha256:11ab671db9793a8b301c3a76258fa5a479f03a8838677803f4c0f18b12531b1d"
+yaml_sha: "sha256:11ab671db9793a8b301c3a76258fa5a479f03a8838677803f4c0f18b12531b1d"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -58,7 +58,7 @@ intent: |
            This is VALID YAML that `parse_yaml_seq` cannot follow:
            a genuine kernel gap.
        (c) a sequence item indented less than its siblings --
-           `decisions/site-version-from-file-2026-10.yaml:189`.
+           `archive/decisions/site-version-from-file-2026-10.yaml:189`.
            Invalid YAML; author error.
 
   D3 a second `---` marker. `strip_frontmatter` reads the first
@@ -197,7 +197,7 @@ scope:
     - decisions/cli-canonical-name.yaml
     - decisions/mathc-explain-subcommand.yaml
     - decisions/mcp-server-impl-2026-10.yaml
-    - decisions/site-version-from-file-2026-10.yaml
+    - archive/decisions/site-version-from-file-2026-10.yaml
     - decisions/waiver-infrastructure-2026-10.yaml
     - decisions/yaml-block-scalars-impl-pending.yaml
     - decisions/yaml-block-scalars.yaml
@@ -308,7 +308,7 @@ obligations:
           result: pass
         - verifier: mathc validate decisions/mcp-server-impl-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/site-version-from-file-2026-10.yaml
+        - verifier: mathc validate archive/decisions/site-version-from-file-2026-10.yaml
           result: pass
         - verifier: mathc validate decisions/waiver-infrastructure-2026-10.yaml
           result: pass

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:4563c548ba74db249f9cf58b15049fd748346b9036b4f48f00831ad876255551"
-yaml_sha: "sha256:4563c548ba74db249f9cf58b15049fd748346b9036b4f48f00831ad876255551"
+body_sha: "sha256:92eb29b1748ab1ca98e6e3007aec566d81245153a21967ad2471cc6203fb9760"
+yaml_sha: "sha256:92eb29b1748ab1ca98e6e3007aec566d81245153a21967ad2471cc6203fb9760"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -234,7 +234,6 @@ relations:
   refines:
     - algebra-3.2@1
   addresses:
-    - site-version-from-file-2026-10@1
   supersedes:
     - schema-string-bump-3.0-alpha-to-3.2-2026-10@1
       # the 3.2 bump is the intermediate state; this 3.3

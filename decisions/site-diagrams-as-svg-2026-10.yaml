@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e22b364a4ffdbfc476a8a14b4c41c1762799ca5dbcc4f5560fbce1f80cbf3f5e"
-yaml_sha: "sha256:e22b364a4ffdbfc476a8a14b4c41c1762799ca5dbcc4f5560fbce1f80cbf3f5e"
+body_sha: "sha256:b62c55bc4e4a0d0c0e7c79a8dadd6171cb8a26d6ed0077905b8bdb16c23ce22d"
+yaml_sha: "sha256:b62c55bc4e4a0d0c0e7c79a8dadd6171cb8a26d6ed0077905b8bdb16c23ce22d"
 axiom_link:
   - A3
 intent: |
@@ -164,11 +164,6 @@ risk:
 
 relations:
   supersedes:
-    - site-svg-methodology-2026-10
-    - site-svg-foundations-2026-10
-    - site-svg-manifesto-2026-10
-    - site-svg-workflow-2026-10
-    - mathjax-delimiter-te-and-skip-mermaid-2026-10
   depends_on:
     - site-quality-illustrations-2026-10
   refines: []

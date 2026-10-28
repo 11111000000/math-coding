@@ -4,8 +4,8 @@ id: adoption-experiment-design-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:22f926fcdd0fe5ab2e4fbe1f56d353bf2c1ebcac21ba84521194c5977b7056c3"
-yaml_sha: "sha256:22f926fcdd0fe5ab2e4fbe1f56d353bf2c1ebcac21ba84521194c5977b7056c3"
+body_sha: "sha256:dcb8a8ec9d7dd790383691a20b8564ea291137eb29cbc11ae1d35d1e876a74ee"
+yaml_sha: "sha256:dcb8a8ec9d7dd790383691a20b8564ea291137eb29cbc11ae1d35d1e876a74ee"
 
 intent: |
   Conduct a brownfield adoption study of math-coding on five real
@@ -57,7 +57,7 @@ scope:
   paths:
     - "docs/experiments/adoption-2026-10.md"
     - "docs/experiments/adoption-2026-10-report-template.md"
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
+  # 2026-10-25: pruned from this scope, per archive/decisions/dead-scope-paths-2026-10.yaml
   #   docs/experiments/adoption-2026-10-backups.md - no tracked file matches it
   #   ~/Projects/math-coding-experiment/** - home-relative: resolves nowhere in the repository
   exclusions:
@@ -171,16 +171,16 @@ obligations:
 
   - id: results-decision-filed
     claim: |
-      `decisions/adoption-experiment-results-2026-10.yaml`
+      `archive/decisions/adoption-experiment-results-2026-10.yaml`
       exists and records the observed metrics (median
       `ttfd_minutes`, total friction-event count by code,
       verdict per hypothesis) as a commitment of record.
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified
-          path: decisions/adoption-experiment-results-2026-10.yaml
+          path: archive/decisions/adoption-experiment-results-2026-10.yaml
           result: pass
-        - verifier: mathc validate decisions/adoption-experiment-results-2026-10.yaml
+        - verifier: mathc validate archive/decisions/adoption-experiment-results-2026-10.yaml
           result: pass
 
   - id: no-kernel-changes-by-this-experiment
@@ -245,6 +245,4 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@3
-    - plan-2026-10-ux-friction@1
     - plan-2026-10-distro-friction@1
-    - ux-3-adopt-roadmap-2026-10@1

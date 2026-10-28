@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:a455d99d381fea9ee1141d2a7a247bf2041aec831c68c519305142e4d8e2d90b"
-yaml_sha: "sha256:a455d99d381fea9ee1141d2a7a247bf2041aec831c68c519305142e4d8e2d90b"
+body_sha: "sha256:42f3f16b6c79753a459046774fb3e53f3256d4ceb606d3413619f14cc6753d75"
+yaml_sha: "sha256:42f3f16b6c79753a459046774fb3e53f3256d4ceb606d3413619f14cc6753d75"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -314,4 +314,3 @@ risk:
 relations:
   addresses:
     - add-verify-subcommand-2026-10@1
-    - ship-attest-batch-2026-10@1

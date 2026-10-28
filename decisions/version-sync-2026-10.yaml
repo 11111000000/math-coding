@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:d07c1d319fefc785ff646c2129ff1c340db4445dcae51e321e8df8510fde2cf2"
-yaml_sha: "sha256:d07c1d319fefc785ff646c2129ff1c340db4445dcae51e321e8df8510fde2cf2"
+body_sha: "sha256:8b88e7b86b01fa4026abe1852f68509dea48e9745b420e1ebd3970f69db0b844"
+yaml_sha: "sha256:8b88e7b86b01fa4026abe1852f68509dea48e9745b420e1ebd3970f69db0b844"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -245,6 +245,5 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@2
-    - site-version-from-file-2026-10@1
   supersedes: []
   superseded_by: []
