@@ -61,9 +61,11 @@ for path in "${staged[@]}"; do
       fixture_touched=1
       fixture_files+=("$path")
       ;;
-    scripts/pre-commit/*|ROADMAP.md|decisions/yaml-block-scalars-impl-pending.yaml)
-      # Process / roadmap / explicit-deferral files do not require
-      # a co-decision.
+    scripts/pre-commit/*|ROADMAP.md)
+      # Process and roadmap files do not require a co-decision. The
+      # explicit-deferral decision that used to be named here was a
+      # work record and the census removed it; naming a file that is
+      # not in the tree is a rule that can never fire.
       ;;
     *)
       # Anything else (tests/digest_vectors.ml, docs, scripts/*,
