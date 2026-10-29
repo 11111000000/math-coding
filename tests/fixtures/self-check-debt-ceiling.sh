@@ -41,23 +41,21 @@ fail=0
 ok()  { printf 'ok: %s\n' "$1"; }
 bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 
-# The pin. MEASURED 2026-10-29: 217 declared promises across the
+# The pin. MEASURED 2026-10-29: 233 declared promises across the
 # corpus, after the decision-level census removed 45 records and
 # their obligations. It may only fall.
 #
-# The measurement is taken against a tree that HAS a store: without
-# one, sixteen declarations are not on the list at all (a promise with
-# no evidence at all is not counted as a declaration, because the
-# class is decided by the verifier string and a missing attestation
-# says nothing about it). A tree without a store therefore has
-# nothing to measure, and the fixture says so instead of measuring
-# something else.
+# The measurement is the kernel's own count of the DECLARED
+# obligations -- the ones whose verifier it does not run -- taken over
+# every in-force obligation and not only over the open ones. It is a
+# property of the corpus, so it is the same number in a swept tree,
+# in an unswept tree and in a fresh checkout.
 #
 # ceiling-raise: 0 -> 281, the first measurement of the corpus debt
 # after the worklist (`mathc gaps`) made the corpus's promises
 # countable. Then the decision-level census removed 64 of them:
 # 281 -> 217.
-CEILING=217
+CEILING=233
 
 bin=""
 for c in _build/default/bin/mathc.exe _build/install/default/bin/mathc; do
@@ -85,21 +83,12 @@ if [ ! -s "$report" ]; then
   exit 1
 fi
 
-# NO STORE, NO MEASUREMENT. The number of declarations is counted
-# among the OPEN obligations, and which obligations are open depends
-# on the store: with a store, sixteen declarations are covered by
-# evidence and are not on the list; without one, every obligation is
-# open and the count is of a different set. The store is generated
-# per tree, so a fresh checkout has none -- and a measurement of the
-# wrong set is worse than no measurement.
-if [ ! -d "attestations" ] || [ -z "$(ls -A attestations 2>/dev/null)" ]; then
-  ok "no attestation store: the corpus debt cannot be measured here"
-  echo
-  echo "self-check-debt-ceiling: PASS"
-  exit 0
-fi
-
-n="$(jq -r '[.open[] | select(.class == "not-a-check")] | length' "$report" 2>/dev/null)"
+# The DECLARED count is a property of the corpus: the kernel counts
+# every in-force obligation whose verifier the kernel does not run,
+# whether or not evidence exists for it. It does not move with the
+# store's freshness -- which is what made the first version of this
+# ratchet flaky by construction.
+n="$(jq -r '.counts.declared' "$report" 2>/dev/null)"
 total="$(jq -r '.open | length' "$report" 2>/dev/null)"
 if [ -z "$n" ] || [ "$n" = "null" ]; then
   bad "the report carries no class information"

@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: gaps-worklist-2026-10
-revision: 6
+revision: 7
 state: active
 mode: standard
 
-body_sha: "sha256:780dadff287f6dddaa0379e04c6e7f1735a047d0cec789e06ceefd2cedf816f4"
-yaml_sha: "sha256:780dadff287f6dddaa0379e04c6e7f1735a047d0cec789e06ceefd2cedf816f4"
+body_sha: "sha256:49b152e12adc81e4446827b3d06041e406201c4060a5356ff970782642248bb7"
+yaml_sha: "sha256:49b152e12adc81e4446827b3d06041e406201c4060a5356ff970782642248bb7"
 
 axiom_link:
   - A0
@@ -77,7 +77,11 @@ intent: |
 
 commitment: |
   1. `mathc gaps [--format=json|text]` lists every open promise with
-  its decision, obligation, class, state and action.
+  its decision, obligation, class, state and action, and reports the
+  corpus's DECLARED promises -- the count of the in-force obligations
+  the kernel does not run -- beside the open ones. The declared count
+  is a property of the CORPUS and does not move with the store's
+  freshness, so it is the number a ratchet can pin.
   2. The four classes are the kernel's own dispatch, and the state
   comes from the same function the gate uses.
   3. The corpus is read by the exact loader, so no individual
