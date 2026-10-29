@@ -545,13 +545,13 @@ let[@warning "-32"] git_log_for file =
 
 let[@warning "-32"] test_yaml_block_scalars_structural () =
   (* Mirrors tests/fixtures/yaml-block-scalars.sh. The Alcotest kernel
-     test tests/yaml_block_scalars.ml is OPTIONAL (deferred per
-     decisions/yaml-block-scalars-impl-pending.yaml); this gate is
+     test tests/yaml_block_scalars.ml is OPTIONAL; this gate is
      structural: the active decision exists, it records the
-     obligation, the deferral decision records the obligation id,
-     and the audit doc references the fixture. *)
+     obligation, and the audit doc references the fixture. The deferral
+     RECORD that used to name the obligation id was a work record and
+     the census removed it; the obligation itself is still open and
+     `mathc gaps` still lists it. *)
   let yaml = in_repo "decisions/yaml-block-scalars.yaml" in
-  let pending = in_repo "decisions/yaml-block-scalars-impl-pending.yaml" in
   let audit = in_repo "docs/AUDIT-0.0.11.md" in
   let has_id =
     file_exists yaml
@@ -582,19 +582,6 @@ let[@warning "-32"] test_yaml_block_scalars_structural () =
     Alcotest.fail
       "decisions/yaml-block-scalars.yaml is missing the \
        yaml-block-scalars-supported obligation";
-  let has_pending_obligation =
-    file_exists pending
-    &&
-      try
-        ignore
-          (Str.search_forward
-             (Str.regexp "yaml-block-scalars-supported")
-             (read_file pending) 0);
-        true
-      with Not_found -> false
-  in
-  if not has_pending_obligation then
-    Alcotest.fail "the deferral decision is missing the obligation id reference";
   let has_audit_ref =
     file_exists audit
     &&

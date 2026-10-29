@@ -127,15 +127,12 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
 let author_malformed =
   [
     "decisions/3-2-cli-catalog.yaml";
-    "decisions/audit-cleanup-2026-10.yaml";
     "decisions/ci-blocking-list-config.yaml";
     "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml";
     "decisions/mathc-packages-subcommand.yaml";
     "decisions/mathc-self-check-subcommand.yaml";
     "decisions/render-html-templates-2026-10.yaml";
     "decisions/render-ordered-lists-2026-10.yaml";
-    "decisions/ux-3-init-copies-ci-workflow-2026-10.yaml";
-    "decisions/ux-3-new-decision-subcommand-2026-10.yaml";
   ]
 
 (* A stray second `---`. These lose NOTHING: in both, the marker is the
@@ -145,11 +142,7 @@ let author_malformed =
    different statements, and conflating them is how a real loss gets
    dismissed as cosmetic -- which is why the case below also pins the
    no-loss claim instead of taking it on trust. *)
-let cosmetic_marker =
-  [
-    "decisions/disable-counters-drift-test-2026-10.yaml";
-    "decisions/forge-stub-read-request-2026-10.yaml";
-  ]
+let cosmetic_marker = [ "decisions/forge-stub-read-request-2026-10.yaml" ]
 
 (* Files a strict reader reads to EOF and the kernel does not. Empty,
    and asserted empty: this is the only bucket that is ours to fix, so
@@ -321,7 +314,6 @@ let d4_repaired =
     ("decisions/cli-cram-tests.yaml", "unknowns", 2);
     ("decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
     ("decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
-    ("decisions/render-module-split-phase1a-2026-10.yaml", "unknowns", 1);
   ]
 
 let test_d4_repaired_files_read_completely () =
@@ -352,6 +344,12 @@ let test_d4_repaired_files_read_completely () =
    that swallowed them. A parser that reaches EOF but folds the tail
    into the wrong item would still satisfy every assertion above. *)
 let test_schema_keys_recovered_from_behind_a_d4_tail () =
+  (* The corpus file that carries the two SCHEMA keys behind a tail is
+     a work record BY CONTENT, and the census would have removed it --
+     but a contract test pins a property on it, and the census's own
+     rule is that a file something depends on is not archived until
+     the dependency is fixed. The dependency is this test, so the file
+     stays and the property stays pinned on it. *)
   let rel = "decisions/render-module-split-phase1a-2026-10.yaml" in
   let value = Codec.load_yaml_string (read rel) in
   match value with

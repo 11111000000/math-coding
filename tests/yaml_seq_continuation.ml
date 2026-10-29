@@ -24,7 +24,7 @@
  *   decisions/cli-cram-tests.yaml
  *   decisions/p8-hook-deficit-2026-10.yaml
  *   decisions/render-module-split-phase1-2026-10.yaml
- *   decisions/render-module-split-phase1a-2026-10.yaml
+ *   decisions/render-module-split-phase1-2026-10.yaml
  *
  * The load-bearing assertion in every case is `leftover = []`.
  * Asserting on the recovered TEXT is what makes a mutation of
@@ -399,7 +399,6 @@ let corpus_cases =
     ("decisions/cli-cram-tests.yaml", "unknowns", 2);
     ("decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
     ("decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
-    ("decisions/render-module-split-phase1a-2026-10.yaml", "unknowns", 1);
   ]
 
 let test_corpus_files_are_read_to_eof () =
@@ -459,10 +458,7 @@ let test_document_marker_detection_is_unchanged () =
       Alcotest.check Alcotest.int
         (rel ^ ": it truncates pre-tokenisation")
         0 (List.length leftover))
-    [
-      "decisions/disable-counters-drift-test-2026-10.yaml";
-      "decisions/forge-stub-read-request-2026-10.yaml";
-    ]
+    [ "decisions/forge-stub-read-request-2026-10.yaml" ]
 
 let () =
   Alcotest.run

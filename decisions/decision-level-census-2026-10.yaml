@@ -1,0 +1,166 @@
+---
+schema: math-coding/3.3
+id: decision-level-census-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:6f70bac65d2cc10702cf2ec323b58259f6f11e78db2579f17ca51f40f63584f2"
+yaml_sha: "sha256:6f70bac65d2cc10702cf2ec323b58259f6f11e78db2579f17ca51f40f63584f2"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  THE CENSUS READS ONE QUESTION PER DECISION, NOT ONE PER
+  OBLIGATION, AND THE CORPUS SHRANK IN AN HOUR INSTEAD OF NEVER.
+
+  The corpus held 195 decisions and 762 obligations. Classifying the
+  obligations one at a time is 762 readings, and the reading is the
+  work: most of them is the corpus asking "is this promise still a
+  promise?" and the answer is mostly "no, it was a note about a batch
+  that shipped three weeks ago".
+
+  Classifying the DECISIONS is 195 questions, and the answer decides
+  the obligations with it: a decision that turns out to be a work
+  record takes its obligations with it, because a record has no
+  obligations to keep. One question, one decision, and the obligations
+  go with the verdict.
+
+  THE QUESTION. Does this decision still say something the project
+  KEEPS, or is it a RECORD of something that was done once? The
+  corpus's own text says the second kind is "a plan, a site/release/
+  packaging item, or a one-off fix batch" (the census decision's
+  commitment §1) — so the rule was written before this decision; what
+  was missing was the pass that applied it.
+
+  WHAT WENT, and why each one was a record: the plan decisions
+  (plan-2026-10-adoption-fixes, plan-2026-10-distro-friction,
+  plan-2026-10-improvements, plan-2026-11-adoption-fixes), the
+  deferral records (docker-alpine-impl-pending,
+  mcp-server-impl-pending, auto-update-per-user-skill-impl-pending,
+  yaml-block-scalars-impl-pending), the one-off fix batches (the
+  ux-3-* workstream's fourteen slices, junit-entity-off-by-one,
+  axiom-link-inference, ci-green-batch1, audit-cleanup, add-verify,
+  lifecycle-commands, merlin-lsp, install-tooling-default-tag-stable,
+  docker-arm64-image, release-cosign-blob-sign, the release-pending
+  pair, release-cadence, scope-invalidation-breadth,
+  self-check-fixture-coverage-honest, schema-empty-sha,
+  render-module-split-phase1a, disable-counters-drift-test,
+  disable-hanging-alcotest-tests, mcp-server-impl), and the
+  superseded ceiling-monotonic.
+
+  FORTY-FIVE decisions left the corpus; git keeps them byte for byte.
+  One did not: `render-module-split-phase1a-2026-10.yaml` stays,
+  because a contract test pins a property on it (the schema keys
+  behind a D4 tail), and the census's own rule is that a file
+  something depends on is not archived until the dependency is fixed.
+
+  WHAT THE REMOVAL PAID, measured:
+
+    the corpus        195 decisions -> 151
+    the obligations   762 -> 584
+    the absolute verifier paths (a debt pinned at 39) -> 0
+    the conformance ledger's offender set   10 -> 7
+    the unparsed-tail corpus test's subject  a corpus file -> a fixture
+
+commitment: |
+  1. A decision that is a work record leaves the corpus; git keeps
+     it. A decision that is a rule stays, with its obligations.
+  2. The census is run at the DECISION level: one question per
+     decision, and the obligations go with the verdict.
+  3. A file that a live test or a live code path depends on is not
+     removed until the dependency is fixed. One decision was kept on
+     this ground.
+  4. Every pin the corpus keeps — the conformance ledger, the
+     absolute-path baseline, the D3 marker set — follows the truth
+     down, and the pin that reached zero says so.
+
+outcomes:
+  - id: the-corpus-holds-rules
+    statement: |
+      Every decision in the corpus is a rule the project keeps; the
+      records are in the history.
+  - id: the-pins-follow-the-truth
+    statement: |
+      The corpus's pinned counts name the current state, and the
+      absolute-path baseline is zero.
+
+scope:
+  paths:
+    - "decisions/**"
+    - "tests/**"
+    - "decisions/decision-level-census-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-corpus-is-consistent
+    claim: |
+      Every decision left in the corpus validates, and the suite
+      passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/decision-level-census-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/decision-level-census-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision that is still a rule is treated as a record and
+      leaves the corpus, and the question is one per decision, and
+      the evidence for the answer is the decision's own intent, its
+      state and its references -- not a rule"
+    - "a removed decision's promise is lost with it, and git keeps the
+      bytes, and the corpus's own census decision says a record is
+      not a rule"
+    - "a test that asserted the presence of a removed decision fails
+      and is fixed by weakening the assertion instead of by moving it,
+      and the tests were reviewed one by one here, and each fix points
+      at the ARTEFACT the test was really about"
+  owner: human:maintainer
+
+counterexample: |
+  "Deleting forty-five decisions is how a project loses the record of
+  what it decided, and the history is not a substitute: nobody reads
+  git history to find out why the corpus is shaped this way."
+
+  The claim is right about the risk of a silent deletion and wrong
+  about the alternative. The decisions that went were, by their own
+  text, records: a plan for an experiment that ran, a deferral of a
+  slice that later shipped, a batch of fixes that landed. Their
+  PROMISES are in git; what the corpus loses is their standing as
+  rules -- and standing is what the gate reads.
+
+  The deeper objection is the one the corpus's own rule answers: a
+  decision is archived when it is a work record, and the ARCHIVE is
+  the history. The danger is not that the history disappears but that
+  the archive becomes a second corpus nobody reads -- which is why the
+  census deleted rather than moved, and why the deleted set was
+  measured and recorded here.
+
+antithesis: |
+  The opposite claim is that the corpus should keep everything and
+  let the WORKLIST mark what is stale: the records are harmless, the
+  list is the instrument, and nothing is lost.
+
+  The claim is right about the instrument -- `mathc gaps` names every
+  open promise with its class, and that list is what makes the debt
+  actionable. It is wrong about harmlessness. A record that sits in
+  the corpus is a decision the gate holds the project to: its
+  obligations are obligations, and its unkept promises are unknown
+  subjects forever. The 45 records that left carried 178 obligations
+  -- a quarter of the corpus's debt -- and none of them was a promise
+  anyone intended to keep.
+
+  The list and the corpus answer different questions, and the corpus
+  is the one that gets read by a machine at every commit.

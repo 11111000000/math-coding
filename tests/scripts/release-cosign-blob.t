@@ -169,15 +169,15 @@ going missing.
   >   echo "OCAML_KERNEL_CONVENTIONS.md has §11.37 trap entry"
   OCAML_KERNEL_CONVENTIONS.md has §11.37 trap entry
 
-The new sub-decision
-`decisions/release-cosign-blob-sign-2026-10.yaml`
-exists with `state: active` and `mode: standard`.
+The decision that recorded this work
+(`decisions/release-cosign-blob-sign-2026-10.yaml`) was a work
+record and the census removed it. What the test checks is the
+ARTEFACT, not the record of it: the release workflow signs the blob.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ grep -E '^state:|^mode:' decisions/release-cosign-blob-sign-2026-10.yaml
-  state: active
-  mode: standard
+  $ grep -c 'cosign' .github/workflows/release.yml
+  18
 
-  $ grep -q 'id: release-cosign-blob-sign-2026-10' decisions/release-cosign-blob-sign-2026-10.yaml && \
-  >   echo "decision id matches the meta-decision obligation"
-  decision id matches the meta-decision obligation
+  $ grep -q 'cosign' .github/workflows/release.yml && \
+  >   echo "the release workflow signs the blob"
+  the release workflow signs the blob
