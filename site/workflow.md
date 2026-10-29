@@ -55,15 +55,16 @@ becomes reachable.
 ## 3. Implement
 
 `lib/packages.ml` and `bin/Mathc.ml` change to honour the
-commitment. The implementation stays under OCaml, side-effect
-free, ~700 lines plus the binary.
+commitment. The implementation stays under OCaml and side-effect
+free.
 
 ## 4. Attest
 
-Run `scripts/generate-attestations.py` after each
-implementation. The script produces
-`attestations/<sha>.json` for every package pair. Commit
-the JSON files.
+Produce the attestation for every package pair the kernel walks:
+`attestations/<sha>.json`. The store is generated, not committed
+(`decisions/store-not-committed-2026-10.yaml`); the release path is
+`scripts/sign-store.sh`, and the live count is
+`mathc counters --format=json`.
 
 ## 5. Gate
 

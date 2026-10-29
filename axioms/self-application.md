@@ -51,7 +51,7 @@ In particular:
 - `decisions/decision.yaml` — obligations include `conformance-coverage`
   and `developer-practices-binding`, both of which must pass under the
   *current* rules before the next rules take effect.
-- `OCAML_BEST_PRACTICES.md` §10 — adapter conventions explicitly forbid
+- `OCAML_KERNEL_CONVENTIONS.md` §10 — adapter conventions explicitly forbid
   adapters from weakening kernel invariants.
 
 ## Formalization

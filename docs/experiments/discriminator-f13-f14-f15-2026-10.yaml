@@ -304,7 +304,7 @@ findings:
           `MC_VERSION_DEFAULT="3.3.1"` and `adoption/SKILL.md`
           line 9 has `compatible_with: mathc@>=3.3.1`. A
           fresh user running the canonical install command
-          (per AGENTS.md §Read first: "All `dune`,
+          (per KERNEL_AGENTS.md §Read first: "All `dune`,
           `ocamlformat`, `ocamlmerlin`, `ocamlfind`,
           `ocamllsp`, `mathc` MUST run inside `nix develop
           .#test` (or via `scripts/dev`)") gets the v3.3.1
@@ -465,7 +465,7 @@ summary:
       2026-11.yaml` (light). P3, can ship after F14/F15
       since it's instrumentation rather than functional.
 
-    The fast path per AGENTS.md §Fast path (process-fast-
+    The fast path per KERNEL_AGENTS.md §Fast path (process-fast-
     path-2026-10) applies to F13 — net change ≤ 50 lines
     of markdown across 2 files, no schemas / no
     constitution / no new obligation. F14 needs the full
@@ -473,7 +473,7 @@ summary:
     semantics — a future 5-agent batch's behaviour
     changes). F15 is out-of-band; not path-eligible
     because the action is on the release branch (not the
-    main checkout per AGENTS.md §Worktree-first) and
+    main checkout per KERNEL_AGENTS.md §Worktree-first) and
     requires force-tag with explicit human approval.
   cross_cutting_observations: |
     Two structural patterns emerge across F13, F14, F15:

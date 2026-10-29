@@ -33,7 +33,7 @@ about an outcome*.
   `obligation.decision`, `waiver.issuer`, `attestation.producer_identity`.
 - `spec/constitution.md` — invariant 11 (Waiver bounds).
 - `lib/domain.ml` — these fields are required, not optional.
-- `OCAML_BEST_PRACTICES.md` §2.4 (Tagged arguments) and §2.6 (Records
+- `OCAML_KERNEL_CONVENTIONS.md` §2.4 (Tagged arguments) and §2.6 (Records
   over tuples) ensure these fields cannot be silently dropped.
 
 ## Formalization

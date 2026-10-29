@@ -19,8 +19,9 @@ The chain is enforced by a kernel. The kernel does not write new
 content into the chain — it only *checks* that the content the
 humans wrote is honest. (A0 Separation: an attestation is not an
 observation; a decision is not an obligation; a change is not yet
-attested.) The kernel produces verdicts (`pass`, `fail`, `unknown`,
-`waived`, `stale`, `missing`); humans remain the actors.
+attested.) The kernel produces verdicts (`pass`, `open-with-waiver`,
+`block`, `unknown` — the four-value vocabulary of
+`spec/semantics.md` §4.3); humans remain the actors.
 
 The seven kinds shown in the diagram are not a hierarchy — they are
 a contract. Each kind is a distinct object with a distinct purpose:
@@ -100,7 +101,7 @@ not manual declarations.
 
 ## Friction levels
 
-Mathoding is not uniform. Some changes are silent (deterministic
+Methodology is not uniform. Some changes are silent (deterministic
 checks confirm nothing meaningful moved); some require a record
 (decision + obligation); some require an *ask* (a reviewer must
 weigh in); some **block** (the kernel refuses to merge). The
@@ -113,7 +114,7 @@ silent < record < ask < block
 The kernel chooses the least sufficient level. A kernel may raise
 friction but never lower it.
 
-![Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Four rungs with the friction envelope, a representative commit kind, the gate posture, and the signer required by AGENTS.md friction ladder and A3 self-application.](assets/friction-ladder.svg)
+![Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Four rungs with the friction envelope, a representative commit kind, the gate posture, and the signer required by KERNEL_AGENTS.md friction ladder and A3 self-application.](assets/friction-ladder.svg)
 
 The friction ladder has a horizontal axis (friction envelope) and
 a vertical axis (level of involvement). Notice the alignment
@@ -154,7 +155,7 @@ in `attestations/*.json` are the machine voice. The kernel reads
 the machine voice and produces verdicts; humans read the human
 voice and produce revisions. The two voices must agree. A worked
 example lives in this site. The README, ROADMAP, PACKAGES, and
-AGENTS files in the repo are themselves inputs to the methodology.
+KERNEL_AGENTS files in the repo are themselves inputs to the methodology.
 
 The attestation lifecycle is the kernel's contract with CI:
 
@@ -186,9 +187,7 @@ The kernel proves the methodology. This is what A3 means by
 ![The math-coding kernel pipeline: input -> schema -> parser -> attestation join -> self-check -> gate. Each stage emits the artifact the next stage consumes. The kernel does not invent content; it only checks the content the humans wrote is honest.](assets/kernel-architecture.svg)
 
 The pipeline above is the architecture. Every box in the diagram
-is a kernel module. Every arrow is a function call. The kernel is
-small enough to audit in an afternoon (it is one OCaml binary of
-roughly seven thousand lines plus transitive modules). The
+is a kernel module. Every arrow is a function call. The
 methodology, by contrast, is what you, the human, decide to do
 with the kernel's verdicts — and that decision is the one A4
 demands you do with care.

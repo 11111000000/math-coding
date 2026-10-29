@@ -34,7 +34,7 @@ operations bounded by time and authority.
 - A recovery that requires rewriting all of history. (Supersession
   produces a new commit; it does not erase an old one.)
 - A state whose history is unknown. (Unknown provenance is itself a
-  deficit; see `OCAML_BEST_PRACTICES.md` §3.3.)
+  deficit; see `OCAML_KERNEL_CONVENTIONS.md` §3.3.)
 - A diagnostic that the kernel cannot map to a gate state.
 
 ## Where this axiom lives in the codebase
@@ -48,8 +48,8 @@ operations bounded by time and authority.
   requires at least one remedy.
 - `lib/diagnostic.ml` — `remedies : (string * string) list` (to be
   promoted to a `remedy = { kind; value }` record per
-  `OCAML_BEST_PRACTICES.md` §2.6).
-- `OCAML_BEST_PRACTICES.md` §4.3 — exit codes 0/1/2/3.
+  `OCAML_KERNEL_CONVENTIONS.md` §2.6).
+- `OCAML_KERNEL_CONVENTIONS.md` §4.3 — exit codes 0/1/2/3.
 
 ## Formalization
 

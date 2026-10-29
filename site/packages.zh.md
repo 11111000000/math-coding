@@ -1,6 +1,6 @@
 # 包
 
-math-coding 3.3.0。每一行
+math-coding 3.7.4。每一行
 > 都是内核所知的一个决策-义务对；每条判定都是内核当前的
 > 评估。
 
@@ -29,20 +29,9 @@ mathc packages --format=html
 mathc packages --format=json | jq '.counts'
 ```
 
-给出实时聚合：
+给出实时聚合——内核所知的决策、义务与判定计数。本页有意
+不复述它们：每次提交证据都会改变这些数字，而活数字属于
+内核的输出，不属于散文。
 
-```text
-{
-  "fail": 0,
-  "missing": 0,
-  "no_store": 0,
-  "pass": 23,
-  "stale": 0,
-  "total": 23,
-  "unknown": 0,
-  "waived": 0
-}
-```
-
-正文下方的网格即为 HTML 形式，由 `lib/render.ml` 内嵌。
+正文下方的网格即为 HTML 形式，由 `lib/render/render.ml` 内嵌。
 内核同时写入两种形式。

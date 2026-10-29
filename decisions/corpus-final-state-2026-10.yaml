@@ -1,0 +1,195 @@
+---
+schema: math-coding/3.3
+id: corpus-final-state-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:0f0798695c4c2cb3522bda9d872d4b17c98a96b23904b6df6653bdb83953ccd5"
+yaml_sha: "sha256:0f0798695c4c2cb3522bda9d872d4b17c98a96b23904b6df6653bdb83953ccd5"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  THE CORPUS'S TARGET STATE WAS NEVER STATED, AND THE ONE THE
+  DOCTRINE IMPLIES CANNOT BE REACHED. THAT IS WHY THE WORK WAS
+  ENDLESS.
+
+  The doctrine says: the final state is specified, and the work is
+  the shortest path from here to there. What it does not say is what
+  "there" is for a corpus like this one, and the obvious reading --
+  "pass" means every obligation holds fresh evidence -- is a target
+  that this corpus cannot reach. 285 of the obligations are
+  DECLARATIONS: a `manual-` verifier is by definition something the
+  kernel does not execute, so there is no evidence to be had. A gate
+  that demands evidence for promises that are defined as
+  un-evidenced is red for ever, and a red gate that is always red
+  teaches nobody anything. The endlessness was not a discipline
+  failure. It was the consequence of an incoherent target.
+
+  So this decision states a reachable final state, in numbers, and
+  the shape of the corpus that reaches it:
+
+    THE CORPUS HOLDS RULES, NOT RECORDS.
+      A decision is either a RULE the project keeps, or a RECORD of
+      something that was done once. Records leave the corpus (git
+      keeps them byte for byte); rules stay. The question is ONE per
+      decision: does this still say something the project keeps?
+
+    EVERY OBLIGATION HAS A CLASS, AND BOTH CLASSES ARE HONEST.
+      An obligation is either EXECUTABLE -- a check the kernel can
+      run, and the sweep signs -- or DECLARED: a promise a named
+      human keeps, covered by a DATED ACCEPTANCE.
+
+    A DECLARED RULE IS COVERED BY A WAIVER, NOT BY EVIDENCE.
+      One waiver per decision, with an issuer, an issued_at, an
+      expires_at and a reason. The waiver form that covers a whole
+      decision already exists (the decision-wide form, without
+      `unverified_obligation`), so nothing in the schema has to
+      change. The expiry is what makes it honest: a rule nobody has
+      reviewed for a year is a rule nobody reviews.
+
+    THE GATE IS GREEN AGAIN, AND GREEN MEANS SOMETHING.
+      `mathc self-check` exits 0 when every executable obligation
+      holds fresh evidence AND every declared rule is covered by a
+      live acceptance. Then the CI step stops being an audit and
+      becomes a gate again, and the corpus can finally hold itself
+      accountable.
+
+    THE DEBT IS COUNTED AND PINNED, AND IT MAY ONLY FALL.
+      The number of declared rules is a number, it is pinned, and a
+      raise is recorded with its reason (the convention the debt
+      fixtures already follow).
+
+  THE NUMBERS, as of 2026-10-29:
+
+    decisions in the corpus       203   ->  about 50 rules
+    obligations                          ->  about 200
+    executable                          ->  about 150 (the sweep signs them)
+    declared                            ->  about 50 (one waiver each)
+
+  THE PATH, and why it is short. The census reads ONE question per
+  DECISION, not per obligation: 203 questions instead of 762, and
+  they parallelise. A decision that turns out to be a rule keeps its
+  obligations; a decision that turns out to be a record leaves with
+  all of them at once, because a record has no obligations to keep.
+
+commitment: |
+  1. The corpus's final state is the one above: rules only, every
+     obligation either executable or covered by a dated acceptance,
+     the gate green, the declared-rule count pinned and falling.
+  2. A decision leaves the corpus when it is a RECORD. Git keeps it.
+  3. A DECLARED rule is covered by a waiver that names the decision,
+     an issuer, a date and an expiry. A declaration with no expiry
+     is not an acceptance, it is an omission.
+  4. `mathc self-check` exits 0 exactly when every executable
+     obligation holds fresh evidence and every declared rule is
+     covered by an acceptance in force.
+  5. The census is run at the DECISION level, in parallel tranches,
+     with one question per decision.
+
+outcomes:
+  - id: the-corpus-is-rules
+    statement: |
+      Every decision in the corpus is a rule the project keeps.
+  - id: every-promise-has-a-class-and-a-cover
+    statement: |
+      Every obligation is either executable, or declared and covered
+      by an acceptance with an expiry.
+  - id: the-gate-is-green-and-means-something
+    statement: |
+      `mathc self-check` exits 0, and the CI step that reads it is a
+      gate again.
+  - id: the-debt-falls
+    statement: |
+      The number of declared rules is pinned, and the pin may only
+      fall.
+
+scope:
+  paths:
+    - "decisions/**"
+    - "decisions/waivers/**"
+    - "tests/fixtures/**"
+    - ".github/workflows/ci.yml"
+    - "decisions/corpus-final-state-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-state-is-measured
+    claim: |
+      The worklist reports the corpus's shape, and the declared rules
+      are covered by acceptances in force.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/no-invisible-promises.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/corpus-final-state-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-final-state-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision that is still a rule is treated as a record and
+      leaves the corpus: the question is one per decision, and the
+      evidence for the answer is the decision's own intent and its
+      references, not a rule"
+    - "the acceptances are written for rules nobody reads, and the
+      corpus turns green on paper: the expiry is what stops this,
+      and the count of them is pinned"
+    - "the gate goes green and stops being read, because it is
+      green for ever: that is the risk of a gate that is green by
+      construction, and the counter is that a rule whose acceptance
+      lapses turns the gate red again"
+  owner: human:maintainer
+
+counterexample: |
+  "The final state is a way of deciding, in advance, that most of the
+  corpus is not worth keeping, and the enumeration was done to
+  justify the decision."
+
+  The objection is the right one to suspect of any plan that ends
+  with a smaller corpus, and the answer is in the ORDER of the two
+  decisions. This decision does not say what the corpus should
+  contain; it says what the corpus must be ABLE to be, so that the
+  question "should this decision stay?" has an answer that is not
+  "it is easier to keep it". The enumeration happens under this
+  decision, not before it: every rule that leaves is a rule that
+  could have stayed, with the reason recorded.
+
+  The second half of the objection is about the green gate. A gate
+  that is green by construction -- the acceptances are written, so
+  the obligations are covered, so the gate is green -- is a gate that
+  measures the writing of acceptances rather than the keeping of
+  rules. The answer is that the acceptance EXPIRES: a rule nobody
+  has looked at in ninety days loses its cover, the gate turns red
+  again, and the corpus asks to be looked at. The green is not a
+  constant; it is a renewable loan against a date.
+
+antithesis: |
+  The opposite claim is that the corpus should stay as it is, and
+  the fix is the gate's patience: keep the corpus-wide check red,
+  give people the worklist, and let the debt fall at whatever rate
+  it falls.
+
+  The claim is right that the debt should fall and wrong about what
+  makes it fall. A permanently red gate is the thing this repository
+  has already tried: every push blocked for the same unrelated
+  reason, for months, and the reason it produced was not patience but
+  abandonment -- the step got ignored, the reports stopped being
+  read, and the debt stayed exactly where it was.
+
+  The rate at which debt falls is set by whether a person is asked
+  to look at a bounded list of promises with a date on it, or
+  whether the promise is one of two hundred in a red step nobody
+  opens. The final state is not a smaller corpus for the sake of
+  being smaller. It is a corpus where every promise has someone
+  holding it and a date on the holding.

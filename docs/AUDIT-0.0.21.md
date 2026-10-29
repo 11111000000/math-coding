@@ -59,16 +59,16 @@ mathc re-evaluate bootstrap-v3 A1
 
 ## D21.1 — `mathc self-check` is `unknown` on clean HEAD
 
-**Gap.** AGENTS.md:6 states the bootstrap gate has expired
+**Gap.** KERNEL_AGENTS.md:6 states the bootstrap gate has expired
 because "the released 3.0 kernel successfully checks this
 repository and its conformance corpus". The kernel is the
 blocking CI step (per `constitution.md` Invariant 14).
 
 **Where it surfaces.**
 
-- `AGENTS.md:6` — "the released 3.0 kernel successfully checks this repository"
+- `KERNEL_AGENTS.md:6` — "the released 3.0 kernel successfully checks this repository"
 - `ROADMAP.md:79` — "verdict `pass` (28/28 subjects green)"
-- `doc/AUDIT-0.0.20.md:44` — "subjects_count=28, pass_count=28"
+- `docs/AUDIT-0.0.20.md:44` — "subjects_count=28, pass_count=28"
 - `tests/cli/self-check-pass.t:2-3` — preamble claims verdict `"pass"` and exit `0`
 
 **What actually happens.** Running `mathc self-check` returns
@@ -91,7 +91,7 @@ reverted to `state: retired` after the Alpine CI build failed
 **Consequence.** The bootstrap-gate expiry clause is
 unfulfilled. Every subsequent claim that "verdicts are
 automated guarantees, not manual declarations"
-(`AGENTS.md:6`, `doc/AUDIT-0.0.20.md:53-58`) is unfounded.
+(`KERNEL_AGENTS.md:6`, `docs/AUDIT-0.0.20.md:53-58`) is unfounded.
 
 **Counterexample.** "The test fixture is just a sandbox; CI
 runs against the live store." Response: the live store at
@@ -121,7 +121,7 @@ object with a `paths` list.
 
 The parser silently returns `None` for these. The validator
 emits the coarse diagnostic "missing or invalid required field"
-(D8 from `doc/AUDIT-0.0.11.md:465` — already known).
+(D8 from `docs/AUDIT-0.0.11.md:465` — already known).
 
 **Consequence.** The kernel has two incompatible models of
 what a decision is:
@@ -219,9 +219,9 @@ match the kernel.
 | `ROADMAP.md:7` | `attestations/ is populated (94 files)` | `105` | +11 |
 | `ROADMAP.md:79` | `mathc self-check verdict: pass (28/28)` | `29 pass + 2 unknown (31 total)` | mixed |
 | `ROADMAP.md:178` | `tests/cli/*.t (15 files at HEAD)` | `32` | +17 |
-| `doc/AUDIT-0.0.20.md:44-45` | `subjects_count=28, pass_count=28` | `31, 29` | +3 |
-| `doc/AUDIT-0.0.20.md:47` | `attestations/ contains 94 files` | `105` | +11 |
-| `doc/AUDIT-0.0.20.md:66` | `28/94 attestations resolve` | `29/103` | both off |
+| `docs/AUDIT-0.0.20.md:44-45` | `subjects_count=28, pass_count=28` | `31, 29` | +3 |
+| `docs/AUDIT-0.0.20.md:47` | `attestations/ contains 94 files` | `105` | +11 |
+| `docs/AUDIT-0.0.20.md:66` | `28/94 attestations resolve` | `29/103` | both off |
 
 **Cause.** The numbers were correct at `v3.0.0.20` (commit
 `8fa7fcf`). Subsequent decisions (R5 `ci-blocking-list-config`,
@@ -457,7 +457,7 @@ to main.
 ## Outstanding after this cycle (deferred)
 
 - **D8** (`mathc validate` coarse diagnostics) — pre-existing,
-  tracked at `doc/AUDIT-0.0.11.md:465`, scheduled for 3.0-beta.
+  tracked at `docs/AUDIT-0.0.11.md:465`, scheduled for 3.0-beta.
 - The **portable-linux-musl** retirement signal (`alpine-ci-build-fails`)
   is unchanged; the 7 obligations stay missing unless a
   waiver is issued.

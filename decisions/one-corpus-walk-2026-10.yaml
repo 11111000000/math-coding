@@ -1,0 +1,137 @@
+---
+schema: math-coding/3.3
+id: one-corpus-walk-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:0a875d61b60bb73f99a6ea1a75f7807067b12fef0302a1f873f269cd039a2967"
+yaml_sha: "sha256:0a875d61b60bb73f99a6ea1a75f7807067b12fef0302a1f873f269cd039a2967"
+
+axiom_link:
+  - A0
+
+intent: |
+  THE CORPUS WAS WALKED ELEVEN WAYS, AND ONLY ONE OF THEM COULD SEE
+  IT WHOLE.
+
+  `lib/memory.ml` learned the lesson first: a decision filed under
+  `decisions/<sub-directory>/` is a decision, and a walker that reads
+  one directory cannot see it. The kernel's loader recurses; the
+  walker is `Memory.decision_document_paths`, and it applies the
+  corpus's STRUCTURAL rule for what a decision document is.
+
+  The rest of the machine did not learn it. Three readers of the
+  corpus in PRODUCTION still read one directory:
+
+    `mathc precommit`         the check the commit hook runs over the
+                               WHOLE corpus -- and it validated 189 of
+                               the 202 decisions, never seeing the
+                               thirteen under `decisions/<sub>/`
+    `mathc re-evaluate-...`    the second producer of attestations --
+                               and it wrote its records for one
+                               directory
+    `mathc negative-control`   the count a ceiling is pinned against
+                               -- measured over one directory, so the
+                               ceiling was a ceiling over the wrong
+                               corpus
+
+  The cost of eleven walks is not eleven line counts. It is that two
+  readers of the same corpus can disagree about what the corpus IS,
+  and then each of them is right about its own number: the
+  precommit says the corpus is clean, the sweep signs a different
+  corpus, and the count that a ceiling is pinned against measures a
+  third. A ceiling measured over the wrong corpus is a ceiling over
+  nothing.
+
+commitment: |
+  1. The three production walks use `Memory.decision_document_paths`
+     -- the kernel's own walker -- and nothing else.
+  2. `mathc precommit` filters the walk by the corpus's structural
+     rule (a document that declares no id, or that belongs to a
+     non-decision schema family, is not a decision), so the
+     migration manifests and the waivers are not validated as
+     decisions.
+  3. The count a ceiling is pinned against is measured over the same
+     corpus the gate reads.
+
+outcomes:
+  - id: every-reader-sees-the-whole-corpus
+    statement: |
+      `mathc precommit` validates every decision in the corpus,
+      including the ones filed under a sub-directory.
+  - id: the-ceiling-measures-the-real-corpus
+    statement: |
+      The negative-control count is measured over the corpus the gate
+      reads.
+
+scope:
+  paths:
+    - "lib/check/check.ml"
+    - "lib/re_evaluation.ml"
+    - "bin/Mathc.ml"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "decisions/one-corpus-walk-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-whole-corpus-is-validated
+    claim: |
+      `mathc precommit` accepts every decision in the corpus, the
+      ones under a sub-directory included.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/precommit-covers-subdirectories.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/one-corpus-walk-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/one-corpus-walk-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "a decision filed under a sub-directory is validated for the
+      first time and does not validate: the corpus grows a red step
+      that was there in fact for months, and the fix is the
+      decision's, not the walker's"
+    - "the recursive walk pulls in a document family that is not a
+      decision and validates it as one: the structural rule is what
+      prevents it, and the rule is the corpus's"
+  owner: human:maintainer
+
+counterexample: |
+  "One walker is one point of failure: the recursive walk now feeds
+  thirteen documents to a check that never saw them, and one of them
+  is malformed."
+
+  The claim is right about the risk and wrong about the remedy. The
+  thirteen documents were IN the corpus all along -- the kernel's
+  loader read them ✓, the gate decided them ✓, the sweep signed
+  them ✓ -- and the check that was supposed to hold them up was
+  reading a different set. That is not one walker being a single
+  point of failure; it is one of eleven walkers being wrong while
+  the other ten were right about their own numbers.
+
+  And a document family that is not a decision is excluded by the
+  corpus's own STRUCTURAL rule (no id, or a non-decision schema
+  family), not by a list of names: the migration manifests and the
+  waivers are documents the kernel dispatches on their schema, and
+  the precommit now dispatches them the same way.
+
+antithesis: |
+  The opposite claim is that the subdirectories should not hold
+  decisions at all: a flat `decisions/` is easier to read, and the
+  census that flattened it was the right instinct.
+
+  The claim is right about the reading and wrong about the shape.
+  The corpus has always had decisions in subdirectories -- the
+  loader recurses ✓, the gate reads them ✓, the sweep signs them ✓
+  -- and flattening them would have meant MOVING thirteen live rules
+  and rewriting every reference to them. The walk was the thing that
+  was wrong, not the layout.

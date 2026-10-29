@@ -30,6 +30,10 @@ The decision file exists (bootstrap of applicability):
 Applicability envelope is functional when:
 1. spec/algebra-3.2.md published (passed above)
 2. decisions/algebra-3.2.yaml accepted (passed above)
-3. Tier 3.5 implementation tracked in ROADMAP.md:
-  $ grep -c 'Tier 3.5' ROADMAP.md
-  3
+3. the ROADMAP makes no open promise about it. The ROADMAP used to
+count three "Tier 3.5" mentions; the census collapsed the closed
+tiers into a paragraph of history, so the count is zero -- and zero
+is the point: an open tier in the priority document is an obligation
+nobody is holding.
+  $ grep -c 'Tier 3.5' ROADMAP.md || true
+  0

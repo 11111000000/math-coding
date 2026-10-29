@@ -8,11 +8,11 @@
 > repository as it stands, intended for human review prior to tagging
 > `v3-alpha-0.0.11`.
 >
-> Scope: foundation audit. Per `AGENTS.md` §Self-application, the
+> Scope: foundation audit. Per `KERNEL_AGENTS.md` §Self-application, the
 > audit verifies existing decisions; it does not create a new one. No
 > new `decisions/*.yaml` file is added, no fixture is touched, no
-> `OCAML_BEST_PRACTICES.md` rule is changed. The audit is appended to
-> `doc/` and is itself protected by A3 only insofar as it is a
+> `OCAML_KERNEL_CONVENTIONS.md` rule is changed. The audit is appended to
+> `docs/` and is itself protected by A3 only insofar as it is a
 > reflection of the source-of-truth files (spec/, axioms/, decisions/,
 > lib/, bin/, tests/).
 
@@ -20,7 +20,7 @@ This document is structured as a series of snapshots. Each section
 records what is true at HEAD `1b48db2` and how that fact was
 established. Evidence is declared in the evidence-source column;
 assertions are not stronger than the source supports
-(`AGENTS.md` §Evidence).
+(`KERNEL_AGENTS.md` §Evidence).
 
 ---
 
@@ -36,7 +36,7 @@ The `v3-alpha-*` tag series, oldest first, from
 | `v3-alpha-0.0.1` | c3630f1 | bootstrap 3.0-alpha (spec/, schemas/, axioms/, README, lib/ skeleton) |
 | `v3-alpha-0.0.1-final` | a5bd186 | README links to axioms |
 | `v3-alpha-0.0.2` | dcce935 | dev shell extended with test dependencies |
-| `v3-alpha-0.0.3` | 1f0ec3a | AGENTS.md surfaces OCAML_BEST_PRACTICES §11 in agent workflow |
+| `v3-alpha-0.0.3` | 1f0ec3a | KERNEL_AGENTS.md surfaces OCAML_KERNEL_CONVENTIONS §11 in agent workflow |
 | `v3-alpha-0.0.4` | 0617b59 | wire kernel-conformance-runner (enumerate) |
 | `v3-alpha-0.0.5` | 9cd19a4 | kernel-conformance-runner waiver-parser wired |
 | `v3-alpha-0.0.6` | 01d5832 | `mathc validate FILE` (cli-validate-decision) |
@@ -189,10 +189,10 @@ imports `mathcoding_core`, `mathcoding_junit`, `mathcoding_git`,
 `str`, `unix`. `lib/dune` uses `(wrapped false)` so kernel types
 (`Domain.t`, `Diagnostic.t`, `Jsonl.value`) are exposed flat —
 without it, `bin/Mathc.ml` would have to write
-`Mathcoding_core.Domain.Pass` everywhere (OCAML_BEST_PRACTICES
+`Mathcoding_core.Domain.Pass` everywhere (OCAML_KERNEL_CONVENTIONS
 §1.2).
 
-The adapter split follows OCAML_BEST_PRACTICES §10.1: each
+The adapter split follows OCAML_KERNEL_CONVENTIONS §10.1: each
 adapter's `dune` lists only its own deps; the kernel `lib/dune` is
 unchanged by adapter additions; adapters may pull in dependencies
 the kernel cannot.
@@ -201,7 +201,7 @@ the kernel cannot.
 
 The constitution lists 14 invariants. They are the gate the kernel
 MUST enforce; the 3.0-alpha bootstrap has them declared but cannot
-yet enforce them — that is what the bootstrap gate (`AGENTS.md`
+yet enforce them — that is what the bootstrap gate (`KERNEL_AGENTS.md`
 §Bootstrap gate) names "until `mathc self-check` passes":
 
 1. **Determinism** — equal canonical inputs and equal evaluation
@@ -252,7 +252,7 @@ kernel properties that enforce it:
   Every invariant is paired with an authorized recovery. Enforced
   by `Domain.gate` (`Open` / `Open_with_waiver` / `Blocked`),
   `Diagnostic.t` carrying `remedies`, and the 4 exit codes
-  (`OCAML_BEST_PRACTICES.md` §4.3).
+  (`OCAML_KERNEL_CONVENTIONS.md` §4.3).
 - **A3 — Self-application** (`axioms/self-application.md`).
   Rules govern themselves. Enforced by
   `decisions/decision.yaml` obligations `conformance-coverage`
@@ -316,7 +316,7 @@ Per-file line counts (rounded):
 
 | `decisions/` file | Revision | Obligations | Verification status |
 |---|---|---|---|
-| `decision.yaml` | 2 | 8 (preserve-v2, conformance-coverage, bootstrap-honesty, authoring-benchmark, context-budget, developer-practices-binding, axioms-binding, …) | All **manual** today; the kernel that would auto-verify them does not exist. The bootstrap protocol explicitly names these as manual declarations (`AGENTS.md` §Bootstrap gate, `decisions/rationale.md`). |
+| `decision.yaml` | 2 | 8 (preserve-v2, conformance-coverage, bootstrap-honesty, authoring-benchmark, context-budget, developer-practices-binding, axioms-binding, …) | All **manual** today; the kernel that would auto-verify them does not exist. The bootstrap protocol explicitly names these as manual declarations (`KERNEL_AGENTS.md` §Bootstrap gate, `decisions/rationale.md`). |
 | `infrastructure-honesty.yaml` | 1 | 4: fix-ci-targets, pin-nixpkgs-commit, verify-opam-checksum, wire-conformance-runner | **All 4 done** at v3-alpha-0.0.3. Fixtures: `tests/fixtures/ci-targets-exist.sh`, `tests/fixtures/flake-ref-is-commit.sh`, `tests/fixtures/flake-lock-changes-record-decision.sh`, `tests/fixtures/dune-runs-conformance.sh`. All four pass under `./scripts/check.sh`. |
 | `kernel-conformance-runner.yaml` | 1 | 4: enumerate-and-classify-fixtures, parse-positive-and-negative-decision, wire-conformance-into-dune-test, skip-non-decision-fixtures-with-warning | **All 4 done** between v3-alpha-0.0.3 and v3-alpha-0.0.5. Fixtures: `enumerate.sh`, `decision-parses.sh`, `dune-runs-conformance.sh`, `attestation-skip-message.sh`, `waiver-parser.sh` (5 fixtures for 4 obligations because `skip-non-decision-fixtures-with-warning` is exercised by both attestation and waiver cases). |
 | `validate-and-context.yaml` | 2 | 6: jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged, cli-context-capsule, capsule-byte-budget-tracked | **All 6 done** at v3-alpha-0.0.6 (jsonl-array-parser-fixed, cli-validate-decision, cli-version-preserved, kernel-offline-pure-unchanged) and v3-alpha-0.0.7 (cli-context-capsule, capsule-byte-budget-tracked). Fixtures: `validate-positive.sh`, `validate-negative.sh`, `context-budget.sh`. The kernel-offline-pure-unchanged obligation is verified by the build itself (any Unix-only call in `lib/` would fail to link). |
@@ -328,7 +328,7 @@ Per-file line counts (rounded):
 |---|---|---|
 | `preserve-v2` | `mathc-tag-exists` | **Manual**: the `v2.1-final` tag is reachable; the conformance runner does not assert this. |
 | `conformance-coverage` | `mathc-conformance-run` | **Manual + 9 conformance cases green** (`dune test --force` shows 9 passing; this is observed evidence, not the kernel-auto-verified form the obligation names). |
-| `bootstrap-honesty` | `mathc-text-scan` | **Manual**: AGENTS.md and bootstrap documents claim no automated enforcement beyond fixtures; this is reviewed, not auto-verified. |
+| `bootstrap-honesty` | `mathc-text-scan` | **Manual**: KERNEL_AGENTS.md and bootstrap documents claim no automated enforcement beyond fixtures; this is reviewed, not auto-verified. |
 | `authoring-benchmark` | `mathc-benchmark` | **Manual**: no benchmark exists; documented as outstanding in the bootstrap rationale. |
 | `context-budget` | `mathc-context-budget` | **Manual + `context-budget.sh` green**: the fixture asserts `total_bytes` + `truncated` are emitted; `mathc context main HEAD --budget 2000` does emit them (`total_bytes`:1888, `truncated`:true observed). |
 | `developer-practices-binding` | `practice-review` | **Manual**: enforced through code review and the trap log; no automated linter. `fmt-clean.sh` and the shellcheck pre-commit hook are partial automation. |
@@ -370,7 +370,7 @@ time.)
 
 The runner accepts/rejects based on `Decision.parse_decision`,
 `Codec.parse_attestation`, `Codec.parse_waiver`. It does not
-transitively inspect array contents (OCAML_BEST_PRACTICES §11.15
+transitively inspect array contents (OCAML_KERNEL_CONVENTIONS §11.15
 explains why the `parse_array` bug was undetected by the runner for
 two years: every fixture's array fields happen to be single-element
 under the keys the runner inspects, and the runner's verdict is on
@@ -411,7 +411,7 @@ unix-only functions for `bin/`'s use".)
   `changed_files : cwd:string -> base:string -> head:string ->
   (string list, string) result`; it runs `git -C cwd diff --name-only
   base..head` via `Sys.command` with stdout redirected to a temp
-  file (avoids the `in_channel_length` on pipes trap, OCAML_BEST_PRACTICES
+  file (avoids the `in_channel_length` on pipes trap, OCAML_KERNEL_CONVENTIONS
   §11.16).
 - `lib/junit/` declares `mathcoding_junit` as a library that
   depends only on `mathcoding_core`. `lib/junit/junit.ml` is a
@@ -419,7 +419,7 @@ unix-only functions for `bin/`'s use".)
   dependency. (Source: `lib/git/dune`, `lib/git/git_diff.ml`,
   `lib/junit/dune`, `lib/junit/junit.ml`.)
 
-This split matches `OCAML_BEST_PRACTICES.md` §10.1 ("when we add
+This split matches `OCAML_KERNEL_CONVENTIONS.md` §10.1 ("when we add
 the 12th-and-onward, split"). The 12th module triggered the split
 into subdirectories.
 
@@ -453,17 +453,17 @@ recommended remedy.
 
 | # | Deficit | Reported in | Root cause | Recommended remedy |
 |---|---|---|---|---|
-| D1 | `lib/codec.ml` does not handle YAML literal-block scalars (`\|`). `decisions/*.yaml` uses `\|` for commitment/intent, so obligations/assumptions/triggers counts come back as 0 from the YAML path. `decision_id` and `revision` parse correctly because `Memory.strip_yaml_frontmatter` strips `---` locally before calling `Codec.load_yaml_string`. | `f0f80a9` (v3-alpha-0.0.7 commit message, Notes). | Hand-rolled YAML loader in `lib/codec.ml:412` is intentionally narrow (only top-level mappings with scalar values, per `decisions/kernel-conformance-runner.yaml` assumption `minimal-yaml-subset-stable`). | Extend `Codec.load_yaml_string` to handle `\|` block scalars. Must be done in `lib/codec.ml` (kernel offline, so the loader is the right place, not in `capsule`). OCAML_BEST_PRACTICES §11.19 already documents the related front-matter trap. |
-| D2 | `lib/codec.ml` does not handle `---` YAML front-matter. `decisions/*.yaml` and the front-matter of `decisions/validate-and-context.yaml` start with `---`. The local `Memory.strip_yaml_frontmatter` workaround is sufficient for `mathc context` only. | `OCAML_BEST_PRACTICES §11.19` (trap log entry written at v3-alpha-0.0.7). | Same loader limitation as D1. | Same remedy as D1; the two extensions should land together. |
-| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_BEST_PRACTICES.md` §10.5. The two tables are required to stay in lockstep (per `decisions/validate-and-context.yaml` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `decisions/validate-and-context.yaml`). | No machine check exists between the two tables. | **RESOLVED at v3-alpha-0.0.12**: see `decisions/priority-drift.yaml` obligation `priority-drift-detector` and the fixture `tests/fixtures/spec-vs-bp-priority.sh`. The fixture is invoked by `./scripts/check.sh`; it compares the priority-ordering line in `spec/semantics.md` to the mirror in `OCAML_BEST_PRACTICES.md` §10.5 and exits 1 (with a diff) on any byte-level mismatch or on exactly-one-missing. New trap-log entry `OCAML_BEST_PRACTICES.md §11.27` documents the failure mode for future maintainers. (Original recommendation was: add a fixture that diffs the two tables; until then, code review is the only enforcement. That recommendation was implemented.)
+| D1 | `lib/codec.ml` does not handle YAML literal-block scalars (`\|`). `decisions/*.yaml` uses `\|` for commitment/intent, so obligations/assumptions/triggers counts come back as 0 from the YAML path. `decision_id` and `revision` parse correctly because `Memory.strip_yaml_frontmatter` strips `---` locally before calling `Codec.load_yaml_string`. | `f0f80a9` (v3-alpha-0.0.7 commit message, Notes). | Hand-rolled YAML loader in `lib/codec.ml:412` is intentionally narrow (only top-level mappings with scalar values, per `decisions/kernel-conformance-runner.yaml` assumption `minimal-yaml-subset-stable`). | Extend `Codec.load_yaml_string` to handle `\|` block scalars. Must be done in `lib/codec.ml` (kernel offline, so the loader is the right place, not in `capsule`). OCAML_KERNEL_CONVENTIONS §11.19 already documents the related front-matter trap. |
+| D2 | `lib/codec.ml` does not handle `---` YAML front-matter. `decisions/*.yaml` and the front-matter of `decisions/validate-and-context.yaml` start with `---`. The local `Memory.strip_yaml_frontmatter` workaround is sufficient for `mathc context` only. | `OCAML_KERNEL_CONVENTIONS §11.19` (trap log entry written at v3-alpha-0.0.7). | Same loader limitation as D1. | Same remedy as D1; the two extensions should land together. |
+| D3 | No priority-drift detector between `spec/semantics.md` "context-prioritisation" and `OCAML_KERNEL_CONVENTIONS.md` §10.5. The two tables are required to stay in lockstep (per `decisions/validate-and-context.yaml` countercase), but a change to one is not auto-detected as a change to the other. | `f0f80a9` Notes (recorded as risk `priority-order-drift-between-spec-and-implementation` in `decisions/validate-and-context.yaml`). | No machine check exists between the two tables. | **RESOLVED at v3-alpha-0.0.12**: see `decisions/priority-drift.yaml` obligation `priority-drift-detector` and the fixture `tests/fixtures/spec-vs-bp-priority.sh`. The fixture is invoked by `./scripts/check.sh`; it compares the priority-ordering line in `spec/semantics.md` to the mirror in `OCAML_KERNEL_CONVENTIONS.md` §10.5 and exits 1 (with a diff) on any byte-level mismatch or on exactly-one-missing. New trap-log entry `OCAML_KERNEL_CONVENTIONS.md §11.27` documents the failure mode for future maintainers. (Original recommendation was: add a fixture that diffs the two tables; until then, code review is the only enforcement. That recommendation was implemented.)
 
 Extended at v3-alpha-0.0.16: process-principles fixture (tests/fixtures/process-principles.sh) broadens the drift-detector idea from priority tables (one instance of D3) to a class of principle-drift bugs. The new fixture enforces five machine-checkable principles (P1, P2, P5, P6, P7) and records two non-machine-checkable principles (P3 time-box, P4 merge order) as manual-acceptance obligations in decisions/process-principles.yaml. P1 (every bootstrap file has required frontmatter + body sections), P2 (every obligation declares a present verifier), P5 (no tests/cram/*.t files; cram retired in v0.0.10), P6 (scripts/check.sh exists and is executable), P7 (fixture assertions must be structural, not self-referential).) Reclassified at v3-alpha-0.0.16+process-principles-migration: the shell fixture was subsumed into `tests/process_principles.ml` (OCaml/Alcotest, registered via tests/dune). Behaviour is unchanged: same five principles asserted by the same checks, now expressed as labelled Alcotest cases in a single dune-runtest executable. |
-| D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_BEST_PRACTICES §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_BEST_PRACTICES §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
-| D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_BEST_PRACTICES §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
-| D6 | The 8 obligations in `decisions/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `decisions/decision.yaml` and `decisions/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`AGENTS.md` §Bootstrap gate). |
+| D4 | `lib/digest.ml` SHA-256 implementation has not been validated against RFC 6234 vectors. `tests/digest_vectors.ml` exists but its 3 tests are marked `xfail until Digest is fixed`. | `OCAML_KERNEL_CONVENTIONS §5` and the `xfail until Digest is fixed` label visible in `dune test` output. | Hand-rolled SHA-256 (`lib/digest.ml:1-176`); conformance corpus would skip. | Until the vectors pass, do not use `Digest.sha256_hex` for canonicalization. `OCAML_KERNEL_CONVENTIONS §10.4` item 1 lists this as the top-priority pre-3.0-beta task. |
+| D5 | `bin/mathc_main.ml` is a 1-line stale file containing the v0.0.5 hello-string. `bin/dune` lists only `Mathc`, so `mathc_main.ml` is not compiled, but it lingers in the tree. | `OCAML_KERNEL_CONVENTIONS §9.4` and §10.4 item 7 (recorded at v3-alpha-0.0.6). | History: `main.ml → mathc.ml → Mathc.ml`. | Delete `bin/mathc_main.ml`. Trivial cleanup; not blocking. |
+| D6 | The 8 obligations in `decisions/decision.yaml` have manual-only verifiers. The kernel that would auto-verify them does not exist. | `decisions/decision.yaml` and `decisions/rationale.md`. | This is the bootstrap protocol itself, not a bug. | Track; expire when the released 3.0 kernel successfully checks this repository and its conformance corpus (`KERNEL_AGENTS.md` §Bootstrap gate). |
 | D7 | `decisions/adapters.yaml` does not yet record a `git-changed-files-adapter` obligation as its own decision entry. The obligation appears in the v0.0.8 commit message and in `decisions/validate-and-context.yaml`'s `scope.capabilities`, but the adapters decision file groups it under the JUnit obligation. | `9f6d595` (the v0.0.8 commit added `decisions/adapters.yaml`; the message body is essentially empty; only `bcce74d` and `5486c13` carry the per-obligation text). | The two adapters landed in a single decision file but two implementation commits. | **RESOLVED at v3-alpha-0.0.14**: see `decisions/adapters.yaml@2`, which adds the `git-changed-files-adapter` obligation as a parallel obligation alongside the existing `junit-attestation-import` obligation (the audit's remedy (b)). The new obligation is anchored to the existing fixture `tests/fixtures/git-adapter.sh`, which is invoked by `./scripts/check.sh` and asserts that `mathc assess BASE HEAD` exits 0 and emits a JSON array containing the expected file paths. The decision file also adds the corresponding `git-changed-files-adapter` outcome, capability, and scope.paths entries (`lib/git/git_diff.ml`, `lib/git/dune`, `tests/fixtures/git-adapter.sh`), and updates `relations.addresses` to include this audit. No new dependency, no fixture changes, no kernel changes. `./scripts/check.sh` remains at 26 passes (no new failures). (Original recommendation was: either split into two decision files or leave as-is and document that one file covers two obligations. The (b) branch of that recommendation was implemented.) |
 | D8 | `mathc validate` synthesises a single coarse diagnostic ("missing or invalid required field") without naming the specific field. The kernel's `Decision.parse_decision` returns `Some _ \| None`, not a typed `Diagnostic.t option`. | `decisions/validate-and-context.yaml` assumption `parse-decision-rejection-reason-coarse`. | Decision parser is binary accept/reject; finer diagnostics are a 3.0-beta item. | Promote `Decision.parse_decision` to return `Diagnostic.t option` in 3.0-beta; until then, the coarse diagnostic is documented. |
-| D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `doc/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `decisions/spec-cli-catalog.yaml` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mathc validate`, `mathc context`, `mathc assess`, `mathc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
+| D4′ | **NEW D4 (parent task label; renamed `D4′` here to disambiguate from the SHA-256 deficit above).** The mathc CLI subcommand list (version, validate, context, assess, attest, gate, session-start, record, stats, time-estimate) was documented only in `bin/Mathc.ml`'s header comment; the spec named only the priority order and exit codes. The audit's §Process improvements item 13 named this gap. | `docs/AUDIT-0.0.11.md` §Process improvements item 13. | The spec describes kernel semantics; the CLI surface was an implementation summary. | **RESOLVED at v3-alpha-0.0.13**: see `decisions/spec-cli-catalog.yaml` obligation `spec-cli-catalog-promoted` (this is the new decision file) and the fixture `tests/fixtures/spec-catalog-present.sh`. The new `spec/semantics.md` "CLI subcommands" section enumerates every subcommand bin/Mathc.ml implements at HEAD with synopsis, input, output, exit code, and the bootstrap obligation that justifies each. The fixture is invoked by `./scripts/check.sh` and exits 1 with the missing-name list on any absent canonical subcommand. `bin/Mathc.ml` is unchanged. (Original recommendation was: a spec section listing `mathc validate`, `mathc context`, `mathc assess`, `mathc attest`. That recommendation was implemented, and extended to the full ten-subcommand surface.) |
 
 The parent task instruction also listed three deficits to ensure
 are covered:
@@ -509,9 +509,9 @@ documentation gap, not a policy deficit.)
 
 ---
 
-## Gaps vs OCAML_BEST_PRACTICES §10.4
+## Gaps vs OCAML_KERNEL_CONVENTIONS §10.4
 
-`OCAML_BEST_PRACTICES.md` §10.4 lists 10 items the project
+`OCAML_KERNEL_CONVENTIONS.md` §10.4 lists 10 items the project
 should write next, prioritized. Status at HEAD `1b48db2`:
 
 | # | §10.4 item | Status | Why deferred |
@@ -536,18 +536,18 @@ should write next, prioritized. Status at HEAD `1b48db2`:
 | `bisect_ppx` coverage | Coverage of the kernel is well-exercised by the 9 conformance cases; coverage of adapters will be useful when the MCP adapter lands. Defer until then. |
 | `ppx_expect` snapshot tests | Useful for the `mathc context` capsule output and the JUnit JSON rendering. Defer to 0.0.12. |
 | `core_bench` benchmarks | No performance budget yet. Defer. |
-| MCP server (`lib/mcp/server.ml`) | Adapter split is ready (`OCAML_BEST_PRACTICES §10.1`); the obligation is not yet recorded. Candidate for v0.0.12 (a separate decision under `decisions/`). |
+| MCP server (`lib/mcp/server.ml`) | Adapter split is ready (`OCAML_KERNEL_CONVENTIONS §10.1`); the obligation is not yet recorded. Candidate for v0.0.12 (a separate decision under `decisions/`). |
 
 ---
 
 ## Trap log summary
 
-`OCAML_BEST_PRACTICES.md` §11 contains **21 trap-log entries**:
+`OCAML_KERNEL_CONVENTIONS.md` §11 contains **21 trap-log entries**:
 §11.1, §11.2, §11.3, §11.4, §11.5, §11.6, §11.7, §11.8, §11.9,
 §11.10, §11.11, §11.12, §11.13, §11.14, §11.15, §11.16, §11.17,
 §11.18, §11.19, §11.20, §11.21.
 
-(Source: `grep -cE '^### 11\.' OCAML_BEST_PRACTICES.md` = 21.)
+(Source: `grep -cE '^### 11\.' OCAML_KERNEL_CONVENTIONS.md` = 21.)
 
 Note: §11.12 appears between §11.11 and §11.13 in the file; the
 section numbering is not strictly monotonic. The header listing
@@ -572,7 +572,7 @@ above preserves source order.
    pattern-match.
 
 (§11.16, §11.15, §11.14, §11.13, §11.12 are also recent and
-relevant; see `OCAML_BEST_PRACTICES.md` §11.15 for the
+relevant; see `OCAML_KERNEL_CONVENTIONS.md` §11.15 for the
 parse_array-loss trap that `jsonl-array-parser-fixed` closed.)
 
 ---
@@ -656,7 +656,7 @@ and any preconditions.
 ### Items explicitly NOT recommended
 
 - Adding `yojson` to the kernel. The kernel stays offline
-  (OCAML_BEST_PRACTICES §7.3). The hand-rolled parser in
+  (OCAML_KERNEL_CONVENTIONS §7.3). The hand-rolled parser in
   `lib/jsonl.ml` is sufficient and battle-tested through the 9
   conformance cases.
 - Adopting cmdliner. `cmdliner` is in `devShells.test` only;
@@ -671,7 +671,7 @@ and any preconditions.
 
 ## Provenance and evidence hierarchy
 
-Per `AGENTS.md` §Evidence:
+Per `KERNEL_AGENTS.md` §Evidence:
 
 - **Declared** — facts recorded in this document. (Most facts
   here.)

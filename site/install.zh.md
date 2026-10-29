@@ -42,7 +42,7 @@ docker run --rm -v "$PWD:/repo" \
 ```
 
 同一命令可用于任何子命令。把 `<VERSION>` 替换为发布
-tag（例如 `v3.3.0`），或替换为 `edge` 以获得 main 上
+tag（例如 `v3.7.4`），或替换为 `edge` 以获得 main 上
 最新提交。`:edge` tag 会在每次推送到 main 时重建并
 重新发布；每日健康检查 workflow 会断言镜像仍然可以
 运行。
@@ -96,7 +96,7 @@ mathc init .                 # 生成 decisions/、attestations/
 # decisions/decision.yaml、.githooks/
 ```
 
-`mathc init`（决策 `ux-3-init-subcommand-2026-10`）：
+`mathc init`（决策 `archive/decisions/ux-3-init-subcommand-2026-10.yaml`）：
 
 - 在目标目录中创建 `decisions/` 与 `attestations/`。
 - 写入 `decisions/decision.yaml`，包含当前策略（对
@@ -162,5 +162,5 @@ musl 二进制。
 - 在 `USAGE.md` — 采用运行手册（二进制安装 + 首个决策）。
 - 在 `decisions/install-tooling-2026-10.yaml` — 引入这
   四个渠道的决策。
-- 在 `OCAML_BEST_PRACTICES.md` §11.28（`curl | sh`
+- 在 `OCAML_KERNEL_CONVENTIONS.md` §11.28（`curl | sh`
   安装脚本及 `-fSL` 标志的纪律）。

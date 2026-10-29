@@ -14,13 +14,13 @@
 <section class="mathc-section mathc-quickstart">
 <h2>Быстрый старт &mdash; 60&nbsp;секунд</h2>
 <ol class="mathc-steps">
-<li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>
+<li><code>curl -sSfL https://github.com/11111000000/math-coding/releases/latest/download/install.sh | sh</code><br>
 Устанавливает бинарник <code>mathc</code> и кладёт user-skill в <code>~/.config/opencode/skills/</code>.</li>
 <li><code>mathc new-decision my-first-change</code><br>
 Создаёт <code>decisions/my-first-change.yaml</code> по шаблону, валидирует его и сообщает, чего не хватает.</li>
 <li><code>mathc self-check</code><br>
 Читает хранилище решений, обходит каждое обязательство и печатает
-по строке вердикта: <code>pass</code>, <code>fail</code>, <code>unknown</code>, <code>stale</code> или <code>missing</code>. CI завершается с ненулевым кодом при любом не-pass.</li>
+по строке вердикта: <code>pass</code>, <code>open-with-waiver</code>, <code>fail</code> (написание self-check для <code>block</code>) или <code>unknown</code>. CI завершается с ненулевым кодом при любом не-pass.</li>
 </ol>
 </section>
 <section class="mathc-section mathc-moderation">
@@ -47,14 +47,14 @@
 
   verdict:   <span class="mathc-verdict-unknown">unknown</span>
 
-  exit:      1</code></pre>
+  exit:      3</code></pre>
 <p>Подкоманда <code>gate</code> оценивает изменение по активной
 политике. <code>self-check</code> &mdash; её машиночитаемый
 вариант, рассчитанный на запуск в CI на каждом push и каждом merge.</p>
 </section>
 <section class="mathc-section mathc-methodology">
 <h2>Методология</h2>
-<p class="mathc-section-lede">Четыре примитива, каждый &mdash; обычный файл, который можно
+<p class="mathc-section-lede">Шесть стадий цепочки, каждая &mdash; обычный файл, который можно
 грепать, ревьюить и откатывать:</p>
 <div class="mathc-cards">
 <article class="mathc-card">
@@ -72,10 +72,18 @@
 <p>Утверждение, которое можно проверить кодом: фикстура, свойство, бенчмарк, статическое правило. У каждого есть вердикт.</p>
 </article>
 <article class="mathc-card">
+<h3>Change</h3>
+<p>Диф, попадающий в <code>main</code>, связанный с теми обязательствами, которых он касается.</p>
+</article>
+<article class="mathc-card">
 <h3>Attestation</h3>
 <p>Доказательство, что обязательство выполнено на конкретном
 коммите. Тесты, ревью, аудиты &mdash; всё хранится как
 first-class артефакты, не как скриншоты.</p>
+</article>
+<article class="mathc-card">
+<h3>Revision</h3>
+<p>Следующее решение, которое продолжает обязательство &mdash; или заменяет его, и это решение выносится явно.</p>
 </article>
 </div>
 <p class="mathc-section-more">

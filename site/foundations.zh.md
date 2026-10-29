@@ -35,11 +35,13 @@ A0 图示（如上方公理图所示）本身就是 A0 的一次实践：
 
 **机制。** `attestations/*.json` 将每个决策-义务对记录为
 `pass | fail | stale | unknown | missing | no_store` 之一。
-`lib/attestations.ml` 加载存储并将其每条记录与内核闸门
+`lib/attestations/attestations.ml` 加载存储并将其每条记录与内核闸门
 进行连接。
 
-**验证。** `scripts/generate-attestations.py` 在每次发布时
-生成 94 个证据文件；`mathc gate BASE HEAD` 报告
+**验证。** 证据存储由 CI 生成，不随仓库提交
+（`decisions/store-not-committed-2026-10.yaml`；发布路径为
+`scripts/sign-store.sh`），其实时计数来自
+`mathc counters --format=json`；`mathc gate BASE HEAD` 报告
 `gate-pass.t` / `gate-fail.t` / `gate-stale.t` 为绿色
 （cram 装置在 `tests/cli/` 下）。
 
@@ -123,10 +125,9 @@ A4 表明内核存在是因为人有所关怀，而有所关怀的人
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON 判定 | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → 包列表 | `packages.t` |
 
-v3.3.0 版的内核在其之上提供了 3.2-理想代数。站点的
+v3.7.4 版的内核在其之上提供了 3.2-理想代数。站点的
 [Packages](packages.html) 页是每个活跃决策的实时判定；
-当前构建报告 93 个活跃决策 / 330 项义务（313 pass /
-16 missing / 1 unknown）。
+实时计数来自 `mathc counters --format=json`。
 
 ## 支撑图示
 
@@ -192,7 +193,7 @@ silent 包络内；模式变更位于 block 包络内。
 质量的不同方面；底线由策略设定。想要了解变更为何被
 拒绝的审阅者可以阅读雷达图，看哪条轴低于底线。
 
-![三个独立的时间报告尺度：wall-clock-minutes、token-budget、step-count。三个尺度可独立观察，不得合并为单一自然语言估计（AGENTS.md section Honest time reporting；algebra section 18）。](assets/reasoning-budget.svg)
+![三个独立的时间报告尺度：wall-clock-minutes、token-budget、step-count。三个尺度可独立观察，不得合并为单一自然语言估计（KERNEL_AGENTS.md section Honest time reporting；algebra section 18）。](assets/reasoning-budget.svg)
 
 推理预算图强制执行项目诚实报告时间的规则。三个尺度
 （wall-clock 分钟、token budget、step count）可独立

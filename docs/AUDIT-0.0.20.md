@@ -18,12 +18,12 @@ adds the site + `mathc packages` + `mathc render` capabilities.
 
 | What | Where | Closes |
 |------|-------|--------|
-| Site generator (`mathc render`) + 12 articles under `site/` | `lib/render.ml`, `bin/Mathc.ml` (`render` subcommand), `scripts/render.sh` | `decisions/site-deploy.yaml` |
+| Site generator (`mathc render`) + 12 articles under `site/` | `lib/render/render.ml`, `bin/Mathc.ml` (`render` subcommand), `scripts/render.sh` | `decisions/site-deploy.yaml` |
 | Site workflow (`.github/workflows/site.yml`) | `.github/workflows/site.yml` | `decisions/site-deploy.yaml` |
 | `mathc packages` subcommand | `lib/packages.ml`, `bin/Mathc.ml` | `decisions/mathc-packages-subcommand.yaml` |
 | `scripts/dev close-branches` | `scripts/dev` | `decisions/process-principles.yaml` (D10 closed) |
 | Decision-fixture co-commit pre-commit hook | `.githooks/pre-commit`, `flake.nix` | `decisions/process-principles.yaml` (P2 machine-checked) |
-| Editorial sync | `AGENTS.md`, `ROADMAP.md`, `PACKAGES.md` | marks bootstrap as expired |
+| Editorial sync | `KERNEL_AGENTS.md`, `ROADMAP.md`, `PACKAGES.md` | marks bootstrap as expired |
 | Branch cleanup | 19 stale refs (local + remote) | reduces visual debt in `git branch -a` |
 | D6 close | `decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | bootstrap-v3 verifiers now machine-checked |
 
@@ -37,7 +37,7 @@ v3.0.0.20        post-bootstrap: site, packages, render, D6 closed
 
 ## Bootstrap-expiry statement
 
-Per `AGENTS.md §Bootstrap gate`, the bootstrap protocol expired at
+Per `KERNEL_AGENTS.md §Bootstrap gate`, the bootstrap protocol expired at
 commit `8fa7fcf`. Concretely:
 
 - `mathc self-check` is a blocking CI step. A clean `main` HEAD
@@ -53,9 +53,9 @@ commit `8fa7fcf`. Concretely:
 From this release forward, **assessment verdicts produced by
 `mathc gate`, `mathc self-check`, and `mathc assess` are automated
 guarantees, not manual declarations**. The eight manual
-bootstrap checks in `AGENTS.md §Bootstrap gate` remain as
+bootstrap checks in `KERNEL_AGENTS.md §Bootstrap gate` remain as
 *additive* obligations on protected policy transitions (see
-`AGENTS.md §Self-application`).
+`KERNEL_AGENTS.md §Self-application`).
 
 ## Evidence
 

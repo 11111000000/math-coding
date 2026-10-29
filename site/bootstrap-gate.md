@@ -15,16 +15,8 @@ they are not enforced.
 Math-coding 3.0-alpha began life in that state. From the first
 commit (`v3-alpha-0.0.1`, 26 Sep 2026) to the moment the gate
 expired (commit `8fa7fcf`, 29 Sep 2026), every change had to
-satisfy eight manual checks:
-
-- the intended behavior and affected capabilities are explicit;
-- known invariants are preserved or deliberately revised;
-- the strongest relevant counterexample has been considered;
-- planned evidence is available or its absence is declared;
-- every known blocking deficit has a remedy;
-- rollback or forward recovery exists for irreversible work;
-- specification changes include positive and negative fixtures;
-- no automated guarantee is claimed.
+satisfy eight manual checks. The list is normative, and it is
+kept in one place: `KERNEL_AGENTS.md` §Bootstrap gate.
 
 These checks are not removed when the gate expires. They remain
 *additive* obligations for protected policy transitions (changes
@@ -40,16 +32,14 @@ The gate expired at commit `8fa7fcf` (v3.0.0.19). Concretely:
   the step prints `self-check exit=0` and the JSON payload
   contains `verdict=pass` for every obligation whose verdict
   is `Pass` or `Open_with_waiver`. PRs that yield `fail`
-  (exit 1) or `unknown` (exit 3) block the merge. The live
-  build currently reports 57 pass / 1 unknown of 58 subjects;
-  the one `unknown` is `audit-0.0.21-fixes::self-check-verdict-is-pass`,
-  structurally inconclusive by construction (it can never be
-  `pass` while any other subject contributes to `unknown`),
-  and is mapped to `Open_with_waiver` by the kernel's
-  waiver-consult step.
+  (exit 1) or `unknown` (exit 3) block the merge. The live subject
+  counts come from `mathc self-check`; a subject can be `unknown`
+  while it is structurally inconclusive, and the kernel's
+  waiver-consult step maps it to `Open_with_waiver`.
 - The attestation store at `attestations/` contains one JSON
   file per decision-obligation pair enumerated by the kernel
-  walker. The live build carries 260 attestations.
+  walker. The live count is `mathc counters --format=json`
+  (`attestations.live_store`).
 - `mathc gate BASE HEAD` reports verdicts against the populated
   store: `gate-pass.t`, `gate-fail.t`, `gate-stale.t` are
   green.
@@ -72,7 +62,7 @@ merge is allowed.
 ## The eight checks, post-expiry
 
 For protected policy transitions the eight manual checks remain
-binding. They are documented in `AGENTS.md §Self-application` and
+binding. They are documented in `KERNEL_AGENTS.md §Self-application` and
 governed by axiom A3 (the rules govern their own changes). The
 kernel enforces routine checks automatically; humans enforce
 constitutional ones. The two regimes coexist.

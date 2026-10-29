@@ -17,8 +17,9 @@ twenty neighbouring methodologies is at
 ## Why this exists
 
 Decisions get forgotten — but not because nobody writes
-them down. They do: `docs/adr/0007-cache-revocation.md`,
-`specs/checkout-flow.md`, an LLM-as-judge pipeline in CI.
+them down. They do: `decisions/decision.yaml`,
+`decisions/adoption-friction-p0-2026-10.yaml`, an LLM-as-judge
+pipeline in CI.
 By the third release the original reason is no longer
 recoverable without an archaeologist. The code drifts away
 from the intent because we conflate two different actions:
@@ -90,25 +91,15 @@ answer to the question "where does the human fit in an
 automated protocol?" The answer: at three roles and five
 points. The kernel is the floor; the human is the ceiling.
 
-## Principles at v3.0
+## Principles
 
-The kernel verifies the obligations declared in every
-active decision (52 active decisions / 207 obligations
-on a clean `main` HEAD per the latest build), all
-documented as packets under `decisions/`. Eight of those
-packets form the minimum set that closes the bootstrap
-loop:
-
-| Group | Principle | What it asserts |
-|-------|-----------|-----------------|
-| foundation | `bootstrap-v3` | the kernel can check this repository |
-| foundation | `kernel-conformance-runner` | every fixture is enumerated and run |
-| foundation | `validate-and-context` | every decision parses and exposes a capsule |
-| foundation | `gate-decision` | the gate verdict is machine-checked |
-| foundation | `attestation-store-fill` | the attestation store is populated |
-| extension | `mathc-explain-subcommand` | `mathc explain` resolves a `decision:` ref |
-| extension | `mathc-self-check-subcommand` | `mathc self-check` returns an automated verdict |
-| extension | `mathc-packages-subcommand` | `mathc packages` is a first-class surface |
+The kernel verifies the obligations declared in every active
+decision, all documented as packets under `decisions/`. Eight of
+those packets form the minimum set that closes the bootstrap loop.
+The canonical list is the master policy's obligations in
+`decisions/decision.yaml`; the axiom → kernel-mechanism →
+verification-obligation mapping is in
+[Foundations](foundations.html).
 
 The eight are not arbitrary. They are the minimum set that
 closes the bootstrap loop: from the first commit

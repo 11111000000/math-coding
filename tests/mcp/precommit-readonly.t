@@ -48,14 +48,15 @@ path now names `decisions/ux-3-precommit-subcommand-2026-10.yaml`
 -- the decision this very fixture's preamble credits with
 exposing `mathc/precommit`. It is a stable choice:
 `mathc precommit` returns `accept` for superseded decisions
-too (verified against disable-counters-drift-test-2026-10),
-and check.sh's `decisions-precommit` step already requires
+too (the decision it was verified against was a work record and
+the census removed it; the check below names a live decision), and
+check.sh's `decisions-precommit` step already requires
 every file in `decisions/` to pass, so naming a real file
 adds no failure mode the suite does not already carry.
 
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
-  >     '{"jsonrpc":"2.0","id":2,"method":"mathc/precommit","params":{"paths":["decisions/ux-3-precommit-subcommand-2026-10.yaml","/tmp/nope-precommit-mcp.yaml"]}}' \
+  >     '{"jsonrpc":"2.0","id":2,"method":"mathc/precommit","params":{"paths":["decisions/algebra-3.2.yaml","/tmp/nope-precommit-mcp.yaml"]}}' \
   >     | mathc_mcp > /tmp/precommit-readonly-2.json 2>/dev/null; then \
   >   grep -q '"id":2' /tmp/precommit-readonly-2.json \
   >     && grep -q '"input_err":1' /tmp/precommit-readonly-2.json \

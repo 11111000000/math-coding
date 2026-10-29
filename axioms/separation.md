@@ -63,9 +63,9 @@ which is decided by an explicit `Decision` carrying a `supersedes` relation.
 - `spec/semantics.md` — evaluation rules follow the chain.
 - `schemas/*.json` — required fields per kind.
 - `lib/domain.ml` — concrete variants for each kind.
-- `OCAML_BEST_PRACTICES.md` §2.1 — variants over records for sealed
+- `OCAML_KERNEL_CONVENTIONS.md` §2.1 — variants over records for sealed
   cases.
-- `OCAML_BEST_PRACTICES.md` §3.2 — `parse_acceptance` refactor target
+- `OCAML_KERNEL_CONVENTIONS.md` §3.2 — `parse_acceptance` refactor target
   (don't conflate Verifier and Review into one match).
 
 ## Formalization
@@ -107,7 +107,7 @@ in tag `v2.1-final`).
 If `Attestation.subject` were allowed to point at a `Decision` *without*
 naming an `Obligation`, then the attestation would conflate "verified
 that the decision exists" with "verified that the obligation holds".
-This is the failure mode described in `OCAML_BEST_PRACTICES.md` §10.1
+This is the failure mode described in `OCAML_KERNEL_CONVENTIONS.md` §10.1
 (adapters must produce `Diagnostic.t` so subjects remain explicit).
 
 ## What an agent must do when the axiom seems to fail

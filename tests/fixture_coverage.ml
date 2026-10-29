@@ -745,9 +745,13 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
      directions -- a new leak fails the run, and paying debt down fails
      until the pin is updated, which is the point.
 
-     The baseline was 55 and is 39 since 2026-10-28: the corpus census
-     archived 16 decisions that carried absolute verifier paths, and a
-     debt that is paid down is a debt that is paid down. *)
+     The baseline was 55, was 39 since 2026-10-28 (the corpus census
+     archived 16 decisions that carried absolute verifier paths), and
+     is ZERO since 2026-10-29: the decision-level census removed the
+     last decisions whose verifiers named absolute paths, so no
+     verifier in the corpus names a target outside the repository any
+     more. A debt that is paid down is a debt that is paid down, and
+     this one is paid. *)
   let remaining =
     List.filter
       (fun (_, p) -> is_absolute_path p && not (is_worktree_path p))
@@ -759,9 +763,15 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
       "Verifier paths still absolute (outside the worktree shape):\n";
     List.iter (fun (k, p) -> Printf.printf "  %s: %s\n" k p) remaining
   end;
+  (* The pin names the debt in the failure message: a baseline that
+     fails without saying how much is left is a number nobody can pay
+     down. *)
   Alcotest.(check int)
-    "remaining absolute verifier paths match the recorded debt baseline" 39
-    n_remaining
+    (Printf.sprintf
+       "remaining absolute verifier paths match the recorded debt baseline \
+        (the baseline is %d, the corpus now holds %d)"
+       0 n_remaining)
+    0 n_remaining
 
 let () =
   Alcotest.run

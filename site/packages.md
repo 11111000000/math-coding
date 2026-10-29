@@ -1,6 +1,6 @@
 # Packages
 
-math-coding 3.3.0. Every row
+math-coding 3.7.4. Every row
 > is a decision-obligation pair the kernel knows about; every
 > verdict is the kernel's current assessment.
 
@@ -30,20 +30,10 @@ surface, every consumer reads the same kernel output.
 mathc packages --format=json | jq '.counts'
 ```
 
-gives the live aggregate:
-
-```text
-{
-  "fail": 0,
-  "missing": 0,
-  "no_store": 0,
-  "pass": 23,
-  "stale": 0,
-  "total": 23,
-  "unknown": 0,
-  "waived": 0
-}
-```
+gives the live aggregate — the decision, obligation and verdict
+counts the kernel knows about. This page deliberately does not
+restate them: every attestation commit moves them, and the live
+numbers live in the kernel's output, not in prose.
 
 The grid below the prose is the HTML form, embedded by
-`lib/render.ml`. The kernel writes both.
+`lib/render/render.ml`. The kernel writes both.

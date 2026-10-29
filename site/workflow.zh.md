@@ -50,13 +50,15 @@ obligation:
 ## 3. 实现
 
 修改 `lib/packages.ml` 与 `bin/Mathc.ml` 以兑现承诺。
-实现保持纯 OCaml、无副作用，约 700 行外加二进制。
+实现保持纯 OCaml 且无副作用。
 
 ## 4. 证据
 
-每次实现之后运行 `scripts/generate-attestations.py`。
-脚本会为每一对包裹生成
-`attestations/<sha>.json`。提交这些 JSON 文件。
+为内核遍历到的每一对生成证据：`attestations/<sha>.json`。
+该存储由流水线生成，不随仓库提交
+（`decisions/store-not-committed-2026-10.yaml`）；发布路径为
+`scripts/sign-store.sh`，实时计数来自
+`mathc counters --format=json`。
 
 ## 5. 闸门
 

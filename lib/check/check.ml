@@ -61,15 +61,32 @@ let mathc_resolve () : string =
    (the OCaml `Sys.readdir` order is platform-dependent; the
    cram fixture asserts `total >= 1` rather than a specific
    sequence). *)
+(* ONE corpus walk: the kernel's own walker
+   (`Memory.decision_document_paths`), which recurses into the
+   subdirectories. `mathc precommit` is the check the commit hook
+   runs over the WHOLE corpus, and a walk that saw one directory
+   meant twelve decisions were never validated by anything. *)
+let read_file path : string =
+  try
+    let ic = open_in_bin path in
+    let n = in_channel_length ic in
+    let b = really_input_string ic n in
+    close_in ic;
+    b
+  with _ -> ""
+
+(* The corpus's STRUCTURAL rule, not a list of names: a document that
+   declares no id, or that belongs to a non-decision schema family
+   (a waiver, a migration manifest), is not a decision and is not
+   validated as one. *)
+let is_decision_document path : bool =
+  match Memory.decision_document_id ~raw:(read_file path) with
+  | Some _ -> true
+  | None -> false
+
 let list_yaml_files ~root : string list =
   let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
-  if not (Sys.file_exists dir && Sys.is_directory dir) then []
-  else begin
-    Array.to_list (Sys.readdir dir)
-    |> List.filter (fun n -> Filename.check_suffix n ".yaml" && n.[0] <> '.')
-    |> List.map (fun n -> Filename.concat dir n)
-    |> List.sort String.compare
-  end
+  Memory.decision_document_paths dir |> List.filter is_decision_document
 
 (* --- per-file validation --- *)
 

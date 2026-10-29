@@ -16,9 +16,8 @@ Mathcoding 是在每一次合并之前，将每一个有意义的变更与
 
 链条由内核强制。内核不会向链条中写入新的内容——它
 只是 *检查* 人们所写的内容是否诚实。（A0 分离：证据
-不是观察；决策不是义务；变更尚未被认证。）内核产出
-判定（`pass`、`fail`、`unknown`、`waived`、`stale`、
-`missing`）；行动者依然是人。
+判定（`pass`、`open-with-waiver`、`block`、`unknown` —— 即
+`spec/semantics.md` §4.3 的四值词汇表）；行动者依然是人。
 
 图中所展示的七种类不是层级，而是一份契约。每一类都是
 具有独立目的的独立对象：
@@ -93,7 +92,7 @@ bootstrap 闸门的 `pass` 意味着已发布的内核能够成功
 
 ## 摩擦级别
 
-Mathcoding 并不统一。有些变更属于 silent（确定性检查
+方法论并不统一。有些变更属于 silent（确定性检查
 确认未发生有意义的变化）；有些需要记录 record（决策 +
 义务）；有些需要 *ask*（必须有审查者介入）；有些会
 **block**（内核拒绝合并）。阶梯为：
@@ -104,7 +103,7 @@ silent < record < ask < block
 
 内核选择最低充分级别。内核可以提高摩擦，但绝不会降低。
 
-![摩擦阶梯：silent（顶层，内核选择）之下 ask（人工审阅）之下 block（底层，内核拒绝）。四级阶梯配有摩擦包络、代表性的代提交类型、闸门姿态以及 AGENTS.md friction ladder 与 A3 self-application 要求的签署人。](assets/friction-ladder.svg)
+![摩擦阶梯：silent（顶层，内核选择）之下 ask（人工审阅）之下 block（底层，内核拒绝）。四级阶梯配有摩擦包络、代表性的代提交类型、闸门姿态以及 KERNEL_AGENTS.md friction ladder 与 A3 self-application 要求的签署人。](assets/friction-ladder.svg)
 
 摩擦阶梯有一条横向轴（摩擦包络）与一条纵向轴（介入
 级别）。请注意四级与四条风险带之间的对齐：
@@ -140,7 +139,7 @@ silent < record < ask < block
 中的人类之声；`attestations/*.json` 中的证据是机器
 之声。内核读取机器之声并产出判定；人读取人类之声并
 产出修订。两种声音必须达成一致。本站中有一份已完成的
-示例。仓库中的 README、ROADMAP、PACKAGES 与 AGENTS 文件
+示例。仓库中的 README、ROADMAP、PACKAGES 与 KERNEL_AGENTS 文件
 本身也是方法论的输入。
 
 证据生命周期是内核与 CI 之间的契约：
@@ -167,7 +166,6 @@ silent < record < ask < block
 ![math-coding 内核流水线：input -> schema -> parser -> attestation join -> self-check -> gate。每个阶段产出下一阶段消费的制品。内核不捏造内容；它只是检查人们所写的内容是否诚实。](assets/kernel-architecture.svg)
 
 上面的流水线就是架构。图中的每个方框都是内核的一个
-模块。每条箭头都是一次函数调用。内核小到可以在半天内
-审计完（它是一个约七千行 OCaml 代码加上传递模块组成的
-二进制）。方法论则相反——它是作为人，决定如何处理内核
-判定的那件事；而 A4 要求的，正是以关怀做出这一决定。
+模块。每条箭头都是一次函数调用。方法论则相反——它是
+作为人，决定如何处理内核判定的那件事；而 A4 要求的，
+正是以关怀做出这一决定。

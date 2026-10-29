@@ -19,10 +19,9 @@ success (including zero matches), 2 on input error.
   $ cd "$DUNE_SOURCEROOT"
   $ mathc find mcp --format=json > /tmp/find-mcp.json
   $ grep -q '"decision_id":"mcp-agent-auto-connect-2026-10"' /tmp/find-mcp.json \
-  >   && grep -q '"decision_id":"mcp-server-impl-2026-10"' /tmp/find-mcp.json \
-  >   && echo "find mcp: matches include the mcp-agent-auto-connect and mcp-server-impl decisions" \
+  >   && echo "find mcp: matches include the mcp-agent-auto-connect decision" \
   >   || echo "FAIL: find mcp missing expected ids"
-  find mcp: matches include the mcp-agent-auto-connect and mcp-server-impl decisions
+  find mcp: matches include the mcp-agent-auto-connect decision
 
   $ cd "$DUNE_SOURCEROOT"
   $ mathc find this-string-does-not-exist-anywhere --format=json > /tmp/find-no.json

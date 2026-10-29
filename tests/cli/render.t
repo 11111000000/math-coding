@@ -56,7 +56,7 @@ under `--lang=all`.
   $ grep -qF 'lang="zh"' $tmpdir/dist/index.zh.html
   $ grep -qF 'mathjax@3' $tmpdir/dist/methodology.html
   $ grep -qF 'class="sidenote"' $tmpdir/dist/manifesto.html
-  $ grep -qF '<table class="mathc-table"' $tmpdir/dist/manifesto.html
+  $ grep -qF 'decisions/decision.yaml' $tmpdir/dist/manifesto.html
   $ grep -qF '<strong>' $tmpdir/dist/manifesto.html
   $ grep -qF '<a href="axioms.html"' $tmpdir/dist/workflow.html
   $ grep -qF 'class="github-link"' $tmpdir/dist/index.html
