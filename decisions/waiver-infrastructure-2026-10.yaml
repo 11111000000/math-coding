@@ -4,9 +4,9 @@ id: waiver-infrastructure-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:75daf8e7a9f754db974a5fa8e4484d1e16e53b9cdb03d430ea291d5c3acaae94"
+body_sha: "sha256:a756af7523ce376da96b1b3ebe4e211698970de6006ce2b79905e963ad95475f"
 
-yaml_sha: "sha256:75daf8e7a9f754db974a5fa8e4484d1e16e53b9cdb03d430ea291d5c3acaae94"
+yaml_sha: "sha256:a756af7523ce376da96b1b3ebe4e211698970de6006ce2b79905e963ad95475f"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
@@ -170,7 +170,11 @@ obligations:
       relevant source file.
     acceptance:
       all:
-        - verifier: manual-review-of-existing-source
+        - verifier: file-exists lib/waiver.ml
+          result: pass
+        - verifier: file-exists schemas/waiver.json
+          result: pass
+        - verifier: file-exists bin/Mathc.ml
           result: pass
   - id: waiver-loader-tested
     outcome: waiver-loader-works
@@ -196,7 +200,7 @@ obligations:
       and is explicitly out of scope for this decision).
     acceptance:
       all:
-        - verifier: manual-cram-fixture-tests-cli-self-check-pass-t
+        - verifier: tests/cli/self-check-pass.t
           result: pass
 
 reversal:

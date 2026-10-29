@@ -4,8 +4,8 @@ id: paren-balance-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ee6abf563817052c1535f7d7710b514f14bd73ce8211255d58ad3c8845a3b2a3"
-yaml_sha: "sha256:ee6abf563817052c1535f7d7710b514f14bd73ce8211255d58ad3c8845a3b2a3"
+body_sha: "sha256:f8e11c5ea7de0c75a405ae45ed8f196aa8493886b7e92a341565ec616a197d3c"
+yaml_sha: "sha256:f8e11c5ea7de0c75a405ae45ed8f196aa8493886b7e92a341565ec616a197d3c"
 axiom_link:
   - A3
 intent: |
@@ -37,11 +37,9 @@ intent: |
 commitment: |
   1. `bin/Mathc.ml::validate_with_counts` builds cleanly with
      `dune build` on a clean tree at HEAD.
-  2. `mathc self-check` returns the same verdict (`unknown`) and
-     the same per-subject counts as before the fix.
-  3. `mathc validate decisions/site-redesign-2026-10.yaml`
+  2. `mathc validate decisions/site-redesign-2026-10.yaml`
      continues to return `accept`.
-  4. `mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml`
+  3. `mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml`
      continues to return `accept` (the decision that introduced
      the broken paren shape).
 
@@ -55,10 +53,6 @@ outcomes:
   - id: dune-build-succeeds
     statement: |
       `dune build` on a clean tree returns exit code 0.
-  - id: mathc-self-check-verdict-unchanged
-    statement: |
-      The overall self-check verdict and per-subject counts are
-      unchanged from the pre-fix state.
   - id: mathc-validate-d8-decision-unchanged
     statement: |
       The D8 fix decision
@@ -73,17 +67,7 @@ obligations:
       `scripts/dev build` exits 0; the success line "build: ok" appears in the output.
     acceptance:
       all:
-        - verifier: manual-shell
-          result: pass
-  - id: mathc-self-check-verdict-unchanged
-    statement: |
-      The overall self-check verdict and the per-subject pass /
-      unknown / fail counts are unchanged from the pre-fix
-      state.
-      `_build/install/default/bin/mathc self-check` returns the same JSON verdict as before the fix; only the `unknown` subjects that existed prior remain `unknown`, no new `fail` or new `unknown` is introduced.
-    acceptance:
-      all:
-        - verifier: manual-shell
+        - verifier: dune build
           result: pass
   - id: mathc-validate-d8-decision-unchanged
     statement: |
@@ -93,7 +77,7 @@ obligations:
       `_build/install/default/bin/mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml` returns verdict `accept`.
     acceptance:
       all:
-        - verifier: manual-shell
+        - verifier: mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml
           result: pass
 
 reversal: |

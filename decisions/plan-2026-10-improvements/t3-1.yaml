@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-1-gate-v30-risk-aware
 revision: 1
 state: active
-body_sha: "sha256:41dbb8ed1efc0e79d03ae9fec81fcde0eea2994f64bbce57a943788b5d506212"
-yaml_sha: "sha256:41dbb8ed1efc0e79d03ae9fec81fcde0eea2994f64bbce57a943788b5d506212"
+body_sha: "sha256:7e4c59b7fb73558f87ba1ff9eaddbc493858d5652e547c5c2a9353c0cf6d7271"
+yaml_sha: "sha256:7e4c59b7fb73558f87ba1ff9eaddbc493858d5652e547c5c2a9353c0cf6d7271"
 axiom_link:
   - A0
   - A1
@@ -242,11 +242,15 @@ obligations:
       `rebuttal_gating_for_mode` returns `` `Required `` for
       `` `Strict `` and `` `Exhaustive ``, and `` `Optional ``
       for `` `Tiny ``, `` `Light ``, and `` `Standard ``.
+      The Exhaustive branch is pinned end to end by
+      `tests/cli/gate-axiom-commit.t`: a commit that touches
+      `axioms/A0.md` (exhaustive per the `math-coding-axioms`
+      policy floor) and carries no rebuttal file yields
+      `verdict: block`; without the T3.1 wiring the same gate
+      run returned `unknown`.
     acceptance:
       all:
-        - verifier: text-scan-lib-gate-ml-evaluate-risk-mode-call
-          result: pass
-        - verifier: text-scan-lib-gate-ml-rebuttal-gating-helper
+        - verifier: tests/cli/gate-axiom-commit.t
           result: pass
 
   - id: do-gate-loads-rebuttals

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:3de2cc3e6c16804665fa26682e285bc4ce73970d2c7ef19cf0cd5e1a82b09f6e"
-yaml_sha: "sha256:3de2cc3e6c16804665fa26682e285bc4ce73970d2c7ef19cf0cd5e1a82b09f6e"
+body_sha: "sha256:863413167c6ecb7d44cf77ba98d65d7f87badb961ddcb1691c2d9ba7c3bbec42"
+yaml_sha: "sha256:863413167c6ecb7d44cf77ba98d65d7f87badb961ddcb1691c2d9ba7c3bbec42"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -197,8 +197,6 @@ obligations:
     outcome: kernel-migration-subcommand
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-lint
-          result: pass
         - verifier: tests/cli/migrate-dry-run.t
           result: pass
 
@@ -226,18 +224,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-no-changes.t
-          result: pass
-
-  - id: python-migrate-scripts-removed
-    statement: |
-      `scripts/migrate-decisions-3.2.py` and
-      `scripts/migrate-decisions-3.2-phase2.py` are absent from the
-      working tree. Their git history is preserved (commits
-      `a215ef9`, `e21fdf0`).
-    outcome: python-migration-scripts-retired
-    acceptance:
-      all:
-        - verifier: manual-bash-c-test-f-scripts-migrate-decisions-3-2-py-t
           result: pass
 
   - id: first-manifest-declared

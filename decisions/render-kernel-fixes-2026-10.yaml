@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:dbf34d428d1107814e662509d9d77794760927469c2b52e5227de677b2613e8b"
-yaml_sha: "sha256:dbf34d428d1107814e662509d9d77794760927469c2b52e5227de677b2613e8b"
+body_sha: "sha256:01ac8004c3395205c0ea853b08f1106be494c7d2b1f0a51d5fb2b050804db755"
+yaml_sha: "sha256:01ac8004c3395205c0ea853b08f1106be494c7d2b1f0a51d5fb2b050804db755"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -59,14 +59,16 @@ commitment: |
     3. `*italic*` (single asterisk) renders as `<em>italic</em>`.
        Lone asterisks without pairing stay literal.
 
-    4. MathJax 3 is wired in the kernel but defaults to OFF
-       (`enable_mathjax = false`). No page in `site/*.md` or
-       `axioms/*.md` currently contains `$…$` or `\[…\]` math,
-       so the default-off does not regress the rendered output;
-       it does prevent MathJax from typesetting English words
-       in parentheses as math italics. The kernel still emits
+    4. MathJax 3 is wired in the kernel. The OFF default
+       (`enable_mathjax = false`) this cycle introduced was
+       reversed by `mathjax-default-on-2026-10` (archived at
+       `archive/decisions/mathjax-default-on-2026-10.yaml`),
+       which flipped `Render.default_config.enable_mathjax`
+       back to `true` after `mathjax-delimiter-hardening-2026-10`
+       removed `$…$` as a math boundary. The kernel still emits
        the MathJax `<script>` when `enable_mathjax = true` is
-       passed, so future pages with formulas keep the path.
+       passed, so future pages with formulas keep the path, and
+       `--no-mathjax` turns it off per render.
 
     5. `dist/packages.html` carries the live package grid
        (`<section class="mathc-packages-section">` followed by
@@ -168,7 +170,9 @@ assumptions:
     state: assumed
     statement: |
       No current or planned `site/*.md` page uses `$…$` or
-      `\[…\]` math; defaulting MathJax to off does not regress
+      `\[…\]` math, and the MathJax delimiters are LaTeX-style
+      only (`\(`…`\)` and `\[`…`\]`), so a literal `$` in prose
+      is never typeset as math and the default does not regress
       any rendered page. Algebra 3.2 excerpts that show math
       (e.g., `spec/algebra-3.2.md`) are not yet published to
       `site/`.
@@ -177,8 +181,8 @@ assumptions:
       If a future `site/*.md` page needs formulas, the page
       author opts in via `--mathjax` for the local preview and
       via a front-matter flag (added in a follow-up decision)
-      for production. The script tag is wired; only the default
-      is off.
+      for production. The script tag is wired; the default is
+      on.
     review_on:
       - signal: site-page-needs-formulas
 
@@ -197,11 +201,9 @@ obligations:
       `>= 3` on the trimmed prefix.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-fenced-cod
+        - verifier: tests/render_kernel.ml::fenced_code_renders
           result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-fenced-cod
-          result: pass
-        - verifier: manual-rendered-asset-axioms-feedback
+        - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
           result: pass
 
   - id: list-continuation-renders
@@ -213,11 +215,9 @@ obligations:
       behaviour.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-list-conti
+        - verifier: tests/render_kernel.ml::list_continuation_renders
           result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-list-singl
-          result: pass
-        - verifier: manual-rendered-asset-axioms-feedback
+        - verifier: tests/render_kernel.ml::list_single_item_still_one_li
           result: pass
 
   - id: italic-renders
@@ -227,28 +227,29 @@ obligations:
       (underscore) is supported with the same rule.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-italic-ren
+        - verifier: tests/render_kernel.ml::italic_renders
           result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-italic-lon
+        - verifier: tests/render_kernel.ml::italic_lone_asterisk_literal
           result: pass
-        - verifier: manual-rendered-asset-axioms-feedback
+        - verifier: tests/render_kernel.ml::italic_underscore_inside_identifier_safe
           result: pass
 
-  - id: mathjax-default-off
+  - id: mathjax-script-still-on-code-path
     statement: |
-      `Render.default_config.enable_mathjax` is `false`. The
-      MathJax `<script>` is still present in the code path
-      and can be turned on per-render via the
-      `--mathjax` CLI flag. `tests/render_kernel.ml::mathjax_in_head`
-      continues to assert the script is emitted when
-      `enable_mathjax = true`.
+      The MathJax `<script>` is still present in the code path
+      and is chosen per render by the `--mathjax` / `--no-mathjax`
+      CLI flags. `tests/render_kernel.ml::mathjax_in_head_when_enabled`
+      asserts the script is emitted when `enable_mathjax = true`.
+      The OFF default this cycle introduced was reversed by
+      `mathjax-default-on-2026-10` (archived at
+      `archive/decisions/mathjax-default-on-2026-10.yaml`), which
+      flipped `Render.default_config.enable_mathjax` back to
+      `true`; the promise here is the code path, not the default.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-de
+        - verifier: tests/render_kernel.ml::mathjax_in_head_when_enabled
           result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-mathjax-in
-          result: pass
-        - verifier: manual-grep-c-mathjax-dist-index-html-0
+        - verifier: tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled
           result: pass
 
   - id: packages-page-shows-grid
@@ -259,9 +260,9 @@ obligations:
       separated by a blank line in the rendered HTML.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-packages-p
+        - verifier: tests/render_kernel.ml::packages_page_has_grid
           result: pass
-        - verifier: manual-grep-qf-class-mathc-packages-dist-packages-html
+        - verifier: tests/cli/render.t
           result: pass
 
   - id: ru-nav-points-to-existing-siblings
@@ -273,11 +274,7 @@ obligations:
       sibling).
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-ru-nav-omi
-          result: pass
-        - verifier: manual-rendered-asset-methodology
-          result: pass
-        - verifier: manual-rendered-asset-foundations-ru
+        - verifier: tests/render_kernel.ml::ru_nav_omits_missing_sibling
           result: pass
 
   - id: axiom-page-single-h1
@@ -289,9 +286,7 @@ obligations:
       only one emitted.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-axiom-page
-          result: pass
-        - verifier: manual-rendered-asset-axioms-feedback
+        - verifier: tests/render_kernel.ml::axiom_page_single_h1
           result: pass
 
   - id: footer-uses-mathc-render
@@ -302,11 +297,7 @@ obligations:
       `mc render` is gone.
     acceptance:
       all:
-        - verifier: manual-grep-qf-mathc-render-dist-index-html
-          result: pass
-        - verifier: manual-grep-qf-mc-render-dist-index-html-exits-non-zero
-          result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-footer-mat
+        - verifier: tests/render_kernel.ml::footer_mathc_render
           result: pass
 
   - id: base-href-configurable
@@ -319,9 +310,9 @@ obligations:
       and a new `base_href_empty` test cover both branches.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-base-href-
+        - verifier: tests/render_kernel.ml::base_href_default
           result: pass
-        - verifier: manual-target-missing-tests-render-kernel-ml-base-href-
+        - verifier: tests/render_kernel.ml::base_href_empty
           result: pass
 
 reversal:
@@ -360,11 +351,13 @@ counterexample: |
   `mathjax-wiring` obligation and forces a future page author
   to opt in via CLI flag."
 
-  Counterargument: the obligation is amended, not retired
+  Counterargument: the obligation was amended here and later
+  retired by `mathjax-default-on-2026-10`, which flipped the
+  default back to ON once the delimiter hardening made it safe
   (see `mathjax-wiring` continuity in the commitment text).
-  The script remains wired; only the default is off. Future
-  page authors set `--mathjax` for preview or pass the
-  flag through their CI step. The site currently has zero
+  The script remains wired; only the default moved. Future
+  page authors set `--no-mathjax` for a script-free render or
+  pass the flag through their CI step. The site currently has zero
   formulas, so the regression surface is empty.
 
   "The hand-rolled Markdown parser is fundamentally limited;

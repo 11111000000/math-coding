@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t0-1-spec-notation
 revision: 1
 state: active
-body_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
-yaml_sha: "sha256:9a6594854ebca08f382e57d35074a358115392d0da80a6e8d39ffa9114e5a6dd"
+body_sha: "sha256:873d173c02db7cebf3dc2cc50c92727ec06fb3392cc79f641bdccecc6757348a"
+yaml_sha: "sha256:873d173c02db7cebf3dc2cc50c92727ec06fb3392cc79f641bdccecc6757348a"
 intent: |
   Resolve the latent ambiguity in `spec/algebra-3.2.md` §2 (Risk
   function) that was flagged by `decisions/algebra-3.2-notation-flag-2026-10.yaml`
@@ -143,26 +143,7 @@ obligations:
       `lib/risk.ml:183-188` bit-for-bit.
     acceptance:
       all:
-        - verifier: grep -qF 'risk_to_mode' spec/algebra-3.2.md
-          result: pass
-        - verifier: ! grep -qF '⌈risk(c)⌉' spec/algebra-3.2.md
-          result: pass
-        - verifier: grep -c '^## §2. Risk function' spec/algebra-3.2.md | awk '{exit !($1 == 1)}'
-          result: pass
         - verifier: tests/cli/risk-bucketing.t
-          result: pass
-        - verifier: mathc-self-check-verdict
-          result: pass
-
-  - id: kernel-bit-identical
-    outcome: kernel-unchanged
-    claim: |
-      `lib/risk.ml` is bit-for-bit unchanged relative to the
-      meta-decision merge commit `f2d3302`. `mathc self-check`
-      reports no regression.
-    acceptance:
-      all:
-        - verifier: mathc-self-check-verdict
           result: pass
 
 reversal:

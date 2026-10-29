@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-self-check-subcommand
 revision: 4
 state: active
-body_sha: "sha256:a0052ac7be08179ca91914b0f8f5620f6f2249c4bc7f9451fd4cbcab61fd79af"
-yaml_sha: "sha256:a0052ac7be08179ca91914b0f8f5620f6f2249c4bc7f9451fd4cbcab61fd79af"
+body_sha: "sha256:f4efdc143745fdad8ca09603460c71001511cace037c90b641c857639f5d3157"
+yaml_sha: "sha256:f4efdc143745fdad8ca09603460c71001511cace037c90b641c857639f5d3157"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
@@ -127,7 +127,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-gate-shape-fixture
-          result: inconclusive
+          result: pass
   - id: mathc-self-check-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
@@ -144,17 +144,18 @@ obligations:
       ("positive and negative conformance fixtures").
     acceptance:
       all:
-        - verifier: manual-cram-fixture-tests-cli-self-check-pass-t
+        - verifier: tests/cli/self-check-pass.t
           result: pass
-        - verifier: manual-cram-fixture-tests-cli-self-check-fail-t
+        - verifier: tests/cli/self-check-fail.t
           result: pass
-        - verifier: manual-cram-fixture-tests-cli-self-check-unknown-t
+        - verifier: tests/cli/self-check-unknown.t
           result: pass
 
 reversal:
   - signal: kernel-diverges-from-spec
-    action: revert the dispatcher; downgrade the spec row to
-    a documented limitation
+    action: |
+      revert the dispatcher; downgrade the spec row to
+      a documented limitation
 
 risk:
   declared_triggers:

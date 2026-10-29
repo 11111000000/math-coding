@@ -1,0 +1,18 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: path-resolver-audit-2026-11-a2-no-literal-paths-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: path-resolver-audit-2026-11
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that bin/Mathc.ml holds no decisions, attestations or
+  policies.yaml literal outside the resolver helpers is a property of the
+  source text, and the kernel runs no grep over the kernel. A maintainer
+  reads the diff of bin/Mathc.ml before it is merged and confirms that
+  every path still goes through lib/path_config.ml. This acceptance holds
+  until 2027-01-29.
+unverified_obligation: a2-no-literal-paths

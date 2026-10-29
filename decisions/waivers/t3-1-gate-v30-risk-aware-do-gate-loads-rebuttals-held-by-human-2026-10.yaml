@@ -1,0 +1,18 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: t3-1-gate-v30-risk-aware-do-gate-loads-rebuttals-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: t3-1-gate-v30-risk-aware
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that do_gate loads the rebuttals of the candidate commit and
+  hands them to Gate.evaluate is a property of the source text of
+  bin/Mathc.ml. No fixture in the corpus carries a rebuttal file, so the
+  loading step itself cannot be observed from the outside; a maintainer
+  confirms it by reading the gate wiring before it is changed. This
+  acceptance holds until 2027-01-29.
+unverified_obligation: do-gate-loads-rebuttals

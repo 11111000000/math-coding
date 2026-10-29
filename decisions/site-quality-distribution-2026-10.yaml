@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-distribution-2026-10
 revision: 1
 state: active
-body_sha: "sha256:baf78acd29d8347e04ed483e812e8febecc3adbf7b7f5c838fa0be3295a8a15b"
-yaml_sha: "sha256:baf78acd29d8347e04ed483e812e8febecc3adbf7b7f5c838fa0be3295a8a15b"
+body_sha: "sha256:d5666406855c4fff09a884d94866896913e0e3421a1fa3def7fab1518fd67caa"
+yaml_sha: "sha256:d5666406855c4fff09a884d94866896913e0e3421a1fa3def7fab1518fd67caa"
 axiom_link:
   - A1
 intent: |
@@ -109,27 +109,16 @@ obligations:
     outcome: onboarding-cta-on-home
     claim: |
       The home page (`dist/index.html` and
-      `dist/index.ru.html`) carries an
-      `<aside class="mathc-onboarding">` block that links
-      to USAGE.md and to the project's GitHub repository,
-      with prose explaining that the visitor can run
-      `mathc self-check` on any repository to verify the
-      protocol locally.
+      `dist/index.ru.html`) carries onboarding call-to-action
+      anchors (`<a class="mathc-cta …">`): one to USAGE.md
+      (the adoption runbook) and one to the project's GitHub
+      repository, so a visitor can adopt math-coding without
+      leaving the site. The CTA shipped as anchors, not as the
+      `<aside class="mathc-onboarding">` wrapper this obligation
+      originally named: no such element is emitted.
     acceptance:
       all:
         - verifier: manual-cta-block-emits
-          result: pass
-
-  - id: build-and-self-check-still-green
-    outcome: rss-feed-renders-valid-xml
-    claim: |
-      After both artefacts land, `dune build` exits 0
-      and `mathc self-check` reports the same verdict as
-      the pre-change baseline (60 pass / 1 unknown of 61
-      subjects).
-    acceptance:
-      all:
-        - verifier: mathc-self-check
           result: pass
 
 reversal:

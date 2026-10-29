@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: bootstrap-v3
 revision: 3
 state: active
-body_sha: "sha256:4e19df8ca1e0e41c22f0d3389565de365235854685df19959d081bacf83fc6fb"
-yaml_sha: "sha256:4e19df8ca1e0e41c22f0d3389565de365235854685df19959d081bacf83fc6fb"
+body_sha: "sha256:f7d071470dc744c3bce3933900e1b95a8318b58eca0333dc1db360c468676d4f"
+yaml_sha: "sha256:f7d071470dc744c3bce3933900e1b95a8318b58eca0333dc1db360c468676d4f"
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
 axiom_link:
@@ -53,7 +53,7 @@ obligations:
     claim: The v2.1-final tag resolves to a reachable commit.
     acceptance:
       all:
-        - verifier: mathc-tag-exists
+        - verifier: manual-tag-v2-1-final-exists
           result: pass
 
   - id: conformance-coverage
@@ -62,7 +62,7 @@ obligations:
       fixture.
     acceptance:
       all:
-        - verifier: mathc-conformance-run
+        - verifier: tests/fixture_coverage.ml
           result: pass
 
   - id: bootstrap-honesty
@@ -71,7 +71,7 @@ obligations:
       that is not yet implemented.
     acceptance:
       all:
-        - verifier: mathc-text-scan
+        - verifier: manual-bootstrap-docs-honesty-review
           result: pass
 
   - id: authoring-benchmark
@@ -80,7 +80,7 @@ obligations:
       reaches the documented threshold.
     acceptance:
       all:
-        - verifier: mathc-benchmark
+        - verifier: manual-authoring-benchmark-run
           result: pass
 
   - id: context-budget
@@ -88,7 +88,7 @@ obligations:
     claim: Tier-1 context capsule never silently exceeds its declared budget.
     acceptance:
       all:
-        - verifier: mathc-context-budget
+        - verifier: tests/cli/context-budget-bound.t
           result: pass
 
   - id: developer-practices-binding

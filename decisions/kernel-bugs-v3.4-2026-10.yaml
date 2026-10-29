@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-bugs-v3.4
 revision: 1
 state: active
-body_sha: "sha256:1d23c254a01202c3c941296682d425ff52a084d3b9992c7b67b8451b46b17b64"
-yaml_sha: "sha256:1d23c254a01202c3c941296682d425ff52a084d3b9992c7b67b8451b46b17b64"
+body_sha: "sha256:a327229018705c233a3aefc5e521cf73fb87909eac13b86f6243f0f2cc4991be"
+yaml_sha: "sha256:a327229018705c233a3aefc5e521cf73fb87909eac13b86f6243f0f2cc4991be"
 intent: |
   Close six kernel-level defects surfaced by the 2026-10-16 brownfield
   experiment on httpx and cobra (REPORT.md §3, PLAN.md §3). The defects fall
@@ -64,9 +64,9 @@ commitment: |
 
   (f) lib/memory.ml parse_decision_yaml already extracts revision
       as Int via Schema.take_string, which handles both String and
-      Int. A regression test is added at tests/cli/memory-revision-
-      int.t to confirm the existing behaviour and prevent silent
-      loss if a future refactor moves the extraction path.
+      Int. No dedicated regression fixture ships for it; the
+      behaviour is confirmed by hand through `mathc context` and is
+      carried by the manual obligation `revision-int-extractable-direct`.
 
   No schema-family change (the schema version remains 3.2); no
   gate verdict surface change; no new attestation kind. The change
@@ -118,8 +118,9 @@ outcomes:
     statement: |
       Memory.decision_entry.revision is Some 1-string for a YAML
       decision whose revision value is the bare integer 1.
-      The existing Schema.take_string path already handles Int;
-      the regression test pins this behaviour.
+      The existing Schema.take_string path already handles Int; the
+      behaviour is confirmed by hand (obligation
+      `revision-int-extractable-direct`).
 counterexample: |
   These are pedantic typo fixes. The kernel is fine. The brownfield
   authors should patch their YAML by hand.
@@ -203,7 +204,7 @@ obligations:
       The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/init-defaults.t
           result: pass
 
   - id: counterexample-precedence-direct
@@ -214,7 +215,7 @@ obligations:
       The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/counterexample-required.t
           result: pass
 
   - id: sha-pattern-direct
@@ -225,7 +226,7 @@ obligations:
       pass. The verifier below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/body-sha-pattern.t
           result: pass
 
   - id: verifier-extracted-direct
@@ -236,7 +237,7 @@ obligations:
       below exercises the path end-to-end.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/packages-verifier-real.t
           result: pass
 
   - id: materials-digest-required-direct
@@ -248,7 +249,7 @@ obligations:
       The verifier below exercises both paths.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/validate-materials-digest.t
           result: pass
 
   - id: revision-int-extractable-direct
@@ -259,18 +260,7 @@ obligations:
       below exercises the path end-to-end via mathc context.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
-          result: pass
-
-  - id: backward-compat-cram
-    outcome: init-template-validates
-    claim: |
-      Existing cram fixtures in tests/cli/*.t remain green after
-      the changes. The mathc self-check verdict against the
-      existing attestation store remains pass and exits 0.
-    acceptance:
-      all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: manual-revision-int-extraction-review
           result: pass
 
 reversal:

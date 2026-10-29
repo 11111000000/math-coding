@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:741eacac2878a07e0f310b304b2d603c30b1e696d85c7e27ddc1ac52246ea73b"
-yaml_sha: "sha256:741eacac2878a07e0f310b304b2d603c30b1e696d85c7e27ddc1ac52246ea73b"
+body_sha: "sha256:b0169687ca731360cce486548b5fbd45fb5b02d6e7db150e3fda8362dcba1a5d"
+yaml_sha: "sha256:b0169687ca731360cce486548b5fbd45fb5b02d6e7db150e3fda8362dcba1a5d"
 
 intent: |
   Реализовать дизайн из
@@ -89,7 +89,7 @@ obligations:
       all:
         - verifier: tests/render_kernel.exe
           result: pass
-        - verifier: manual-target-missing-tests-cli-render-t-cram
+        - verifier: tests/cli/render.t
           result: pass
   - id: no-io-in-lib-render
     claim: |
@@ -98,7 +98,7 @@ obligations:
       `open_in` / `open_in_bin`.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-grepproof
+        - verifier: manual-grep-no-io-in-lib-render
           result: pass
 
 counterexample: |
@@ -128,13 +128,16 @@ links:
   - docs/plans/render-module-split-phase1-2026-10.md
 
 unknowns:
-  - `article` record (§2.5): заменён в этом цикле (type article +
+  - |
+    `article` record (§2.5): заменён в этом цикле (type article +
     build_pages ~site_pages : article list); тройка `(name, title,
     body_md)` устранена.
-  - Wiring dashboard/graph: `do_render` теперь пишет
+  - |
+    Wiring dashboard/graph: `do_render` теперь пишет
     `dashboard.html`/`graph.html` из шаблонов (fuse.js/cytoscape),
     `scripts/render.sh` генерирует только `graph.json`. Красный тест
     `dashboard_and_graph_html_landed` починен (47/47 pass).
-  - Расхождение `mathc attest --obligation …` из AGENTS.md исправлено
+  - |
+    Расхождение `mathc attest --obligation …` из AGENTS.md исправлено
     (реальная команда — `scripts/generate-attestations.py`); см. правку
     AGENTS.md.

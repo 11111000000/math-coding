@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: 3-2-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:14ece856ff88b639e9636c0daebaac9d45bae4e8a093bdb08ccea9ca88791035"
-yaml_sha: "sha256:14ece856ff88b639e9636c0daebaac9d45bae4e8a093bdb08ccea9ca88791035"
+body_sha: "sha256:4343f86cc072f1fd22fc7ba641764955636774c86618fd022465f4d20f346348"
+yaml_sha: "sha256:4343f86cc072f1fd22fc7ba641764955636774c86618fd022465f4d20f346348"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
@@ -150,11 +150,7 @@ obligations:
       rows use the same `| \`mathc ...\` | Purpose |` format.
     acceptance:
       all:
-        - verifier: manual-text-scan-readme-md-mode-row
-          result: pass
-        - verifier: manual-text-scan-readme-md-rebuttals-row
-          result: pass
-        - verifier: manual-text-scan-readme-md-re-evaluate-row
+        - verifier: tests/fixtures/3-2-cli-catalog-rows-present.sh
           result: pass
 
   - id: mode-fixture-pair

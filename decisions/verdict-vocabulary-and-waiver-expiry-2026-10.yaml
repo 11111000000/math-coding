@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:37bb5163454864f49ca0e50aedb413910af91d8d97c93ab5b440a1b9c70b1c4d"
-yaml_sha: "sha256:37bb5163454864f49ca0e50aedb413910af91d8d97c93ab5b440a1b9c70b1c4d"
+body_sha: "sha256:0399f0c3c7f18a78bb99468be42d56956a6d0135db7abfb9fcd9a637c70b43e2"
+yaml_sha: "sha256:0399f0c3c7f18a78bb99468be42d56956a6d0135db7abfb9fcd9a637c70b43e2"
 
 axiom_link:
   - A0
@@ -211,12 +211,12 @@ commitment: |
       debt-1 regression: spec drift becomes a red fixture instead of
       an audit finding.
 
-  (e) MIGRATION: none required, and the claim is measured, not
-      assumed. All eight waivers in `decisions/waivers/` expire on
-      2027-04-06 or 2027-04-18, i.e. 165 to 177 days after this
-      decision's evaluation time. The two predicates differ at
-      exactly one instant, `t == expires_at`; at every other `t`
-      they agree. No waiver changes status. See
+  (e) MIGRATION: none required, and the claim WAS measured, not
+      assumed. At this decision's evaluation time all eight
+      waivers in `decisions/waivers/` expired on 2027-04-06 or
+      2027-04-18, i.e. 165 to 177 days out, so no waiver changed
+      status. That was a one-time measurement; the corpus's waiver
+      set moves, and no obligation keeps the table current. See
       `changed-verdicts`.
 
   (f) DOC, two claims that (c) measured to be false. `USAGE.md`
@@ -542,7 +542,9 @@ changed-verdicts: |
 
   This decision adds exactly one subject to the corpus, and that
   subject is the `unknown` counted above; no other subject moves.
-  See obligation `kernel-self-check-moves-by-exactly-one-subject`.
+  That before/after comparison was measured once, at this
+  decision; no obligation keeps it, because the corpus's verdict
+  moves with the census.
 
 assumptions:
   - id: spec-remains-normative
@@ -721,31 +723,6 @@ obligations:
       all:
         - verifier: manual-mutation-probe-boundary
           result: pass
-  - id: no-live-waiver-changes-status
-    outcome: kernel-honours-invariant-14c-at-the-boundary
-    claim: |
-      All eight waivers under `decisions/waivers/` are in force both
-      before and after this change at the evaluation time, with
-      165 to 177 days remaining on their terms, so no migration of
-      existing waivers is required and no `expires_at` is rewritten.
-      The per-waiver table is in `changed-verdicts`.
-    acceptance:
-      all:
-        - verifier: manual-waiver-expiry-recompute
-          result: pass
-  - id: kernel-self-check-moves-by-exactly-one-subject
-    outcome: spec-ships-the-verdict-vocabulary
-    claim: |
-      `mathc self-check` on this tree still exits 3 with repository
-      verdict `unknown`, at 211 subjects with pass 191 /
-      open-with-waiver 7 / unknown 13 — the same distribution as
-      before (210 / 191 / 7 / 12) plus this decision's own
-      unattested subject. The expiry change moves no verdict.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict
-          result: pass
-
 reversal:
   - signal: owner-freezes-spec-files
     condition: |

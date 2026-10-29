@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: stub-lint-real-2026-10
 revision: 1
 state: active
-body_sha: "sha256:8167d08664ec8b236fd079d547ac2483494843ef8ffd2c7f18c633c09fca17d9"
-yaml_sha: "sha256:8167d08664ec8b236fd079d547ac2483494843ef8ffd2c7f18c633c09fca17d9"
+body_sha: "sha256:6417ac032ae1a32fe336ae349859a8c105435e3297843f9e5c28729be4ecdbaf"
+yaml_sha: "sha256:6417ac032ae1a32fe336ae349859a8c105435e3297843f9e5c28729be4ecdbaf"
 intent: |
   Strengthen the P8 stub-lint (decisions/plan-2026-10-improvements/t6-1)
   from "lint-once with a synthetic-fixture proof" to "lint-on-real-diff":
@@ -154,7 +154,7 @@ obligations:
       without a paired decision exits 1.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-check-stub-lint-sh-mode-r
+        - verifier: scripts/check-stub-lint.sh --mode=real-diff
           result: pass
   - id: regression-pin-p8
     outcome: regression-pin-for-synthetic
@@ -164,7 +164,7 @@ obligations:
       the new flag is added. The synthetic pin is preserved.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-process-principles-ml-p8
+        - verifier: tests/process_principles.ml::P8 .no stub without tracking.
           result: pass
 
 reversal:

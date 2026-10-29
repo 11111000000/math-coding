@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:92eb29b1748ab1ca98e6e3007aec566d81245153a21967ad2471cc6203fb9760"
-yaml_sha: "sha256:92eb29b1748ab1ca98e6e3007aec566d81245153a21967ad2471cc6203fb9760"
+body_sha: "sha256:f9b7390afa214c28ab9aed561b2d9b76e719e4558a9e3acdb05a798b065db357"
+yaml_sha: "sha256:f9b7390afa214c28ab9aed561b2d9b76e719e4558a9e3acdb05a798b065db357"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -64,8 +64,11 @@ commitment: |
   5. `mathc validate` still accepts every existing decision
      file (legacy forms are accepted during the one-cycle
      grace period).
-  6. `mathc self-check` returns the same verdict (pass/unknown
-     distribution unchanged).
+  6. `mathc self-check` returned the same verdict at the bump
+     (the pass/unknown distribution was unchanged by the bump).
+     That before/after comparison was executed once, at the bump;
+     no obligation keeps it, and the corpus's verdict moves with
+     the census.
 
 scope:
   capabilities:
@@ -157,13 +160,16 @@ obligations:
           result: pass
   - id: schema-enum-accepts-3-3
     statement: |
-      `python3 -c "import json; d=json.load(open('schemas/decision.json')); \
-      assert 'math-coding/3.3' in d['properties']['schema']['enum']; \
-      assert 'math-coding/3.3/decision' in d['properties']['schema']['enum']"`
-      exits 0.
+      `schemas/decision.json`'s `schema` property enum carries
+      `math-coding/3.3` and `math-coding/3.3/decision`. The live
+      `mathc counters --format=json` report parses the schema
+      from the project root and lists the enum
+      (`schema.schema_enum`); the fixture
+      `tests/cli/counters-schema-introspection.t` asserts that
+      both 3.3 forms are in it.
     acceptance:
       all:
-        - verifier: manual-text-scan-schema-enum
+        - verifier: tests/cli/counters-schema-introspection.t
           result: pass
   - id: migration-manifest-ships
     statement: |
@@ -184,15 +190,6 @@ obligations:
         - verifier: tests/cli/validate-positive.t
           result: pass
         - verifier: manual-target-missing-tests-t2-1-mathc-validate-regress
-          result: pass
-  - id: self-check-verdict-unchanged
-    statement: |
-      `mathc self-check` on a clean tree at HEAD returns the
-      same verdict (`unknown`) and the same per-subject
-      pass/unknown distribution as before the bump.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict
           result: pass
 
 reversal:

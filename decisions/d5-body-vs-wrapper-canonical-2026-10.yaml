@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:f8da53260fe8c25243608cc508a7623d5c79a22fb73590bd993cc7973b0248fb"
-yaml_sha: "sha256:f8da53260fe8c25243608cc508a7623d5c79a22fb73590bd993cc7973b0248fb"
+body_sha: "sha256:d2c554349d8f0de9830290dccd082f0cf57d6c793b4fc18898942094bd49b51b"
+yaml_sha: "sha256:d2c554349d8f0de9830290dccd082f0cf57d6c793b4fc18898942094bd49b51b"
 axiom_link:
   - A0
   - A3
@@ -479,9 +479,7 @@ obligations:
       existing §7 Decision entity.
     acceptance:
       all:
-        - verifier: manual-rg-n-7-1-spec-algebra-3-2-md
-          result: pass
-        - verifier: manual-rg-n-placeholder-substitution-spec-algebra-3-2-m
+        - verifier: tests/cli/body-vs-wrapper-canonical.t
           result: pass
 
   - id: kernel-comment-references-decision
@@ -496,9 +494,7 @@ obligations:
       hit; the existing invariant comment is preserved.
     acceptance:
       all:
-        - verifier: manual-rg-n-d5-body-vs-wrapper-canonical-2026-10-lib-de
-          result: pass
-        - verifier: manual-rg-n-7-1-lib-decision-ml
+        - verifier: tests/cli/body-vs-wrapper-canonical.t
           result: pass
 
   - id: kernel-test-asserts-algorithm
@@ -556,14 +552,14 @@ obligations:
       this decision (the future `authoring: single |
       dual` discriminator is explicitly deferred).
     claim: |
-      `git diff main...HEAD -- schemas/decision.json`
-      returns empty; `rg -n 'authoring' schemas/decision.json`
-      returns zero hits.
+      `rg '"authoring"' schemas/decision.json` returns zero hits:
+      the schema is NOT modified by this decision, and the
+      `authoring: single | dual` discriminator the statement
+      defers is still deferred. The cram fixture
+      `tests/cli/body-vs-wrapper-canonical.t` asserts the zero-hit.
     acceptance:
       all:
-        - verifier: manual-git-diff-main-head-schemas-decision-json
-          result: pass
-        - verifier: manual-rg-n-authoring-schemas-decision-json
+        - verifier: tests/cli/body-vs-wrapper-canonical.t
           result: pass
 reversal:
   - signal: yaml-canonical-form-changed

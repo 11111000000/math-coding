@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-broken-links-2026-10
 revision: 2
 state: active
-body_sha: "sha256:f83bc6e750fab32533173f77fd441f7e1eb73388100287f22d3a8c9ffa981d7b"
-yaml_sha: "sha256:f83bc6e750fab32533173f77fd441f7e1eb73388100287f22d3a8c9ffa981d7b"
+body_sha: "sha256:c6d01ea3523d87d3d0c5046568c480a5e6e7e1ee62da3312d8a9da02444aec5c"
+yaml_sha: "sha256:c6d01ea3523d87d3d0c5046568c480a5e6e7e1ee62da3312d8a9da02444aec5c"
 axiom_link:
   - A1
 intent: |
@@ -357,9 +357,7 @@ obligations:
       (no `home.html` anywhere on the page).
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-ru-home-si
-          result: pass
-        - verifier: manual-grep-qf-home-html-dist-index-ru-html
+        - verifier: tests/render_kernel.ml::ru_home_sibling_is_index_html
           result: pass
 
   - id: footer-meta-docs-link-github
@@ -373,9 +371,7 @@ obligations:
       `../PACKAGES.html`, or `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-footer-lin
-          result: pass
-        - verifier: manual-grep-rfq-agents-html-roadmap-html-packages-html-
+        - verifier: tests/render_kernel.ml::footer_links_github_origin
           result: pass
 
   - id: nav-has-github-link
@@ -387,7 +383,7 @@ obligations:
       …>…</a>`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-nav-has-gi
+        - verifier: tests/render_kernel.ml::nav_has_github_link
           result: pass
         - verifier: tests/cli/render.t
           result: pass
@@ -403,9 +399,7 @@ obligations:
       raw-markdown link `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-axioms-lin
-          result: pass
-        - verifier: manual-grep-rqf-spec-algebra-3-2-md-dist-axioms
+        - verifier: tests/render_kernel.ml::axioms_link_html_not_md
           result: pass
 
   - id: non-home-lang-toggle-omits-en-suffix
@@ -418,11 +412,9 @@ obligations:
       `<page_key>.en.html`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-render-kernel-ml-lang-toggl
+        - verifier: tests/render_kernel.ml::lang_toggle_en_no_suffix
           result: pass
         - verifier: tests/cli/render.t
-          result: pass
-        - verifier: manual-grep-rf-a-z-en-html-dist-grep-v-index-en-html
           result: pass
 
 reversal:

@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:e60e67934c32e04d00b2c4639663844d2030b7c1edb85b194d8e5d85cd566c81"
-yaml_sha: "sha256:e60e67934c32e04d00b2c4639663844d2030b7c1edb85b194d8e5d85cd566c81"
+body_sha: "sha256:60c6caf480f07baefc99915e716cb4ca594847b1dcffe7a6b55f223407dceda1"
+yaml_sha: "sha256:60c6caf480f07baefc99915e716cb4ca594847b1dcffe7a6b55f223407dceda1"
 
 axiom_link:
   - A0
@@ -108,8 +108,10 @@ commitment: |
       `counters-drift-is-real`.
 
   (g) `attestations/waiver-infrastructure-2026-10-self-check-emits-
-      pass-with-waiver.json` becomes `result: inconclusive` with a
-      `reason` naming this decision. Its obligation claimed that
+      pass-with-waiver.json` becomes `result: inconclusive` (the
+      attestation schema carries no `reason` field, so the record
+      names the obligation and its result, nothing more). Its
+      obligation claimed that
       the CLI emits `pass` for a waiver-covered subject; after
       (b) that is false, and leaving a `pass` attestation in the
       store would be a false claim rather than a stale one. This
@@ -118,6 +120,13 @@ commitment: |
       (`attestations/audit-0.0.21-fixes-self-check-verdict-is-pass.json`)
       and it costs one honest `unknown` subject: see
       `changed-verdicts` below.
+
+  (h) The verdict-labelling fix moved no verdict: at this
+      decision's evaluation time `mathc self-check` still exited 3
+      with repository verdict `unknown`, and the per-subject
+      distribution was unchanged. That before/after comparison was
+      measured once, here; no obligation keeps it, because the
+      corpus's verdict moves with the census.
 
 antithesis: |
   The strongest counter-position: "leave the string alone and add
@@ -397,22 +406,14 @@ obligations:
     outcome: stale-attestation-retired
     claim: |
       `attestations/waiver-infrastructure-2026-10-self-check-emits-pass-with-waiver.json`
-      carries `result: inconclusive` and a `reason` naming
-      `self-check-waiver-verdict-coherence-2026-10`.
+      carries `result: inconclusive` — never `pass` — for the
+      `self-check-emits-pass-with-waiver` obligation. The
+      attestation schema has no `reason` field, so the record
+      names the obligation and its inconclusive result, nothing
+      more.
     acceptance:
       all:
         - verifier: manual-text-scan-attestation-inconclusive
-          result: pass
-
-  - id: kernel-self-check-still-exits-3-here
-    outcome: waived-verdict-is-not-pass
-    claim: |
-      `mathc self-check` on this tree exits 3 with repository
-      verdict `unknown`, the same as before the change: the
-      verdict-labelling fix must not move the gate.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict
           result: pass
 
 reversal:

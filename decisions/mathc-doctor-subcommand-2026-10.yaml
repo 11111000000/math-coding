@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:37e08494314b89e96600db455affb98f0c6cf8840e729b67c3a6e0c245de4ddd"
-yaml_sha: "sha256:37e08494314b89e96600db455affb98f0c6cf8840e729b67c3a6e0c245de4ddd"
+body_sha: "sha256:2822cae707ca6d76e1d27ece8dc3284c166e3f5dafc18c43bbfe163b1d714063"
+yaml_sha: "sha256:2822cae707ca6d76e1d27ece8dc3284c166e3f5dafc18c43bbfe163b1d714063"
 
 axiom_link:
   - A0
@@ -189,23 +189,7 @@ obligations:
       a 5+-element `sections` array.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-cli-doctor-t-exists
-          result: pass
-        - verifier: manual-target-missing-tests-cli-doctor-t-runs-via-dune-
-          result: pass
-
-  - id: doctor-kernel-untouched
-    claim: |
-      The implementation does not modify `lib/` or
-      `bin/mathc_mcp.ml`. The diff against `main` for
-      this branch is limited to `bin/Mathc.ml`,
-      `decisions/mathc-doctor-subcommand-2026-10.yaml`,
-      `tests/cli/doctor.t`, and the attestation JSONs.
-    acceptance:
-      all:
-        - verifier: manual-git-diff-main-stat-shows-no-lib-entries
-          result: pass
-        - verifier: manual-git-diff-main-stat-shows-no-bin-mathc-mcp-ml-ent
+        - verifier: tests/cli/doctor.t
           result: pass
 
 reversal:

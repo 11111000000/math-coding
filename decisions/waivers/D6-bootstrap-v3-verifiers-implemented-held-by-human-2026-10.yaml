@@ -1,0 +1,21 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: D6-bootstrap-v3-verifiers-implemented-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: D6-bootstrap-v3-verifiers-implemented
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that every bootstrap-v3 obligation is reachable from a CI
+  command and that `mathc self-check` reports `pass` on a clean HEAD is a
+  statement about the WHOLE corpus, not about one file: an obligation
+  verified by `mathc self-check` asserts the health of the corpus it is
+  itself part of, which is self-reference, and the corpus is deliberately
+  mid-census, so the verdict is `unknown` rather than `pass` today. A
+  maintainer watches the blocking CI step and keeps the bootstrap
+  obligations machine-reachable. This acceptance holds until 2027-01-29;
+  by then the promise must carry an executable check or be dropped.
+unverified_obligation: D6-verifiers-machine-checked

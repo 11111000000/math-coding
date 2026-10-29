@@ -1,0 +1,20 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: d8-coarse-diagnostics-fixtures-cover-new-coords-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: d8-coarse-diagnostics
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that every new `MC-MISSING-*` and `MC-INVALID-*` code has a
+  positive and a negative fixture under `fixtures/conformance/decision/`
+  is NOT met today — the negative fixtures for six of the codes were
+  never written and were struck from the decision's own scope — and the
+  corpus-wide enumeration of the new codes is a human ledger, not a
+  machine one. A maintainer owns the list of codes that still lack their
+  fixture, and decides whether to add the fixtures or amend the
+  commitment. This acceptance holds until 2027-01-29.
+unverified_obligation: fixtures-cover-new-coords

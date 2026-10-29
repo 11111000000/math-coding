@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:b6c9e6ce6f7ffbfb8c59aafb42073ea02bf2780e5204aa09a93a86bce05c6017"
-yaml_sha: "sha256:b6c9e6ce6f7ffbfb8c59aafb42073ea02bf2780e5204aa09a93a86bce05c6017"
+body_sha: "sha256:c67fb78cac9151680b240bc6ba4b55cb9000ab2ec6ad05f298e036e365e4782c"
+yaml_sha: "sha256:c67fb78cac9151680b240bc6ba4b55cb9000ab2ec6ad05f298e036e365e4782c"
 axiom_link:
   - A0
   - A1
@@ -477,11 +477,7 @@ obligations:
       (`mathc validate` accepts it).
     acceptance:
       all:
-        - verifier: manual-this-attestation-file-present
-          result: pass
-        - verifier: mathc validate attestations/docker-availability-guarantee-2026-10-docker-image-healthcheck.json
-          result: pass
-        - verifier: manual-test-f-github-workflows-docker-healthcheck-yml
+        - verifier: manual-docker-healthcheck-runs-in-ci
           result: pass
   - id: docker-alpine-image-published
     outcome: docker-alpine-image-published
@@ -496,11 +492,11 @@ obligations:
       Phase-3 deferral.
     acceptance:
       all:
-        - verifier: manual-test-f-dockerfile-alpine
+        - verifier: file-exists Dockerfile.alpine
           result: pass
-        - verifier: manual-test-f-github-workflows-docker-alpine-yml
+        - verifier: file-exists .github/workflows/docker-alpine.yml
           result: pass
-        - verifier: manual-grep-q-mathc-linux-x86-64-musl-github-workflows-
+        - verifier: tests/repo_structure.ml
           result: pass
   - id: install-docs-fallback-hierarchy
     outcome: install-docs-fallback-hierarchy

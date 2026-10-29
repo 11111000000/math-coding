@@ -1,0 +1,18 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: risk-policy-driven-floor-2026-10-bin-loads-policies-at-startup-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: risk-policy-driven-floor-2026-10
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that `bin/Mathc.ml` calls `Policy.load_policies` once at the top
+  of `main ()`, and that a missing policy file leaves the kernel working with
+  an empty cache, is a fact about the kernel source. No test in this
+  repository reads `bin/Mathc.ml` to assert it, and the canonical verifier
+  forms cannot read a function's call site. A maintainer reads the dispatcher
+  whenever the startup path changes. This acceptance holds until 2027-01-29.
+unverified_obligation: bin_loads_policies_at_startup

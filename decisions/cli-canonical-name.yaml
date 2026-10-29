@@ -4,9 +4,9 @@ id: cli-canonical-name
 revision: 4
 state: active
 
-body_sha: "sha256:03d6eff558ceb4a70d0eb4303c612a1c47ed2c71755dd8903144891155832cc5"
+body_sha: "sha256:b6f36e07a7b3c07074bb9faa26ab4c11903f58b3d2eaa182e0191c5b36035101"
 
-yaml_sha: "sha256:03d6eff558ceb4a70d0eb4303c612a1c47ed2c71755dd8903144891155832cc5"
+yaml_sha: "sha256:b6f36e07a7b3c07074bb9faa26ab4c11903f58b3d2eaa182e0191c5b36035101"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -154,34 +154,17 @@ assumptions:
 
 
 obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
   - id: kernel-prefix-matches-mathc
     outcome: kernel-prefix-is-mathc
     claim: |
       lib/re_evaluation.ml matches the literal string `mathc-`
       (not `mc-`) when classifying a `verifier:` field as BuiltIn.
-      Negative conformance: a decision with `verifier: mathc-foo`
-      is now rejected (no BuiltIn classification); positive: a
-      decision with `verifier: mathc-validate` is accepted as
-      BuiltIn.
+      `tests/re_evaluation_test.ml` pins it: a `verifier:` that
+      starts with `mathc-` is classified BuiltIn and reports
+      `compatible` without a separate run.
     acceptance:
       all:
-        - verifier: manual-text-scan-lib-re-evaluation-has-mathc-prefix
-          result: pass
-        - verifier: manual-text-scan-lib-re-evaluation-no-mathc-prefix
-          result: pass
-        - verifier: mathc-validate-passes-on-decisions
+        - verifier: tests/re_evaluation_test.ml::re_evaluate
           result: pass
   - id: docs-no-mathc-cli
     outcome: single-cli-name
@@ -195,18 +178,16 @@ obligations:
   - id: decisions-renamed
     outcome: decision-ids-renamed
     claim: |
-      No `decisions/*.yaml` file contains the substring `mathc-` as
-      a verifier prefix or as part of its `id:` field. The renames
-      are atomic: file path, `id:`, and any internal `addresses:`
-      / `supersedes:` references are updated together. Each renamed
-      decision's revision is bumped by 1.
+      No `decisions/*.yaml` file uses the retired `mc-` prefix
+      as a verifier prefix or as part of its `id:` field. The
+      renames are atomic: file path, `id:`, and any internal
+      `addresses:` / `supersedes:` references are updated
+      together. Each renamed decision's revision is bumped by 1.
     acceptance:
       all:
-        - verifier: manual-text-scan-decisions-no-mathc-id
+        - verifier: manual-text-scan-decisions-no-mc-id
           result: pass
-        - verifier: manual-text-scan-decisions-no-mathc-verifier
-          result: pass
-        - verifier: mathc-validate-passes-all-decisions
+        - verifier: manual-text-scan-decisions-no-mc-verifier
           result: pass
   - id: site-classes-renamed
     outcome: site-classes-renamed
@@ -222,19 +203,17 @@ obligations:
           result: pass
         - verifier: manual-text-scan-lib-packages-no-mathc-class
           result: pass
-        - verifier: mathc-render-produces-styled-output
-          result: pass
   - id: skill-url-points-at-real-asset
     outcome: skill-url-correct
     claim: |
-      adoption/SKILL.md:55-60 references the published asset
-      `mathc-linux-x86_64` (matching release.yml:22) and saves it
-      as `~/.local/bin/mathc`. The download URL is constructed by
-      `${URL}/${asset}` where URL is the GitHub release URL and asset
-      is `mathc-linux-x86_64`.
+      adoption/SKILL.md names the release it installs: its
+      `MC_VERSION` and its `compatible_with:` line match the
+      repository's VERSION file. `scripts/sync-version.sh --check`
+      asserts both, and the install URL points at the release
+      assets published by `.github/workflows/release.yml`.
     acceptance:
       all:
-        - verifier: manual-text-scan-skill-url-matches-release-asset
+        - verifier: scripts/sync-version.sh --check
           result: pass
 
 

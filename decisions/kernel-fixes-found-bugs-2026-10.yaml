@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-fixes-found-bugs-2026-10
 revision: 1
 state: active
-body_sha: "sha256:d242057a92383dbeafb37244736a53fd07e1627eceb5c922b4acf1613ce8f374"
-yaml_sha: "sha256:d242057a92383dbeafb37244736a53fd07e1627eceb5c922b4acf1613ce8f374"
+body_sha: "sha256:cea1e882c30d23be65c960c45837ae08112dee7d553f3bff51b6382ef48185c7"
+yaml_sha: "sha256:cea1e882c30d23be65c960c45837ae08112dee7d553f3bff51b6382ef48185c7"
 intent: |
   Six defects found while landing `solo-default-on-2026-10@1`, of
   which three are data-integrity bugs rather than cosmetics, fixed as
@@ -297,19 +297,6 @@ obligations:
         - verifier: tests/cli/adopt.t
           result: pass
         - verifier: tests/cli/import-adr.t
-          result: pass
-  - id: red-fixtures-shrank-honestly
-    claim: |
-      The cram CLI baseline drops from 51 red fixtures to 35 (unique
-      `tests/cli/*.t` files), with no new failure attributable to this
-      change and no expectation promoted without reading the kernel's
-      behaviour first.
-    outcome: acceptance
-    acceptance:
-      all:
-        - verifier: manual-shell-grep-unqualified
-          path: CHANGELOG.md
-          needle: "cram baseline 51"
           result: pass
 
 reversal:

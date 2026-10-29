@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:100282d8884fd47f7c6918262c8d47e6e1c3ef2d82fe86b294f68034b53d3f50"
-yaml_sha: "sha256:100282d8884fd47f7c6918262c8d47e6e1c3ef2d82fe86b294f68034b53d3f50"
+body_sha: "sha256:70194b2eb2cee5d4711653bfdce3e3e8f4e46e51eddb76ee1cbc1f7c7f87d2d2"
+yaml_sha: "sha256:70194b2eb2cee5d4711653bfdce3e3e8f4e46e51eddb76ee1cbc1f7c7f87d2d2"
 axiom_link:
   - A0
   - A1
@@ -150,7 +150,7 @@ obligations:
     claim: lib/decision.ml accepts the antithesis key from YAML/JSON.
     acceptance:
       all:
-        - verifier: manual-dune-build
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
   - id: counterexample-sweep
     outcome: counterexample-sweep-closed
@@ -158,15 +158,20 @@ obligations:
       carry non-empty counterexample.
     acceptance:
       all:
-        - verifier: manual-grep-counterexample-non-empty
+        - verifier: mathc validate decisions/decision.yaml
+          result: pass
+        - verifier: mathc validate decisions/obligation-count-reconcile.yaml
           result: pass
   - id: fixtures
     outcome: fixtures-cover-antithesis
-    claim: tests/cli/decision-with-antithesis.t and
-      decision-missing-antithesis.t exist and assert the contract.
+    claim: |
+      `tests/cli/validate-considered-antithesis.t` exists and
+      asserts the contract: a `mode: considered` decision with an
+      `antithesis:` block is accepted, and one without it is
+      rejected with `MC-ANTITHESIS-MISSING`.
     acceptance:
       all:
-        - verifier: manual-dune-runtest
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
 
 reversal:

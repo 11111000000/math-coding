@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:88e2a68575437161d0617c46b4acd9578e72a65c6d9309a9eaf2d338049ec80f"
-yaml_sha: "sha256:88e2a68575437161d0617c46b4acd9578e72a65c6d9309a9eaf2d338049ec80f"
+body_sha: "sha256:0c5ca102e6ef6cfbbb3362fe75cbe331c72daba0a57611c3ce0e82a7a9ab88f9"
+yaml_sha: "sha256:0c5ca102e6ef6cfbbb3362fe75cbe331c72daba0a57611c3ce0e82a7a9ab88f9"
 intent: |
   Adopt a `.math-coding/` directory layout as the default for new
   `mathc init` runs and add three env-var overrides
@@ -203,8 +203,12 @@ obligations:
       unchanged.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/path_config_test.ml
           result: pass
+
+        - verifier: tests/cli/env-var-resolver.t
+          result: pass
+
   - id: seven-hardcodes-rerouted-through-resolver
     statement: |
       The seven kernel sites listed in commitment §4 use
@@ -219,7 +223,8 @@ obligations:
       pre-commit hook body, which is unchanged).
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: manual-rg-no-hardcoded-decisions-paths-in-lib
+
           result: pass
   - id: install-ci-workflow-uses-embedded-template
     statement: |
@@ -235,8 +240,12 @@ obligations:
       identical to `templates/ci.yml`.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: tests/cli/init.t
           result: pass
+
+        - verifier: file-exists templates/ci.yml
+          result: pass
+
   - id: backward-compat-untouched-existing-projects-at-head
     statement: |
       Running `mathc validate decisions/decision.yaml` against the
@@ -249,8 +258,12 @@ obligations:
       remain unchanged.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: mathc validate decisions/decision.yaml
           result: pass
+
+        - verifier: tests/cli/validate-positive.t
+          result: pass
+
 relations:
   addresses:
     - bootstrap-v3@3

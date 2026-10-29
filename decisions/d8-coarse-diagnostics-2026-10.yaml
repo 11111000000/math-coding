@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:ef6cbb1caf8d48c4a341601ffb83f6addd5e3d26c127a0b8e9f2b35fd4e65118"
-yaml_sha: "sha256:ef6cbb1caf8d48c4a341601ffb83f6addd5e3d26c127a0b8e9f2b35fd4e65118"
+body_sha: "sha256:8d2f2975dc44bf38927b2d5ae710d900976c5f34765fe273017662e91388c341"
+yaml_sha: "sha256:8d2f2975dc44bf38927b2d5ae710d900976c5f34765fe273017662e91388c341"
 axiom_link:
   - A0
   - A1
@@ -235,11 +235,9 @@ obligations:
       `path` and `next_actions` populated. `None` is reserved.
     acceptance:
       all:
-        - verifier: manual-dune-build
+        - verifier: dune build
           result: pass
-        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-parse
-          result: pass
-        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-parse
+        - verifier: tests/diagnostic_ux.ml::mc_parse
           result: pass
   - id: cli-surfaces-precision
     outcome: cli-surfaces-stale-precision
@@ -249,7 +247,7 @@ obligations:
       path surfaces a parser-supplied `Diagnostic.t`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-cli-n
+        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts
           result: pass
         - verifier: mathc validate fixtures/conformance/decision/positive-minimal.json --format=json
           result: pass
@@ -261,7 +259,7 @@ obligations:
       decision's `commitment §3`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-expla
+        - verifier: tests/diagnostic_ux.ml::registry
           result: pass
   - id: fixtures-cover-new-coords
     outcome: fixtures-cover-new-coords

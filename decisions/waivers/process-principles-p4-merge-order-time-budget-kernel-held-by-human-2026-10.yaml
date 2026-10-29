@@ -1,0 +1,18 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: process-principles-p4-merge-order-time-budget-kernel-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: process-principles
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  P4 — the integration order (decisions, then fixtures, then lib/, then the
+  dispatcher, then artifacts) — is a declaration of agent conduct: the kernel
+  cannot observe how parallel agents' commits were integrated without
+  rewriting git history. A human maintainer reviews `git log --graph` and the
+  merge pull-request ordering on demand. This acceptance holds until
+  2027-01-29.
+unverified_obligation: p4-merge-order-time-budget-kernel

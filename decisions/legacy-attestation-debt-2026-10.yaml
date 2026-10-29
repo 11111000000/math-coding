@@ -4,8 +4,8 @@ id: legacy-attestation-debt-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:ea30977f268874c43f3bc1840c3ba0dc0d3dcaa9899664dc69b8f09957b6dc66"
-yaml_sha: "sha256:ea30977f268874c43f3bc1840c3ba0dc0d3dcaa9899664dc69b8f09957b6dc66"
+body_sha: "sha256:0a2134292cd77c8344b56253b9306c117e987178c6737ecf5ed8b044423c6c6c"
+yaml_sha: "sha256:0a2134292cd77c8344b56253b9306c117e987178c6737ecf5ed8b044423c6c6c"
 
 intent: { source: "issue:legacy-attestations-are-wildcards-2026-10-23", text: "760 of the 773 tracked attestations carry an empty subject.materials_digest. The gate treats an empty digest as a wildcard, so those attestations are fresh for every tree, for ever, and can never be invalidated by a change. They are also, by the schema's own wording, invalid for every runtime kind: materials_digest MUST be non-empty when kind_ is in {test, build, observation, analysis}, and 427 of the 760 are not review. The debt has no number anywhere in the repository, so it cannot go down — it can only be re-described." }
 
@@ -108,7 +108,7 @@ obligations:
       rather than decorative.
     acceptance:
       all:
-        - verifier: manual-debt-ceiling-has-teeth
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
           result: pass
 
 risk:

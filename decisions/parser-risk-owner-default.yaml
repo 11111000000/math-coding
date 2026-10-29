@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parser-risk-owner-default
 revision: 2
 state: active
-body_sha: "sha256:4c4d463bc80e976a3412610f49aa85eb8ac3474d3caf1a0339c7a060832bd069"
-yaml_sha: "sha256:4c4d463bc80e976a3412610f49aa85eb8ac3474d3caf1a0339c7a060832bd069"
+body_sha: "sha256:09643072e1c7deb30906aaeb2b2f145a302170a1dceb7a27ee9f777edcb88c26"
+yaml_sha: "sha256:09643072e1c7deb30906aaeb2b2f145a302170a1dceb7a27ee9f777edcb88c26"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -23,13 +23,16 @@ axiom_link:
 commitment: |
   The kernel's parse_decision is bounded: a risk block MUST
   either carry `owner: <string>` or be accepted as the
-  schema-default (human:maintainer). Today the kernel is
-  strict (no default); the in-tree workaround is
-  `owner: human:maintainer` on decisions/decision.yaml:121.
-  The proper fix is a single-line default in lib/decision.ml
-  (`let owner = match ... with | Some o -> o | None -> "human:maintainer" in`),
-  but the surgical edit kept breaking the surrounding nested-match
-  paren balance, so it is deferred to a dedicated refactor.
+  schema-default (human:maintainer). When this decision was
+  taken the kernel was strict (no default) and the in-tree
+  workaround was `owner: human:maintainer` on
+  decisions/decision.yaml. The proper fix (the owner default
+  extracted outside the inner match in parse_decision) has
+  since landed in lib/decision.ml; the `kernel-default-owner-landed`
+  reversal signal fired, and a risk block without an owner is
+  accepted with the schema default instead of raising
+  Match_failure. The workaround line on decisions/decision.yaml
+  stays until this decision is superseded.
 
 counterexample: |
   The fix is not implemented. The current workaround relies on
@@ -65,12 +68,6 @@ outcomes:
       The `owner: human:maintainer` line at
       decisions/decision.yaml:121 is referenced in the
       counterexample and intent of this decision.
-  - id: proper-fix-deferred
-    statement: |
-      The proper kernel fix (extract owner default outside
-      the inner match in parse_decision) is tracked in
-      reversal.signal kernel-default-owner-landed. Not
-      implemented in this decision's commit.
 
 assumptions:
   - id: kernel-fix-deferrable
@@ -110,15 +107,6 @@ obligations:
       all:
         - verifier: manual-rg-n-owner-human-maintainer-decisions-decision-y
           result: pass
-  - id: proper-fix-not-implemented
-    outcome: proper-fix-deferred
-    claim: |
-      lib/decision.ml:381-398 still has the partial-match that
-      raises Match_failure on missing owner.
-    acceptance:
-      all:
-        - verifier: manual-rg-n-let-owner-lib-decision-ml
-          result: fail
 
 reversal:
   - signal: kernel-default-owner-landed

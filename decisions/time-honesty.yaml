@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: time-honesty
 revision: 2
 state: active
-body_sha: "sha256:702715f77db4a48dc95a71f141d7668dcea965c02d6f66b493432d6588cb50e8"
-yaml_sha: "sha256:702715f77db4a48dc95a71f141d7668dcea965c02d6f66b493432d6588cb50e8"
+body_sha: "sha256:ce5d285621d93bfadbeabc14f763349dc2ece1c6112a2ede07838d2e95179304"
+yaml_sha: "sha256:ce5d285621d93bfadbeabc14f763349dc2ece1c6112a2ede07838d2e95179304"
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable
@@ -126,7 +126,7 @@ obligations:
       diagnostic.
     acceptance:
       all:
-        - verifier: manual-script-runs-and-is-deterministic
+        - verifier: mathc time-estimate --class feature-add --count 10 --percentile p50
           result: pass
   - id: additive-only-fixtures
     outcome: additive-only
@@ -138,7 +138,7 @@ obligations:
       still has exactly five constructors.
     acceptance:
       all:
-        - verifier: manual-conformance-fixtures-still-pass
+        - verifier: tests/conformance.ml
           result: pass
 
 reversal:

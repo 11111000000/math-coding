@@ -3,14 +3,14 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:6ebe0b0c791fd9c7ade9db3511fec2de7a5cbab0566b7cf23048d347d5c75a96"
-yaml_sha: "sha256:6ebe0b0c791fd9c7ade9db3511fec2de7a5cbab0566b7cf23048d347d5c75a96"
+body_sha: "sha256:d16394634d0ff7542c3a7742599e34acfdc701605be8b730e4e6c69956346c64"
+yaml_sha: "sha256:d16394634d0ff7542c3a7742599e34acfdc701605be8b730e4e6c69956346c64"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
   defaults. This closes the §2 "Phase 2E replaces this stub"
   comment in `lib/risk.ml:107,159` and lets a per-path
-  `mode_floor` (silent | baseline | pci-strict | axiom-touching)
+  `mode_floor` (tiny | light | standard | strict | exhaustive)
   raise the gate above what the impact classifier alone would
   suggest.
 
@@ -36,9 +36,8 @@ intent: |
       so the cached list is populated before any `mathc mode`
       invocation.
     - A `policies.yaml` file at the repo root declares the
-      project's own policy: `axioms/` → `mode_floor: axiom-touching`
-      (= `Exhaustive`), and a default policy with `mode_floor:
-      baseline` (= `Standard`).
+      project's own policy: `axioms/` → `mode_floor: exhaustive`,
+      and a default policy with `mode_floor: standard`.
     - `tests/risk_kernel.ml` carries positive and negative
       fixtures for the policy-driven mode.
 
@@ -64,56 +63,82 @@ commitment: |
 
   2. `lib/risk.ml` imports `Policy` and replaces both stubs:
      - `policy_override_probability files` →
-       `Policy.policy_override_of_files (Policy.cached ()) files`
+       `Policy.policy_override_of_files_cached files`
      - `mode_floor files` →
-       `Policy.mode_floor_of (Policy.cached ()) files`
+       `Policy.mode_floor_of_cached files`
 
-  3. `bin/Mathc.ml` calls `Policy.load_policies ()` once at the
-     top of `main ()` so the cache is populated before any
-     `mathc mode` invocation. When `policies.yaml` is absent,
-     the cache is empty and the classifier returns the
-     pre-cycle behaviour (mode_floor = `Standard`).
+  3. `bin/Mathc.ml` calls `Policy.load_policies ~path ()` once at
+     the top of `main ()` — with `path` resolved from the project
+     root — so the cache is populated before any `mathc mode`
+     invocation. When the policy file is absent, the cache is
+     empty and the classifier returns the pre-cycle behaviour
+     (mode_floor = `Standard`).
 
   4. `policies.yaml` is added at the repo root with the
      following minimum content:
 
          - policy_id: math-coding-default
            scope_paths:
-             - "**"
-           mode_floor: baseline
+             - "lib/**"
+             - "bin/**"
+             - "tests/**"
+             - "spec/**"
+             - "schemas/**"
+             - "axioms/**"
+             - "site/**"
+             - "scripts/**"
+             - "decisions/**"
+             - "attestations/**"
+           mode_floor: standard
+           override_probability: 0.0
            obligations: []
            transitive_into: []
            data_flow_edges: []
          - policy_id: math-coding-axioms
+           parent: math-coding-default
            scope_paths:
              - "axioms/**"
-           mode_floor: axiom-touching
+           mode_floor: exhaustive
+           override_probability: 0.0
            obligations: []
            transitive_into: []
            data_flow_edges: []
 
-     The default policy applies to every path; the axioms
-     policy applies to `axioms/**`. The mode_floor union per
-     file is the max, so `axioms/foo.md` is `Exhaustive`,
+     The `mode_floor` vocabulary is the kernel's own
+     (`tiny | light | standard | strict | exhaustive`, per
+     `lib/codec.ml::parse_mode`): the default policy declares
+     `standard` and the axioms policy declares `exhaustive`. The
+     default policy covers the repository's directories; the
+     axioms policy applies to `axioms/**`. The mode_floor union
+     per file is the max, so `axioms/foo.md` is `Exhaustive`,
      everything else is `Standard`.
 
-  5. `tests/risk_kernel.ml` carries four positive and four
-     negative fixtures asserting:
-     - empty policy list → mode_floor = `Standard`
-     - axiom-touching only → axiom path = `Exhaustive`, other path
-       = `Standard`
-     - pci-strict only → pci path = `Strict`, other path = `Standard`
-     - silent only → silent path = `Tiny`, other path = `Standard`
-     - axiom + pci policies in same list → axiom = `Exhaustive`,
-       pci = `Strict`, default = `Standard`
-     - policy_override_probability = 0.5 → probability = 0.75
-     - policy_override_probability = -0.5 → probability = 0.25
-     - empty policy_override_probability → probability = 0.5
+  5. `tests/risk_kernel.ml` carries the policy-driven fixtures:
+     - `policy_override_clamps_to_unit` — two positive policies
+       clamp to the unit interval
+     - `policy_override_zero_for_no_match` — a policy that matches
+       no file contributes `0.0`
+     - `mode_floor_axiom_path_is_exhaustive` — the axioms policy
+       raises the axiom path to `Exhaustive`
+     - `mode_floor_default_path_is_standard` — a non-axiom path
+       stays `Standard`
+     - `mode_floor_pci_path_is_strict` — a pci-strict policy
+       raises that path to `Strict`
+     - `mode_floor_axiom_and_pci_distinct_paths` — axiom, pci and
+       default paths each get their own floor out of one list
+     - `policies_yaml_has_default_and_axioms` — the shipped
+       `policies.yaml` parses and declares both policies
+     - `probability_with_positive_override`,
+       `probability_with_negative_override` and
+       `probability_with_empty_policy` — the
+       `probability = 0.5 + 0.5 · override` formula
 
-  6. `OCAML_BEST_PRACTICES.md §11` gets a new trap entry
-     documenting the "policy override clamps to [-1, 1]"
-     contract (a future regression where the sum is not
-     clamped would silently double-count policy effects).
+  6. `OCAML_KERNEL_CONVENTIONS.md §11` (the file was renamed from
+     `OCAML_BEST_PRACTICES.md`) gets a new trap entry — §11.25,
+     "Policy override clamp contract" — documenting the "policy
+     override clamps to [-1, 1]" contract (a future regression
+     where the sum is not clamped would silently double-count
+     policy effects).
 
 counterexample: |
   "Wiring policy into the risk classifier breaks the existing
@@ -123,9 +148,11 @@ counterexample: |
   Counterargument: that change is the intended behaviour. The
   axiom path is axiom-touching per the policy; the prior
   `standard` output was the stub returning the wrong floor.
-  The new behaviour is what algebra §2 mandates. The cram
-  fixture is updated to the post-cycle output, with the
-  decision recorded in this file so the change is traceable.
+  The new behaviour is what algebra §2 mandates. The floor is
+  pinned by the `tests/risk_kernel.ml::mode_floor_*` fixtures,
+  and the `mathc mode` CLI path is exercised by the cram
+  fixture `tests/cli/mode.t`, with the decision recorded in
+  this file so the change is traceable.
 
   "Reading `policies.yaml` at module init couples the kernel
   to a specific path; the kernel is supposed to be offline."
@@ -178,8 +205,9 @@ outcomes:
       tested, not aspirational.
   - id: new-trap-logged
     statement: |
-      `OCAML_BEST_PRACTICES.md §11` gains entry §11.25
-      documenting the policy-override clamp contract.
+      `OCAML_KERNEL_CONVENTIONS.md §11` (renamed from
+      `OCAML_BEST_PRACTICES.md`) carries entry §11.25 documenting
+      the policy-override clamp contract.
 
 assumptions:
   - id: policy-yaml-optional
@@ -225,24 +253,24 @@ obligations:
       `override_probability` contribute `0.0`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-risk-kernel-ml-policy-overr
+        - verifier: tests/risk_kernel.ml::policy_override_clamps_to_unit
           result: pass
-        - verifier: manual-target-missing-tests-risk-kernel-ml-policy-overr
+        - verifier: tests/risk_kernel.ml::policy_override_zero_for_no_match
           result: pass
 
   - id: mode_floor_wired_to_policy
     statement: |
-      `lib/risk.ml:mode_floor` calls
-      `Policy.mode_floor_of (Policy.cached ())` instead of
-      returning the constant `Standard`. The mathc-mode CLI
-      for `axioms/A0.md` returns `mode:exhaustive` when
-      `policies.yaml` is present and declares
-      `axioms/** → axiom-touching`.
+      `lib/risk.ml:mode_floor` delegates to
+      `Policy.mode_floor_of_cached` — the cached policy list —
+      instead of returning the constant `Standard`. The mathc-mode
+      CLI for `axioms/A0.md` returns `mode:exhaustive` when the
+      active policy file declares `axioms/**` with an exhaustive
+      floor; the project's `policies.yaml` declares exactly that.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-risk-kernel-ml-mode-floor-a
+        - verifier: tests/risk_kernel.ml::mode_floor_axiom_path_is_exhaustive
           result: pass
-        - verifier: manual-target-missing-tests-risk-kernel-ml-mode-floor-d
+        - verifier: tests/risk_kernel.ml::mode_floor_default_path_is_standard
           result: pass
         - verifier: tests/cli/mode.t
           result: pass
@@ -256,18 +284,19 @@ obligations:
       continues to function.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-repo-structure-ml-bin-invok
+        - verifier: manual-grep-bin-mathc-loads-policies-at-startup
           result: pass
 
   - id: policies_yaml_committed
     statement: |
-      `policies.yaml` at the repo root declares at least the
-      default policy (`scope_paths: ["**"]`, `mode_floor: baseline`)
-      and the axioms policy (`scope_paths: ["axioms/**"]`,
-      `mode_floor: axiom-touching`).
+      `policies.yaml` at the repo root exists, parses without
+      errors, and declares the project's default policy
+      (`policy_id: math-coding-default`) and the axioms policy
+      (`policy_id: math-coding-axioms`, `scope_paths: ["axioms/**"]`,
+      `mode_floor: exhaustive`).
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-risk-kernel-ml-policies-yam
+        - verifier: tests/risk_kernel.ml::policies_yaml_has_default_and_axioms
           result: pass
 
   - id: phase_2e_comment_removed
@@ -276,27 +305,30 @@ obligations:
       `lib/risk.ml:107` and `lib/risk.ml:159` are removed.
     acceptance:
       all:
-        - verifier: manual-grep-c-phase-2e-replaces-lib-risk-ml-0
+        - verifier: manual-grep-no-phase-2e-stub-comment-in-lib-risk-ml
           result: pass
 
   - id: trap_log_11_25_added
     statement: |
-      `OCAML_BEST_PRACTICES.md §11` gains a new entry
-      documenting the "policy override clamps to [-1, 1]" contract.
+      `OCAML_KERNEL_CONVENTIONS.md §11` — the file was renamed
+      from `OCAML_BEST_PRACTICES.md` — carries entry §11.25
+      ("Policy override clamp contract"), documenting the
+      "policy override clamps to [-1, 1]" contract.
     acceptance:
       all:
-        - verifier: manual-grep-q-11-25-ocaml-best-practices-md
+        - verifier: manual-grep-11-25-ocaml-kernel-conventions-md
           result: pass
 
   - id: fixtures_record_phase_2e_close
     statement: |
-      `tests/risk_kernel.ml` and the cram fixture
-      `tests/cli/mode.t` exercise the new policy-driven
-      behaviour. The cram fixture is updated to the
-      post-cycle output for `axioms/A0.md` (mode = `exhaustive`).
+      `tests/risk_kernel.ml` carries the policy-driven fixtures
+      (the `mode_floor_*`, `policy_override_*` and
+      `policies_yaml_has_default_and_axioms` cases), and the cram
+      fixture `tests/cli/mode.t` exercises the `mathc mode` CLI
+      against the kernel's risk classifier.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-risk-kernel-ml-fixtures-rec
+        - verifier: tests/risk_kernel.ml
           result: pass
         - verifier: tests/cli/mode.t
           result: pass
@@ -316,8 +348,8 @@ reversal:
       is non-axiomatic (e.g. an example of a non-axiom in
       the file body) and the `mode = Exhaustive` policy
       becomes wrong. Resolution: split `axioms/` into
-      `axioms/<id>.md` (policy = `axiom-touching`) and
-      `axioms/_examples/` (policy = `baseline`).
+      `axioms/<id>.md` (policy floor = `exhaustive`) and
+      `axioms/_examples/` (policy floor = `standard`).
 
 risk:
   declared_triggers:

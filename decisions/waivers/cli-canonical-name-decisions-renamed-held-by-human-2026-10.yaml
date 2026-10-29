@@ -1,0 +1,19 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: cli-canonical-name-decisions-renamed-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: cli-canonical-name
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that no decision file uses the retired `mc-` prefix in an
+  `id:` field or as a verifier prefix, and that every rename moved the
+  file name, the `id:` and the `addresses:`/`supersedes:` references
+  together, is a corpus-wide consistency rule. The kernel does not scan
+  decision files for the prefix, so the rule is kept by a person. A
+  maintainer checks the rename triples whenever a decision is renamed.
+  This acceptance holds until 2027-01-29.
+unverified_obligation: decisions-renamed
