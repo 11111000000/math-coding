@@ -53,7 +53,7 @@ through to the legacy path.
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
+  >         - verifier: mathc self-check
   >           result: pass
   > risk:
   >   declared_triggers: []

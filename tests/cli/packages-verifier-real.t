@@ -64,7 +64,7 @@ implementation that returns the obligation id would also
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
+  >         - verifier: mathc self-check
   >           result: pass
   >   - id: obl-build
   >     outcome: o1

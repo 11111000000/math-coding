@@ -36,10 +36,10 @@ verify run forks the sandboxed child.
   >     - "tests/cli/verify-sandbox-banner.t"
   > obligations:
   >   - id: version-runs
-  >     claim: $INSIDE_DUNE/bin/mathc.exe version runs in strict mode.
+  >     claim: mathc version runs in strict mode.
   >     acceptance:
   >       all:
-  >         - verifier: $INSIDE_DUNE/bin/mathc.exe version
+  >         - verifier: mathc version
   >           result: pass
   > axiom_link:
   >   - A0

@@ -46,7 +46,7 @@ subcommand without re-running --help twice).
   $ git -C "$tmpdir" config user.email "t@t"
   $ git -C "$tmpdir" config user.name "t"
   $ git -C "$tmpdir" commit -q --allow-empty -m initial
-  $ $INSIDE_DUNE/bin/mathc.exe="$INSIDE_DUNE/bin/mathc.exe"
+  $ mathc="$INSIDE_DUNE/bin/mathc.exe"
   $ "$mathc" attest-batch --help > attest-batch-help.txt
   $ echo "exit=$?"
   exit=0

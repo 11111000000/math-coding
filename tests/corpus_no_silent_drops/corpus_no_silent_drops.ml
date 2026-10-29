@@ -113,26 +113,22 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
    --validity` prints INVALID for all ten. The bracketed shape is what
    the independent reader complains about, recorded so the next reader
    does not have to re-derive it:
-     3-2-cli-catalog            bad indentation of a mapping entry
-     audit-cleanup              a multiline key may not be an implicit key
-     ci-blocking-list-config    bad indentation of a sequence entry
-     d5-body-vs-wrapper-canon.  mapping values are not allowed here
-     mathc-packages-subcommand  a multiline key may not be an implicit key
-     mathc-self-check-subcmd.   a plain scalar opened with a backtick,
-                                which YAML forbids in first position
-     render-html-templates      bad indentation of a sequence entry
-     render-ordered-lists       expected ':' after a mapping key
-     ux-3-init-copies-ci-wf.    bad indentation of a mapping entry
-     ux-3-new-decision-subcmd.  bad indentation of a sequence entry *)
+    3-2-cli-catalog            bad indentation of a mapping entry
+    ci-blocking-list-config    bad indentation of a sequence entry
+    d5-body-vs-wrapper-canon.  mapping values are not allowed here
+    mathc-packages-subcommand  a multiline key may not be an implicit key
+
+   Three entries were struck off on 2026-10-29, each in the commit
+   that fixed it, as the assertion below demands: mathc-self-check-
+   subcommand (a plain scalar opened with a backtick),
+   render-html-templates (bad indentation of a sequence entry) and
+   render-ordered-lists (expected ':' after a mapping key). *)
 let author_malformed =
   [
     "decisions/3-2-cli-catalog.yaml";
     "decisions/ci-blocking-list-config.yaml";
     "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml";
     "decisions/mathc-packages-subcommand.yaml";
-    "decisions/mathc-self-check-subcommand.yaml";
-    "decisions/render-html-templates-2026-10.yaml";
-    "decisions/render-ordered-lists-2026-10.yaml";
   ]
 
 (* A stray second `---`. These lose NOTHING: in both, the marker is the
