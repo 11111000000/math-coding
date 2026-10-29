@@ -40,16 +40,28 @@
 # control failed. 2 when the measurement could not be taken.
 
 set -uo pipefail
-cd "$(dirname "$0")/.."
+# The tree to check. By default the repository this script lives in;
+# when the script is run from a copy (the nix build of the pre-commit
+# hook), the caller says which tree it means.
+root="${MATH_CODING_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+cd "$root" || exit 2
 
 if ! command -v ocamlformat >/dev/null 2>&1; then
   echo "fmt-check: SKIP (ocamlformat is not on PATH)" >&2
   exit 2
 fi
 
-files=$(git ls-files '*.ml' '*.mli' 2>/dev/null)
+# The files checked are the ones git tracks -- under lib/, bin/ and
+# tests/, the OCaml tree. Where git is not available (the nix build
+# of the pre-commit hook copies the source without a .git), the tree
+# is walked instead: the check is of the TREE, and a tree that git
+# cannot describe is still a tree.
+files=$(git ls-files '*.ml' '*.mli' 2>/dev/null || true)
 if [ -z "$files" ]; then
-  echo "fmt-check: FAIL -- no OCaml files are tracked, so there is nothing" \
+  files=$(find lib bin tests -name '*.ml' -o -name '*.mli' 2>/dev/null | sort)
+fi
+if [ -z "$files" ]; then
+  echo "fmt-check: FAIL -- no OCaml files were found, so there is nothing" \
        "to check and 'clean' would mean nothing" >&2
   exit 1
 fi

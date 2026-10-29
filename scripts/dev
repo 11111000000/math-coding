@@ -285,10 +285,12 @@ case "$cmd" in
     # handles the "is tree clean?" check via dune fmt --preview.
     # See OCAML_BEST_PRACTICES §11.21.
     echo "verify: stage 3/4 = fmt-check.sh"
-    ./scripts/fmt-check.sh && echo "verify fmt: ok" || {
+    if ./scripts/fmt-check.sh; then
+        echo "verify fmt: ok"
+    else
         echo "verify: FAIL at stage 3 (fmt-check.sh)" >&2
         exit 1
-    }
+    fi
     echo "verify: stage 4/4 = check.sh"
     ./scripts/check.sh || {
         echo "verify: FAIL at stage 4 (check.sh)" >&2
@@ -404,8 +406,8 @@ case "$cmd" in
     check "ocamlformat on PATH"   "command -v ocamlformat"
     check "git on PATH"           "command -v git"
     check "nix on PATH"           "command -v nix"
-    n_d=$(ls decisions/*.yaml 2>/dev/null | wc -l)
-    n_a=$(ls attestations/*.json 2>/dev/null | wc -l)
+    n_d=$(find decisions -maxdepth 1 -name '*.yaml' 2>/dev/null | wc -l)
+    n_a=$(find attestations -maxdepth 1 -name '*.json' 2>/dev/null | wc -l)
     n_t=$(grep -cE '^### 11\.' OCAML_KERNEL_CONVENTIONS.md 2>/dev/null | head -1)
     echo ""
     echo "  decisions:    $n_d"

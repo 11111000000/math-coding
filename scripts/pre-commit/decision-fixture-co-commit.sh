@@ -49,7 +49,7 @@ declare -a fixture_files=()
 
 for path in "${staged[@]}"; do
   case "$path" in
-    lib/*.ml|lib/**/*.ml|bin/Mathc.ml|spec/*.md|spec/**/*.md|schemas/*.json|schemas/**/*.json)
+    lib/*.ml|bin/Mathc.ml|spec/*.md|schemas/*.json)
       kernel_touched=1
       kernel_files+=("$path")
       ;;

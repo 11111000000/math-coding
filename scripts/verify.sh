@@ -52,7 +52,6 @@ done
 
 DEV='nix develop .#test --command'
 STAGE=""
-FAILED=0
 
 stage() {
   STAGE="$1"
@@ -61,7 +60,6 @@ stage() {
 
 fail() {
   printf '\nverify: the %s stage FAILED.\n' "${STAGE:-?}" >&2
-  FAILED=1
   exit 1
 }
 

@@ -42,6 +42,7 @@ sed -i.bak "s|^compatible_with: mathc@>=.*|$stale|" "$skill"
 
 # Assert --check exits non-zero. Capture stderr to surface drift info.
 check_log=$(mktemp) || { echo "FAIL: mktemp" >&2; exit 1; }
+# shellcheck disable=SC2329   # invoked indirectly (as a trap handler)
 restore() {
   # Restore the file this fixture perturbed, on EVERY exit path. A
   # trap that only DELETED the backup left the tracked file with the

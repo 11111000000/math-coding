@@ -43,8 +43,8 @@ cd "$(cd "$(dirname "$0")" && pwd)/.."
 
 mode="${1:-}"
 case "$mode" in
-  --check)  mode=check  ;;
-  --write)  mode=write  ;;
+  --check)  mode="check"  ;;
+  --write)  mode="write"  ;;
   -h|--help|help|"")
     cat <<USAGE
 Usage: scripts/sync-version.sh --check | --write

@@ -40,7 +40,6 @@ phase() {
   e=$(date +%s%N)
   local ms=$(( (e - s) / 1000000 ))
   printf '  %-34s %7d ms   rc=%s\n' "$name" "$ms" "$rc"
-  LAST_MS=$ms
 }
 
 echo "math-coding cycle profile — $(date -Iseconds)"

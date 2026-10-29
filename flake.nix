@@ -190,11 +190,30 @@
         checks.default = pkgs.stdenv.mkDerivation {
           name = "math-coding-tests";
           src = ./.;
-          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages;
+          # python3 is needed by the forge stub the CLI's forge
+          # verifier talks to; the kernel's own binary is needed by
+          # the cram tests that call `mathc` by name. Both were
+          # missing here, and the build had been failing behind the
+          # red CI step for weeks.
+          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git ];
           buildPhase = ''
             runHook preBuild
             export OCAMLPATH="${ocamlPath}"
-            dune build --root . @tests/runtest
+            export PATH="$PWD/_build/default/bin:$PATH"
+            # `dune test`, not `dune build @tests/runtest`: the
+            # former RUNS the suite with dune's own sandbox (the
+            # cram tests get the binary and the fixtures through the
+            # declared deps), the latter only builds.
+            # The binaries are built FIRST (without running the
+            # suite), because the build produces `mathc.exe` and the
+            # cram tests that call the kernel by its plain name need
+            # `mathc` on the PATH. The dev shell has it (the nix
+            # package renames it); the build sandbox does not, so it
+            # is aliased here.
+            dune build --root . bin/mathc.exe bin/mathc_mcp.exe
+            cp _build/default/bin/mathc.exe _build/default/bin/mathc
+            cp _build/default/bin/mathc_mcp.exe _build/default/bin/mathc_mcp
+            dune test --root .
             runHook postBuild
           '';
           installPhase = ''
@@ -257,8 +276,30 @@
               # it from the same `ocamlPackages.ocamlformat` that the
               # devShell uses, so the fmt check matches the editor
               # invocation.
-              entry = "${ocamlPackages.ocamlformat}/bin/ocamlformat";
-              args = [ "--profile" "conventional" "-m" "80" ];
+              # `--check` and ONE file per invocation: the upstream
+              # hook passes every file at once, and ocamlformat
+              # refuses more than one input unless --check is given.
+              # The profile and the margin come from the repository's
+              # own .ocamlformat, so the hook and `dune fmt` cannot
+              # disagree about the shape.
+              # The project's OWN format check, not a second one:
+              # `scripts/fmt-check.sh` is what `dune fmt --preview`
+              # means here, and the hook and the developer cannot
+              # disagree about the shape of the tree. The hook is
+              # given no file names: the check is of the tree.
+              # The project's OWN format check, run with the
+              # tools it needs on PATH: `scripts/fmt-check.sh` asks
+              # `ocamlformat --check` (dune's own `fmt --preview`
+              # takes a lock and has nothing to do with
+              # formatting). The hook and the developer cannot
+              # disagree about the shape of the tree, and the check
+              # is of the tree, not of the files the commit touched.
+              entry = "${pkgs.writeShellScript "mathc-fmt-check" ''
+                export PATH=${pkgs.lib.makeBinPath [ ocamlPackages.ocamlformat ]}:$PATH
+                export MATH_CODING_ROOT="$PWD"
+                exec bash ${./scripts/fmt-check.sh}
+              ''}";
+              pass_filenames = false;
             };
             # decision-fixture-co-commit: ensure that any commit
             # touching kernel files (lib/, bin/Mathc.ml, spec/) also

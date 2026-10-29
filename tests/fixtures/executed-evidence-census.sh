@@ -300,7 +300,7 @@ while [ "$i" -lt $((CEILING_UNEXECUTED + 5)) ]; do
   printf '%s\n' "$f" >> "$fake_list"
   i=$((i + 1))
 done
-read -r fake_unanchored fake_unexecuted fake_orphans <<<"$(measure "$fake_list" "$work/decisions" 2>/dev/null)"
+read -r _fake_unanchored fake_unexecuted _fake_orphans <<<"$(measure "$fake_list" "$work/decisions" 2>/dev/null)"
 rm -rf "$work"
 if [ "$fake_unexecuted" -gt "$CEILING_UNEXECUTED" ]; then
   ok "negative control: an inflated store measures $fake_unexecuted, above the ceiling $CEILING_UNEXECUTED"

@@ -166,9 +166,10 @@ chmod +x "$sandbox/bin/nix"
 replay_block() {
   local label=$1 block_file=$2 expect=$3
   local scratch="$sandbox/tmp/self-check."
-  local body="$sandbox/block-$(printf '%s' "$label" | tr -c 'a-zA-Z0-9' '_').sh"
+  local body
+  body="$sandbox/block-$(printf '%s' "$label" | tr -c 'a-zA-Z0-9' '_').sh"
   local repl
-  repl=$(cat "$block_file")
+  repl="$(cat "$block_file")"
   repl=${repl//\/tmp\/self-check\./$scratch}
   printf '%s\n' "$repl" > "$body"
 
