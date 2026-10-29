@@ -1,7 +1,7 @@
 # 参与贡献
 
 > **协议自指其身。** 触及内核、章程、模式或权限规则的
-> 拉取请求遵循 `AGENTS.md` §Self-application。触及其他
+> 拉取请求遵循 `KERNEL_AGENTS.md` §Self-application。触及其他
 > 任何内容的拉取请求遵循工作链。
 
 ## 工作链
@@ -20,7 +20,7 @@
 - **Tier 1+**：从 `main` 创建功能分支，命名为
   `<group>/<slug>`（例如 `site/tufte-redesign`、
   `mathc/packages-html`）。
-- **Tier 3+**：按 `OCAML_BEST_PRACTICES.md` §P4 合并
+- **Tier 3+**：按 `OCAML_KERNEL_CONVENTIONS.md` §P4 合并
   顺序拆分为多个 PR：先决策，后装置，再纯内核帮助函数，
   最后 `bin/Mathc.ml`。
 - **工作树优先**：每一次变更都发生在 git 工作树中
@@ -43,7 +43,7 @@
 ## 受保护策略变更
 
 对章程、内核、闸门规则、权限规则或豁免规则的变更要求
-**同时**满足以下全部（参见 `AGENTS.md` §Self-application）：
+**同时**满足以下全部（参见 `KERNEL_AGENTS.md` §Self-application）：
 
 1. 依据当前生效规则的一项决策；
 2. 一个最强可实践的反例；
@@ -96,7 +96,7 @@ feat(kernel): 添加风险分类器（kernel-change p95≈150min，
 - 所有决策必须包含 frontmatter（`schema`、`id`、
   `revision`）；格式见 `decisions/decision.yaml`。
 - 所有义务必须声明一个验证器；参见
-  `OCAML_BEST_PRACTICES.md` §2.4 中 `acceptance:` 块的
+  `OCAML_KERNEL_CONVENTIONS.md` §2.4 中 `acceptance:` 块的
   约定。
 - 所有 cram 装置位于 `tests/cli/*.t`；切勿重建
   `tests/cram/`。
@@ -105,7 +105,7 @@ feat(kernel): 添加风险分类器（kernel-change p95≈150min，
 
 ## 卡住时
 
-OCaml 陷阱日志位于 `OCAML_BEST_PRACTICES.md` §11。在
+OCaml 陷阱日志位于 `OCAML_KERNEL_CONVENTIONS.md` §11。在
 新增任何内容前先阅读它。如果下一个 bug 不在其中，请
 修复根本原因，并在合并前追加一条新的陷阱条目。
 
@@ -114,5 +114,5 @@ OCaml 陷阱日志位于 `OCAML_BEST_PRACTICES.md` §11。在
 - 在 [README](readme.html) — 项目简介。
 - 在 [Workflow](workflow.html) — 六步循环。
 - 在 [FAQ](faq.html) — 我们最常被问到的问题。
-- 在 `AGENTS.md` §Self-application — 受保护策略的清单。
-- 在 `OCAML_BEST_PRACTICES.md` — OCaml 约定。
+- 在 `KERNEL_AGENTS.md` §Self-application — 受保护策略的清单。
+- 在 `OCAML_KERNEL_CONVENTIONS.md` — OCaml 约定。

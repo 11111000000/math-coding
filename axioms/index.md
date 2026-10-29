@@ -36,7 +36,7 @@ appear to work; it is wrong.
 
 ## How axioms relate to the agent
 
-The agent protocol (`AGENTS.md`) requires reading these axioms before
+The agent protocol (`KERNEL_AGENTS.md`) requires reading these axioms before
 any non-trivial change. Each axiom ends with a section titled
 *What an agent must do when the axiom seems to fail*; the agent must
 follow that section.

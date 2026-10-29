@@ -38,7 +38,7 @@ observation.
 - `lib/domain.ml` — `result` variant includes `Inconclusive` and
   `InfrastructureError` distinctly from `Pass`.
 - `schemas/attestation.json` — `result` enum.
-- `OCAML_BEST_PRACTICES.md` §1.3 — kernel stays offline so that
+- `OCAML_KERNEL_CONVENTIONS.md` §1.3 — kernel stays offline so that
   observations can be replayed deterministically.
 
 ## Formalization

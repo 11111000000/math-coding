@@ -102,7 +102,7 @@ These four are not negotiable. They are the minimum content of
 |-------|------------------|
 | A0 | Sealed variants for kind tags in `lib/domain.ml`; per-kind digest prefixes; closed `additionalProperties` in JSON Schemas |
 | A1 | The `result` enum includes `Inconclusive` and `InfrastructureError` distinctly from `Pass`; waivers carry `expires_at`; operational outcomes allow `absence_means: inconclusive` |
-| A2 | The gate variant includes `Blocked` with `remedies`; diagnostics carry `next_actions`; exit codes `0/1/2/3` per `OCAML_BEST_PRACTICES.md §4.3` |
+| A2 | The gate variant includes `Blocked` with `remedies`; diagnostics carry `next_actions`; exit codes `0/1/2/3` per `OCAML_KERNEL_CONVENTIONS.md §4.3` |
 | A3 | The active policy at `decisions/decision.yaml` references this index; constitution changes require migration + conformance; old policy authorizes new policy |
 | A4 | `decision.risk.owner`, `obligation.decision`, `assumption.owner`, `waiver.issuer`, `attestation.producer_identity` are required, not optional |
 

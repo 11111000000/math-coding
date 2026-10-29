@@ -310,7 +310,7 @@ summary:
     - F2 → new decision `process-principles-2026-10-2.yaml`
       (light) plus a 5-line edit to `docs/plans/...-prompts.md`.
       Severity is P2 but the fix is small (≤ 30 lines), so this
-      fits the fast path per AGENTS.md §Fast path (process-fast-
+      fits the fast path per KERNEL_AGENTS.md §Fast path (process-fast-
       path-2026-10).
     - F3 → new decision `attestation-namespace-meta-2026-11
       .yaml` (mode `light`, scope: kernel — touches

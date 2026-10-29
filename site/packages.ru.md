@@ -47,5 +47,5 @@ mathc packages --format=json | jq '.counts'
 }
 ```
 
-Сетка ниже текста — HTML-форма, встроенная через `lib/render.ml`.
+Сетка ниже текста — HTML-форма, встроенная через `lib/render/render.ml`.
 Ядро записывает обе формы.

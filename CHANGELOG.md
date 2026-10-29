@@ -387,7 +387,7 @@ byte-counting edge case work-around), 3 sub-decisions from
 import-junit-rename, B2 scripts-env-var-audit, B3
 attestation-namespace-meta), 6 from Batch C (C1+C2 process-principles
 P8.5/P9, C3 attest-handshake-rescue, C4 release-cadence +
-release-pending CI gate + MC_VERSION_DEFAULT="3.3.3" + AGENTS.md note,
+release-pending CI gate + MC_VERSION_DEFAULT="3.3.3" + KERNEL_AGENTS.md note,
 C5 verifier-scheme-convention, C6 experiment-doctor-instrumentation),
 plus fix-mcp-pipe-deadlock-2026-10 (the F15 lesson: select-based
 drain in lib/mcp/dispatch.ml::run_with_args to end the 64 KiB
@@ -614,7 +614,7 @@ contract.
 
 **Brand:** math-coding 3.3. **VERSION file** + `math-coding.opam`
 bumped from `3.1.0-alpha-final` to `3.3.0-alpha` (semver `3.3.0`).
-Header of ROADMAP, PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
+Header of ROADMAP, PACKAGES, README, AGENTS, USAGE, OCAML_KERNEL_CONVENTIONS,
 axioms/index.md, and `bin/data/time-distribution.yaml` all renamed to
 `3.3`. `mathc version` now prints `math-coding 3.3.0-alpha: bootstrap`.
 This is the published brand for the algebra-3.2-ideal kernel
@@ -631,7 +631,7 @@ now at rev 4 / state: active. The musl artifact is uploaded
 to GitHub Actions artifacts but is not yet in the published
 release `files:` list — that wiring lands with the merge to
 main. See ROADMAP §"Remaining for v3.1.0 stabilisation" and
-OCAML_BEST_PRACTICES §11.26.
+OCAML_KERNEL_CONVENTIONS §11.26.
 
 **Status (2026-10-12):** Phase 1 of the install-tooling-2026-10
 work landed on `add/deferral-records-phase-2-3-2026-10`. The
@@ -718,7 +718,7 @@ machine-readable reversal signals.
 - `.github/workflows/docker.yml` — publishes
   `ghcr.io/11111000000/mathc:<VERSION>` on every push to
   main, every tag, and on workflow_dispatch. Respects
-  `OCAML_BEST_PRACTICES` §11.26 (job-level `container:`).
+  `OCAML_KERNEL_CONVENTIONS` §11.26 (job-level `container:`).
 - `flake.nix` — `apps.<system>.default` enables `nix run
   github:11111000000/math-coding -- <args>`.
 - `decisions/version-sync-2026-10.yaml` — `VERSION` is the
@@ -742,7 +742,7 @@ machine-readable reversal signals.
   paths, version-pin contract, NixOS/glibc trap notes.
   Rendered to `dist/install.html` and `.ru.html`; verified
   by the `scripts/render.sh` allowlist.
-- `OCAML_BEST_PRACTICES.md` §11.27 (`VERSION drift between
+- `OCAML_KERNEL_CONVENTIONS.md` §11.27 (`VERSION drift between
   skill and binary`), §11.28 (`curl | sh install script
   needs -fSL`), §11.29 (`Dockerfile COPY cannot reach
   outside the build context`).
@@ -768,7 +768,7 @@ machine-readable reversal signals.
   page registry) gains `install.md` between
   `bootstrap-gate.md` and `packages.md`.
 - `scripts/render.sh` — allowlist gains `dist/install.html`.
-- `OCAML_BEST_PRACTICES.md` trap-log grows to 30 entries.
+- `OCAML_KERNEL_CONVENTIONS.md` trap-log grows to 30 entries.
 
 ### Verification
 
@@ -1042,7 +1042,7 @@ post-bootstrap hardening.
 
 ### Changed
 
-- `AGENTS.md §Bootstrap gate` — bootstrap protocol expired at
+- `KERNEL_AGENTS.md §Bootstrap gate` — bootstrap protocol expired at
   commit `8fa7fcf`; the eight manual checks remain as additive
   obligations on protected policy transitions.
 - `ROADMAP.md` — Tier-1 marked closed; new Tier-1 entries:
@@ -1055,7 +1055,7 @@ post-bootstrap hardening.
   `--out` long-flag is now accepted for `mathc render`.
 - `lib/packages.ml` — pure kernel walker that joins decisions
   against the attestation store; renders JSON / text / HTML.
-- `lib/render.ml` — pure site generator with a Markdown subset
+- `lib/render/render.ml` — pure site generator with a Markdown subset
   (headings, paragraphs, lists, code blocks, inline code).
 - `tests/repo_structure.ml` — `site.yml` is allowed to
   reference `scripts/render.sh` (added in this release).
@@ -1113,8 +1113,8 @@ blocking (`continue-on-error: false`).
 
 Pre-bootstrap alpha-tag chain. See
 `git tag --list | grep v3-alpha` and the corresponding audit
-documents in `doc/AUDIT-*.md`. The kernel had no automated
-guarantee; assessment was a manual declaration per AGENTS.md.
+documents in `docs/AUDIT-*.md`. The kernel had no automated
+guarantee; assessment was a manual declaration per KERNEL_AGENTS.md.
 
 ## v2.1-final
 

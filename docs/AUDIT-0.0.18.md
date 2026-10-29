@@ -65,7 +65,7 @@ RESOLVED):
 - the convention is documentation only; no tool is added
 - codifies the no-tool rule (P5-cram-retired already establishes
   the no-tool precedent; this is a sibling convention)
-- codified in `OCAML_BEST_PRACTICES.md §10.6` (the convention
+- codified in `OCAML_KERNEL_CONVENTIONS.md §10.6` (the convention
   index in that file)
 
 ## Carry-forward audit debts (open from v0.0.11)
@@ -101,7 +101,7 @@ None. v0.0.18 does not open any new audit debt.
   auto-verify them does not exist. The convention is itself an
   obligation (winner-1 in v0.0.18 records this). D6 expires
   when the 3.0 kernel successfully checks this repository
-  (`AGENTS.md §Bootstrap gate`).
+  (`KERNEL_AGENTS.md §Bootstrap gate`).
 - **D8** — coarse `mathc validate` diagnostic. The kernel
   synthesises "missing or invalid required field" without
   naming the field. Fix is to promote `Decision.parse_decision`
@@ -122,11 +122,11 @@ Two new OCaml tests in `tests/repo_structure.ml` (planned in
 v0.0.18-5b, not part of the audit commit):
 
 - `verify_agent_onboarding_conventions` — asserts that
-  `decisions/agent-onboarding.yaml` exists, AGENTS.md has
+  `decisions/agent-onboarding.yaml` exists, KERNEL_AGENTS.md has
   the "Read first" section, and PACKAGES.md has a row for
   `agent-onboarding`.
 - `verify_formal_verifier_prefixes` — asserts that
-  `OCAML_BEST_PRACTICES.md §10.6` exists with the
+  `OCAML_KERNEL_CONVENTIONS.md §10.6` exists with the
   tla:/coq:/alloy: prefix table, and that
   `decisions/formal-verifier-conventions.yaml` exists.
 
@@ -163,4 +163,4 @@ to run the OCaml/Alcotest suite. The conformance runner is at
 is at `tests/process_principles.ml` (Alcotest). The current tag
 chain is in `git tag --list | grep v3-alpha`. The current decision
 chain is in `git log --oneline decisions/`. The audit chain is in
-`doc/AUDIT-0.0.18.md` (this file).
+`docs/AUDIT-0.0.18.md` (this file).

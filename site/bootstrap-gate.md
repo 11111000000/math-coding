@@ -72,7 +72,7 @@ merge is allowed.
 ## The eight checks, post-expiry
 
 For protected policy transitions the eight manual checks remain
-binding. They are documented in `AGENTS.md §Self-application` and
+binding. They are documented in `KERNEL_AGENTS.md §Self-application` and
 governed by axiom A3 (the rules govern their own changes). The
 kernel enforces routine checks automatically; humans enforce
 constitutional ones. The two regimes coexist.

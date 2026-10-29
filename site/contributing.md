@@ -2,7 +2,7 @@
 
 > **The protocol applies to itself.** Pull requests that
 > touch the kernel, constitution, schemas, or authority
-> rules follow `AGENTS.md` §Self-application. Pull
+> rules follow `KERNEL_AGENTS.md` §Self-application. Pull
 > requests that touch anything else follow the working
 > chain.
 
@@ -22,7 +22,7 @@ decision under the active policy.
 - **Tier 1+**: feature branch off `main`, named
   `<group>/<slug>` (e.g. `site/tufte-redesign`,
   `mathc/packages-html`).
-- **Tier 3+**: split across multiple PRs per `OCAML_BEST_PRACTICES.md`
+- **Tier 3+**: split across multiple PRs per `OCAML_KERNEL_CONVENTIONS.md`
   §P4 merge order: decisions first, fixtures second,
   pure kernel helpers third, `bin/Mathc.ml` last.
 - **Worktree first**: every change happens in a git
@@ -45,7 +45,7 @@ skip step 4. ~30-60 s total.
 
 Changes to the constitution, kernel, gate rules, authority
 rules, or waiver rules require **all** of the following
-(per `AGENTS.md` §Self-application):
+(per `KERNEL_AGENTS.md` §Self-application):
 
 1. a decision under the currently active rules;
 2. a strongest practical countercase;
@@ -102,7 +102,7 @@ Anti-patterns (which the maintainer will reject):
   `decisions/decision.yaml` for the format.
 - All obligations must declare a verifier; see the
   `acceptance:` block conventions in
-  `OCAML_BEST_PRACTICES.md` §2.4.
+  `OCAML_KERNEL_CONVENTIONS.md` §2.4.
 - All cram fixtures live under `tests/cli/*.t`; never
   re-create `tests/cram/`.
 - All time estimates cite a reference class from
@@ -110,7 +110,7 @@ Anti-patterns (which the maintainer will reject):
 
 ## When you get stuck
 
-The OCaml trap log is at `OCAML_BEST_PRACTICES.md` §11.
+The OCaml trap log is at `OCAML_KERNEL_CONVENTIONS.md` §11.
 Read it before adding any. If the next bug is not there, fix
 the root cause and append a new trap entry before merging.
 
@@ -119,5 +119,5 @@ the root cause and append a new trap entry before merging.
 - [README](readme.html) — the project pitch.
 - [Workflow](workflow.html) — the six-step loop.
 - [FAQ](faq.html) — the questions we hear most.
-- `AGENTS.md` §Self-application — the protected-policy checklist.
-- `OCAML_BEST_PRACTICES.md` — the OCaml convention.
+- `KERNEL_AGENTS.md` §Self-application — the protected-policy checklist.
+- `OCAML_KERNEL_CONVENTIONS.md` — the OCaml convention.

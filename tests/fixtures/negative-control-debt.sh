@@ -36,7 +36,12 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # never rise.
 #
 # ceiling-raise: 198 -> 199, the raise was not recorded when it happened; commit 1ee434dc changed the number alone
-CEILING=199
+#
+# MEASURED 2026-10-28: 156. The number fell by one because the
+# walk behind the count became the corpus's own walker, and the
+# decision it names has a negative control. The pin follows the
+# truth down.
+CEILING=156
 
 count_without() {
   # The count comes from the KERNEL's own audit command, not from a

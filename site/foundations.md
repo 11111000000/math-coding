@@ -42,7 +42,7 @@ an observation the commitment is a wish.
 
 **Mechanism.** `attestations/*.json` records every
 decision-obligation pair as a `pass | fail | stale |
-unknown | missing | no_store` verdict. `lib/attestations.ml`
+unknown | missing | no_store` verdict. `lib/attestations/attestations.ml`
 loads the store and joins each entry against the kernel's
 gate.
 
@@ -222,7 +222,7 @@ change quality; the floor is set by the policy. A reviewer
 who wants to know why a change was rejected can read the
 radar and see which axis fell below the floor.
 
-![Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (AGENTS.md section Honest time reporting; algebra section 18).](assets/reasoning-budget.svg)
+![Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (KERNEL_AGENTS.md section Honest time reporting; algebra section 18).](assets/reasoning-budget.svg)
 
 The reasoning-budget diagram enforces the project's honest
 time-reporting rule. The three scales (wall-clock minutes,

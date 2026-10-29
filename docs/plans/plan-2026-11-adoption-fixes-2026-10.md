@@ -293,7 +293,7 @@ These four are pure Markdown/usage edits, no decision YAML:
 - **F5.** Update `adoption/SKILL.md` Step 3.5 — note that
   the minimal-form template now emits `axiom_link: [A0]`
   default but operators should override after first edit.
-- **F6.** Update `OCAML_BEST_PRACTICES.md` §11 trap log —
+- **F6.** Update `OCAML_KERNEL_CONVENTIONS.md` §11 trap log —
   add `§11.35` documenting the "literal-zero body_sha on
   rescue" pattern (cross-ref to F14).
 - **F7.** Update `ROADMAP.md` Tier 2 — add row for

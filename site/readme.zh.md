@@ -102,7 +102,7 @@ python3 -m http.server -d dist/ 8000
 - [FAQ](faq.html) —— 最常被问到的问题。
 - [Contributing](contributing.html) —— 如何贡献。
 - [Packages](packages.html) —— 实时的保障表面。
-- `AGENTS.md` —— 智能体协议。
+- `KERNEL_AGENTS.md` —— 智能体协议。
 - `ROADMAP.md` —— 优先级队列。
 - `PACKAGES.md` —— 关于仓库内容的唯一可信来源。
 

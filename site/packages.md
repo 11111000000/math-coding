@@ -46,4 +46,4 @@ gives the live aggregate:
 ```
 
 The grid below the prose is the HTML form, embedded by
-`lib/render.ml`. The kernel writes both.
+`lib/render/render.ml`. The kernel writes both.

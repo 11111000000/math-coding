@@ -26,7 +26,7 @@ eight. Drop any one, and the loop stays open.
 ### Why not pull in a real YAML library?
 
 The kernel must remain offline and side-effect-free
-(`OCAML_BEST_PRACTICES.md` §1.3, §7.3). Adding a parser
+(`OCAML_KERNEL_CONVENTIONS.md` §1.3, §7.3). Adding a parser
 dependency would break the reproducibility guarantee the
 kernel is built around. The hand-rolled subset loader is
 sufficient for the bootstrap files and stays tiny.
@@ -87,7 +87,7 @@ is a **protected policy transition** and requires a
 decision under the prior policy, the strongest
 countercase, positive + negative fixtures, a migration
 path, recovery path, prior authorization, and a verdict
-diff. See `AGENTS.md` §Self-application.
+diff. See `KERNEL_AGENTS.md` §Self-application.
 
 ### Where do I start?
 

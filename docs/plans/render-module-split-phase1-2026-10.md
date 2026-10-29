@@ -7,7 +7,7 @@
 ## 0. Контекст и границы
 
 - **Что анализировалось.** Состояние `lib/render/render.ml` сразу после коммита
-  `eb0a38b refactor(render): move lib/render.ml into separate mathcoding_render library`,
+  `eb0a38b refactor(render): move lib/render/render.ml into separate mathcoding_render library`,
   смёрженного в `main` как `a73b6a6`. Сам же коммит — реализация решения
   `decisions/render-module-split.yaml@1`, чей `commitment` прямо говорит:
   *«subsequent splits (Phase 1+ of the refactor) land as additional modules
@@ -85,7 +85,7 @@
    дёрнуть из теста без подъёма всего `mathcoding_render`. Это
    видно в строках 58, 192, 206, 218… — каждый тест зовёт
    `Render.md_parse` верхнего уровня.
-5. **Traps в `OCAML_BEST_PRACTICES.md:§11`.** Любой долгий
+5. **Traps в `OCAML_KERNEL_CONVENTIONS.md:§11`.** Любой долгий
    набор под-парсеров в одном файле ловит §11.24 (nested-match
    edit-loop) и §11.34 (per-binary test gating).
 
@@ -248,7 +248,7 @@ bin/Mathc.ml, bin/md_probe.ml, tests/render_kernel.ml
 
 Каждая фаза добавляет **не менее одной положительной и одной
 отрицательной фикстуры** в соответствующий файл (требование P2
-AGENTS.md).
+KERNEL_AGENTS.md).
 
 ## 6. Референсный класс времени
 
@@ -336,13 +336,13 @@ remaining_unknowns:
 ## 11. Связанные документы
 
 - Решение: `decisions/render-module-split.yaml@1` (Phase 0).
-- Коммит: `eb0a38b refactor(render): move lib/render.ml into separate mathcoding_render library`.
-- Merge: `a73b6a6 Merge render-split-2026-10: split lib/render.ml into mathcoding_render library`.
+- Коммит: `eb0a38b refactor(render): move lib/render/render.ml into separate mathcoding_render library`.
+- Merge: `a73b6a6 Merge render-split-2026-10: split lib/render/render.ml into mathcoding_render library`.
 - Тест-каркас: `tests/render_kernel.ml` (1362 строки), `tests/cli/render.t` (cram).
 - Смежные решения: `decisions/render-kernel-fixes-2026-10.yaml@1`,
   `decisions/render-dashboard-2026-10.yaml@1`,
   `decisions/render-ordered-lists-2026-10.yaml@1`,
   `decisions/zh-render-2026-10.yaml@1`.
-- Traps: `OCAML_BEST_PRACTICES.md:§11.24` (nested-match edit-loop),
-  `OCAML_BEST_PRACTICES.md:§11.34` (per-binary test gating).
+- Traps: `OCAML_KERNEL_CONVENTIONS.md:§11.24` (nested-match edit-loop),
+  `OCAML_KERNEL_CONVENTIONS.md:§11.34` (per-binary test gating).
 - Аксиомы: A0 (observability), A3 (provenance), A4 (intent→evidence).

@@ -35,7 +35,7 @@ A0 图示（如上方公理图所示）本身就是 A0 的一次实践：
 
 **机制。** `attestations/*.json` 将每个决策-义务对记录为
 `pass | fail | stale | unknown | missing | no_store` 之一。
-`lib/attestations.ml` 加载存储并将其每条记录与内核闸门
+`lib/attestations/attestations.ml` 加载存储并将其每条记录与内核闸门
 进行连接。
 
 **验证。** `scripts/generate-attestations.py` 在每次发布时
@@ -192,7 +192,7 @@ silent 包络内；模式变更位于 block 包络内。
 质量的不同方面；底线由策略设定。想要了解变更为何被
 拒绝的审阅者可以阅读雷达图，看哪条轴低于底线。
 
-![三个独立的时间报告尺度：wall-clock-minutes、token-budget、step-count。三个尺度可独立观察，不得合并为单一自然语言估计（AGENTS.md section Honest time reporting；algebra section 18）。](assets/reasoning-budget.svg)
+![三个独立的时间报告尺度：wall-clock-minutes、token-budget、step-count。三个尺度可独立观察，不得合并为单一自然语言估计（KERNEL_AGENTS.md section Honest time reporting；algebra section 18）。](assets/reasoning-budget.svg)
 
 推理预算图强制执行项目诚实报告时间的规则。三个尺度
 （wall-clock 分钟、token budget、step count）可独立

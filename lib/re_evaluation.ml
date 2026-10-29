@@ -426,18 +426,16 @@ commitment are now stale, and rewrite them.)
  * (also accepting .yml and .json). Missing directory -> []. The
  * kernel never crashes on a missing decisions directory; the
  * caller decides the priority. *)
+(* ONE corpus walk. The kernel's own walker
+   (`Memory.decision_document_paths`) recurses into the subdirectories
+   and applies the corpus's structural rule for what a decision
+   document is. This walk used to read ONE directory, so a decision
+   filed under `decisions/<sub-directory>/` was invisible to the
+   second producer -- and half the machine could not see the same
+   corpus the other half could. *)
 let[@warning "-32"] list_decision_files (root : string) : string list =
   let dir = Filename.concat root (Path_config.resolve_decisions_dir ~root ()) in
-  if not (Sys.file_exists dir) then []
-  else if not (Sys.is_directory dir) then []
-  else
-    try
-      Sys.readdir dir |> Array.to_list
-      |> List.filter (fun name ->
-          let sfx = Filename.extension name in
-          sfx = ".yaml" || sfx = ".yml" || sfx = ".json")
-      |> List.map (fun name -> Filename.concat dir name)
-    with _ -> []
+  Memory.decision_document_paths dir
 
 (* Read one decision file via the caller-supplied reader. The
  * reader contract: empty string means "missing or empty", and we

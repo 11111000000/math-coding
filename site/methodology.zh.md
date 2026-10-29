@@ -104,7 +104,7 @@ silent < record < ask < block
 
 内核选择最低充分级别。内核可以提高摩擦，但绝不会降低。
 
-![摩擦阶梯：silent（顶层，内核选择）之下 ask（人工审阅）之下 block（底层，内核拒绝）。四级阶梯配有摩擦包络、代表性的代提交类型、闸门姿态以及 AGENTS.md friction ladder 与 A3 self-application 要求的签署人。](assets/friction-ladder.svg)
+![摩擦阶梯：silent（顶层，内核选择）之下 ask（人工审阅）之下 block（底层，内核拒绝）。四级阶梯配有摩擦包络、代表性的代提交类型、闸门姿态以及 KERNEL_AGENTS.md friction ladder 与 A3 self-application 要求的签署人。](assets/friction-ladder.svg)
 
 摩擦阶梯有一条横向轴（摩擦包络）与一条纵向轴（介入
 级别）。请注意四级与四条风险带之间的对齐：

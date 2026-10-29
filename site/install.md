@@ -193,5 +193,5 @@ from the release's `assets/` list.
 - `USAGE.md` — adoption runbook (binary install + first decision).
 - `decisions/install-tooling-2026-10.yaml` — the decision
   that introduces these four channels.
-- `OCAML_BEST_PRACTICES.md` §11.28 (`curl | sh` install
+- `OCAML_KERNEL_CONVENTIONS.md` §11.28 (`curl | sh` install
   script and the `-fSL` flag discipline).

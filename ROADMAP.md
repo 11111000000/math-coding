@@ -31,7 +31,7 @@
 This document is the **single source of truth** for what math-coding 3.3
 is doing, what it is not yet doing, and in what order the remaining
 work should land. It supersedes ad-hoc "critical analysis" reports and
-inline AGENTS.md priority lists; AGENTS.md defers to this file.
+inline KERNEL_AGENTS.md priority lists; KERNEL_AGENTS.md defers to this file.
 
 ## Working chain (recap)
 
@@ -159,7 +159,7 @@ Runtime kernel behaviour is backward compatible: the existing
 | 6 | lib/gate.ml: `apply()` function for kernel rules; gate_merge / gate_release / post_release_monitor | `algebra-3.2@1` | ✅ done |
 | 7 | lib/rebuttal.ml (NEW): rebuttals/<sha>.yaml parser + walker; forge mirror adapter | `algebra-3.2@1` | ✅ done |
 | 8 | lib/re_evaluation.ml (NEW): re_evaluate(d, A_new) oracle with Compatible \| StaleClaim \| Inconclusive | `algebra-3.2@1` | ✅ done |
-| 9 | lib/attestations.ml: substrate_fingerprint, env_class_level, multi-CI aggregation | `algebra-3.2@1` | ✅ done |
+| 9 | lib/attestations/attestations.ml: substrate_fingerprint, env_class_level, multi-CI aggregation | `algebra-3.2@1` | ✅ done |
 | 10 | Cram fixtures: rebuttal.t, multi-policy.t, axiom-change.t, applic.t, trailer-formats.t | `algebra-3.2@1` | ⚠️ partial: 3 new (schema-extensions-3.2, migration-3.2-fields, applicability-envelope). Pre-existing self-check-{pass,unknown}.t expect 23 (pre-v3.0.0.20 snapshot). Snapshot regen deferred. |
 | 11 | Migration: state=active on 28 existing decisions; body_sha/yaml_sha stubs | `algebra-3.2@1` | ✅ done (`scripts/migrate-decisions-3.2.py`) |
 | 12 | ROADMAP.md, PACKAGES.md, CHANGELOG.md, USAGE.md sync (applicability envelope, two-tier model) | `algebra-3.2@1` | ✅ done |
@@ -240,7 +240,7 @@ bounded, not open-ended; future agents see when to re-engage.
   #85, #125, #126, #127, #128): `container: alpine:3.20`
   under `strategy.matrix.include` is silently ignored by
   GitHub Actions (only honored at the job level), so shell
-  steps ran on the Ubuntu runner. OCaml-Best-Practices
+  steps ran on the Ubuntu runner. OCAML_KERNEL_CONVENTIONS
   §11.26 documents the trap. Fix: explicit `docker run
   alpine:3.20 …` invocation in release.yml line ~122 with
   `apk add build-base musl-dev opam bash`, `opam update`,
@@ -273,7 +273,7 @@ prevents.
 
 A change to `lib/*.ml`, `spec/*.md`, `schemas/*.json`, or `bin/Mathc.ml`
 ships with a `decisions/*.yaml` decision under the active policy.
-**Rationale:** AGENTS.md self-application requires it; the T4/T6
+**Rationale:** KERNEL_AGENTS.md self-application requires it; the T4/T6
 session showed the cost of retrofit (2 retroactive decisions for what
 should have been 2 forward decisions).
 
@@ -319,9 +319,9 @@ this portably. The enforced test at
 `tests/process_principles.ml:332-348` checks only the OLD
 `tests/cram/` directory is absent; the live cram is in `tests/cli/`.
 
-**Correction (2026-10-04, refresh 2026-10-05, 2026-10-07):** `OCAML_BEST_PRACTICES.md` §11
+**Correction (2026-10-04, refresh 2026-10-05, 2026-10-07):** `OCAML_KERNEL_CONVENTIONS.md` §11
 trap log has 39 entries (§11.1–§11.39, verified by
-`grep -c '^### 11\.' OCAML_BEST_PRACTICES.md`); the earlier
+`grep -c '^### 11\.' OCAML_KERNEL_CONVENTIONS.md`); the earlier
 "§11 has only its header" claim was stale. §11.22 (`nix develop`
 builds a non-portable `mathc` that fails) was added in `Unreleased`
 (CHANGELOG:22) after the portable-musl reversal signal. New traps
@@ -343,7 +343,7 @@ Each step independent so a fail in step 3 doesn't skip 4. ~30-60 s total.
 
 A passing fixture must assert SOMETHING meaningful. `cram.out` matching
 captured failure output is not a passing fixture; it's a self-referential
-lie (see OCAML_BEST_PRACTICES §11.20 RETIRED). Fixtures assert positive
+lie (see OCAML_KERNEL_CONVENTIONS §11.20 RETIRED). Fixtures assert positive
 and negative cases; otherwise they don't test the obligation.
 
 ## What math-coding 3.3 is NOT
@@ -388,7 +388,7 @@ only thing affordable per change.
 
 ## See also
 
-- `AGENTS.md` — agent conduct (defer to this file for priorities)
-- `OCAML_BEST_PRACTICES.md` — OCaml traps and conventions
+- `KERNEL_AGENTS.md` — agent conduct (defer to this file for priorities)
+- `OCAML_KERNEL_CONVENTIONS.md` — OCaml traps and conventions
 - `decisions/decision.yaml` — the active policy
-- `doc/AUDIT-0.0.11.md` — the open/closed audit chain
+- `docs/AUDIT-0.0.11.md` — the open/closed audit chain

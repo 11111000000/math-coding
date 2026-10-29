@@ -105,8 +105,8 @@ project, [`adoption/SKILL.md`](adoption/SKILL.md) is the only document you
 need; everything below is documentation for the people who maintain the
 math-coding kernel itself.
 
-- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed from `AGENTS.md` at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
-- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed from `OCAML_BEST_PRACTICES.md`.
+- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed from `KERNEL_AGENTS.md` at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
+- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed from `OCAML_KERNEL_CONVENTIONS.md`.
 - [`ROADMAP.md`](ROADMAP.md): priority queue and process principles.
 - [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
 - [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.

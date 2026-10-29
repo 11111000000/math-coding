@@ -433,7 +433,7 @@ Procedure:
    the 3-scheme allowlist from `bin/Mathc.ml::parse_verifier_string`.
 5. Add cram fixture `tests/cli/verifier-scheme-warning.t`
    covering: known scheme (no warn), unknown scheme (warn).
-6. Add an `OCAML_BEST_PRACTICES.md` §11 trap log entry
+6. Add an `OCAML_KERNEL_CONVENTIONS.md` §11 trap log entry
    documenting the convention.
 7. Replace the 4 placeholder verifier strings in
    `add-verify-subcommand-2026-10.yaml` and the

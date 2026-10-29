@@ -105,7 +105,7 @@ python3 -m http.server -d dist/ 8000
 - [FAQ](faq.html) — the questions we hear most.
 - [Contributing](contributing.html) — how to contribute.
 - [Packages](packages.html) — the live assurance surface.
-- `AGENTS.md` — agent protocol.
+- `KERNEL_AGENTS.md` — agent protocol.
 - `ROADMAP.md` — the priority queue.
 - `PACKAGES.md` — the single source of truth for what exists.
 

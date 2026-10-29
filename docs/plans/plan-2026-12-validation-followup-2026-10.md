@@ -225,7 +225,7 @@ The plan closes when all 5 obligations are satisfied:
   in plan-2026-12-yaml-parser-fix with a regression test
   in `tests/yaml_parsing_test.ml` (multi-byte content of
   `claim: |`).
-- Update `OCAML_BEST_PRACTICES.md` §11 trap log with the
+- Update `OCAML_KERNEL_CONVENTIONS.md` §11 trap log with the
   reorder pattern.
 - Bump version to `v3.3.3` after F11 + F12 + Batch B + C
   all land.

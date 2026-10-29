@@ -104,7 +104,7 @@ SelfVerify(K_{n+1}, P_{n+1}) = Pass
 |---------|---------------|
 | A0 | Запечатанные варианты для тегов видов в `lib/domain.ml`; префиксы дайджестов по видам; закрытый `additionalProperties` в JSON-схемах |
 | A1 | Перечисление `result` включает `Inconclusive` и `InfrastructureError` отдельно от `Pass`; waivers содержат `expires_at`; операционные исходы допускают `absence_means: inconclusive` |
-| A2 | Вариант шлюза включает `Blocked` с `remedies`; диагностика содержит `next_actions`; коды выхода `0/1/2/3` согласно `OCAML_BEST_PRACTICES.md §4.3` |
+| A2 | Вариант шлюза включает `Blocked` с `remedies`; диагностика содержит `next_actions`; коды выхода `0/1/2/3` согласно `OCAML_KERNEL_CONVENTIONS.md §4.3` |
 | A3 | Активная политика в `decisions/decision.yaml` ссылается на этот указатель; изменения конституции требуют миграции и соответствия; старая политика авторизует новую |
 | A4 | `decision.risk.owner`, `obligation.decision`, `assumption.owner`, `waiver.issuer`, `attestation.producer_identity` обязательны, а не опциональны |
 

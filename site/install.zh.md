@@ -162,5 +162,5 @@ musl 二进制。
 - 在 `USAGE.md` — 采用运行手册（二进制安装 + 首个决策）。
 - 在 `decisions/install-tooling-2026-10.yaml` — 引入这
   四个渠道的决策。
-- 在 `OCAML_BEST_PRACTICES.md` §11.28（`curl | sh`
+- 在 `OCAML_KERNEL_CONVENTIONS.md` §11.28（`curl | sh`
   安装脚本及 `-fSL` 标志的纪律）。

@@ -11,7 +11,7 @@ Last verified at: HEAD `66f9eb0` + 2026-10-18 v3.3.3 release cycle (F11/F12/Batc
 - `66f9eb0` (merge docs/counters: sync PACKAGES.md/ROADMAP.md live counts):
   the `p8-hook-deficit-2026-10` decision (`P8` `(* tracked: ... *)`
   marker in `.githooks/pre-commit` retired; `P8` becomes an
-  agent-time rule only, see `OCAML_BEST_PRACTICES.md` §11.39).
+  agent-time rule only, see `OCAML_KERNEL_CONVENTIONS.md` §11.39).
 - 2026-10-14 cycle (`8b9a060` counters-fix + `131735c` validate-fix):
 
 - `8b9a060` (counters-fix) + `131735c` (validate-fix): two
@@ -122,9 +122,9 @@ actual verdict; the full-corpus mirror it used to read was removed on
 
 **Cross-references:**
 - `ROADMAP.md` — priorities, tier ordering, process principles (P1–P7)
-- `AGENTS.md` — agent protocol, read-first order
-- `OCAML_BEST_PRACTICES.md` — OCaml conventions + trap log
-- `doc/AUDIT-0.0.11.md` — open/closed deficit chain
+- `KERNEL_AGENTS.md` — agent protocol, read-first order
+- `OCAML_KERNEL_CONVENTIONS.md` — OCaml conventions + trap log
+- `docs/AUDIT-0.0.11.md` — open/closed deficit chain
 
 ## Status legend
 
@@ -175,11 +175,11 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | 7 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | 9 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | 9 | RESOLVED | closes the 10 render-kernel defects catalogued in `analysis/site-render-defects.md` (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
-| `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | 2 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
+| `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | 2 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `decisions/mathjax-default-on-2026-10.yaml` | `mathjax-default-on-2026-10` | 1 | 2 | RESOLVED | flips `Render.config.enable_mathjax` default `false` → `true`; reverses the `mathjax-default-off` workaround from `render-kernel-fixes-2026-10@1` because `mathjax-delimiter-hardening-2026-10@1` removed `$..$` as a math boundary; emits MathJax on every page (prose + axiom + spec) |
-| `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
+| `decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | 2 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
 | `decisions/plan-2026-10-improvements/t1-1.yaml` | `t1-1` | 1 | 1 | RESOLVED | wires `lib/rebuttal.ml::forge_mirror` to `MATH_CODING_FORGE_API`; algebra §10 hybrid mechanism is functional end-to-end; closes `plan-2026-10-improvements@1` Tier 1 obligation `t1-1-forge-mirror` |
-| `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_BEST_PRACTICES.md` §11.25 |
+| `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | 7 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_KERNEL_CONVENTIONS.md` §11.25 |
 | `decisions/tier-1-closure-2026-10.yaml` | `tier-1-closure-2026-10` | 1 | 5 | RESOLVED | closes ROADMAP Tier 1: 5 conformance fixtures carry the v3 dialectic `antithesis` field, `process_principles.ml::classify_verifier` and `fixture_coverage.ml::classify` accept three new patterns (sub-decision refs, shell-negated grep, `mathc-self-check-` keywords), 18 stale verifier references in 4 decisions are fixed, ROADMAP.md §"Priority queue" mirrors Tier 0 as `closed` |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 3 | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
@@ -191,11 +191,11 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | 3 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/portable-linux-musl-retirement-record-2026-10.yaml` | `portable-linux-musl-retirement-record-2026-10` | 1 | 1 | META | records 3/7 obligations attested + 4/7 structurally held by reversal signal; not a waiver, not counted as active decision |
 | `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | 2 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; first waiver file `decisions/waivers/portable-linux-musl-2026-10.yaml`; not counted as active decision (no kernel surface) |
-| `decisions/mcp-server-impl-pending.yaml` | `mcp-server-impl-pending` | 1 | 1 | DEFERRED | Phase-2 deferral of MCP server (lib/mcp/ + bin/mathc_mcp.ml); see `OCAML_BEST_PRACTICES` §10.1 and `doc/AUDIT-0.0.11.md:539`; reversal signal `mcp-server-impl-pending-resolved` |
+| `decisions/mcp-server-impl-pending.yaml` | `mcp-server-impl-pending` | 1 | 1 | DEFERRED | Phase-2 deferral of MCP server (lib/mcp/ + bin/mathc_mcp.ml); see `OCAML_KERNEL_CONVENTIONS` §10.1 and `docs/AUDIT-0.0.11.md:539`; reversal signal `mcp-server-impl-pending-resolved` |
 | `decisions/docker-alpine-impl-pending.yaml` | `docker-alpine-impl-pending` | 1 | 1 | DEFERRED | Phase-3 deferral of `Dockerfile.alpine` (depends on `mathc-linux-x86_64-musl` shipping as release asset, not yet wired in `release.yml:308-314`); reversal signal `docker-alpine-impl-pending-resolved` |
 | `decisions/auto-update-per-user-skill-impl-pending.yaml` | `auto-update-per-user-skill-impl-pending` | 1 | 1 | DEFERRED | Phase-3+ deferral of silent auto-update of per-user skill; manual `install.sh --user-skill --upgrade` is the contract until version-pinning protocol lands; reversal signal `auto-update-per-user-skill-impl-pending-resolved` |
-| `decisions/version-sync-2026-10.yaml` | `version-sync-2026-10` | 1 | 4 | RESOLVED | `scripts/sync-version.sh --check/--write` keeps `adoption/SKILL.md` and future `install.sh` derived version strings in sync with the `VERSION` file; closes the follow-up announced at `site-version-from-file-2026-10.yaml:76-81`; adds `OCAML_BEST_PRACTICES.md` §11.27 |
-| `decisions/install-tooling-2026-10.yaml` | `install-tooling-2026-10` | 1 | 10 | RESOLVED | four install channels (release binary / docker image / nix run / source build) + per-user skill pipeline + `templates/active-policy.yaml` for new repos; POSIX-sh `install.sh` with SHA-256 verification; ships `Dockerfile.debian-slim`, `flake.nix` `apps.default`, `.github/workflows/docker.yml`, and `OCAML_BEST_PRACTICES.md` §11.28/§11.29 |
+| `decisions/version-sync-2026-10.yaml` | `version-sync-2026-10` | 1 | 4 | RESOLVED | `scripts/sync-version.sh --check/--write` keeps `adoption/SKILL.md` and future `install.sh` derived version strings in sync with the `VERSION` file; closes the follow-up announced at `site-version-from-file-2026-10.yaml:76-81`; adds `OCAML_KERNEL_CONVENTIONS.md` §11.27 |
+| `decisions/install-tooling-2026-10.yaml` | `install-tooling-2026-10` | 1 | 10 | RESOLVED | four install channels (release binary / docker image / nix run / source build) + per-user skill pipeline + `templates/active-policy.yaml` for new repos; POSIX-sh `install.sh` with SHA-256 verification; ships `Dockerfile.debian-slim`, `flake.nix` `apps.default`, `.github/workflows/docker.yml`, and `OCAML_KERNEL_CONVENTIONS.md` §11.28/§11.29 |
 | `decisions/lib-stale-comments-cleanup-2026-10.yaml` | `lib-stale-comments-cleanup-2026-10` | 1 | 3 | META | removes dead-code narrative comments from `lib/risk.ml` (Phase 2E stub claim, already wired via `risk-policy-driven-floor-2026-10`) and `lib/packages.ml` (v3.0.0.30 task claim, already landed via `waiver-infrastructure-2026-10`); behavioural equivalence preserved by construction; not counted as active decision (no kernel surface) |
 | `decisions/parser-risk-owner-default.yaml` | `parser-risk-owner-default` | 1 | 3 | RESOLVED | documents the risk-block owner-default workaround for `decisions/decision.yaml`; proper kernel fix deferred to `kernel-default-owner-landed` reversal signal |
 | `decisions/agent-debug-infrastructure-2026-10.yaml` | `agent-debug-infrastructure-2026-10` | 1 | 4 | META | scripts/agent-debug + tests/traps.ml + tests/qcheck_parsers.ml + Jsonl.Parse_error verbosity; not counted as active decision (dev-infra, no kernel surface) |
@@ -213,9 +213,9 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/ux-3-init-copies-ci-workflow-2026-10.yaml` | `ux-3-init-copies-ci-workflow-2026-10` | 1 | 2 | DEFERRED | designs mathc init auto-wire templates/ci.yml (state: deferred; needs dune) |
 | `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml` | `schema-string-bump-3.0-alpha-to-3.2` | 1 | 5 | RESOLVED | A3-protected transition that brings the schema-string on every live decision forward from `math-coding/3.0-alpha` to `math-coding/3.2` (matches the field set the algebra-3.2 spec formalises); `schemas/decision.json`'s `schema` enum now accepts both forms for one cycle (soft-deprecated `3.0-alpha`); first non-trivial migration cycle of `lib/migrate.ml` is `decisions/migrations/3.0-alpha-to-3.2.yaml` (a single `bump-schema-string` action); bulk-bumped 72 decision YAML files via `scripts/bulk-bump-schema.sh` (a one-shot, post-merger script that's now removed from the tree) and back-filled body_sha/yaml_sha on the 6 decisions that predated the v3.0.0.19 schema tightening; fixture: `tests/cli/migrate-bump-replay.t` (replays the manifest against a synthetic legacy tree and asserts a no-op plan against the live post-bump tree) |
 | `decisions/plan-2026-10-improvements/t4-2.yaml` | `t4-2-explain-diagnostic` | 1 | 2 | RESOLVED | Tier-4 #2: `mathc explain-diagnostic <CODE>` subcommand; registry in `lib/diagnostic.ml::explain`; positive+negative cram fixture |
-| `decisions/site-svg-methodology-2026-10.yaml` | `site-svg-methodology-2026-10` | 1 | 1 | RESOLVED | adds 5 hand-rolled SVG figures to the methodology page (`lifecycle-fsm`, `friction-ladder`, `attestation-lifecycle`, `risk-bands`, `verdict-flow`); extends `lib/render.ml::body_extra` for the `methodology` page key; each SVG is accessibility-tagged (`role="img"` + `aria-labelledby` + `<title>`) and inherits the existing `.mathc-figure-methodology img { max-width: 56rem; }` CSS rule |
-| `decisions/site-svg-manifesto-2026-10.yaml` | `site-svg-manifesto-2026-10` | 1 | 1 | RESOLVED | adds 4 hand-rolled SVG figures to the manifesto page (`architecture-overview`, `human-in-the-loop`, `human-roles`, `kernel-vs-human`); new `body_extra` match for the `manifesto` page key in `lib/render.ml`; new `.mathc-figure-manifesto img { max-width: 56rem; }` CSS rule in `assets/style.css` |
-| `decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); extends `lib/render.ml::body_extra` for the `foundations` page key; covers algebra §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
+| `decisions/site-svg-methodology-2026-10.yaml` | `site-svg-methodology-2026-10` | 1 | 1 | RESOLVED | adds 5 hand-rolled SVG figures to the methodology page (`lifecycle-fsm`, `friction-ladder`, `attestation-lifecycle`, `risk-bands`, `verdict-flow`); extends `lib/render/render.ml::body_extra` for the `methodology` page key; each SVG is accessibility-tagged (`role="img"` + `aria-labelledby` + `<title>`) and inherits the existing `.mathc-figure-methodology img { max-width: 56rem; }` CSS rule |
+| `decisions/site-svg-manifesto-2026-10.yaml` | `site-svg-manifesto-2026-10` | 1 | 1 | RESOLVED | adds 4 hand-rolled SVG figures to the manifesto page (`architecture-overview`, `human-in-the-loop`, `human-roles`, `kernel-vs-human`); new `body_extra` match for the `manifesto` page key in `lib/render/render.ml`; new `.mathc-figure-manifesto img { max-width: 56rem; }` CSS rule in `assets/style.css` |
+| `decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); extends `lib/render/render.ml::body_extra` for the `foundations` page key; covers algebra §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
 | `decisions/site-svg-workflow-2026-10.yaml` | `site-svg-workflow-2026-10` | 1 | 1 | RESOLVED | adds the `bootstrap-timeline` SVG to the workflow page; new `body_extra` match for the `workflow` page key; new `.mathc-figure-workflow img { max-width: 56rem; }` CSS rule; the timeline shows the three regime boundaries (v3-alpha-0.0.1 → 8fa7fcf → today) |
 | `decisions/obligations.yaml` | (aggregator) | — | — | INDEX | tracks bootstrap-v3 obligations |
 
@@ -361,7 +361,7 @@ is registered through `git config core.hooksPath`.
 ## Adapter protocol (`lib/git/`, `lib/junit/`)
 
 Adapters live in **separate libraries** with their own `dune` files.
-This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
+This isolates I/O from the pure kernel (see `OCAML_KERNEL_CONVENTIONS §10.1`).
 
 ## Schema packages (`schemas/`)
 
@@ -393,7 +393,7 @@ This isolates I/O from the pure kernel (see `OCAML_BEST_PRACTICES §10.1`).
 | `self-application.md` | A3 | The rules govern their own changes |
 | `care.md` | A4 | Owner, consequence, accountability required |
 
-## Open audit items (see `doc/AUDIT-0.0.11.md` for full detail)
+## Open audit items (see `docs/AUDIT-0.0.11.md` for full detail)
 
 | id | Description | Status |
 |---|---|---|
@@ -413,13 +413,13 @@ A new agent should:
 3. Read that decision file in full — it lists obligations, fixtures, and the active policy it depends on.
 4. Read the matching fixture (or create one if missing) — fixtures are the executable acceptance gate.
 5. Implement the kernel change in `lib/` only after the decision file is in `main`.
-6. Run `./scripts/check.sh` before every commit; the AGENTS.md self-application protocol requires it.
+6. Run `./scripts/check.sh` before every commit; the KERNEL_AGENTS.md self-application protocol requires it.
 
 ## What this file is NOT
 
 - **Not** a priority queue — see `ROADMAP.md`.
 - **Not** a changelog — see `git tag --list | grep v3-alpha` for tags.
-- **Not** a recipe — see `OCAML_BEST_PRACTICES.md` §1–§11 for OCaml conventions and traps.
+- **Not** a recipe — see `OCAML_KERNEL_CONVENTIONS.md` §1–§11 for OCaml conventions and traps.
 
 ## Site packages (`site/`)
 
@@ -480,7 +480,7 @@ and removed.
 
 Previous: HEAD `c56bd35` (2026-10-14): version-bump to
 math-coding 3.3 (semver `3.3.0`). Header renames across ROADMAP,
-PACKAGES, README, AGENTS, USAGE, OCAML_BEST_PRACTICES,
+PACKAGES, README, AGENTS, USAGE, OCAML_KERNEL_CONVENTIONS,
 axioms/index.md, `bin/data/time-distribution.yaml`; CHANGELOG
 opens a `v3.3.0` section
 146 active decisions / 380 obligations / 739 attestations / 67 cram

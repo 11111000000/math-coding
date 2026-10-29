@@ -110,7 +110,7 @@ findings:
          `kernel-conformance-runner`, `validate-and-context`).
       2. `bin/Mathc.ml:2245` and `:2264` (`do_record` write;
          `do_stats` read) — both hard-code
-         `decisions/execution-logs.jsonl`. Per AGENTS.md §Honest time
+         `decisions/execution-logs.jsonl`. Per KERNEL_AGENTS.md §Honest time
          reporting the JSONL store is owned by the project but the
          path is *the* source of truth for time-tracking; users who
          route their tree to `.math-coding/decisions/` via env-var
@@ -483,7 +483,7 @@ summary:
       the attestation store when the code does not. The
       doc-vs-code drift predates the fix and should be a
       separate drift check (`scripts/check-stale-narrative.sh`,
-      which already exists per the AGENTS.md read-first list,
+      which already exists per the KERNEL_AGENTS.md read-first list,
       may already cover this; not confirmed).
     - The fast-path eligible classes for all four: F10 has the
       most files (6 + decision file), so it is

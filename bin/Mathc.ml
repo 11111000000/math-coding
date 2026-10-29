@@ -7789,14 +7789,11 @@ let[@warning "-32"] subject_to_json name verdict causes remedies waived =
  *)
 let[@warning "-32"] do_negative_control () =
   let dir = Path_config.decisions_dir_at () in
-  let files =
-    if Sys.file_exists dir && Sys.is_directory dir then
-      Array.to_list (Sys.readdir dir)
-      |> List.filter (fun n -> Filename.check_suffix n ".yaml")
-      |> List.sort String.compare
-      |> List.map (Filename.concat dir)
-    else []
-  in
+  (* ONE corpus walk: the kernel's own walker
+     (`Memory.decision_document_paths`). The count this command
+     produces is pinned by a ceiling, and a ceiling measured over
+     ONE directory is a ceiling over the wrong corpus. *)
+  let files = Memory.decision_document_paths dir in
   let missing =
     List.filter_map
       (fun path ->

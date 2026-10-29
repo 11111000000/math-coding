@@ -64,7 +64,7 @@ math-coding 3.0-alpha 便以这种状态诞生。从最初的提交
 ## 失效后的八项检查
 
 对于受保护策略的变更，八项人工检查依然具有约束力。它们
-记录在 `AGENTS.md §Self-application`，并由公理 A3 管辖
+记录在 `KERNEL_AGENTS.md §Self-application`，并由公理 A3 管辖
 （规则管理自身的变更）。内核自动强制执行常规检查，人工
 强制执行宪法层面的检查。两种阶段并存。
 

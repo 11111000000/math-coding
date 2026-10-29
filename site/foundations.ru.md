@@ -45,7 +45,7 @@ JSON; обходчик падает на виде, не входящем в за
 
 **Механизм.** `attestations/*.json` записывает каждую
 пару «решение — обязательство» как вердикт `pass | fail |
-stale | unknown | missing | no_store`. `lib/attestations.ml`
+stale | unknown | missing | no_store`. `lib/attestations/attestations.ml`
 загружает хранилище и сопоставляет каждую запись со
 шлюзом ядра.
 
@@ -237,7 +237,7 @@ Mode — наименьший конверт, содержащий позици�
 узнать, почему изменение было отклонено, может прочесть
 радар и увидеть, какая ось упала ниже пола.
 
-![Три независимые шкалы отчётности о времени: wall-clock-minutes (настенные минуты), token-budget (лимит токенов), step-count (число шагов). Эти три шкалы независимо наблюдаемы и не могут быть объединены в единую натурально-языковую оценку (AGENTS.md section Honest time reporting; algebra section 18).](assets/reasoning-budget.svg)
+![Три независимые шкалы отчётности о времени: wall-clock-minutes (настенные минуты), token-budget (лимит токенов), step-count (число шагов). Эти три шкалы независимо наблюдаемы и не могут быть объединены в единую натурально-языковую оценку (KERNEL_AGENTS.md section Honest time reporting; algebra section 18).](assets/reasoning-budget.svg)
 
 Диаграмма reasoning-budget обеспечивает правило
 честной отчётности о времени в проекте. Три шкалы

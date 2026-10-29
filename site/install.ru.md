@@ -181,5 +181,5 @@ v3.2.0-alpha; musl Docker-образ отложен до следующего
   первое решение).
 - `decisions/install-tooling-2026-10.yaml` — решение,
   вводящее эти четыре канала.
-- `OCAML_BEST_PRACTICES.md` §11.28 (дисциплина флага
+- `OCAML_KERNEL_CONVENTIONS.md` §11.28 (дисциплина флага
   `-fSL` в install-скриптах вида `curl | sh`).

@@ -22,7 +22,7 @@
 ### 为什么不引入真正的 YAML 库？
 
 内核必须保持离线、且无副作用（参见
-`OCAML_BEST_PRACTICES.md` §1.3、§7.3）。新增解析器依赖
+`OCAML_KERNEL_CONVENTIONS.md` §1.3、§7.3）。新增解析器依赖
 会破坏内核所依托的可复现性保证。手写的子集加载器足以
 处理引导阶段的文件，并且保持极小。
 
@@ -74,7 +74,7 @@ Caddy、GitHub Pages、Netlify、Vercel、Cloudflare Pages）
 约束自身的系统是不可信的。修订一项公理是一项**受保护
 的策略变更**，需要在既有策略下形成决策、最强反例、
 正反两面固定样本、迁移路径、恢复路径、既有策略的
-授权以及一份判定变更表。参见 `AGENTS.md`
+授权以及一份判定变更表。参见 `KERNEL_AGENTS.md`
 §「Self-application」。
 
 ### 从哪里入手？

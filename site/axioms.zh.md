@@ -94,7 +94,7 @@ SelfVerify(K_{n+1}, P_{n+1}) = Pass
 |------|----------|
 | A0 | `lib/domain.ml` 中种类标签使用封闭变体；按种类的前缀摘要；JSON Schema 中关闭 `additionalProperties` |
 | A1 | `result` 枚举包含 `Inconclusive` 和 `InfrastructureError`，与 `Pass` 区分；豁免附带 `expires_at`；操作结果允许 `absence_means: inconclusive` |
-| A2 | 闸门变体包含 `Blocked` 并带 `remedies`；诊断信息包含 `next_actions`；退出码 `0/1/2/3` 遵循 `OCAML_BEST_PRACTICES.md §4.3` |
+| A2 | 闸门变体包含 `Blocked` 并带 `remedies`；诊断信息包含 `next_actions`；退出码 `0/1/2/3` 遵循 `OCAML_KERNEL_CONVENTIONS.md §4.3` |
 | A3 | `decisions/decision.yaml` 中的活动策略引用此索引；宪法变更需要迁移与一致性；旧策略授权新策略 |
 | A4 | `decision.risk.owner`、`obligation.decision`、`assumption.owner`、`waiver.issuer`、`attestation.producer_identity` 为必填项，而非可选项 |
 

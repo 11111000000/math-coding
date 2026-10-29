@@ -113,7 +113,7 @@ silent < record < ask < block
 The kernel chooses the least sufficient level. A kernel may raise
 friction but never lower it.
 
-![Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Four rungs with the friction envelope, a representative commit kind, the gate posture, and the signer required by AGENTS.md friction ladder and A3 self-application.](assets/friction-ladder.svg)
+![Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Four rungs with the friction envelope, a representative commit kind, the gate posture, and the signer required by KERNEL_AGENTS.md friction ladder and A3 self-application.](assets/friction-ladder.svg)
 
 The friction ladder has a horizontal axis (friction envelope) and
 a vertical axis (level of involvement). Notice the alignment

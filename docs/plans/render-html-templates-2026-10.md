@@ -17,7 +17,7 @@
 
 ## 1. Принципы качества, по которым сверяемся
 
-Цитаты из `OCAML_BEST_PRACTICES.md` (это стандарт проекта, не внешняя
+Цитаты из `OCAML_KERNEL_CONVENTIONS.md` (это стандарт проекта, не внешняя
 эстетика):
 
 - **§1.3 — «No I/O in lib/».** Кернел — side-effect-free, детерминирован.
@@ -280,7 +280,7 @@ PR-цикл, не серия.
 ## 14. Связанные документы
 
 - `decisions/render-module-split.yaml@1` (Phase 0 — уже сделано).
-- `OCAML_BEST_PRACTICES.md` §1.2, §1.3, §2.1, §2.5, §4.1.
+- `OCAML_KERNEL_CONVENTIONS.md` §1.2, §1.3, §2.1, §2.5, §4.1.
 - `decisions/render-dashboard-2026-10.yaml@1` (причина двойного источника
   `assets/dashboard.html` — устраняем).
 - `decisions/render-kernel-fixes-2026-10.yaml@1` (golden-снапшоты, на

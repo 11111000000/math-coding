@@ -5,7 +5,7 @@
 > Date: 2026-09-29
 > Status: release-time audit. Closes deficits **D1** (YAML `|`
 > block scalars) and **D2** (YAML front-matter) from
-> `doc/AUDIT-0.0.11.md`. The implementation lands in
+> `docs/AUDIT-0.0.11.md`. The implementation lands in
 > `lib/codec.ml`; the kernel tests live in
 > `tests/yaml_block_scalars.ml`; the conformance fixtures live
 > in `fixtures/conformance/decision/positive-block-scalars.yaml`
@@ -77,7 +77,7 @@ v0.0.19         audit D1 + D2 (YAML block scalars + front-matter)
   exist. The convention is itself an obligation (winner-1 in
   v0.0.18 records this). D6 expires when the 3.0 kernel
   successfully checks this repository
-  (`AGENTS.md §Bootstrap gate`).
+  (`KERNEL_AGENTS.md §Bootstrap gate`).
 - **D8** — coarse `mathc validate` diagnostic. The kernel
   synthesises "missing or invalid required field" without
   naming the field. Fix is to promote `Decision.parse_decision`
@@ -95,7 +95,7 @@ and junit), D3 (priority-drift detector), D4′ (result/ in
 ### Why a hand-rolled parser, not `yaml`/`ocaml-yaml`
 
 The kernel must remain offline and side-effect-free
-(`OCAML_BEST_PRACTICES §1.3, §7.3`). Adding a real YAML library
+(`OCAML_KERNEL_CONVENTIONS §1.3, §7.3`). Adding a real YAML library
 would drag in transitive packages and break the reproducibility
 guarantee. The hand-rolled subset loader is sufficient for the
 decisions files and stays tiny (~150 lines added to
@@ -113,7 +113,7 @@ now delegates to `Codec.load_yaml_string`. The hand-rolled
 `yaml_*` helpers in `tests/conformance.ml` remain — they are
 used by the `walk_decision_yaml` walker to inspect token
 streams that the kernel strips (e.g. front-matter).
-Documented in `OCAML_BEST_PRACTICES §11.1` (trap log).
+Documented in `OCAML_KERNEL_CONVENTIONS §11.1` (trap log).
 
 ### Chomping semantics (YAML 1.2)
 
@@ -122,7 +122,7 @@ The variant `chomp` is named `Clip`/`Strip`/`Keep`, not
 chomping indicator) is **Clip** in the YAML spec — it clips
 the trailing newlines to exactly one. Using `Plain` would
 clash with the YAML spec naming. See
-`OCAML_BEST_PRACTICES §11.2`.
+`OCAML_KERNEL_CONVENTIONS §11.2`.
 
 ### Body indent (`>=` not `>`)
 
@@ -132,7 +132,7 @@ not `yindent > body_indent`. The header line's value (e.g.
 appear at exactly `parent_indent + 2`. Using `>` instead of
 `>=` collects nothing and produces an empty string. This was
 the root cause of the v0.0.19 `literal simple` test failure.
-See `OCAML_BEST_PRACTICES §11.3`.
+See `OCAML_KERNEL_CONVENTIONS §11.3`.
 
 ### Backward compatibility
 
@@ -150,7 +150,7 @@ does (`.` does not match `\n`; `[^\n]` negation does not
 behave as documented inside a repetition group). The fix in
 `tests/repo_structure.ml:test_enumerate` is to use substring +
 position checks instead of regex. Documented in
-`OCAML_BEST_PRACTICES §11.1`.
+`OCAML_KERNEL_CONVENTIONS §11.1`.
 
 ## Verification
 
@@ -181,12 +181,12 @@ Total passing tests: 36 + 15 cram = 51.
 
 ## See also
 
-- `AGENTS.md` — agent conduct (defer to this file for
+- `KERNEL_AGENTS.md` — agent conduct (defer to this file for
   priorities; P3 time-box on detailed work was honoured).
-- `OCAML_BEST_PRACTICES.md §11` — trap log entries added in
+- `OCAML_KERNEL_CONVENTIONS.md §11` — trap log entries added in
   v0.0.19.
 - `decisions/yaml-block-scalars.yaml@3` — the closing
   decision (supersedes yaml-block-scalars.yaml@2 and
   yaml-block-scalars-impl-pending.yaml@1).
-- `doc/AUDIT-0.0.11.md` — the original deficit chain.
-- `doc/AUDIT-0.0.18.md` — the previous release audit.
+- `docs/AUDIT-0.0.11.md` — the original deficit chain.
+- `docs/AUDIT-0.0.18.md` — the previous release audit.

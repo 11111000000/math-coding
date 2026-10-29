@@ -106,7 +106,7 @@ python3 -m http.server -d dist/ 8000
 - [FAQ](faq.html) — самые частые вопросы.
 - [Contributing](contributing.html) — как внести вклад.
 - [Packages](packages.html) — живая поверхность обеспечения качества.
-- `AGENTS.md` — протокол агента.
+- `KERNEL_AGENTS.md` — протокол агента.
 - `ROADMAP.md` — очередь приоритетов.
 - `PACKAGES.md` — единственный источник истины о том, что
   существует.

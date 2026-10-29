@@ -44,5 +44,5 @@ mathc packages --format=json | jq '.counts'
 }
 ```
 
-正文下方的网格即为 HTML 形式，由 `lib/render.ml` 内嵌。
+正文下方的网格即为 HTML 形式，由 `lib/render/render.ml` 内嵌。
 内核同时写入两种形式。
