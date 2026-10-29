@@ -56,7 +56,7 @@ validate` run after the user adopts the file).
   > obligations:
   >   - id: trivial-obligation
   >     claim: |
-  >       validates under mathc validate with active state.
+  >       validates under $INSIDE_DUNE/bin/mathc.exe validate with active state.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state.t
@@ -151,7 +151,7 @@ Case (b) — re-mint the fixture at `state: active` then
   > obligations:
   >   - id: trivial-obligation
   >     claim: |
-  >       validates under mathc validate with active state.
+  >       validates under $INSIDE_DUNE/bin/mathc.exe validate with active state.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state.t

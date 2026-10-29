@@ -37,7 +37,7 @@ prompt, then declines; exit 1. This guards against silent mutation
 of the installed binary.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ printf '' | mathc update
+  $ printf '' | $INSIDE_DUNE/bin/mathc.exe update
   mathc update: replace the installed mathc binary? [y/N] mathc update: declined; no changes made
   [1]
 

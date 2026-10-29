@@ -19,7 +19,7 @@ cannot pollute the host checkout.
   $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_DECISIONS_DIR=".test-math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
-  $ if mathc attest-batch \
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest-malformed.tsv" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR" 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on malformed manifest"; exit 1
@@ -57,7 +57,7 @@ A missing manifest file is also exit 2 (input error class per
 OCAML_BEST_PRACTICES §4.3). The error message MUST include the path
 the user passed so they can spot typos.
 
-  $ if mathc attest-batch --manifest=/nonexistent/path.tsv 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=/nonexistent/path.tsv 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on missing manifest"; exit 1
   > else
   >   echo "missing manifest refused (exit $?)"
@@ -67,7 +67,7 @@ the user passed so they can spot typos.
 Bad --result value (anything other than `pass` / `fail`) is exit 2.
 The diagnostic names the offending value.
 
-  $ if mathc attest-batch \
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
   >   --result=oops 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on bad --result"; exit 1

@@ -46,7 +46,7 @@ A header row is skipped; the data row after it is emitted.
 An invalid `kind_` is refused with the schema enum in the message.
 
   $ printf 'd1\to1\trevew\thuman:me\tpass\n' > k.tsv
-  $ if mathc attest-batch --manifest=k.tsv --out=bad 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=k.tsv --out=bad 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad kind"; exit 1
   > else
   >   echo "bad kind refused (exit $?)"
@@ -60,7 +60,7 @@ An invalid `kind_` is refused with the schema enum in the message.
 An invalid `result` is refused the same way.
 
   $ printf 'd1\to1\treview\thuman:me\tmaybe\n' > r.tsv
-  $ if mathc attest-batch --manifest=r.tsv --out=bad2 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=r.tsv --out=bad2 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad result"; exit 1
   > else
   >   echo "bad result refused (exit $?)"
@@ -70,7 +70,7 @@ An invalid `result` is refused the same way.
 `--kind` on the --from=decisions path is validated against the same
 enum (it previously accepted anything and wrote an unloadable file).
 
-  $ if mathc attest-batch --from=none --kind=nope 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --from=none --kind=nope 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad --kind"; exit 1
   > else
   >   echo "bad --kind refused (exit $?)"
@@ -80,7 +80,7 @@ enum (it previously accepted anything and wrote an unloadable file).
 An unwritable output directory is an exit-2 diagnostic naming the
 path, not `mathc: internal error`.
 
-  $ if mathc attest-batch --manifest=m.tsv --out=/proc/x/y 2>"$tmp/ab.err"; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=m.tsv --out=/proc/x/y 2>"$tmp/ab.err"; then
   >   echo "FAIL: expected non-zero exit on unwritable out"; exit 1
   > else
   >   echo "unwritable out refused (exit $?)"
@@ -95,7 +95,7 @@ this scratch project the default `.math-coding/decisions` does not
 exist and neither does the legacy one, so the walker reports nothing
 rather than silently reading the repository the harness runs in.
 
-  $ if mathc attest-batch --from=decisions --producer=human:integration-test --dry-run >/dev/null 2>"$tmp/ab2.err"; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:integration-test --dry-run >/dev/null 2>"$tmp/ab2.err"; then
   >   echo "FAIL: expected exit 2 with no decisions"; exit 1
   > else
   >   echo "empty project refused (exit $?)"

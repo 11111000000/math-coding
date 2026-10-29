@@ -116,7 +116,7 @@ set.
   >   n/a
   > YAML
   $ git add . && git commit -q -m "fixture decisions"
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-pass/attestations" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-pass.out; ec=$?; jq -c "del(.now) | {verdict, gaps: (.gaps | length), obligations_positive: (.obligations > 0), every_obligation_attested: ((.gaps | length) == 0)}" < /tmp/gate-pass.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-pass/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-pass.out; ec=$?; jq -c "del(.now) | {verdict, gaps: (.gaps | length), obligations_positive: (.obligations > 0), every_obligation_attested: ((.gaps | length) == 0)}" < /tmp/gate-pass.out; echo "exit=$ec"'
   {"verdict":"pass","gaps":0,"obligations_positive":true,"every_obligation_attested":true}
   exit=0
 
@@ -124,7 +124,7 @@ Control — same project, store absent: the verdict degrades to
 unknown and the exit code becomes 3, so the `pass` above is
 earned by the store rather than by an empty obligation set.
 
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-pass-empty.out; ec=$?; jq -c "del(.now) | {verdict, all_missing: (.gaps | length > 0 and all(.kind == \"MissingEvidence\"))}" < /tmp/gate-pass-empty.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-pass-empty.out; ec=$?; jq -c "del(.now) | {verdict, all_missing: (.gaps | length > 0 and all(.kind == \"MissingEvidence\"))}" < /tmp/gate-pass-empty.out; echo "exit=$ec"'
   {"verdict":"unknown","all_missing":true}
   exit=3
   $ cd /

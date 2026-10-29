@@ -19,10 +19,10 @@ that is `unknown`, not `pass` (spec/semantics.md §Kernel Output
 decisions/exit-honesty-waivers-2026-10.yaml this case answered
 `pass` with exit 0, which asserted a membership nobody checked.
 
-  $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz
+  $ env -u MATH_CODING_FORGE_API $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=baz
   {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"unknown"}
   [3]
-  $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz
+  $ env -u MATH_CODING_FORGE_API $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=baz
   {"fail_mode":"open","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=open","team":"bar","user":"baz","verdict":"unknown"}
   [3]
   $ echo $?
@@ -30,10 +30,10 @@ decisions/exit-honesty-waivers-2026-10.yaml this case answered
 
 Forge unset, fail-mode closed: block, exit 1.
 
-  $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz --fail-mode=closed
+  $ env -u MATH_CODING_FORGE_API $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=baz --fail-mode=closed
   {"fail_mode":"closed","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=closed","team":"bar","user":"baz","verdict":"block"}
   [1]
-  $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz --fail-mode=closed
+  $ env -u MATH_CODING_FORGE_API $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=baz --fail-mode=closed
   {"fail_mode":"closed","forge_queried":false,"org":"foo","reason":"MATH_CODING_FORGE_API not set; fail-mode=closed","team":"bar","user":"baz","verdict":"block"}
   [1]
   $ echo $?
@@ -41,7 +41,7 @@ Forge unset, fail-mode closed: block, exit 1.
 
 Unknown fail-mode rejected with exit 2.
 
-  $ env -u MATH_CODING_FORGE_API mathc forge-verify --org=foo --team=bar --user=baz --fail-mode=lol
+  $ env -u MATH_CODING_FORGE_API $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=baz --fail-mode=lol
   mathc forge-verify: --fail-mode must be open|closed (got lol)
   [2]
   $ echo $?

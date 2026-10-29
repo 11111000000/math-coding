@@ -85,7 +85,7 @@ violates a required field and assert reject with exit code 1.
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json bad.json | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-DECISION-INVALID","severity":"warn"}
-  $ if mathc validate bad.json > /dev/null 2>&1; then
+  $ if $INSIDE_DUNE/bin/mathc.exe validate bad.json > /dev/null 2>&1; then
   >   echo "FAIL: expected reject on missing intent"; exit 1
   > else
   >   echo "missing intent rejected (exit $?)"

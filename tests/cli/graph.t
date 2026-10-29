@@ -30,7 +30,7 @@ success, 1 on policy not-found, 2 on input error.
   graph json: root + edges + addresses kind all present
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc graph --decision=does-not-exist --format=json 2>&1 | grep -q 'MC-POLICY-NOT-FOUND'; then \
+  $ if $INSIDE_DUNE/bin/mathc.exe graph --decision=does-not-exist --format=json 2>&1 | grep -q 'MC-POLICY-NOT-FOUND'; then \
   >   echo "graph unknown-id: MC-POLICY-NOT-FOUND emitted"; \
   > else echo "FAIL: expected MC-POLICY-NOT-FOUND"; fi
   graph unknown-id: MC-POLICY-NOT-FOUND emitted

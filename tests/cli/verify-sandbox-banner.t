@@ -36,10 +36,10 @@ verify run forks the sandboxed child.
   >     - "tests/cli/verify-sandbox-banner.t"
   > obligations:
   >   - id: version-runs
-  >     claim: mathc version runs in strict mode.
+  >     claim: $INSIDE_DUNE/bin/mathc.exe version runs in strict mode.
   >     acceptance:
   >       all:
-  >         - verifier: mathc version
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe version
   >           result: pass
   > axiom_link:
   >   - A0
@@ -58,7 +58,7 @@ verify run forks the sandboxed child.
 strict mode emits the RLIMIT banner (Linux) or the Linux-only
 fallback warning (non-Linux); either is acceptable.
 
-  $ if mathc verify --sandbox=strict scratch-verify.yaml 2>&1 | grep -qE 'RLIMIT_NPROC=1|Linux-only'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe verify --sandbox=strict scratch-verify.yaml 2>&1 | grep -qE 'RLIMIT_NPROC=1|Linux-only'; then
   >   echo "strict-mode-primitive-notice: ok"
   > else
   >   echo "strict-mode-primitive-notice: MISSING"

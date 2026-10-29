@@ -39,7 +39,7 @@ success (including zero matches), 2 on input error.
   find --obligation: returns enclosing decision + attestation_path
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc find 2>&1 | grep -q 'KEYWORD or --obligation=ID is required'; then \
+  $ if $INSIDE_DUNE/bin/mathc.exe find 2>&1 | grep -q 'KEYWORD or --obligation=ID is required'; then \
   >   echo "find (no args): input error"; \
   > else echo "FAIL: expected usage error"; fi
   find (no args): input error

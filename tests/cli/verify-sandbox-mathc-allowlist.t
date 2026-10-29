@@ -36,16 +36,16 @@ tree.
   >     - "tests/cli/verify-sandbox-mathc-allowlist.t"
   > obligations:
   >   - id: allowlisted-version
-  >     claim: mathc version runs in strict mode.
+  >     claim: $INSIDE_DUNE/bin/mathc.exe version runs in strict mode.
   >     acceptance:
   >       all:
-  >         - verifier: mathc version
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe version
   >           result: pass
   >   - id: denied-init
-  >     claim: mathc init is denied in strict mode.
+  >     claim: $INSIDE_DUNE/bin/mathc.exe init is denied in strict mode.
   >     acceptance:
   >       all:
-  >         - verifier: mathc init
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe init
   >           result: pass
   > axiom_link:
   >   - A0

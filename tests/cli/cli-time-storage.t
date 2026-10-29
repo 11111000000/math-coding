@@ -27,7 +27,7 @@ output are not currently scrubbed (could use jq if format drifts).
   $ rm -f decisions/execution-logs.jsonl
   $ $INSIDE_DUNE/bin/mathc.exe stats | jq -c '{n, warning: (.warning // null)}'
   {"n":0,"warning":"insufficient samples (n=0 < 30); declared floor in bin/data/time-distribution.yaml still applies"}
-  $ for i in $(seq 1 36); do mathc record --decision-id bootstrap-v3 --scale step-count --value $i >/dev/null 2>&1; done
+  $ for i in $(seq 1 36); do $INSIDE_DUNE/bin/mathc.exe record --decision-id bootstrap-v3 --scale step-count --value $i >/dev/null 2>&1; done
   $ $INSIDE_DUNE/bin/mathc.exe stats --scale step-count | jq -c '{n, p50: .quantiles.p50, p99: .quantiles.p99}'
   {"n":36,"p50":19,"p99":36}
   $ rm -f .local/session-start decisions/execution-logs.jsonl

@@ -27,7 +27,7 @@ invariants rather than counts.
   $ git add . && git commit -q -m initial
   $ echo b > b.txt
   $ git add . && git commit -q -m second
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-fail/attestations" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-fail.out; ec=$?; jq -c "del(.now) | {verdict, has_failed_gap: ([.gaps[].kind] | any(. == \"FailedEvidence\")), failed_obligation: ([.gaps[] | select(.kind == \"FailedEvidence\") | .obligation_id] | length == 1), others_are_missing: ([.gaps[] | select(.kind != \"FailedEvidence\") | .kind] | all(. == \"MissingEvidence\")), obligations_positive: (.obligations > 0)}" < /tmp/gate-fail.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-fail/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-fail.out; ec=$?; jq -c "del(.now) | {verdict, has_failed_gap: ([.gaps[].kind] | any(. == \"FailedEvidence\")), failed_obligation: ([.gaps[] | select(.kind == \"FailedEvidence\") | .obligation_id] | length == 1), others_are_missing: ([.gaps[] | select(.kind != \"FailedEvidence\") | .kind] | all(. == \"MissingEvidence\")), obligations_positive: (.obligations > 0)}" < /tmp/gate-fail.out; echo "exit=$ec"'
   {"verdict":"block","has_failed_gap":true,"failed_obligation":true,"others_are_missing":true,"obligations_positive":true}
   exit=1
   $ cd /

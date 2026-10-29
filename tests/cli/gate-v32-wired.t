@@ -51,14 +51,14 @@ decisions/algebra-3.2.yaml (the 3.2-ideal algebra itself).
   $ mkdir -p lib
   $ echo 'let x = 1' > lib/foo.ml
   $ git add . && git commit -q -m "kernel change without a decision"
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-v32-block.out; ec=$?; jq -c "del(.now) | {verdict, obligations_positive: (.obligations > 0)}" < /tmp/gate-v32-block.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-v32-block.out; ec=$?; jq -c "del(.now) | {verdict, obligations_positive: (.obligations > 0)}" < /tmp/gate-v32-block.out; echo "exit=$ec"'
   {"verdict":"block","obligations_positive":true}
   exit=1
   $ echo c > c.txt
   $ git add . && git commit -q -m third
   $ echo d > d.txt
   $ git add . && git commit -q -m fourth
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-v32.out; ec=$?; jq -c "del(.now) | {verdict, gaps_present: ((.gaps | length) > 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-v32.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_POLICY="policies.yaml" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-v32.out; ec=$?; jq -c "del(.now) | {verdict, gaps_present: ((.gaps | length) > 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-v32.out; echo "exit=$ec"'
   {"verdict":"unknown","gaps_present":true,"obligations_positive":true}
   exit=3
   $ cd /

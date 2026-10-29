@@ -110,7 +110,7 @@ Negative case: invalid id (uppercase) exits 2 with the regex
 violation message.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc new-decision BadID 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe new-decision BadID 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on invalid id"; exit 1
   > else
   >   echo "invalid id refused (exit $?)"
@@ -165,7 +165,7 @@ Invalid --template value: `--template=invalid` exits 2 with the
 "expected minimal|full" diagnostic.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc new-decision test-id --template=invalid 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe new-decision test-id --template=invalid 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on invalid --template"; exit 1
   > else
   >   echo "invalid template refused (exit $?)"

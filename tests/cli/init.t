@@ -61,7 +61,7 @@ Brownfield (arc42): init refuses with exit 3 and a clear message.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
-  $ if mathc init "$tmpdir" 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on brownfield"; exit 1
   > else
   >   echo "init refused on brownfield (exit $?)"
@@ -90,7 +90,7 @@ Refuse to overwrite an existing policy without --merge.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/.math-coding" && echo 'old' > "$tmpdir/.math-coding/policy.yaml"
-  $ if mathc init "$tmpdir" --no-install 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on existing policy"; exit 1
   > else
   >   echo "init refused to overwrite (exit $?)"
@@ -104,13 +104,13 @@ Refuse to overwrite an existing policy without --merge.
 Unknown --agent value: exit 2 with help.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc init /tmp --agent bogus 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init /tmp --agent bogus 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on unknown agent"; exit 1
   > else
   >   echo "unknown agent refused (exit $?)"
   > fi
   unknown agent refused (exit 2)
-  $ if mathc init /tmp --agent bogus 2>&1 | grep -q 'expected: generic'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init /tmp --agent bogus 2>&1 | grep -q 'expected: generic'; then
   >   echo "error message lists valid agent values"
   > else
   >   echo "FAIL: error message missing valid agent list"; exit 1

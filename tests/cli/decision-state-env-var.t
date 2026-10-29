@@ -37,7 +37,7 @@ MATH_CODING_DECISIONS_DIR=.math-coding/decisions.
   > obligations:
   >   - id: trivial-obligation
   >     claim: |
-  >       validates under mathc validate with active state.
+  >       validates under $INSIDE_DUNE/bin/mathc.exe validate with active state.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state-env-var.t

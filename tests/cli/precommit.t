@@ -14,7 +14,7 @@ locks the summary shape, not the numeric content:
   $ cd "$DUNE_SOURCEROOT"
   $ if ec=$($INSIDE_DUNE/bin/mathc.exe precommit > /tmp/precommit-all.txt 2>/dev/null; echo $?); then \
   >   [[ "$ec" =~ ^[012]$ ]] && echo "exit=$ec in {0,1,2}: ok"; \
-  > else echo "FAIL: mathc precommit aborted"; fi
+  > else echo "FAIL: $INSIDE_DUNE/bin/mathc.exe precommit aborted"; fi
   exit=0 in {0,1,2}: ok
   $ head -1 /tmp/precommit-all.txt | grep -qE '^mathc precommit: [0-9]+ files: [0-9]+ accepted, [0-9]+ rejected, [0-9]+ input-err$'
   $ test "$(grep -cE ': (accept|parse-ok)$' /tmp/precommit-all.txt)" -gt 0 && echo "verdict rows present: ok"

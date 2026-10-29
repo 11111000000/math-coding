@@ -53,7 +53,7 @@ Positive case: decision with `counterexample` present must accept.
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []
@@ -92,7 +92,7 @@ diagnostic is the dialectic one. The fixture MUST NOT contain
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []
@@ -128,7 +128,7 @@ treats absent as standard (per `decisions/kernel-bugs-v3.4-2026-10.yaml`).
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []

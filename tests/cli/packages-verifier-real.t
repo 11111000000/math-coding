@@ -50,9 +50,9 @@ implementation that returns the obligation id would also
   > intent: |
   >   Test decision for the packages-verifier-real pin.
   > commitment: |
-  >   Verify that mathc packages --format=json shows the real verifier string.
+  >   Verify that $INSIDE_DUNE/bin/mathc.exe packages --format=json shows the real verifier string.
   > counterexample: |
-  >   Pre-fix mathc packages rendered a placeholder for the verifier field.
+  >   Pre-fix $INSIDE_DUNE/bin/mathc.exe packages rendered a placeholder for the verifier field.
   > scope:
   >   paths: ["**"]
   > outcomes:
@@ -64,7 +64,7 @@ implementation that returns the obligation id would also
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   >   - id: obl-build
   >     outcome: o1

@@ -89,7 +89,7 @@ subject is open-with-waiver.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"open-with-waiver"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=0
   $ cd /
   $ rm -rf "$tmp"
@@ -159,7 +159,7 @@ only one a waiver can produce.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -225,7 +225,7 @@ identify one gap.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -296,7 +296,7 @@ the decision that owns the gap covers nothing.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -367,7 +367,7 @@ waiver, it does not void it.
   > YAML
   $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"open-with-waiver"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=0
   $ cd /
   $ rm -rf "$tmp"

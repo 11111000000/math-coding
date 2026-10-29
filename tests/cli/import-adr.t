@@ -121,7 +121,7 @@ is left as a placeholder glob).
 Missing PATH: exit 2 with usage.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc import-adr 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe import-adr 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on missing PATH"; exit 1
   > else
   >   echo "missing PATH refused (exit $?)"
@@ -131,7 +131,7 @@ Missing PATH: exit 2 with usage.
 File not found: exit 1 with a clear message.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc import-adr /tmp/definitely-does-not-exist.md 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe import-adr /tmp/definitely-does-not-exist.md 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on missing file"; exit 1
   > else
   >   echo "missing file refused (exit $?)"

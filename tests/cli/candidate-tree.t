@@ -74,7 +74,7 @@ And with `git` absent from PATH entirely. `mathc` is invoked by
 absolute path because the PATH override removes it too:
 
   $ mkdir -p "$tmp/nopath" "$tmp/outC"
-  $ mathc_bin=$(command -v mathc)
+  $ mathc_bin=$INSIDE_DUNE/bin/mathc.exe
   $ PATH="$tmp/nopath" "$mathc_bin" attest-batch --manifest="$manifest" --out="$tmp/outC" > "$tmp/c.out" 2> "$tmp/c.err"; echo "EXIT=$?"
   EXIT=2
   $ grep -q 'refusing to write an attestation with an unanchored candidate_tree' "$tmp/c.err" && echo "refusal names the field: ok"

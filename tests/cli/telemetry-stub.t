@@ -53,7 +53,7 @@ Unknown values: reported verbatim as `unknown (VALUE)`.
 Unknown subcommand: exit 2 with help.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc telemetry bogus 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe telemetry bogus 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on unknown subcommand"; exit 1
   > else
   >   echo "unknown subcommand refused (exit $?)"

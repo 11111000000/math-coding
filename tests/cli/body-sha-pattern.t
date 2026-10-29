@@ -49,7 +49,7 @@ of the digest rule.
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []
@@ -88,7 +88,7 @@ a placeholder that survived pre-fix) MUST be rejected with
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []
@@ -125,7 +125,7 @@ PLAN.md §3.1 names.
   >     claim: A claim.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []

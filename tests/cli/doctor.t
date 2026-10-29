@@ -103,7 +103,7 @@ obligation claim in `decisions/mathc-doctor-subcommand-2026-10.yaml`):
 
 Unknown flags produce a usage error (exit 2):
 
-  $ if mathc doctor --bogus 2>&1 | grep -q 'doctor: unknown option'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe doctor --bogus 2>&1 | grep -q 'doctor: unknown option'; then
   >   echo "doctor --bogus: input error"
   > else echo "FAIL: doctor --bogus did not error"; fi
   doctor --bogus: input error

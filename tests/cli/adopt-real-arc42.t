@@ -78,7 +78,7 @@ not.
   $ git init -q 2>/dev/null
   $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install >/dev/null 2>&1
   $ for f in .math-coding/decisions/*.yaml; do
-  >   if mathc validate "$f" >/dev/null 2>&1; then
+  >   if $INSIDE_DUNE/bin/mathc.exe validate "$f" >/dev/null 2>&1; then
   >     echo "validate $f: ok"
   >   else
   >     echo "validate $f: FAIL"
@@ -87,7 +87,7 @@ not.
   validate .math-coding/decisions/1-use-ocamlformat-for-source-formatting.yaml: ok
   validate .math-coding/decisions/bootstrap-v3-arc42-compatibility.yaml: ok
   validate .math-coding/decisions/use-ocaml.yaml: ok
-  $ if mathc validate .math-coding/policy.yaml >/dev/null 2>&1; then
+  $ if $INSIDE_DUNE/bin/mathc.exe validate .math-coding/policy.yaml >/dev/null 2>&1; then
   >   echo "validate .math-coding/policy.yaml: ok"
   > else
   >   echo "validate .math-coding/policy.yaml: FAIL"

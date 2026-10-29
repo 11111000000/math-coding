@@ -42,7 +42,7 @@ the probe tree.
   > obligations:
   >   - id: trivial-obligation
   >     claim: |
-  >       validates under mathc validate with active state.
+  >       validates under $INSIDE_DUNE/bin/mathc.exe validate with active state.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/doctor-env-var.t

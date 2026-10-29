@@ -15,7 +15,7 @@ is on the binary startup only.
 
   $ cd "$DUNE_SOURCEROOT"
   $ min_version=$(for i in 1 2 3; do
-  >   TIMEFORMAT='%R'; { time mathc version >/dev/null; } 2>&1
+  >   TIMEFORMAT='%R'; { time $INSIDE_DUNE/bin/mathc.exe version >/dev/null; } 2>&1
   > done | sort -n | head -1)
   $ echo "mathc version: min cold start = ${min_version}s" | sed -E "s/[0-9]+\.[0-9]+s/<T>s/"
   mathc version: min cold start = <T>s
@@ -38,7 +38,7 @@ teaches people to ignore it. What is asserted is the CLASS:
 the command either concluded or it did not.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null 2>&1 || true; } 2>&1)
+  $ t=$(TIMEFORMAT='%R'; { time $INSIDE_DUNE/bin/mathc.exe self-check >/dev/null 2>&1 || true; } 2>&1)
   $ $INSIDE_DUNE/bin/mathc.exe self-check >/dev/null 2>&1; rc=$?; case $rc in 0|1|3) echo "exit is one of the documented verdicts";; *) echo "undocumented exit $rc"; exit 1;; esac
   exit is one of the documented verdicts
   $ echo "mathc self-check: ${t}s" | sed -E -e "s/[0-9]+\.[0-9]+s/<T>s/" -e "s|$| (kernel work; not NFR-3 scope)|"
@@ -50,7 +50,7 @@ only.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ t=$(TIMEFORMAT='%R'; { time mathc init $tmpdir --no-install >/dev/null; } 2>&1)
+  $ t=$(TIMEFORMAT='%R'; { time $INSIDE_DUNE/bin/mathc.exe init $tmpdir --no-install >/dev/null; } 2>&1)
   $ rm -rf "$tmpdir"
   $ echo "mathc init: ${t}s" | sed -E "s/[0-9]+\.[0-9]+s/<T>s/"
   mathc init: <T>s

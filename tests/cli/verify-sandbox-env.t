@@ -32,16 +32,16 @@ find_project_root.
   >     - "tests/cli/verify-sandbox-env.t"
   > obligations:
   >   - id: version-runs
-  >     claim: mathc version runs.
+  >     claim: $INSIDE_DUNE/bin/mathc.exe version runs.
   >     acceptance:
   >       all:
-  >         - verifier: mathc version
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe version
   >           result: pass
   >   - id: init-denied
-  >     claim: mathc init is denied under strict.
+  >     claim: $INSIDE_DUNE/bin/mathc.exe init is denied under strict.
   >     acceptance:
   >       all:
-  >         - verifier: mathc init
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe init
   >           result: pass
   > axiom_link:
   >   - A0
