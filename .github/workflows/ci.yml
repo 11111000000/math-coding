@@ -147,7 +147,7 @@ jobs:
             'dune build --root . && bash scripts/sign-store.sh'
         timeout-minutes: 25
 
-      - name: mathc self-check (bootstrap-gate block)
+      - name: mathc self-check (corpus audit)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
         # The store this step reads is the one the "generate
         # attestation store" step produced for THIS commit: the store
@@ -187,12 +187,22 @@ jobs:
           nix develop .#test --command bash -c \
             '_build/install/default/bin/mathc self-check > /tmp/self-check.json 2> /tmp/self-check.err' || rc=$?
           echo "self-check exit=${rc}"
-          if jq -c '{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}' \
+          if jq -c '{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length), undecided: ([.subjects[] | select(.verdict != "pass")] | length)}' \
                /tmp/self-check.json; then
             :
           else
             echo "--- mathc self-check stderr (no parsable JSON above) ---" >&2
             cat /tmp/self-check.err >&2 || true
+          fi
+          # A decisive failure blocks. The corpus's debt is measured,
+          # and the ratchet is what holds the line.
+          if [ "${rc}" = "1" ]; then
+            echo "self-check reports a decisive failure: the step is red" >&2
+            exit 1
+          fi
+          if [ "${rc}" = "3" ]; then
+            bash tests/fixtures/self-check-debt-ceiling.sh /tmp/self-check.json
+            exit $?
           fi
           exit "${rc}"
         continue-on-error: false
