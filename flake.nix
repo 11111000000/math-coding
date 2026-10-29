@@ -191,28 +191,20 @@
           name = "math-coding-tests";
           src = ./.;
           # python3 is needed by the forge stub the CLI's forge
-          # verifier talks to; the kernel's own binary is needed by
-          # the cram tests that call `mathc` by name. Both were
-          # missing here, and the build had been failing behind the
-          # red CI step for weeks.
+          # verifier talks to; curl and git are needed by the
+          # fixtures. All three were missing here, and the build had
+          # been failing behind the red CI step for weeks.
           nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git ];
           buildPhase = ''
             runHook preBuild
             export OCAMLPATH="${ocamlPath}"
-            export PATH="$PWD/_build/default/bin:$PATH"
             # `dune test`, not `dune build @tests/runtest`: the
             # former RUNS the suite with dune's own sandbox (the
             # cram tests get the binary and the fixtures through the
             # declared deps), the latter only builds.
-            # The binaries are built FIRST (without running the
-            # suite), because the build produces `mathc.exe` and the
-            # cram tests that call the kernel by its plain name need
-            # `mathc` on the PATH. The dev shell has it (the nix
-            # package renames it); the build sandbox does not, so it
-            # is aliased here.
-            dune build --root . bin/mathc.exe bin/mathc_mcp.exe
-            cp _build/default/bin/mathc.exe _build/default/bin/mathc
-            cp _build/default/bin/mathc_mcp.exe _build/default/bin/mathc_mcp
+            # The cram tests call the kernel through
+            # $INSIDE_DUNE/bin/mathc.exe, so dune builds the binary
+            # for them: the deps name the real target, `mathc.exe`.
             dune test --root .
             runHook postBuild
           '';
