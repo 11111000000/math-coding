@@ -1,0 +1,134 @@
+---
+schema: math-coding/3.3
+id: one-measurer-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:fe1ee9c7b14728e836d10b631e3a9ef89e26b2cf68f0e6587c9cc0c864e97fad"
+yaml_sha: "sha256:fe1ee9c7b14728e836d10b631e3a9ef89e26b2cf68f0e6587c9cc0c864e97fad"
+
+axiom_link:
+  - A0
+
+intent: |
+  THE SITE'S NUMBERS AND THE GATE'S NUMBERS WERE COMPUTED BY
+  DIFFERENT RULES, AND THE SITE'S RULE WAS WEAKER.
+
+  `mathc packages` is the view the site renders: it reads the
+  attestation store and says, per obligation, whether the promise is
+  `pass`, `missing`, `stale`, `fail`, `unknown` or `waived`. The gate
+  answers the same question with the same store, and the two did not
+  agree on two of the answers:
+
+  A RUNTIME CLAIM WAS `pass` FOR THE VIEW AND `unknown` FOR THE
+  GATE. An attestation establishes its result only if it establishes
+  its CLASS -- a runtime claim needs a named run
+  (`lib/gate.ml::establishes_class`). The view did not ask, so an
+  attestation that asserted `pass` without naming its run counted as
+  a pass on the site and as nothing at the gate. The gate was right:
+  a claim that does not say how it was produced establishes nothing.
+
+  `waived` WAS A KEY THAT WAS ALWAYS ZERO. The view never consulted
+  the waivers, so a gap covered by a waiver in force -- the corpus's
+  own answer to a promise nobody can keep yet -- was counted as a
+  plain gap on the site, while the gate called it `open-with-waiver`.
+
+  The view's boundary is real and stays: the gate is parameterized
+  over a Change and its verdict needs the materials digest of the
+  scope, which the view does not compute. What the view CAN take
+  from the gate is the RULE, and it now does.
+
+commitment: |
+  1. `mathc packages` decides a `pass` the way the gate decides it:
+     the attestation must establish its class.
+  2. `mathc packages` consults the waivers in force, so its `waived`
+     count is the count the gate would see on the same store.
+  3. The view's boundary stays where it is: it does not compute the
+     materials digest and does not call the gate's verdict.
+
+outcomes:
+  - id: the-view-and-the-gate-agree
+    statement: |
+      On one store, the view's verdict for an obligation is the
+      verdict the gate would reach for it.
+  - id: waived-is-a-number
+    statement: |
+      The `waived` count is the number of gaps a waiver in force
+      covers.
+
+scope:
+  paths:
+    - "lib/packages.ml"
+    - "bin/Mathc.ml"
+    - "decisions/one-measurer-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-view-builds
+    claim: |
+      The kernel with the view's new rule builds and the suite passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/one-measurer-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/one-measurer-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "the view's counts change and the site's grid shows fewer
+      passes: that is the point -- the view was counting claims that
+      did not establish themselves, and the site's numbers were
+      stronger than the gate's"
+    - "the waiver consultation is looser than the gate's, which
+      consults per GAP CLASS: the view asks whether a waiver in
+      force covers the obligation, and a waiver of another class
+      would count here and not there"
+  owner: human:maintainer
+
+counterexample: |
+  "The view is deliberately weaker than the gate: the site renders a
+  picture of the corpus, and a picture that says `unknown` where the
+  gate says `pass` is a picture nobody believes."
+
+  The claim is about the picture and mistakes it for the rule. A
+  picture that is STRONGER than the gate is not a clearer picture --
+  it is a picture of something the gate does not believe. The site
+  rendered `pass` for claims that named no run, and a reader of the
+  site drew the conclusion the gate would have refused to draw. The
+  numbers got WEAKER and the corpus got more honest at the same
+  time.
+
+  The second half of the objection is the real one: the view cannot
+  compute the materials digest, so it cannot reach the gate's
+  verdict, and a rule it borrows is a rule the two can drift apart
+  on again. That is why the borrowed piece is a PURE function of one
+  attestation -- `establishes_class` -- and not a second copy of the
+  gate's decision. The boundary stays; the rule inside it is shared.
+
+antithesis: |
+  The opposite claim is that the view should just CALL the gate: one
+  function, one answer, no rule to drift.
+
+  The claim is right in principle and blocked by a fact: the gate's
+  verdict needs the materials digest of the decision's scope -- the
+  digest of the CONTENT of the files the scope names -- and the view
+  does not compute it. Calling the gate from the view would mean
+  making the site compute scope digests for every decision on every
+  render, for a view that only needs to say whether a promise has
+  evidence.
+
+  So the view takes the RULE and not the verdict, and the rule is
+  small enough to read in one place: a claim counts only if it
+  establishes its class, and a gap covered by a waiver in force is
+  `waived`. Both are the gate's own sentences, applied where the
+  view can apply them.

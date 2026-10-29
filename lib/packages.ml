@@ -39,26 +39,35 @@
    }
 
    This mirrors the per-obligation gap shape from lib/gate.ml.
-   We do not import Gate directly: the gate is parameterized
-   over a Change, while Packages is parameterless. The verdict is
-   computed by:
-   * if attestations_root is missing -> "no_store" (counts as
-     missing);
-   * if no attestation matches (decision, obligation) ->
-     "missing";
-   * if the latest attestation is past valid_until -> "stale";
-   * if the attestation's result is Fail -> "fail";
-   * if the attestation's result is Inconclusive or
-     InfrastructureError -> "unknown";
-* if a waiver exists in `decisions/waivers/*.yaml` -> "waived".
-      The consult step lives in `lib/waiver.ml` and is exercised
-      by `lib/gate.ml::gate_v32`; this module surfaces the verdict
-      as a string but does not invoke the consult itself.
-    * if the attestation's result is Pass -> "pass".
+   The gate is parameterized over a Change, while Packages is
+   parameterized over a STORE, so Packages cannot call the gate's
+   verdict -- the gate's verdict needs the materials digest of the
+   scope, which this view does not compute. What it CAN take from
+   the gate is the RULE, and it now does: `Gate.establishes_class`
+   is a pure function of an attestation, and a view that decides
+   differently from the gate is a second measurer on one store.
 
-    Waiver support is implemented by `lib/waiver.ml` and adopted
-    by `decisions/waiver-infrastructure-2026-10`; the consult
-    step is wired into `lib/gate.ml::gate_v32` as `Open_with_waiver`.
+   The verdict is computed by:
+     * if attestations_root is missing -> "no_store" (counts as
+       missing);
+     * if no attestation matches (decision, obligation) and no
+       waiver in force covers the gap -> "missing";
+     * if a waiver in force covers the gap -> "waived" (the consult
+       lives in `lib/waiver.ml`; this view asks it, so the count it
+       reports is the count the gate would see);
+     * if the latest attestation is past valid_until -> "stale";
+     * if the attestation's result is Fail -> "fail";
+     * if the attestation's result is Inconclusive or
+       InfrastructureError -> "unknown";
+     * if the attestation's result is Pass AND it establishes its
+       class -> "pass";
+     * otherwise -> "unknown": a runtime claim with no named run
+       establishes nothing, and the gate says the same.
+
+   Waiver support is implemented by `lib/waiver.ml` and adopted
+   by `decisions/waiver-infrastructure-2026-10`; the consult
+   step is wired into `lib/gate.ml::gate_v32` as `Open_with_waiver`
+   and, since this change, into this view's counts as well.
 
    Verdict ladder is closed; multiple variants are distinct
    (Theorems 4, 7: distinction must be preserved at the type
@@ -328,11 +337,26 @@ let[@warning "-32"] latest_attestation ~store ~obligation_id =
 
 (* Compute the verdict for an obligation. The verdict string is
    one of the closed set declared in `type obligation_view`. *)
-let[@warning "-32"] verdict_of ~now_iso ~obligation_id ~store ~has_store =
+(* ONE verdict, the gate's verdict. The rule this view used to apply
+   on its own -- "the attestation says pass, so it passes" -- is not
+   the rule the gate applies: an attestation only establishes its
+   result if it establishes its CLASS (lib/gate.ml::establishes_class
+   -- a runtime claim needs a named run). A view that decides
+   differently from the gate is a second measurer, and two measurers
+   on one store give two sets of numbers. *)
+let[@warning "-32"] verdict_of ~now_iso ~obligation_id ~decision_id ~store
+    ~has_store ~waivers =
   if not has_store then "no_store"
   else
     match latest_attestation ~store ~obligation_id with
-    | [] -> "missing"
+    | [] -> (
+        match
+          Option.map
+            (fun (w : Domain.waiver) -> w.Domain.id)
+            (Waiver.covers waivers ~decision_id ~obligation_id ~now:now_iso)
+        with
+        | Some _ -> "waived"
+        | None -> "missing")
     | (att : Domain.attestation) :: _ -> (
         let is_expired =
           match att.valid_until with
@@ -342,7 +366,17 @@ let[@warning "-32"] verdict_of ~now_iso ~obligation_id ~store ~has_store =
         if is_expired then "stale"
         else
           match att.result with
-          | Domain.Pass -> "pass"
+          | Domain.Pass -> (
+              if Gate.establishes_class att then "pass"
+              else
+                match
+                  Option.map
+                    (fun (w : Domain.waiver) -> w.Domain.id)
+                    (Waiver.covers waivers ~decision_id ~obligation_id
+                       ~now:now_iso)
+                with
+                | Some _ -> "waived"
+                | None -> "unknown")
           | Domain.Fail -> "fail"
           | Domain.Inconclusive | Domain.InfrastructureError -> "unknown")
 
@@ -368,8 +402,10 @@ let[@warning "-32"] remedies_of = function
     rendering layer never crashes; the placeholder is documented in
     decisions/kernel-bugs-v3.4-2026-10. *)
 let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~obligation_verifier
-    ~store ~has_store =
-  let verdict = verdict_of ~now_iso ~obligation_id ~store ~has_store in
+    ~decision_id ~store ~has_store ~waivers =
+  let verdict =
+    verdict_of ~now_iso ~obligation_id ~decision_id ~store ~has_store ~waivers
+  in
   let att_opt = latest_attestation ~store ~obligation_id in
   let att = match att_opt with [] -> None | h :: _ -> Some h in
   {
@@ -416,7 +452,7 @@ let[@warning "-32"] obligation_view ~now_iso ~obligation_id ~obligation_verifier
  * declares no top-level id, and its schema family is not a decision
  * family. *)
 let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
-    ~policy_id =
+    ~policy_id ~waivers =
   let decisions_paths = list_decision_paths ~decisions_root in
   let decisions =
     List.filter_map
@@ -456,7 +492,8 @@ let[@warning "-32"] walk ~reader ~decisions_root ~store ~has_store ~now_iso
               List.map2
                 (fun oid ver ->
                   obligation_view ~now_iso ~obligation_id:oid
-                    ~obligation_verifier:ver ~store ~has_store)
+                    ~obligation_verifier:ver ~decision_id ~store ~has_store
+                    ~waivers)
                 obligation_ids final_verifiers
             in
             Some

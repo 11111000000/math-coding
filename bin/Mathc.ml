@@ -8805,9 +8805,14 @@ let[@warning "-32"] do_render () =
   in
   let now = now_iso () in
   let policy_id = "bootstrap-v3" in
+  (* The waivers, so the view's `waived` count is the count the gate
+     would see on the same store. *)
+  let waivers =
+    Waiver.load ~reader ~root:(Filename.concat decisions_root "waivers")
+  in
   let pkg =
     Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso:now
-      ~policy_id
+      ~policy_id ~waivers
   in
   let package_html = Packages.to_html pkg in
   let axioms_data = read_axioms axioms_root in
@@ -9456,6 +9461,9 @@ let[@warning "-32"] do_counters () =
         let pkg =
           Packages.walk ~reader ~decisions_root:decisions_dir ~store ~has_store
             ~now_iso:(now_iso ()) ~policy_id:"bootstrap-v3"
+            ~waivers:
+              (Waiver.load ~reader
+                 ~root:(Filename.concat decisions_dir "waivers"))
         in
         let pj = Packages.to_json pkg in
         let counts_v =
@@ -9670,6 +9678,8 @@ let[@warning "-32"] do_packages () =
   let pkg =
     Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso
       ~policy_id:"bootstrap-v3"
+      ~waivers:
+        (Waiver.load ~reader ~root:(Filename.concat decisions_root "waivers"))
   in
   match !format with
   | `Text -> print_string (Packages.to_text pkg)
@@ -9752,6 +9762,8 @@ let[@warning "-32"] do_find () =
   let pkg =
     Packages.walk ~reader ~decisions_root ~store ~has_store ~now_iso
       ~policy_id:"bootstrap-v3"
+      ~waivers:
+        (Waiver.load ~reader ~root:(Filename.concat decisions_root "waivers"))
   in
   let json = Packages.to_json pkg in
   let filtered =
