@@ -233,6 +233,7 @@ pick_skill_dir() {
 }
 
 # pick_sha_tool: returns `sha256sum` or `shasum -a 256` based on OS.
+# shellcheck disable=SC2329   # invoked indirectly (as a trap handler)
 pick_sha_tool() {
   case "$1" in
     darwin) printf 'shasum -a 256\n' ;;

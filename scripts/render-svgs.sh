@@ -29,7 +29,7 @@ OUT_DIR="assets/_renders"
 mkdir -p "$OUT_DIR"
 
 HTML="$(mktemp --suffix=.html)"
-trap "rm -f $HTML" EXIT
+trap 'rm -f "$HTML"' EXIT
 
 {
   echo '<!doctype html><html><head><meta charset="utf-8">'
@@ -38,7 +38,6 @@ trap "rm -f $HTML" EXIT
   for f in "$@"; do
     if [ ! -f "$f" ]; then f="assets/$(basename "$f" .svg).svg"; fi
     if [ ! -f "$f" ]; then echo "skip: $f" >&2; continue; fi
-    name=$(basename "$f" .svg)
     echo "<figure class=\"mathc-figure mathc-figure-inline\"><img src=\"file://$PWD/$f\"></figure>"
   done
   echo '</main></body></html>'

@@ -82,6 +82,7 @@ FAIL_VERIFIER_2="file-exists zz-naming-probe-missing-beta"
 # decision by id by SCANNING that directory - and they are removed
 # again by the trap, so the corpus is never changed.
 probe_dir="decisions"
+# shellcheck disable=SC2329   # invoked indirectly (as a trap handler)
 cleanup() {
   rm -f "$probe_dir"/zz-naming-probe-*.yaml
   rm -rf "$work"

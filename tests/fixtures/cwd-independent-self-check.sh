@@ -59,7 +59,6 @@ counts() {
 
 # --- 1. the three working directories -------------------------------------
 out=$(counts "$REPO")
-root_counts="$out"
 pass_root=$(printf '%s' "$out" | cut -f1)
 waived_root=$(printf '%s' "$out" | cut -f2)
 

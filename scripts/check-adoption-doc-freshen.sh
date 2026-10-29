@@ -53,7 +53,7 @@ check "USAGE.md missing 'mathc explain-diagnostic' reference" \
       "grep -q 'mathc explain-diagnostic' USAGE.md"
 
 if [ "$fail" = "1" ]; then
-  printf "$fail_msg" >&2
+  printf '%s' "$fail_msg" >&2
   exit 1
 fi
 

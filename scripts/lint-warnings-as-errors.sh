@@ -78,6 +78,7 @@ rm -rf "$control_dir"
 
 if [ "$control_rc" -eq 0 ]; then
   echo "lint: FAIL -- the negative control compiled cleanly, so warnings" >&2
+  printf '%s\n' "$control_out" >&2
   echo "lint: are NOT being promoted to errors and a clean build" >&2
   echo "lint: below would prove nothing." >&2
   exit 1

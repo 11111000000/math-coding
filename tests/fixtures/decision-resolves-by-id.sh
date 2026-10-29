@@ -54,7 +54,7 @@ Z='sha256:0000000000000000000000000000000000000000000000000000000000000000'
 # write_decision <id> <file-name> <verifier> <out-file>
 # The file name is deliberately NOT "<id>.yaml".
 write_decision() {
-  local id="$1" fname="$2" verifier="$3" out="$4"
+  local id="$1" verifier="$3" out="$4"
   cat > "$out" <<YAML
 ---
 schema: math-coding/3.3
@@ -89,6 +89,7 @@ YAML
 # the corpus by scanning that directory, and a decision that is not
 # there is not in the corpus.
 probe_dir="decisions"
+# shellcheck disable=SC2329   # invoked indirectly (as a trap handler)
 cleanup() {
   rm -f "$probe_dir/zz-resolve-probe-"*.yaml
   rm -rf "$work"
