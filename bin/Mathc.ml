@@ -8386,6 +8386,28 @@ let[@warning "-32"] do_gaps () =
      and the packages view read, so the worklist and the report
      cannot disagree about what an obligation is. *)
   let entries = Memory.load_decisions reader root in
+  (* THE DECLARED PROMISES, counted over every in-force obligation and
+     not only over the open ones. The count is a property of the
+     CORPUS: how many promises the corpus makes that no program keeps.
+     It must not depend on the store, because the store is generated
+     per tree -- a number that moves with the store's freshness is a
+     number nobody can pin. *)
+  let declared_promises =
+    List.fold_left
+      (fun acc (entry : Memory.decision_entry) ->
+        if not (standing_rule entry) then acc
+        else
+          acc
+          + List.fold_left
+              (fun n (detail : Memory.obligation_detail) ->
+                match
+                  gap_class_of_verifiers ~root detail.Memory.od_verifiers
+                with
+                | Some Not_a_check -> n + 1
+                | _ -> n)
+              0 entry.Memory.obligation_details)
+      0 entries
+  in
   let store_root = resolve_store_root root in
   let store =
     Attestations.load ~keep:(store_keep_for store_root) ~reader ~root:store_root
@@ -8543,6 +8565,7 @@ let[@warning "-32"] do_gaps () =
         (List.map
            (fun (k, v) -> Jsonl.stringify (Jsonl.String k) ^ ":" ^ v)
            [
+             ("declared", Jsonl.stringify (Jsonl.Int declared_promises));
              ("open", Jsonl.stringify (Jsonl.Int (List.length open_items)));
              ("waived", Jsonl.stringify (Jsonl.Int (List.length waived_items)));
              ( "by_class",
