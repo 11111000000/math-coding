@@ -1,0 +1,165 @@
+---
+schema: math-coding/3.3
+id: ci-self-check-is-an-audit-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:496b19a13ada1125b5543551931a79ce1ea99e6130f02c6b46a53ce280a88b6d"
+yaml_sha: "sha256:496b19a13ada1125b5543551931a79ce1ea99e6130f02c6b46a53ce280a88b6d"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  THE CI STEP THAT ANSWERED THE WRONG QUESTION WAS RED ON EVERY PUSH
+  FOR WEEKS, AND NOBODY COULD MERGE BECAUSE OF IT.
+
+  `mathc self-check` asks: how much of the corpus is covered by
+  evidence observed at this commit? That is an AUDIT of the corpus.
+  The merge gate asks a different question: does THIS change break
+  the commitments it claims to implement? The project already
+  answered that -- `decisions/gate-by-diff-2026-10.yaml` replaced the
+  corpus-wide gate with a scoped one, because a gate that answers the
+  wrong question makes every change red for the same unrelated
+  reason.
+
+  The CI kept asking the old question anyway. The step ran the
+  corpus-wide self-check and took its exit code as the step's status:
+  exit 3 (`unknown`) was a red step. The corpus had 112 undecided
+  subjects and every push was blocked by debt that no push had
+  created.
+
+  This decision gives the step its proper shape:
+
+    exit 0  pass | open-with-waiver   green
+    exit 1  fail                      RED -- a decisive failure is a
+                                        defect in the code or in a
+                                        promise, and it blocks
+    exit 3  unknown                   green, and the number is PINNED
+
+  The pin is the ratchet:
+  `tests/fixtures/self-check-debt-ceiling.sh` measures the number of
+  undecided subjects and fails when it RISES. The number is the truth
+  as of the day it was written (112), and it may only fall: a promise
+  the corpus discharges lowers the truth, and a lower truth is a pin
+  someone has to lower by hand -- which is the point. The debt is
+  paid down in public or not at all.
+
+  The report is uploaded as an artefact in every run, so the corpus's
+  state is visible even in the green ones. A red step is a signal; a
+  number nobody sees is not.
+
+commitment: |
+  1. The CI step `mathc self-check` is an audit: a decisive failure
+     (exit 1) is red, and the corpus's debt (exit 3) is measured, not
+     blocked.
+  2. The debt is pinned by
+     `tests/fixtures/self-check-debt-ceiling.sh`, and the pin may
+     only fall. The ratchet runs in the audit step, against the same
+     report the step prints.
+  3. The merge gate remains `mathc gate` over the pushed diff
+     (`decisions/gate-by-diff-2026-10.yaml`), and it is the step that
+     blocks a merge.
+  4. The self-check's report is uploaded as an artefact in every run.
+
+outcomes:
+  - id: a-push-is-blocked-by-its-own-change
+    statement: |
+      A push that breaks nothing it claims is not blocked by the
+      corpus's debt; a push that breaks what it claims is blocked by
+      the scoped gate.
+  - id: the-debt-may-not-grow
+    statement: |
+      The number of undecided subjects is pinned and fails the build
+      when it rises.
+  - id: the-corpus-is-visible
+    statement: |
+      Every CI run carries the corpus's report as an artefact.
+
+scope:
+  paths:
+    - ".github/workflows/ci.yml"
+    - "tests/fixtures/self-check-debt-ceiling.sh"
+    - "decisions/ci-self-check-is-an-audit-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-ratchet-holds
+    claim: |
+      The corpus debt is at or below its pin, and the fixture says so.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/self-check-debt-ceiling.sh
+          result: pass
+  - id: the-fixture-has-teeth
+    claim: |
+      The ratchet reports an inflated corpus as over the ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/self-check-debt-ceiling.sh
+          result: pass
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/ci-self-check-is-an-audit-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/ci-self-check-is-an-audit-2026-10.yaml
+          result: pass
+
+risk:
+  declared_triggers:
+    - "the debt grows and the ratchet is not run, the audit step
+      reports green and the corpus rots in silence. The fixture is
+      run by the audit step itself, not by a step that can be
+      skipped"
+    - "a decisive failure stops being decisive, and if the verdict
+      `fail` is ever folded into `unknown`, the red case disappears
+      and the step is green for a broken promise"
+    - "the pin is raised to make the build green, and the raise is
+      visible in the fixture's header, and the convention in this
+      repository is that a raise is recorded with its reason"
+  owner: human:maintainer
+
+counterexample: |
+  "Making the audit non-blocking is how a project decides its debt
+  does not matter, and the next thing to happen is a promise nobody
+  keeps."
+
+  The objection is the right one to fear, and the answer is in the
+  shape of the step rather than in its colour. A DECISIVE FAILURE is
+  still red: if the corpus contains a promise that the evidence
+  contradicts, the build stops. What stops being red is the `unknown`
+  -- a promise with no evidence, which is a fact about the corpus's
+  history and not about the change being pushed. And the debt is not
+  merely tolerated: it is PINNED, and the pin fails the build when it
+  rises. A project that lets its debt grow cannot get a green build
+  after this change; it can only get a green build by lowering the
+  number.
+
+  The second half of the objection is about the alternative: keeping
+  the step red does not make anyone discharge a promise. It makes
+  everyone stop reading the step.
+
+antithesis: |
+  The opposite claim is that the corpus-wide check IS the merge gate
+  -- that a repository whose policy is not covered by evidence has no
+  business merging anything, because the evidence is what makes the
+  policy mean anything.
+
+  The claim is a real position, and the project held it for months:
+  every push was red, the reason was always the same, and the
+  consequence was that the red step taught nobody anything. A gate
+  that says the same thing on every push is not a gate, it is a
+  background colour.
+
+  What the claim is right about is that the evidence has to come from
+  somewhere. It comes from the scoped gate, which runs the change's
+  own verifiers against the candidate tree, and from the sweep, which
+  signs what it observed. The corpus-wide audit remains as the
+  statement about the whole, and the ratchet makes it a claim with
+  teeth: the whole may get better, and it may not get worse.

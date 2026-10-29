@@ -256,6 +256,19 @@ jobs:
           path: attestations/
           if-no-files-found: warn
 
+      - name: upload the corpus report
+        # The self-check's report for THIS commit. The audit step
+        # prints it and the ratchet reads it; uploading it means the
+        # corpus's state is visible in every run and not only in the
+        # red ones. `if: always()` for the same reason the store is:
+        # the report is wanted most when something failed.
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: self-check-report
+          path: /tmp/self-check.json
+          if-no-files-found: warn
+
       - name: Failure diagnostics
         if: failure()
         # On any failure, dump the nix-build dir and the last 200
