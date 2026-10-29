@@ -38,8 +38,10 @@ A0 图示（如上方公理图所示）本身就是 A0 的一次实践：
 `lib/attestations/attestations.ml` 加载存储并将其每条记录与内核闸门
 进行连接。
 
-**验证。** `scripts/generate-attestations.py` 在每次发布时
-生成 94 个证据文件；`mathc gate BASE HEAD` 报告
+**验证。** 证据存储由 CI 生成，不随仓库提交
+（`decisions/store-not-committed-2026-10.yaml`；发布路径为
+`scripts/sign-store.sh`），其实时计数来自
+`mathc counters --format=json`；`mathc gate BASE HEAD` 报告
 `gate-pass.t` / `gate-fail.t` / `gate-stale.t` 为绿色
 （cram 装置在 `tests/cli/` 下）。
 
@@ -123,10 +125,9 @@ A4 表明内核存在是因为人有所关怀，而有所关怀的人
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON 判定 | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → 包列表 | `packages.t` |
 
-v3.3.0 版的内核在其之上提供了 3.2-理想代数。站点的
+v3.7.4 版的内核在其之上提供了 3.2-理想代数。站点的
 [Packages](packages.html) 页是每个活跃决策的实时判定；
-当前构建报告 93 个活跃决策 / 330 项义务（313 pass /
-16 missing / 1 unknown）。
+实时计数来自 `mathc counters --format=json`。
 
 ## 支撑图示
 

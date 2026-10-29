@@ -1,7 +1,7 @@
 # Axiom index
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
-> Status: normative foundations of math-coding 3.3
+> Status: normative foundations of math-coding 3.7.4
 > License: Apache-2.0 (these texts are normative documentation, not code)
 
 The axioms below are the philosophical and mathematical foundations
@@ -59,7 +59,7 @@ itself a protected-policy transition (A3):
 
 The first version of these axioms is dated 2026-09-26 and corresponds
 to the math-coding 3.0-alpha-0.0.1 bootstrap. The current release
-(canonical brand: math-coding 3.3) preserves the axioms unchanged —
+(canonical brand: math-coding 3.7.4) preserves the axioms unchanged —
 they are version-independent. The `revision` of each axiom is its
 `id`; subsequent versions increment a trailing suffix (`A0.1`, `A1.1`,
 etc.).

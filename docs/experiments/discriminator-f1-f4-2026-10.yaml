@@ -268,8 +268,8 @@ findings:
           (note: bash isn't in the allowlist either; you'd
           need `mathc` to spawn it). Best option: use the
           `mathc` scheme and parse the JSON output.
-      (b) Add a verifier-convention rule to `OCAML_BEST_PRAC
-          TICES.md` §11 (trap log) or a new §13: "verifier
+      (b) Add a verifier-convention rule to
+          `OCAML_KERNEL_CONVENTIONS.md` §11 (trap log) or a new §13: "verifier
           strings MUST be either one of the 3 built-in schemes
           (file-exists, dir-exists, mathc) OR a documented
           command that an external runner (conformance suite,

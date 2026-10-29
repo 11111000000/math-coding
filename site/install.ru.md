@@ -48,7 +48,7 @@ docker run --rm -v "$PWD:/repo" \
 ```
 
 Та же команда работает для любой подкоманды. Замените
-`<VERSION>` на тег релиза (например, `v3.3.0`) или на
+`<VERSION>` на тег релиза (например, `v3.7.4`) или на
 `edge` для самого свежего коммита в `main`. Тег `:edge`
 пересобирается и публикуется при каждом push в `main`;
 ежедневный healthcheck-workflow проверяет, что образ
@@ -107,7 +107,7 @@ mathc init .                 # скаффолдит decisions/, attestations/,
                               # decisions/decision.yaml, .githooks/
 ```
 
-`mathc init` (решение `ux-3-init-subcommand-2026-10`):
+`mathc init` (решение `archive/decisions/ux-3-init-subcommand-2026-10.yaml`):
 
 - Создаёт `decisions/` и `attestations/` в целевом
   каталоге.

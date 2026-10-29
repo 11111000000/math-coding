@@ -43,18 +43,10 @@ skip step 4. ~30-60 s total.
 
 ## Protected policy transitions
 
-Changes to the constitution, kernel, gate rules, authority
-rules, or waiver rules require **all** of the following
-(per `KERNEL_AGENTS.md` §Self-application):
-
-1. a decision under the currently active rules;
-2. a strongest practical countercase;
-3. positive and negative conformance fixtures;
-4. a migration and recovery path;
-5. authorization by the previous active policy;
-6. an explicit list of changed verdicts.
-
-Candidate rules cannot authorize their own adoption.
+Changes to the constitution, kernel, gate rules, authority rules,
+or waiver rules require the protected-policy checklist. That
+checklist is normative, and it is kept in one place:
+`KERNEL_AGENTS.md` §Self-application.
 
 ## Conventional Commits prefix
 
@@ -73,7 +65,7 @@ ci: ...
 
 PR titles follow the same convention. The scope should
 name the package or kernel module affected
-(`mathc-self-check`, `lib/render`, `bin/Mathc`,
+(`mathc-self-check`, `lib/render/`, `bin/Mathc`,
 `decisions/site-deploy`, etc.).
 
 ## Time-honest commits

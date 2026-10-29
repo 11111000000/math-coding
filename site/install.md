@@ -45,7 +45,7 @@ docker run --rm -v "$PWD:/repo" \
 ```
 
 The same command works for any subcommand. Replace
-`<VERSION>` with a release tag (e.g., `v3.3.0`) or `edge`
+`<VERSION>` with a release tag (e.g., `v3.7.4`) or `edge`
 for the most recent main commit. The `:edge` tag is
 rebuilt and republished on every push to `main`; a daily
 healthcheck workflow asserts the image is still runnable.
@@ -107,7 +107,7 @@ code is 0 on accept, 1 on reject, 2 on input error.
    `~/.bashrc` / `~/.zshrc` / `~/.kshrc` / `~/.profile`
    (whichever is writable). Use `--no-path-update` to skip.
 5. Optional `--user-skill`: also extracts
-   `adoption/opencode/SKILL.md` from `dist-adoption.tar.gz`
+   `adoption/SKILL.md` from `dist-adoption.tar.gz`
    and writes to `${XDG_CONFIG_HOME:-${HOME}/.config}/opencode/skills/math-coding/SKILL.md`.
 6. Default-on `--cosign-verify` runs `cosign verify` against
    the ghcr.io Docker image signature. Falls back to a
@@ -125,7 +125,7 @@ mathc init .                 # scaffolds decisions/, attestations/,
                               # decisions/decision.yaml, .githooks/
 ```
 
-`mathc init` (decision `ux-3-init-subcommand-2026-10`):
+`mathc init` (decision `archive/decisions/ux-3-init-subcommand-2026-10.yaml`):
 
 - Creates `decisions/` and `attestations/` in the target dir.
 - Writes `decisions/decision.yaml` with the active policy

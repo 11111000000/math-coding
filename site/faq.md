@@ -48,12 +48,12 @@ sans-serif. (3) Restraint — Tufte's palette uses a
 single accent; the protocol's communication model is the
 same: one important thing per paragraph.
 
-### Why bilingual English + Russian?
+### Why English, Russian and Chinese?
 
 The author is Russian; the protocol's primary audience
 is the English-speaking developer community; the Russian
-audience is large enough that shipping without a
-translation is a real cost. Both audiences read the
+and Chinese audiences are large enough that shipping without a
+translation is a real cost. All three audiences read the
 kernel output.
 
 ### Why MathJax, not KaTeX?

@@ -5,7 +5,8 @@
 
 ## Unreleased
 
-**The protocol becomes reachable** (`adoption-friction-p0-2026-10@1`).
+**The protocol becomes reachable**
+(`decisions/adoption-friction-p0-2026-10.yaml`).
 The documented path for a project that adopts math-coding was twelve
 commands, five of them thrash caused by the kernel contradicting
 itself, and it could not end in a green check at all: `mathc
@@ -30,7 +31,7 @@ and then ignored it, so the cycle reported "every stage passed" over a
 red repository.
 
 **The honesty census measured a different thing from the kernel**
-(`adoption-friction-p0-2026-10@1`, the census fixture). It counted an
+(`decisions/adoption-friction-p0-2026-10.yaml`, the census fixture). It counted an
 obligation as CHECKED when ONE of its `acceptance.all` verifiers was
 executable, while the kernel requires ALL of them. It reported 7
 unexecuted passes where the truth was 286: a metric that reads a
@@ -38,8 +39,9 @@ different thing from the thing it measures cannot keep a ceiling
 honest, and this one had been the instrument that said the store was
 clean.
 
-**The re-evaluation oracle files a review** (`re-evaluation-is-not-a-
-check-2026-10@1`). `mathc re-evaluate-decisions` re-reads a decision
+**The re-evaluation oracle files a review**
+(`decisions/re-evaluation-is-not-a-check-2026-10.yaml`).
+`mathc re-evaluate-decisions` re-reads a decision
 and asks whether its claim contradicts an axiom; it never executes the
 obligation's verifier. It wrote one attestation per obligation anyway,
 as `kind_: test`, `result: pass`, with an empty `materials_digest`
@@ -57,26 +59,21 @@ The notes for v3.4.0 … v3.7.4 are below; they used to live only in
 the git tag messages, which made this file — the one that calls
 itself the single source of truth — eleven releases stale.
 
-**The corpus stops measuring itself** (`corpus-meta-layer-2026-10@1`).
-The repository carried a hand-synchronised MIRROR of its own
-attestation store: 887 committed files, 3.6 MB, regenerated whenever
-the corpus moved and pulled into every cram build as a dune
-`source_tree`. Its own coverage check reported 91 required
-(decision, obligation) pairs with no fixture file on 2026-10-27, and
-the gap grew with the corpus: the enumeration is 985 pairs today (978
-required) against 887 files. Nine scripts that measured how tidy the
-corpus was went with it - 3377 lines between them, of which
-`report-unmet-obligations.py` was 1124 against 1150 for the whole
-merge gate in `lib/gate.ml`. Over the last 60 commits, 97.9% of the
-corpus's file touches (10610 of 10842) were under `attestations/`.
+**The corpus stops measuring itself**
+(`decisions/corpus-meta-layer-2026-10.yaml`). The repository carried a
+hand-synchronised MIRROR of its own attestation store, regenerated
+whenever the corpus moved and pulled into every cram build as a dune
+`source_tree`. The scripts that measured how tidy the corpus was went
+with it; the decision is the record of what the mirror covered and of
+what it did not.
 
 What replaces it is the gate. `mathc gate --scope` evaluates only the
 decisions a change touches, and `mathc gate --execute` runs their
 verifiers against the candidate tree instead of reading a store about
 an older one; a corpus-wide census is a job you run, not a script the
 repository carries. The property the mirror existed to prove is now
-proved by ten hand-written files: `tests/cli/self-check-pass.t` reads
-the same store `tests/cli/gate-pass.t` gates against.
+proved by the hand-written fixtures: `tests/cli/self-check-pass.t`
+reads the same store `tests/cli/gate-pass.t` gates against.
 
 What is LOST, named: a ceiling in `tests/fixtures/*.sh` may now grow
 silently, a ceiling that stops being compared is no longer detected,
@@ -84,6 +81,17 @@ and a scope path that names nothing is no longer detected either.
 `decisions/corpus-meta-layer-2026-10.yaml` is the record, and
 `tests/fixtures/no-shadow-corpus.sh` is the guard that keeps the
 removal from being undone by accident.
+
+The two other records behind this cycle are
+`decisions/adoption-friction-p0-2026-10.yaml` (the adoption path and
+the honesty census) and
+`decisions/re-evaluation-is-not-a-check-2026-10.yaml` (the
+re-evaluation oracle now files a review, not a machine-grade pass).
+
+The two kernel files renamed at v3.3.3 are now `KERNEL_AGENTS.md`
+(the agent protocol) and `OCAML_KERNEL_CONVENTIONS.md` (the OCaml
+conventions and the §11 trap log); the release notes below keep the
+names the files had when those releases were cut.
 
 ## v3.4.0 — 2026-10-23
 
@@ -377,7 +385,7 @@ impossible.
 
 Release-prep + F11/F12 cleanup + Batch B + Batch C + MCP
 pipe-deadlock fix. Closes the 9 recommendations from
-`docs/plans/plan-2026-11-validation-cleanup-2026-10.yaml`
+`docs/plans/plan-2026-11-validation-cleanup-2026-10.md`
 (16 body_sha format fixes + axiom_link for audit-cleanup-2026-10
 + 2 malformed-acceptance fixes), 14 from
 `plan-2026-12-validation-followup-2026-10.yaml` (8 counterexample
@@ -614,7 +622,7 @@ contract.
 
 **Brand:** math-coding 3.3. **VERSION file** + `math-coding.opam`
 bumped from `3.1.0-alpha-final` to `3.3.0-alpha` (semver `3.3.0`).
-Header of ROADMAP, PACKAGES, README, AGENTS, USAGE, OCAML_KERNEL_CONVENTIONS,
+Header of ROADMAP, PACKAGES, README, KERNEL_AGENTS, USAGE, OCAML_KERNEL_CONVENTIONS,
 axioms/index.md, and `bin/data/time-distribution.yaml` all renamed to
 `3.3`. `mathc version` now prints `math-coding 3.3.0-alpha: bootstrap`.
 This is the published brand for the algebra-3.2-ideal kernel

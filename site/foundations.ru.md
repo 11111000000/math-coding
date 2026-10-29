@@ -49,11 +49,12 @@ stale | unknown | missing | no_store`. `lib/attestations/attestations.ml`
 загружает хранилище и сопоставляет каждую запись со
 шлюзом ядра.
 
-**Верификация.** `scripts/generate-attestations.py`
-выпускает 94 файла аттестаций в каждом релизе;
-`mathc gate BASE HEAD` сообщает зелёный статус для
-`gate-pass.t` / `gate-fail.t` / `gate-stale.t` (cram-фикстуры
-в `tests/cli/`).
+**Верификация.** Хранилище аттестаций порождается CI, а не
+коммитится (`decisions/store-not-committed-2026-10.yaml`; путь
+релиза — `scripts/sign-store.sh`), и его живой счётчик — это
+`mathc counters --format=json`; `mathc gate BASE HEAD` сообщает
+зелёный статус для `gate-pass.t` / `gate-fail.t` /
+`gate-stale.t` (cram-фикстуры в `tests/cli/`).
 
 Диаграмма жизненного цикла аттестации (отрисованная в
 нижней части этой страницы) показывает пять стадий,
@@ -155,11 +156,10 @@ A4 — это аксиома, которая привязывает осталь
 | `mathc-self-check-subcommand` | `mathc self-check` → JSON-вердикт | `self-check-{pass,fail,unknown}.t` |
 | `mathc-packages-subcommand` | `mathc packages --format=text\|json\|html` → список пакетов | `packages.t` |
 
-Ядро на v3.3.0 поставляет 3.2-идеал алгебру поверх них.
+Ядро на v3.7.4 поставляет 3.2-идеал алгебру поверх них.
 Раздел сайта [Packages](packages.html) — живой вердикт
-каждого активного решения; текущая сборка сообщает о
-93 активных решениях / 330 обязательствах (313 pass /
-16 missing / 1 unknown).
+каждого активного решения; живые счётчики — это
+`mathc counters --format=json`.
 
 ## Сопутствующие диаграммы
 

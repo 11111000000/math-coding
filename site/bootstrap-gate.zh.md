@@ -13,16 +13,8 @@
 math-coding 3.0-alpha 便以这种状态诞生。从最初的提交
 （`v3-alpha-0.0.1`，2026 年 9 月 26 日）到闸门失效的那一刻
 （提交 `8fa7fcf`，2026 年 9 月 29 日），每项变更都必须满足
-八项人工检查：
-
-- 预期行为与受影响的能力已明确陈述；
-- 已知不变量得以保持，或经审慎修订；
-- 已考虑最相关的反例；
-- 计划中的证据可得，或其缺失已被声明；
-- 每个已知的阻塞性缺口均有补救措施；
-- 对不可逆工作存在回滚或前向恢复路径；
-- 规格变更包含正向与负向固定样本；
-- 不声称任何自动保证。
+八项人工检查。该清单具有规范效力，并且只存一处：
+`KERNEL_AGENTS.md` §Bootstrap gate。
 
 这些检查在闸门失效时并不会被移除。它们仍是受保护策略
 变更（对宪法、模式、规范化、内核、闸门规则、权限规则或
@@ -36,16 +28,13 @@ math-coding 3.0-alpha 便以这种状态诞生。从最初的提交
 - `mathc self-check` 是阻塞性的 CI 步骤。在干净的 `main` HEAD
   上，此步骤输出 `self-check exit=0`，且 JSON 载荷中每个
   判定为 `Pass` 或 `Open_with_waiver` 的义务，其 `verdict`
-  字段为 `verdict=pass`。产生 `fail`（退出码 1）或
-  `unknown`（退出码 3）的 PR 将阻塞合并。当前线上构建报告
-  在 58 个主体中 57 个 pass / 1 个 unknown；唯一的
-  `unknown` 是 `audit-0.0.21-fixes::self-check-verdict-is-pass`，
-  这在结构上由其构造决定为不确定（只要任一其他主体仍对
-  `unknown` 有贡献，它就无法为 `pass`），并在内核的豁免
-  协商步骤中被映射为 `Open_with_waiver`。
+  `unknown`（退出码 3）的 PR 将阻塞合并。主体的实时计数由
+  `mathc self-check` 给出；主体在结构上不确定时可能仍为
+  `unknown`，并在内核的豁免协商步骤中被映射为
+  `Open_with_waiver`。
 - 位于 `attestations/` 的证据存储为内核遍历器所枚举的
-  每个决策-义务对保存一个 JSON 文件。线上构建共承载
-  260 份证据。
+  每个决策-义务对保存一个 JSON 文件。实时计数来自
+  `mathc counters --format=json`（`attestations.live_store`）。
 - `mathc gate BASE HEAD` 针对已填充的存储报告判定：
   `gate-pass.t`、`gate-fail.t`、`gate-stale.t` 均为绿色。
 

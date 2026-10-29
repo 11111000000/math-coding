@@ -11,12 +11,12 @@
 <section class="mathc-section mathc-quickstart">
 <h2>快速开始 &mdash; 60&nbsp;秒</h2>
 <ol class="mathc-steps">
-<li><code>curl -sSfL https://math-coding.sh/install.sh | sh</code><br>
+<li><code>curl -sSfL https://github.com/11111000000/math-coding/releases/latest/download/install.sh | sh</code><br>
 安装 <code>mathc</code> 可执行文件,并将用户级技能放入 <code>~/.config/opencode/skills/</code>。</li>
 <li><code>mathc new-decision my-first-change</code><br>
 用模板创建 <code>decisions/my-first-change.yaml</code>,校验其内容,并指出缺失项。</li>
 <li><code>mathc self-check</code><br>
-读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>fail</code>、<code>unknown</code>、<code>stale</code> 或 <code>missing</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>
+读取决策存储,逐条遍历每个义务,并按行输出每项的判定:<code>pass</code>、<code>open-with-waiver</code>、<code>fail</code>(self-check 对 <code>block</code> 的写法)或 <code>unknown</code>。任一非 pass 结果都会使 CI 以非零状态退出。</li>
 </ol>
 </section>
 <section class="mathc-section mathc-moderation">
@@ -40,12 +40,12 @@
 
   verdict:   <span class="mathc-verdict-unknown">unknown</span>
 
-  exit:      1</code></pre>
+  exit:      3</code></pre>
 <p><code>gate</code> 子命令按当前活动策略评估变更。<code>self-check</code> 子命令是其机器可读版本,设计用于在每次推送和每次合并时于 CI 中执行。</p>
 </section>
 <section class="mathc-section mathc-methodology">
 <h2>方法论</h2>
-<p class="mathc-section-lede">四个原语,每个都是可被 grep、评审和回退的纯文本文件:</p>
+<p class="mathc-section-lede">链条的六个阶段,每个都是可被 grep、评审和回退的纯文本文件:</p>
 <div class="mathc-cards">
 <article class="mathc-card">
 <h3>Intent(意图)</h3>
@@ -60,8 +60,16 @@
 <p>可由代码核验的声明:一个测试夹具、一条性质、一个基准、一条静态规则。每项都对应一条判定。</p>
 </article>
 <article class="mathc-card">
+<h3>Change(变更)</h3>
+<p>落入 <code>main</code> 的 diff,并与它所触及的义务绑定。</p>
+</article>
+<article class="mathc-card">
 <h3>Attestation(证据)</h3>
 <p>证明该义务在特定提交上已被满足的证据。测试、评审、审计 &mdash; 全部作为一等制品存储,绝不以截图形式保存。</p>
+</article>
+<article class="mathc-card">
+<h3>Revision(修订)</h3>
+<p>将承诺延展到下一项决策 &mdash; 或者取代它,且这一选择被明确作出。</p>
 </article>
 </div>
 <p class="mathc-section-more">

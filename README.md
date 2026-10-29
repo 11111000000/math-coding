@@ -2,7 +2,7 @@
 
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/11111000000/math-coding?sort=semver)](https://github.com/11111000000/math-coding/releases/latest)
-[![Subcommands](https://img.shields.io/badge/subcommands-34-blueviolet)](PACKAGES.md)
+[![Subcommands](https://img.shields.io/badge/subcommands-39-blueviolet)](PACKAGES.md)
 [![Site](https://img.shields.io/website?url=https%3A%2F%2F11111000000.github.io%2Fmath-coding%2F)](https://11111000000.github.io/math-coding/)
 
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
@@ -67,15 +67,23 @@ free; protected-policy transitions keep the manual checklist on top.
 | Subcommand | Purpose |
 |---|---|
 | `mathc validate FILE` | Schema check on a decision |
+| `mathc verify FILE` | Execute the verifiers a decision declares, in a sandbox |
 | `mathc context BASE HEAD --budget N` | Bounded context capsule for an agent |
 | `mathc explain REF` | Resolve a `kind:id` reference to its body |
 | `mathc explain-diagnostic CODE` | Describe an `MC-*` diagnostic code |
 | `mathc assess BASE HEAD` | List changed files between two git refs |
 | `mathc attest FILE` | Import a JUnit XML report as JSON |
+| `mathc import-junit FILE` | Import a JUnit XML report (canonical name for `mathc attest`) |
 | `mathc attest-batch` | Generate attestation JSONs from TSV manifest or by walking decisions |
 | `mathc gate BASE HEAD` | Assurance verdict for the diff |
 | `mathc self-check` | Kernel passes its own repository + corpus |
+| `mathc gaps [--format=json\|text]` | List every open promise: obligation, class, state, action |
+| `mathc negative-control` | Run the negative controls that prove the corpus can fail |
 | `mathc packages` | Index of decisions, obligations, verdicts |
+| `mathc find KEYWORD` | Search decisions and obligations by substring |
+| `mathc precommit [PATH...]` | Batch-validate the listed decision files |
+| `mathc graph` | Emit the decision/obligation relation graph |
+| `mathc decision-state <id> <action>` | Move one decision through its lifecycle states |
 | `mathc render` | Build the static site under `dist/` |
 | `mathc time-estimate` | Honest duration claim from a reference class |
 | `mathc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
@@ -83,11 +91,13 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
 | `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, algebra §17) |
 | `mathc version` | Print the bootstrap hello and exit 0 |
+| `mathc update [--channel=...] [--yes]` | Self-update the binary from the release channel |
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |
 | `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
 | `mathc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
 | `mathc forge-verify [--org ORG] [--team TEAM] [--user USER]` | Query forge_mirror for committer team membership |
 | `mathc counters` | Live counters JSON (decisions, obligations, attestations, cram, CLI) |
+| `mathc doctor [--json]` | Print the install-coverage diagnostic |
 | `mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]` | Scaffold new math-coding project |
 | `mathc import-adr PATH [--write]` | Convert existing MADR/adr-tools ADR to a math-coding decision |
 | `mathc adopt [PATH] [--only=CONV] [--dry-run]` | Detect existing ADR corpus and offer merge path |
@@ -105,8 +115,8 @@ project, [`adoption/SKILL.md`](adoption/SKILL.md) is the only document you
 need; everything below is documentation for the people who maintain the
 math-coding kernel itself.
 
-- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed from `KERNEL_AGENTS.md` at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
-- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed from `OCAML_KERNEL_CONVENTIONS.md`.
+- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
+- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed at v3.3.3.
 - [`ROADMAP.md`](ROADMAP.md): priority queue and process principles.
 - [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
 - [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.

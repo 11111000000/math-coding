@@ -15,8 +15,8 @@ mathcoding 是一项面向软件变更的保障协议：每一项变更都
 ## 为何存在
 
 决策会被遗忘 —— 但不是因为没人写下来。恰恰相反：
-有人写下了 `docs/adr/0007-cache-revocation.md`、
-`specs/checkout-flow.md`，有人在 CI 里接了 LLM 当裁判。
+有人写下了 `decisions/decision.yaml`、
+`decisions/adoption-friction-p0-2026-10.yaml`，有人在 CI 里接了 LLM 当裁判。
 但到第三个版本发布时，当初的理由已经无法重建，只能
 靠考古。代码之所以偏离初衷，是因为我们把两件不同的
 事混为一谈 —— 记录决策与验证决策。惯用的工具都不能
@@ -75,23 +75,13 @@ math-coding 翻转了这一不对称：每一项架构承诺都在代码
 人类的位置在哪里？」这个问题的回答。答案是：三个
 角色，五处要点。内核是地板，人类是天花板。
 
-## v3.0 的原则
+## 原则
 
-内核核查每个生效决策中所声明的义务（在干净 `main` HEAD
-上，按最近一次构建为 52 个生效决策 / 207 项义务），全部以
-数据包形式记录于 `decisions/`。其中八个数据包构成了
-闭合引导回路的最小集合：
-
-| 组别 | 原则 | 它断言的内容 |
-|------|------|--------------|
-| 基础 | `bootstrap-v3` | 内核能够检查本仓库 |
-| 基础 | `kernel-conformance-runner` | 每个固定样本都被枚举并运行 |
-| 基础 | `validate-and-context` | 每个决策都能解析并暴露出胶囊 |
-| 基础 | `gate-decision` | 闸门判定可由机器检查 |
-| 基础 | `attestation-store-fill` | 证据存储已被填充 |
-| 扩展 | `mathc-explain-subcommand` | `mathc explain` 可解析 `decision:` 引用 |
-| 扩展 | `mathc-self-check-subcommand` | `mathc self-check` 返回自动判定 |
-| 扩展 | `mathc-packages-subcommand` | `mathc packages` 是一等公民表面 |
+内核核查每个生效决策中所声明的义务，全部以数据包形式记录于
+`decisions/`。其中八个数据包构成了闭合引导回路的最小集合。
+规范清单是主策略在 `decisions/decision.yaml` 中的义务；
+公理 → 内核机制 → 验证义务的映射见
+[Foundations](foundations.html)。
 
 这八条并非随意选出。它们是闭合引导回路的最小集合：
 从首个提交（`v3-alpha-0.0.1`）到内核能检查自身的时刻

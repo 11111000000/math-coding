@@ -21,29 +21,19 @@ intent -> decision -> obligation -> change -> attestation -> revision
 
 ## 它交付什么
 
-- 一个内核（`mathc`），单个 OCaml 二进制，约 700 行
-  外加传递依赖模块。
+- 一个内核（`mathc`），单个 OCaml 二进制，外加传递依赖模块。
 - 八条原则，每一条都以数据包的形式记录在
   `decisions/` 中，并可通过 `tests/cli/` 中的 cram
   固定样本进行验证。
-- 一个静态站点（本文档），由 `mathc render` 生成，
+- 一个静态站点（`site/`），由 `mathc render` 生成，
   部署到 GitHub Pages。
 
 ## 五条公理与三条扩展
 
-| 组别 | 原则 | 它断言的内容 |
-|------|------|--------------|
-| 基础 | `bootstrap-v3` | 内核能够检查本仓库 |
-| 基础 | `kernel-conformance-runner` | 每个固定样本都被枚举并运行 |
-| 基础 | `validate-and-context` | 每个决策都能解析并暴露出胶囊 |
-| 基础 | `gate-decision` | 闸门判定可由机器检查 |
-| 基础 | `attestation-store-fill` | 证据存储已被填充 |
-| 扩展 | `mathc-explain-subcommand` | `mathc explain` 可解析 `decision:` 引用 |
-| 扩展 | `mathc-self-check-subcommand` | `mathc self-check` 返回自动判定 |
-| 扩展 | `mathc-packages-subcommand` | `mathc packages` 是一等公民表面 |
-
-参见 [Foundations](foundations.html)，了解每条公理到
-内核机制与验证义务的完整映射。
+八个引导数据包是主策略的义务；规范清单见
+`decisions/decision.yaml`。
+[Foundations](foundations.html) 给出了每条公理到内核机制与
+验证义务的完整映射。
 
 ## 快速开始
 
@@ -65,32 +55,12 @@ python3 -m http.server -d dist/ 8000
 
 ## 命令
 
-| 命令 | 用途 |
-|------|------|
-| `mathc validate FILE` | 将 FILE 解析为一项决策 |
-| `mathc context BASE HEAD --budget N` | 输出 JSON 上下文胶囊 |
-| `mathc explain DETAIL_REF` | 将 `decision:<id>` 解析为正文 |
-| `mathc assess BASE HEAD` | 列出变更的文件路径 |
-| `mathc attest FILE` | 解析 JUnit XML 报告 |
-| `mathc time-estimate --class ... --count N` | 基于参考类进行预测 |
-| `mathc gate BASE HEAD` | 基于证据存储的闸门判定 |
-| `mathc self-check` | 自动化自验证 |
-| `mathc packages --format=text\|json\|html` | 包裹网格 |
-| `mathc render [--lang en\|ru\|both]` | 渲染静态站点 |
+完整的子命令目录与退出码在 `spec/semantics.md`
+（§CLI subcommands）中具有规范效力。
 
 ## 文件位置
 
-| 路径 | 内容 |
-|------|------|
-| `lib/` | 纯 OCaml 内核模块 |
-| `bin/` | `mathc` 命令行调度器 |
-| `decisions/` | 决策与义务数据包（保障表面） |
-| `attestations/` | 以 SHA 为键的证据（证据表面） |
-| `axioms/` | 五条公理的 Markdown 文档 |
-| `spec/` | 宪法 + 语义 + 代数（形式化层） |
-| `site/` | 已发布的散文，提供英文与俄文版本 |
-| `tests/cli/*.t` | 命令行的 cram 固定样本 |
-| `tests/*.ml` | 内核单元测试与一致性测试 |
+`PACKAGES.md` 是关于本仓库内容的唯一可信来源。
 
 ## 另请参阅
 
