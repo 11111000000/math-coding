@@ -34,14 +34,15 @@ fail=0
 ok()  { printf 'ok: %s\n' "$1"; }
 bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 
-# The pin. MEASURED 2026-10-28: 112 undecided subjects (82 pass of
-# 194). It may only fall.
+# The pin. MEASURED 2026-10-29: 98 undecided subjects (63 pass of
+# 161), after the decision-level census removed 45 records and their
+# obligations. It may only fall.
 #
 # ceiling-raise: 0 -> 112, the first measurement of the corpus debt
 # after the worklist (`mathc gaps`) made the corpus's promises
 # countable. The number is the truth as of this date; a lower number
 # is a pin someone has to lower by hand.
-CEILING=112
+CEILING=98
 
 report="${1:-}"
 tmp=""

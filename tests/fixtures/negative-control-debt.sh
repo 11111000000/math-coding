@@ -41,7 +41,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # walk behind the count became the corpus's own walker, and the
 # decision it names has a negative control. The pin follows the
 # truth down.
-CEILING=156
+CEILING=123
 
 count_without() {
   # The count comes from the KERNEL's own audit command, not from a
