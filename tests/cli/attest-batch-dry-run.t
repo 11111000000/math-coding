@@ -22,7 +22,7 @@ cannot pollute the host checkout.
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"  # present but empty
   $ before=$(ls .test-math-coding/attestations | wc -l)
-  $ mathc attest-batch \
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
   >   --run="printf probe" \
   >   --dry-run > $tmpdir/attest-batch-dry-run.stdout.jsonl

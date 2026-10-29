@@ -14,6 +14,6 @@ bootstrap/adapters.yaml.
   >   <testcase classname="d" name="fail-case"><failure>oops</failure></testcase>
   > </testsuite>
   > EOF
-  $ mathc import-junit "$tmp/report.xml"
+  $ $INSIDE_DUNE/bin/mathc.exe import-junit "$tmp/report.xml"
   {"error_count":0,"failure_count":1,"skip_count":0,"suite_name":"demo","test_count":2,"tests":[{"classname":"d","message":null,"name":"pass-case","result":"pass","time":null},{"classname":"d","message":null,"name":"fail-case","result":"fail","time":null}]}
   $ rm -rf "$tmp"

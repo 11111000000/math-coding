@@ -11,7 +11,7 @@ the scheme IS canonical. Both directions of the convention are
 covered.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc validate fixtures/conformance/decision/positive-verifier-scheme-known.json
+  $ $INSIDE_DUNE/bin/mathc.exe validate fixtures/conformance/decision/positive-verifier-scheme-known.json
   parse-ok: fixtures/conformance/decision/positive-verifier-scheme-known.json
     decision: verifier-scheme-known-demo
     revision: rev:cafe01
@@ -20,5 +20,5 @@ covered.
 
 The stdout verdict carries no diagnostics array (empty extra_diags):
 
-  $ mathc validate --format=json fixtures/conformance/decision/positive-verifier-scheme-known.json 2>/dev/null | jq -c '{verdict, has_diagnostics: has("diagnostics")}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json fixtures/conformance/decision/positive-verifier-scheme-known.json 2>/dev/null | jq -c '{verdict, has_diagnostics: has("diagnostics")}'
   {"verdict":"parse-ok","has_diagnostics":false}

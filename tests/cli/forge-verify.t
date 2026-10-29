@@ -71,7 +71,7 @@ membership endpoint. The verifier passes.
   >   curl -sf "http://127.0.0.1:$port/members" >/dev/null 2>&1 && break
   >   sleep 0.1
   > done
-  $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" mathc forge-verify --org=foo --team=bar --user=alice
+  $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=alice
   {"fail_mode":"open","forge_queried":true,"matched":true,"org":"foo","reason":"forge returned member=true","team":"bar","user":"alice","verdict":"pass"}
   $ echo $?
   0
@@ -102,7 +102,7 @@ in tests; the --fail-mode open path is verified above).
   >   curl -sf "http://127.0.0.1:$port/members" >/dev/null 2>&1 && break
   >   sleep 0.1
   > done
-  $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" mathc forge-verify --org=foo --team=bar --user=alice
+  $ MATH_CODING_FORGE_API="http://127.0.0.1:$port" $INSIDE_DUNE/bin/mathc.exe forge-verify --org=foo --team=bar --user=alice
   {"fail_mode":"open","forge_queried":true,"matched":false,"org":"foo","reason":"forge returned member=false","team":"bar","user":"alice","verdict":"block"}
   [1]
   $ echo $?

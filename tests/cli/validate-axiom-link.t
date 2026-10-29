@@ -44,7 +44,7 @@ the specific `MC-AXIOM-LINK-MISSING` diagnostic:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json active-no-axiom-link.yaml | jq -c '{verdict, code, severity, message}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json active-no-axiom-link.yaml | jq -c '{verdict, code, severity, message}'
   {"verdict":"reject","code":"MC-AXIOM-LINK-MISSING","severity":"block","message":"active-no-axiom-link-demo: decision has state=active but empty axiom_link: spec/algebra-3.2.md §7 requires every active decision to name the axiom(s) it addresses via the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision front-matter"}
 
 A decision with `axiom_link: [A0]` and `state: active` is accepted
@@ -80,7 +80,7 @@ A decision with `axiom_link: [A0]` and `state: active` is accepted
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json active-with-axiom-link.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json active-with-axiom-link.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A `state: draft` decision without `axiom_link` is accepted (draft
@@ -114,7 +114,7 @@ is exempt from the contract):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json draft-no-axiom-link.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json draft-no-axiom-link.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A `state: retired` decision without `axiom_link` is accepted
@@ -142,7 +142,7 @@ A `state: retired` decision without `axiom_link` is accepted
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json retired-no-axiom-link.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json retired-no-axiom-link.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A decision with `state` absent (default `active`) and no
@@ -174,13 +174,13 @@ A decision with `state` absent (default `active`) and no
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json default-state-no-axiom-link.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json default-state-no-axiom-link.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-AXIOM-LINK-MISSING"}
 
 The diagnostic helper is also reachable via `mathc explain-diagnostic`
 so authors can look up the remediation step:
 
-  $ mathc explain-diagnostic MC-AXIOM-LINK-MISSING | jq -r '.remediation'
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-AXIOM-LINK-MISSING | jq -r '.remediation'
   Add `axiom_link: [A<n>]` to the decision front-matter,
   listing the axiom(s) the decision addresses. If the
   decision is a transitional draft that should not be

@@ -12,7 +12,7 @@ and per-bucket counts drift as new decisions land; the assertion
 locks the summary shape, not the numeric content:
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if ec=$(mathc precommit > /tmp/precommit-all.txt 2>/dev/null; echo $?); then \
+  $ if ec=$($INSIDE_DUNE/bin/mathc.exe precommit > /tmp/precommit-all.txt 2>/dev/null; echo $?); then \
   >   [[ "$ec" =~ ^[012]$ ]] && echo "exit=$ec in {0,1,2}: ok"; \
   > else echo "FAIL: mathc precommit aborted"; fi
   exit=0 in {0,1,2}: ok
@@ -28,7 +28,7 @@ in `precommit`'s human output; only `validate` switched its token
 to `parse-ok`):
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc precommit decisions/mathc-counters-subcommand-2026-10.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe precommit decisions/mathc-counters-subcommand-2026-10.yaml
   mathc precommit: 1 files: 1 accepted, 0 rejected, 0 input-err
     decisions/mathc-counters-subcommand-2026-10.yaml: accept
 
@@ -36,7 +36,7 @@ to `parse-ok`):
 the underlying mathc validate; the file does not exist):
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc precommit /tmp/nonexistent-precommit.yaml > /dev/null 2>/dev/null; ec=$?; echo "exit=$ec"
+  $ $INSIDE_DUNE/bin/mathc.exe precommit /tmp/nonexistent-precommit.yaml > /dev/null 2>/dev/null; ec=$?; echo "exit=$ec"
   exit=2
 
 `mathc precommit --format=json` emits a JSON object on stdout
@@ -45,7 +45,7 @@ the underlying mathc validate; the file does not exist):
 
   $ tmpj=$(mktemp -d)/precommit-one.json
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc precommit --format=json decisions/mathc-counters-subcommand-2026-10.yaml \
+  $ $INSIDE_DUNE/bin/mathc.exe precommit --format=json decisions/mathc-counters-subcommand-2026-10.yaml \
   >   2>/dev/null > "$tmpj"
   $ grep -q '"total":1' "$tmpj" \
   >   && grep -q '"accepted":1' "$tmpj" \

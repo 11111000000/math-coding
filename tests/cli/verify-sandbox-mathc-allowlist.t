@@ -63,7 +63,7 @@ tree.
 
 strict mode: `mathc version` passes, `mathc init` is skipped.
 
-  $ mathc verify --sandbox=strict scratch-verify.yaml 2>/dev/null | grep -E 'allowlisted-version|denied-init'
+  $ $INSIDE_DUNE/bin/mathc.exe verify --sandbox=strict scratch-verify.yaml 2>/dev/null | grep -E 'allowlisted-version|denied-init'
     allowlisted-version: pass
     denied-init: skipped
 
@@ -71,7 +71,7 @@ default (none) mode: `mathc init` is executed (and fails on its
 own merit because it refuses to overwrite a live tree), not
 skipped by the allowlist.
 
-  $ mathc verify scratch-verify.yaml 2>/dev/null | grep 'denied-init'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch-verify.yaml 2>/dev/null | grep 'denied-init'
     denied-init: fail
 
 Cleanup.

@@ -46,7 +46,7 @@ plain accept.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json has-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json has-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   ["parse-ok",[]]
 
 A `mode: light` decision without counterexample: warning
@@ -82,7 +82,7 @@ requirement at light mode).
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
@@ -114,7 +114,7 @@ dialectical objection) is also accepted without warning at
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
   > }
   > EOF
-  $ mathc validate --format=json counterexample-array.json | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json counterexample-array.json | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   ["parse-ok",[]]
 
 Cleanup:

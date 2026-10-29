@@ -30,7 +30,7 @@ accepted:
   >   "issued_at": "2026-10-16T00:00:00Z"
   > }
   > EOF
-  $ mathc validate --format=json test-with-digest.json | jq -c '{verdict, kind}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json test-with-digest.json | jq -c '{verdict, kind}'
   {"verdict":"parse-ok","kind":"attestation"}
 
 An attestation with `kind_: test` and EMPTY `materials_digest`
@@ -48,7 +48,7 @@ is rejected with `MC-MATERIALS-DIGEST-EMPTY` (Block):
   >   "issued_at": "2026-10-16T00:00:00Z"
   > }
   > EOF
-  $ mathc validate --format=json test-empty-digest.json | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json test-empty-digest.json | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-MATERIALS-DIGEST-EMPTY","severity":"block"}
 
 An attestation with `kind_: build` and EMPTY `materials_digest`
@@ -66,7 +66,7 @@ is rejected:
   >   "issued_at": "2026-10-16T00:00:00Z"
   > }
   > EOF
-  $ mathc validate --format=json build-empty-digest.json | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json build-empty-digest.json | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-MATERIALS-DIGEST-EMPTY","severity":"block"}
 
 An attestation with `kind_: observation` and EMPTY
@@ -84,7 +84,7 @@ An attestation with `kind_: observation` and EMPTY
   >   "issued_at": "2026-10-16T00:00:00Z"
   > }
   > EOF
-  $ mathc validate --format=json observation-empty-digest.json | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json observation-empty-digest.json | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-MATERIALS-DIGEST-EMPTY","severity":"block"}
 
 An attestation with `kind_: review` and EMPTY `materials_digest`
@@ -102,12 +102,12 @@ is ACCEPTED (humans may declare without a runtime anchor):
   >   "issued_at": "2026-10-16T00:00:00Z"
   > }
   > EOF
-  $ mathc validate --format=json review-empty-digest.json | jq -c '{verdict, kind}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json review-empty-digest.json | jq -c '{verdict, kind}'
   {"verdict":"parse-ok","kind":"attestation"}
 
 The diagnostic is reachable via `mathc explain-diagnostic`:
 
-  $ mathc explain-diagnostic MC-MATERIALS-DIGEST-EMPTY | jq -r '.remediation' | head -3
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-MATERIALS-DIGEST-EMPTY | jq -r '.remediation' | head -3
   Compute the SHA-256 of the run's input artefact (test
   output, build artefact, observed metric) and set
   `subject.materials_digest` to the hex digest. Re-run

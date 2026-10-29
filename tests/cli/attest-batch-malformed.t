@@ -35,7 +35,7 @@ grepping for the expected substrings; this avoids depending on
 cram's regex/glob annotation support (which is brittle across
 dune 3.x cram versions).
 
-  $ mathc attest-batch \
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest-malformed.tsv" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR" 2> /tmp/attest-batch-malformed.stderr
   [2]

@@ -38,7 +38,7 @@ empty -- but the call exits 0 (no kernel crash, dispatcher
 load_policies completes silently per the algebra §9 no-policy
 declaration default).
 
-  $ mathc self-check | jq -c '{subjects: (.subjects | length), verdict}'
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{subjects: (.subjects | length), verdict}'
   {"subjects":0,"verdict":"unknown"}
 
 When MATH_CODING_POLICY points at a non-existent file the
@@ -48,7 +48,7 @@ explicitly a no-op when the file is absent per algebra §9
 `policy(p) = default-policy`).
 
   $ export MATH_CODING_POLICY="/nonexistent/policy.yaml"
-  $ mathc self-check | jq -c '{subjects: (.subjects | length), verdict}'
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{subjects: (.subjects | length), verdict}'
   {"subjects":0,"verdict":"unknown"}
 
 Cleanup.

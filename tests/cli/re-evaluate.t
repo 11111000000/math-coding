@@ -13,13 +13,13 @@ Acceptance gate for obligation re-evaluate-subcommand-spec-row
 in decisions/3-2-cli-catalog.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc re-evaluate
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate
   mathc re-evaluate: DECISION_ID and AXIOM_ID are required
   [2]
-  $ mathc re-evaluate nonexistent A1
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate nonexistent A1
   mathc re-evaluate: unknown DECISION_ID nonexistent
   [2]
-  $ mathc re-evaluate bootstrap-v3 BOGUS
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate bootstrap-v3 BOGUS
   mathc re-evaluate: AXIOM_ID must be one of A0..A4 (got BOGUS)
   [2]
 
@@ -30,10 +30,10 @@ acceptance verifier is `tests/cli/<name>.t` returns
 `tests/cli/rebuttals.t`, `tests/cli/re-evaluate.t`, and their
 fixture-pair siblings), so the no-run verdict is `incompatible`.
 
-  $ mathc re-evaluate 3-2-cli-catalog A0 | jq -r '.verdict, .ran'
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate 3-2-cli-catalog A0 | jq -r '.verdict, .ran'
   incompatible
   false
-  $ mathc re-evaluate 3-2-cli-catalog A0 | jq -r '[.obligations[] | select(.verdict == "incompatible")] | length'
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate 3-2-cli-catalog A0 | jq -r '[.obligations[] | select(.verdict == "incompatible")] | length'
   6
 
 T1.2 positive (built-in verifier still `Compatible` without
@@ -43,7 +43,7 @@ explicit run. `algebra-3.2-notation-flag-2026-10::kernel-unchanged`
 is such an obligation (`mathc-self-check-verdict` is a built-in
 kernel verifier).
 
-  $ mathc re-evaluate algebra-3.2-notation-flag-2026-10 A0 | jq -r '.obligations[] | select(.id == "kernel-unchanged") | .verdict'
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate algebra-3.2-notation-flag-2026-10 A0 | jq -r '.obligations[] | select(.id == "kernel-unchanged") | .verdict'
   compatible
 
 T1.2 manual-style verifier still maps to `inconclusive`: the
@@ -51,5 +51,5 @@ T1.2 manual-style verifier still maps to `inconclusive`: the
 (`rg -n '...' spec/algebra-3.2.md`); without a run the verdict
 is `inconclusive` (does not block; surfaces follow-up review).
 
-  $ mathc re-evaluate algebra-3.2-notation-flag-2026-10 A0 | jq -r '.obligations[] | select(.id == "notation-note-present") | .verdict'
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate algebra-3.2-notation-flag-2026-10 A0 | jq -r '.obligations[] | select(.id == "notation-note-present") | .verdict'
   inconclusive

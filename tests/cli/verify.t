@@ -17,19 +17,19 @@ to Arg.parse does not enumerate it (kernel behaviour; the
 flag itself appears in the auto-generated option list).
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc verify --help
+  $ $INSIDE_DUNE/bin/mathc.exe verify --help
   usage: mathc verify FILE [--format=...]
     --format  Output format: text (default) or json
     --sandbox  Sandbox mode: none|minimal|strict (default from MATH_CODING_VERIFY_SANDBOX or 'none'). Strict applies RLIMIT_NPROC=1 NOFILE=64 FSIZE + closes inherited FDs; Linux only - falls back with a warning on macOS.
     -help  Display this list of options
     --help  Display this list of options
 
-  $ mathc verify fixtures/conformance/decision/positive-minimal.json 2>/dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe verify fixtures/conformance/decision/positive-minimal.json 2>/dev/null
   verify: fixtures/conformance/decision/positive-minimal.json
     bounded-fallback-amplification: skipped
   [3]
 
 The accept/parse-ok rename is verified by validate:
 
-  $ mathc validate fixtures/conformance/decision/positive-minimal.json 2>/dev/null | head -1
+  $ $INSIDE_DUNE/bin/mathc.exe validate fixtures/conformance/decision/positive-minimal.json 2>/dev/null | head -1
   parse-ok: fixtures/conformance/decision/positive-minimal.json

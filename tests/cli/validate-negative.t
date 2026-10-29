@@ -14,5 +14,5 @@ axiom-link check fires first and surfaces
 would have surfaced `MC-DECISION-INVALID`. The verdict is
 still `reject` and the exit code is still 1.
 
-  $ mathc validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/negative-empty-obligations.json" | jq -c '{verdict, code, severity, message}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/negative-empty-obligations.json" | jq -c '{verdict, code, severity, message}'
   {"verdict":"reject","code":"MC-AXIOM-LINK-MISSING","severity":"block","message":"no-obligations: decision has state=active but empty axiom_link: spec/algebra-3.2.md §7 requires every active decision to name the axiom(s) it addresses via the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision front-matter"}

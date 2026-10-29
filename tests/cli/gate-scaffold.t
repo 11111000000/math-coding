@@ -23,13 +23,13 @@ document's contract and says nothing about the obligation count, so the
 scope does not change the question it asks.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc gate --no-execute main HEAD | jq -c 'keys'
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-execute main HEAD | jq -c 'keys'
   ["base","gaps","gaps_by_kind","gaps_total","gaps_truncated","head","now","obligations","verdict"]
 
 The counts and the list agree, and the list never claims to be more
 than it is.
 
-  $ mathc gate --no-execute main HEAD | jq -c '{consistent: (.gaps_total >= (.gaps | length)), honest_truncation: (.gaps_truncated == (.gaps_total > (.gaps | length)))}'
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-execute main HEAD | jq -c '{consistent: (.gaps_total >= (.gaps | length)), honest_truncation: (.gaps_truncated == (.gaps_total > (.gaps | length)))}'
   {"consistent":true,"honest_truncation":true}
 
 The cap is a cap: the printed list never exceeds it, and the total
@@ -44,11 +44,11 @@ this fixture pins is "the printed list never exceeds the cap"; the
 number beside it is the change's, and the change is not the fixture's
 to predict.
 
-  $ mathc gate --no-execute --gaps-limit 3 main HEAD | jq -c '{within_cap: ((.gaps | length) <= 3)}'
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-execute --gaps-limit 3 main HEAD | jq -c '{within_cap: ((.gaps | length) <= 3)}'
   {"within_cap":true}
 
 `--gaps-limit 0` means "print them all" -- the escape hatch for a
 reader that needs every gap.
 
-  $ mathc gate --no-execute --gaps-limit 0 main HEAD | jq -c '{whole_set: (.gaps_total == (.gaps | length))}'
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-execute --gaps-limit 0 main HEAD | jq -c '{whole_set: (.gaps_total == (.gaps | length))}'
   {"whole_set":true}

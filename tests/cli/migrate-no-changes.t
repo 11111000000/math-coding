@@ -20,7 +20,7 @@ target".
   > intent: "noop test manifest"
   > migrations: []
   > EOF
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --root=tests/cli/fixtures/migrate \
   >     --manifest=/tmp/noop.yaml \
   >     --format=json \

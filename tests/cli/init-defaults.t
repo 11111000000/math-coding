@@ -23,7 +23,7 @@ counterexample template fix).
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ export MATH_CODING_POLICY=".test-math-coding/policy.yaml"
   $ cd "$tmpdir"
-  $ mathc init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
   mathc init: created ./.test-math-coding/decisions, ./.test-math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -66,7 +66,7 @@ regression pin for the P2 axiom_link + counterexample template fix
 `mathc init` would scaffold a policy that fails validation with
 `MC-MISSING-INTENT` or `MC-COUNTEREXAMPLE-MISSING`.
 
-  $ mathc validate .test-math-coding/policy.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate .test-math-coding/policy.yaml
   parse-ok: .test-math-coding/policy.yaml
     decision: bootstrap-v3
     revision: 1

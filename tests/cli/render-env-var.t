@@ -72,7 +72,7 @@ path lookup, not the page set). Pre-fix render walked
 cwd (tmpdir) has no legacy `decisions/` at its root.
 
   $ rm -rf out
-  $ mathc render --out $tmpdir/out > $tmpdir/render-env-out.txt 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe render --out $tmpdir/out > $tmpdir/render-env-out.txt 2>&1
   $ grep -qF 'render OK' $tmpdir/render-env-out.txt \
   >   && echo "render OK" \
   >   || cat $tmpdir/render-env-out.txt

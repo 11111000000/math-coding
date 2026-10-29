@@ -59,18 +59,18 @@ find_project_root.
 
 env var strict drives the same allowlist behaviour as the flag.
 
-  $ MATH_CODING_VERIFY_SANDBOX=strict mathc verify scratch-verify.yaml 2>/dev/null | grep 'init-denied'
+  $ MATH_CODING_VERIFY_SANDBOX=strict $INSIDE_DUNE/bin/mathc.exe verify scratch-verify.yaml 2>/dev/null | grep 'init-denied'
     init-denied: skipped
 
 unknown env value coerces to none with a stderr warning; the
 denied verifier is then executed (fail), not skipped.
 
-  $ MATH_CODING_VERIFY_SANDBOX=bogus mathc verify scratch-verify.yaml 2>/dev/null | grep 'init-denied'
+  $ MATH_CODING_VERIFY_SANDBOX=bogus $INSIDE_DUNE/bin/mathc.exe verify scratch-verify.yaml 2>/dev/null | grep 'init-denied'
     init-denied: fail
 
 explicit --sandbox flag overrides the env var.
 
-  $ MATH_CODING_VERIFY_SANDBOX=none mathc verify --sandbox=strict scratch-verify.yaml 2>/dev/null | grep 'init-denied'
+  $ MATH_CODING_VERIFY_SANDBOX=none $INSIDE_DUNE/bin/mathc.exe verify --sandbox=strict scratch-verify.yaml 2>/dev/null | grep 'init-denied'
     init-denied: skipped
 
 Cleanup.

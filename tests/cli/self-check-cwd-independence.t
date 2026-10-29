@@ -29,7 +29,7 @@ would otherwise be consulted as a root and mask the very disagreement
 being tested.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc="$DUNE_SOURCEROOT/_build/default/bin/mathc.exe"
+  $ $INSIDE_DUNE/bin/mathc.exe="$DUNE_SOURCEROOT/_build/default/bin/mathc.exe"
   $ elsewhere=$(mktemp -d)
   $ printf '%s\n' \
   >   '#!/usr/bin/env bash' \

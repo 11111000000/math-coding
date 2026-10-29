@@ -29,7 +29,7 @@ attestations land in the env-var path, NOT the legacy
 `mathc re-evaluate-decisions A0` emits per-obligation
 attestations into the env-var-resolved store.
 
-  $ mathc re-evaluate-decisions A0 >/dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate-decisions A0 >/dev/null
   $ test -d "$tmpdir/.math-coding/attestations" \
   >   && echo "store dir exists: ok"
   store dir exists: ok

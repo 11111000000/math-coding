@@ -29,19 +29,19 @@ the tool rather than a second implementation of the algorithm.
   $ mkdir -p "$D/decisions"
   $ : > "$D/dune-project"
   $ printf -- '---\nschema: math-coding/3.3\nid: tampered\nrevision: 1\nstate: active\nmode: light\nbody_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"\nyaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"\nintent: |\n  original intent text\ncommitment: |\n  original commitment text\noutcomes:\n  - id: o\n    statement: s\nscope:\n  paths:\n    - "bin/Mathc.ml"\nobligations:\n  - id: o1\n    claim: c\n    acceptance:\n      all:\n        - verifier: mathc version\n          result: pass\n' > "$D/decisions/tampered.yaml"
-  $ mathc rehash "$D/decisions/tampered.yaml" --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$D/decisions/tampered.yaml" --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
-  $ MATH_CODING_ROOT="$D" mathc self-check | jq -c '{verdict, subject: [.subjects[] | select(.name == "tampered") | .verdict]}'
+  $ MATH_CODING_ROOT="$D" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{verdict, subject: [.subjects[] | select(.name == "tampered") | .verdict]}'
   {"verdict":"unknown","subject":["unknown"]}
   $ sed -i 's/original intent text/FABRICATED INTENT never written by anyone/' "$D/decisions/tampered.yaml"
-  $ MATH_CODING_ROOT="$D" mathc self-check > "$D/out.json"; echo "exit=$?"
+  $ MATH_CODING_ROOT="$D" $INSIDE_DUNE/bin/mathc.exe self-check > "$D/out.json"; echo "exit=$?"
   exit=1
   $ jq -c '{verdict, subject: [.subjects[] | select(.name == "tampered") | .verdict]}' "$D/out.json"
   {"verdict":"fail","subject":["fail"]}
   $ jq -r '[.subjects[] | select(.name == "tampered") | .causes[0]] | .[0]' "$D/out.json" | grep -c 'not the digest of this file'
   1
-  $ mathc rehash "$D/decisions/tampered.yaml" --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$D/decisions/tampered.yaml" --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
-  $ MATH_CODING_ROOT="$D" mathc self-check | jq -c '{verdict, subject: [.subjects[] | select(.name == "tampered") | .verdict]}'
+  $ MATH_CODING_ROOT="$D" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{verdict, subject: [.subjects[] | select(.name == "tampered") | .verdict]}'
   {"verdict":"unknown","subject":["unknown"]}
   $ rm -rf "$D"

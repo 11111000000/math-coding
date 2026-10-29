@@ -52,10 +52,10 @@ a real digest. Matching the pattern was never the whole rule:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-SHA-DIGEST-STALE"}
-  $ mathc rehash sha-pattern-good.yaml --write > /dev/null
-  $ mathc validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe rehash sha-pattern-good.yaml --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-good.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A decision with a `body_sha` that is NOT the canonical
@@ -91,7 +91,7 @@ A decision with a `body_sha` that is NOT the canonical
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-pattern-garbage.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-garbage.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-BODY-SHA-PATTERN-VIOLATION","severity":"block"}
 
 A literal shell-template artifact (`sha256:' + sha + '`) that
@@ -126,7 +126,7 @@ survived the prior equality-only check is now rejected:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-pattern-template-artifact.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-template-artifact.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-BODY-SHA-PATTERN-VIOLATION","severity":"block"}
 
 A decision with both `body_sha` AND `yaml_sha` matching the
@@ -168,15 +168,15 @@ the pattern is fine but the value is not:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-SHA-DIGEST-STALE"}
-  $ mathc rehash sha-pattern-valid-both.yaml --write > /dev/null
-  $ mathc validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe rehash sha-pattern-valid-both.yaml --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-pattern-valid-both.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 The diagnostic is reachable via `mathc explain-diagnostic`:
 
-  $ mathc explain-diagnostic MC-BODY-SHA-PATTERN-VIOLATION | jq -r '.remediation' | head -1
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-BODY-SHA-PATTERN-VIOLATION | jq -r '.remediation' | head -1
   Replace the offending value with the canonical
 
 Cleanup:

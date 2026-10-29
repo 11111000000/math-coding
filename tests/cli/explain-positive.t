@@ -12,5 +12,5 @@ mathc-explain-dispatcher-shipped in
 decisions/mathc-explain-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc explain decision:bootstrap-v3 | jq -c '{kind, id, path, digest_len: (.digest | length), body_present: (has("body") and (.body | length > 0))}'
+  $ $INSIDE_DUNE/bin/mathc.exe explain decision:bootstrap-v3 | jq -c '{kind, id, path, digest_len: (.digest | length), body_present: (has("body") and (.body | length > 0))}'
   {"kind":"decision","id":"bootstrap-v3","path":"decisions/decision.yaml","digest_len":64,"body_present":true}

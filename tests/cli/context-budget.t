@@ -10,7 +10,7 @@ for obligation cli-context-decision in
 bootstrap/validate-and-context.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc context main HEAD --budget 100000 > /tmp/cb.json
+  $ $INSIDE_DUNE/bin/mathc.exe context main HEAD --budget 100000 > /tmp/cb.json
   $ jq -e 'has("base") and has("change") and has("decisions") and has("obligations") and has("head") and has("items") and has("omitted") and has("total_bytes") and has("truncated") and has("now")' /tmp/cb.json
   true
   $ jq -e '(.total_bytes | type == "number") and (.total_bytes > 0) and (.truncated | type == "boolean") and (.omitted | type == "array") and (.items | type == "array")' /tmp/cb.json

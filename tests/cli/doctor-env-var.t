@@ -71,7 +71,7 @@ through the resolver: with MATH_CODING_POLICY set, the path is
 `decisions/decision.yaml`). The decisions section counts the
 env-routed probe decision (total=1).
 
-  $ mathc doctor --json | jq -c '[.sections[] | select(.id == "config") | (.details.path | endswith(".math-coding/policy.yaml"))], [.sections[] | select(.id == "decisions") | .details.total]'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -c '[.sections[] | select(.id == "config") | (.details.path | endswith(".math-coding/policy.yaml"))], [.sections[] | select(.id == "decisions") | .details.total]'
   [true]
   [1]
 

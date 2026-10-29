@@ -71,7 +71,7 @@ under test routes its I/O through `.math-coding/`.
   > relations:
   >   addresses: []
   > EOF
-  $ mathc rehash "$tmpdir/.math-coding/decisions/env-var-probe-2026-10.yaml" --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$tmpdir/.math-coding/decisions/env-var-probe-2026-10.yaml" --write > /dev/null
   $ export MATH_CODING_ROOT="$tmpdir"
   $ export MATH_CODING_DECISIONS_DIR=".math-coding/decisions"
   $ export MATH_CODING_ATTESTATIONS_DIR=".math-coding/attestations"
@@ -82,20 +82,20 @@ the attestation store at
 appears in the subjects list and is `unknown` (no attestations
 yet).
 
-  $ mathc self-check | jq -c '{subjects: (.subjects | map(.name) | sort), probe_present: ([.subjects[] | select(.name == "env-var-probe-2026-10")] | length), probe_verdict: ([.subjects[] | select(.name == "env-var-probe-2026-10") | .verdict] | .[0])}'
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{subjects: (.subjects | map(.name) | sort), probe_present: ([.subjects[] | select(.name == "env-var-probe-2026-10")] | length), probe_verdict: ([.subjects[] | select(.name == "env-var-probe-2026-10") | .verdict] | .[0])}'
   {"subjects":["env-var-probe-2026-10"],"probe_present":1,"probe_verdict":"unknown"}
 
 `mathc packages --format=json` reads decisions from the
 env-var-resolved dir. The probe decision is the only one in the
 package list.
 
-  $ mathc packages --format=json | jq -c '{decisions: (.decisions | map(.decision_id) | sort), source}'
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -c '{decisions: (.decisions | map(.decision_id) | sort), source}'
   {"decisions":["env-var-probe-2026-10"],"source":"decisions/"}
 
 `mathc find KEYWORD` reads decisions from the same env-var
 location. The keyword `probe` matches the probe decision.
 
-  $ mathc find probe | jq -c '.decisions | map(.decision_id) | sort'
+  $ $INSIDE_DUNE/bin/mathc.exe find probe | jq -c '.decisions | map(.decision_id) | sort'
   ["env-var-probe-2026-10"]
 
 `mathc counters` reports one decision (the probe) and zero live
@@ -103,7 +103,7 @@ attestation JSONs (the store is empty). The
 `MATH_CODING_ATTESTATIONS_DIR` override is honoured: the
 `attestations.live_store` count reads from the env-var path.
 
-  $ mathc counters --format=json | jq -c '{decisions: (.decisions | {total, active}), attestations: .attestations.live_store}'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -c '{decisions: (.decisions | {total, active}), attestations: .attestations.live_store}'
   {"decisions":{"total":1,"active":1},"attestations":0}
 
 `mathc migrate --from=X --to=Y --format=text` reads the same
@@ -113,7 +113,7 @@ the live `decisions/migrations/` manifest (the default manifest
 path also honours the env-var via the resolver, but we use the
 explicit override for the hermetic pin).
 
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >   --from=math-coding/3.0-alpha \
   >   --to=math-coding/3.2 \
   >   --manifest="$DUNE_SOURCEROOT/decisions/migrations/3.0-alpha-to-3.2.yaml" \
@@ -127,7 +127,7 @@ call returns a JSON verdict. The decision-level verdict is
 `mathc self-check` verifier that the kernel can resolve
 without an explicit run (T1.2 built-in short-circuit).
 
-  $ mathc re-evaluate env-var-probe-2026-10 A0 | jq -c '{decision, verdict, ran}'
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate env-var-probe-2026-10 A0 | jq -c '{decision, verdict, ran}'
   {"decision":"env-var-probe-2026-10","verdict":"inconclusive","ran":false}
 
 `mathc new-decision --write` writes to
@@ -137,7 +137,7 @@ the legacy `./decisions/` location. The "wrote ..." stdout
 line is suppressed because the path is bwrap-dependent; we
 assert on the file-system state instead.
 
-  $ mathc new-decision env-var-write-2026-10 --write >/dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe new-decision env-var-write-2026-10 --write >/dev/null 2>&1
   $ test -f "$tmpdir/.math-coding/decisions/env-var-write-2026-10.yaml" && echo "wrote to .math-coding/: ok"
   wrote to .math-coding/: ok
   $ test ! -f "$tmpdir/decisions/env-var-write-2026-10.yaml" && echo "no legacy write: ok"
@@ -152,7 +152,7 @@ fix.
 
   $ unset MATH_CODING_ATTESTATIONS_DIR
   $ export MATH_CODING_ATTESTATION_STORE="$tmpdir/.math-coding/attestations"
-  $ mathc self-check | jq -c '.subjects | map(.name) | sort'
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects | map(.name) | sort'
   ["env-var-probe-2026-10","env-var-write-2026-10"]
 
 Cleanup.

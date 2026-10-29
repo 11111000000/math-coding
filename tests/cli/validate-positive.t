@@ -7,5 +7,5 @@ machine's checkout location. The cram shell invokes mathc with
 `$DUNE_SOURCEROOT` (dune 3.23 export), so the test runs portably
 in main, in worktrees, and on other machines.
 
-  $ mathc validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/positive-minimal.json" | jq -c '{verdict, decision, revision, obligations, assumptions}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json "$DUNE_SOURCEROOT/fixtures/conformance/decision/positive-minimal.json" | jq -c '{verdict, decision, revision, obligations, assumptions}'
   {"verdict":"parse-ok","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}

@@ -53,7 +53,7 @@ A `mode: considered` decision WITH antithesis is accepted:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-considered-with-antithesis.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-considered-with-antithesis.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A `mode: considered` decision WITHOUT antithesis is rejected
@@ -90,7 +90,7 @@ with `MC-ANTITHESIS-MISSING` (Block, exit 1):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-considered-no-antithesis.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-considered-no-antithesis.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-ANTITHESIS-MISSING","severity":"block"}
 
 `mode: standard` (and absent-mode) WITHOUT antithesis is
@@ -131,7 +131,7 @@ prior failures at HEAD pre-fix.)
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-standard-no-antithesis.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-standard-no-antithesis.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 Whitespace-only antithesis is treated as empty (the
@@ -170,13 +170,13 @@ author cannot satisfy the rule with " "):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-considered-whitespace-antithesis.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-considered-whitespace-antithesis.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-ANTITHESIS-MISSING"}
 
 Full text-format reject for the new rule embeds the decision
 id and the spec reference:
 
-  $ mathc validate mode-considered-no-antithesis.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate mode-considered-no-antithesis.yaml
   reject: mode-considered-no-antithesis.yaml
     code: MC-ANTITHESIS-MISSING
     severity: block

@@ -81,7 +81,7 @@ Scenario 1 — positive (every gap has a named waiver):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/t3-2-test-decision.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/strict-alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -111,7 +111,7 @@ Scenario 1 — positive (every gap has a named waiver):
   >   T3.2 fixture: strict waiver for beta-obligation only.
   > unverified_obligation: beta-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"open-with-waiver"}
   $ cd /
   $ rm -rf "$tmp"
@@ -153,7 +153,7 @@ Scenario 2 — strict negative (only alpha waiver; beta stays Unknown):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/t3-2-test-decision.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/strict-alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -169,7 +169,7 @@ Scenario 2 — strict negative (only alpha waiver; beta stays Unknown):
   >   T3.2 fixture: strict waiver for alpha-obligation only.
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"
@@ -213,7 +213,7 @@ gap, and the decision-wide form is revoked by
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/t3-2-test-decision.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/global.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -230,7 +230,7 @@ gap, and the decision-wide form is revoked by
   >   unverified_obligation field). It names no gap, so it covers
   >   nothing and the subject stays unknown.
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"
@@ -271,7 +271,7 @@ the gate for t3-2-test-decision):
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/t3-2-test-decision.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/t3-2-test-decision.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/cross-decision.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -289,7 +289,7 @@ the gate for t3-2-test-decision):
   >   names one of our obligations (decision boundary check).
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "t3-2-test-decision") | {name, verdict}'
   {"name":"t3-2-test-decision","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"

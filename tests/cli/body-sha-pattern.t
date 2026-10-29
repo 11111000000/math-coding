@@ -55,10 +55,10 @@ of the digest rule.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc rehash good.yaml --write | sed '/^$/d'
+  $ $INSIDE_DUNE/bin/mathc.exe rehash good.yaml --write | sed '/^$/d'
     STAMP good.yaml
   rehash: 1 changed, 0 already current, 0 skipped (written)
-  $ mathc validate --format=json good.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json good.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 Negative case: `body_sha: "garbage"` (the most common offender --
@@ -94,7 +94,7 @@ a placeholder that survived pre-fix) MUST be rejected with
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json garbage.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json garbage.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-BODY-SHA-PATTERN-VIOLATION","severity":"block"}
 
 Negative case: the literal shell-template artifact
@@ -131,13 +131,13 @@ PLAN.md §3.1 names.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json template-artifact.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json template-artifact.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-BODY-SHA-PATTERN-VIOLATION","severity":"block"}
 
 The diagnostic is reachable via `mathc explain-diagnostic`.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc explain-diagnostic MC-BODY-SHA-PATTERN-VIOLATION | jq -r '.remediation' | head -3
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-BODY-SHA-PATTERN-VIOLATION | jq -r '.remediation' | head -3
   Replace the offending value with the canonical
   SHA-256 of the decision body (with both fields replaced
   by `sha256:` + 64 zeros). The reference implementation

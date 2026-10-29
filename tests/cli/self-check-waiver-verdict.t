@@ -84,7 +84,7 @@ waiver, and exits 0:
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/waived.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waived.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/alpha.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -114,7 +114,7 @@ waiver, and exits 0:
   >   Fixture waiver for the beta gap of `waived`.
   > unverified_obligation: beta-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-waived.json; echo "exit=$?"
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check > /tmp/sc-waived.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, subject: (.subjects[0] | {name, verdict, causes: (.causes | length), remedies: (.remedies | length), waivers})}' /tmp/sc-waived.json
   {"verdict":"open-with-waiver","subject":{"name":"waived","verdict":"open-with-waiver","causes":2,"remedies":4,"waivers":[{"covers":["alpha-obligation"],"expires_at":"2027-10-07T00:00:00Z","id":"fixture-waiver-alpha","issued_at":"2026-10-07T00:00:00Z","issuer":"human:maintainer","scope":"obligation"},{"covers":["beta-obligation"],"expires_at":"2027-10-07T00:00:00Z","id":"fixture-waiver-beta","issued_at":"2026-10-07T00:00:00Z","issuer":"human:maintainer","scope":"obligation"}]}}
@@ -156,7 +156,7 @@ asserted to be zero.
   >   waived_naming_a_waiver: ([.subjects[] | select(.verdict == "open-with-waiver") | select((.waivers | length) > 0)] | length)
   > }
   > JQ
-  $ mathc self-check | jq -c -f coherence.jq > /tmp/coherence.json
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c -f coherence.jq > /tmp/coherence.json
   $ jq -e '.pass_with_causes == 0' /tmp/coherence.json > /dev/null && echo "no pass subject carries a cause"
   no pass subject carries a cause
   $ jq -e '.pass_naming_a_waiver == 0' /tmp/coherence.json > /dev/null && echo "no pass subject names a waiver"

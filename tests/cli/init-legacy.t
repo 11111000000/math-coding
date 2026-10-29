@@ -14,7 +14,7 @@ do not leak into later tests in the same cram shell.
   $ export MATH_CODING_ATTESTATIONS_DIR="attestations"
   $ export MATH_CODING_POLICY="decisions/decision.yaml"
   $ cd "$tmpdir"
-  $ mathc init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
   mathc init: created ./decisions, ./attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -57,7 +57,7 @@ kernel-bugs v3.4 fix; legacy layout is otherwise structurally
 identical to the new layout (one master file, two store
 directories).
 
-  $ mathc validate decisions/decision.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/decision.yaml
   parse-ok: decisions/decision.yaml
     decision: bootstrap-v3
     revision: 1

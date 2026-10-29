@@ -28,7 +28,7 @@ Nested output directory that does not exist yet: created, no crash.
   $ git -C "$tmp" config user.name "t"
   $ git -C "$tmp" commit -q --allow-empty -m initial
   $ printf 'd1\to1\treview\thuman:me\n' > m.tsv
-  $ mathc attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
   wrote a/b/c/d1-o1.json
   $ test -f a/b/c/d1-o1.json && echo "nested out dir: created"
   nested out dir: created
@@ -36,7 +36,7 @@ Nested output directory that does not exist yet: created, no crash.
 A header row is skipped; the data row after it is emitted.
 
   $ printf 'decision_id\tobligation_id\tkind_\tproducer_identity\tresult\nd1\to1\treview\thuman:me\tpass\n' > h.tsv
-  $ mathc attest-batch --manifest=h.tsv --out=hdr 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=h.tsv --out=hdr 2>&1
   wrote hdr/d1-o1.json
   $ test ! -f hdr/decision_id-obligation_id.json && echo "no header artefact"
   no header artefact
@@ -52,7 +52,7 @@ An invalid `kind_` is refused with the schema enum in the message.
   >   echo "bad kind refused (exit $?)"
   > fi
   bad kind refused (exit 2)
-  $ mathc attest-batch --manifest=k.tsv --out=bad 2>&1 | grep -q 'kind_ must be one of test|review|build|analysis|observation' && echo "enum named in the diagnostic"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=k.tsv --out=bad 2>&1 | grep -q 'kind_ must be one of test|review|build|analysis|observation' && echo "enum named in the diagnostic"
   enum named in the diagnostic
   $ test ! -d bad && echo "nothing written on a refused manifest"
   nothing written on a refused manifest

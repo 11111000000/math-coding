@@ -17,7 +17,7 @@ The fixture uses `jq` to project a stable shape (sorted keys are
 preserved by the dispatcher per spec/semantics.md CLI output
 contract):
 
-  $ mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
   {"code":"MC-COUNTEREXAMPLE-MISSING","def_len":451,"occ_len":879,"rem_len":304}
 
 Positive case — known code MC-AMBIGUOUS-ACCEPTANCE exits 0 with
@@ -25,7 +25,7 @@ the same shape contract. Confirms the registry is keyed by the
 literal code string and the dispatcher returns the same envelope
 for every registered code:
 
-  $ mathc explain-diagnostic MC-AMBIGUOUS-ACCEPTANCE | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-AMBIGUOUS-ACCEPTANCE | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
   {"code":"MC-AMBIGUOUS-ACCEPTANCE","def_len":101,"occ_len":227,"rem_len":113}
 
 Negative case — unknown code MC-BOGUS exits 2 and prints a typed
@@ -38,7 +38,7 @@ upstream, update the literal below to keep the test pinned to
 the actual registry (last touched: `MC-VERIFIER-SCHEME-UNKNOWN`
 added by `verifier-scheme-convention-2026-11`):
 
-  $ mathc explain-diagnostic MC-BOGUS
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-BOGUS
   {"code":"MC-EXPLAIN-DIAGNOSTIC-UNKNOWN","id":"MC-BOGUS","kind":"diagnostic","message":"unknown diagnostic code 'MC-BOGUS'; supported codes are listed by lib/diagnostic.ml::explain (MC-VERIFIER-SCHEME-UNKNOWN, MC-AMBIGUOUS-ACCEPTANCE, MC-MALFORMED-ACCEPTANCE, MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING, MC-AXIOM-LINK-MISSING, MC-SHA-MISMATCH)"}
   [2]
 
@@ -47,7 +47,7 @@ hint. The dispatcher mirrors the `mathc explain` handler (see
 `tests/cli/explain-negative.t` — the same exit-2 contract for a
 missing positional):
 
-  $ mathc explain-diagnostic
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic
   mathc explain-diagnostic: missing CODE
   usage: mathc explain-diagnostic <CODE>
   [2]

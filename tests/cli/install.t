@@ -165,7 +165,7 @@ now printed when it refuses.
   $ waiver="$tmp/decisions/waivers/hotfix-$ticket.yaml"
   $ test -f "$waiver" && echo "waiver file: ok"
   waiver file: ok
-  $ validate_out=$(mathc validate "$waiver" 2>&1); validate_rc=$?
+  $ validate_out=$($INSIDE_DUNE/bin/mathc.exe validate "$waiver" 2>&1); validate_rc=$?
   > if [ "$validate_rc" -eq 0 ] && printf '%s\n' "$validate_out" | grep -qE '^(parse-ok|accept):'; then
   >   echo "validate: ok"
   > else

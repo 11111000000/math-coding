@@ -28,6 +28,6 @@ mathc-self-check-dispatcher-shipped (unknown / infrastructure-error
 case) in decisions/mathc-self-check-subcommand.yaml@2.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" bash -c 'tmp=$(mktemp -d); MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" mathc self-check > /tmp/sc-unk.out; ec=$?; jq -c "del(.now) | {verdict, unknown_dominates: (([.subjects[] | select(.verdict == \"unknown\")] | length) > ([.subjects[] | select(.verdict != \"unknown\")] | length)), waived_subjects_present: ([.subjects[] | select(.verdict == \"open-with-waiver\")] | length > 0), all_unknown: ([.subjects[].verdict] | all(. == \"unknown\"))}" < /tmp/sc-unk.out; echo "exit=$ec"; rm -rf "$tmp"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" bash -c 'tmp=$(mktemp -d); MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" $INSIDE_DUNE/bin/mathc.exe self-check > /tmp/sc-unk.out; ec=$?; jq -c "del(.now) | {verdict, unknown_dominates: (([.subjects[] | select(.verdict == \"unknown\")] | length) > ([.subjects[] | select(.verdict != \"unknown\")] | length)), waived_subjects_present: ([.subjects[] | select(.verdict == \"open-with-waiver\")] | length > 0), all_unknown: ([.subjects[].verdict] | all(. == \"unknown\"))}" < /tmp/sc-unk.out; echo "exit=$ec"; rm -rf "$tmp"'
   {"verdict":"unknown","unknown_dominates":true,"waived_subjects_present":false,"all_unknown":true}
   exit=3

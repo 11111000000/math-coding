@@ -11,7 +11,7 @@ Default: MATHCODING_TELEMETRY unset -> "off".
 
   $ cd "$DUNE_SOURCEROOT"
   $ unset MATHCODING_TELEMETRY
-  $ mathc telemetry status
+  $ $INSIDE_DUNE/bin/mathc.exe telemetry status
   mathc telemetry: off
     transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)
     See decisions/ux-3-telemetry-stub-2026-10.yaml.
@@ -20,7 +20,7 @@ Default: MATHCODING_TELEMETRY unset -> "off".
 Opt-in: MATHCODING_TELEMETRY=on -> "on" (no actual emission).
 
   $ cd "$DUNE_SOURCEROOT"
-  $ MATHCODING_TELEMETRY=on mathc telemetry status
+  $ MATHCODING_TELEMETRY=on $INSIDE_DUNE/bin/mathc.exe telemetry status
   mathc telemetry: on
     transport: not configured (Phase 2 stub; tracked: decisions/ux-3-telemetry-stub-2026-10.yaml)
     See decisions/ux-3-telemetry-stub-2026-10.yaml.
@@ -29,25 +29,25 @@ Opt-in: MATHCODING_TELEMETRY=on -> "on" (no actual emission).
 Other truthy values (1, true) also resolve to "on".
 
   $ cd "$DUNE_SOURCEROOT"
-  $ MATHCODING_TELEMETRY=1 mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=1 $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: on
-  $ MATHCODING_TELEMETRY=true mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=true $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: on
 
 Falsy values (off, 0, false) resolve to "off".
 
   $ cd "$DUNE_SOURCEROOT"
-  $ MATHCODING_TELEMETRY=off mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=off $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: off
-  $ MATHCODING_TELEMETRY=0 mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=0 $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: off
-  $ MATHCODING_TELEMETRY=false mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=false $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: off
 
 Unknown values: reported verbatim as `unknown (VALUE)`.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ MATHCODING_TELEMETRY=maybe mathc telemetry status | head -1
+  $ MATHCODING_TELEMETRY=maybe $INSIDE_DUNE/bin/mathc.exe telemetry status | head -1
   mathc telemetry: unknown (maybe)
 
 Unknown subcommand: exit 2 with help.

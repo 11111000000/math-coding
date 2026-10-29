@@ -42,14 +42,14 @@ walk reads `schemas/decision.json` from the live tree.
 
 The four schema keys are present and well-typed:
 
-  $ mathc counters --format=json | jq -e '.schema | (has("decision_required_fields") and (.decision_required_fields | type == "array")) and (has("schema_enum") and (.schema_enum | type == "array")) and (has("intent_oneOf") and (.intent_oneOf | type == "boolean")) and (has("scope_oneOf") and (.scope_oneOf | type == "boolean"))'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema | (has("decision_required_fields") and (.decision_required_fields | type == "array")) and (has("schema_enum") and (.schema_enum | type == "array")) and (has("intent_oneOf") and (.intent_oneOf | type == "boolean")) and (has("scope_oneOf") and (.scope_oneOf | type == "boolean"))'
   true
 
 decision_required_fields carries the seven root `required` keys
 in any order. Asserting via the length check (the order is
 preserved by the parser but not relied on by the fixture).
 
-  $ mathc counters --format=json | jq -e '.schema.decision_required_fields | length == 7'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.decision_required_fields | length == 7'
   true
 
 The seven required values, in their parsed order, are exactly
@@ -60,40 +60,40 @@ the `required` array from `schemas/decision.json`:
 
 The reported array matches that set (order-independent):
 
-  $ mathc counters --format=json | jq -r '.schema.decision_required_fields | sort | join(" ")'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -r '.schema.decision_required_fields | sort | join(" ")'
   commitment id intent obligations outcomes schema scope
 
 schema_enum is non-empty and carries at least four entries
 (the current 3.3, 3.2, and 3.0-alpha family forms, six total):
 
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | length >= 4'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | length >= 4'
   true
 
 The six enum values are present (each appears in the array):
 
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.0-alpha") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.0-alpha") != null'
   true
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.0-alpha/decision") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.0-alpha/decision") != null'
   true
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.2") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.2") != null'
   true
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.2/decision") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.2/decision") != null'
   true
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.3") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.3") != null'
   true
-  $ mathc counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.3/decision") != null'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.schema_enum | index("math-coding/3.3/decision") != null'
   true
 
 intent_oneOf is `true` (the schema's `properties.intent` object
 carries a `oneOf` key):
 
-  $ mathc counters --format=json | jq -e '.schema.intent_oneOf == true'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.intent_oneOf == true'
   true
 
 scope_oneOf is `true` (the schema's `properties.scope` object
 carries a `oneOf` key):
 
-  $ mathc counters --format=json | jq -e '.schema.scope_oneOf == true'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -e '.schema.scope_oneOf == true'
   true
 
 Negative witness: a missing `enum` or `oneOf` in the schema

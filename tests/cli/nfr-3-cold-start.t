@@ -39,7 +39,7 @@ the command either concluded or it did not.
 
   $ cd "$DUNE_SOURCEROOT"
   $ t=$(TIMEFORMAT='%R'; { time mathc self-check >/dev/null 2>&1 || true; } 2>&1)
-  $ mathc self-check >/dev/null 2>&1; rc=$?; case $rc in 0|1|3) echo "exit is one of the documented verdicts";; *) echo "undocumented exit $rc"; exit 1;; esac
+  $ $INSIDE_DUNE/bin/mathc.exe self-check >/dev/null 2>&1; rc=$?; case $rc in 0|1|3) echo "exit is one of the documented verdicts";; *) echo "undocumented exit $rc"; exit 1;; esac
   exit is one of the documented verdicts
   $ echo "mathc self-check: ${t}s" | sed -E -e "s/[0-9]+\.[0-9]+s/<T>s/" -e "s|$| (kernel work; not NFR-3 scope)|"
   mathc self-check: <T>s (kernel work; not NFR-3 scope)

@@ -96,13 +96,13 @@ classification itself and not a count that moves with the real corpus.
   >         - verifier: tests/cli/does-not-exist.t (positive case)
   >           result: pass
   > YAML
-  $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -c '{open: (.open|length), classes: ([.open[].class]|sort)}'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe gaps --format=json | jq -c '{open: (.open|length), classes: ([.open[].class]|sort)}'
   {"open":5,"classes":["cannot-be-set-up","checkable","not-a-check","not-a-check","unidentified"]}
-  $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -c '[.open[] | {decision, obligation, class}] | sort_by(.class)'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe gaps --format=json | jq -c '[.open[] | {decision, obligation, class}] | sort_by(.class)'
   [{"decision":"malformed-probe","obligation":"malformed-string","class":"cannot-be-set-up"},{"decision":"checkable-probe","obligation":"real-check","class":"checkable"},{"decision":"decl-probe","obligation":"declared-gap","class":"not-a-check"},{"decision":"scheme-probe","obligation":"imaginary-command","class":"not-a-check"},{"decision":"noid-probe","obligation":"","class":"unidentified"}]
-  $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=json | jq -r '[.open[] | select(.class=="not-a-check") | .action] | .[0]'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe gaps --format=json | jq -r '[.open[] | select(.class=="not-a-check") | .action] | .[0]'
   this is not a check the kernel can run: write the check, cover the gap with a dated waiver, or drop the promise
-  $ MATH_CODING_ROOT="$tmpdir" mathc gaps --format=text | head -2
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe gaps --format=text | head -2
   open gaps: 5
     checkable-probe/real-check  checkable missing
   $ cd /

@@ -21,7 +21,7 @@ that is absent):
   >       statement: y
   > obligations: []
   > EOF
-  $ mathc validate --format=json missing-commitment.yaml | jq -c '{verdict, code, message}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json missing-commitment.yaml | jq -c '{verdict, code, message}'
   {"verdict":"reject","code":"MC-DECISION-INVALID","message":"missing required field: commitment"}
 
 Missing field `outcomes` (later in the list):
@@ -35,7 +35,7 @@ Missing field `outcomes` (later in the list):
   >     paths: ["lib/**"]
   > obligations: []
   > EOF
-  $ mathc validate --format=json missing-outcomes.yaml | jq -c '{verdict, code, message}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json missing-outcomes.yaml | jq -c '{verdict, code, message}'
   {"verdict":"reject","code":"MC-DECISION-INVALID","message":"missing required field: outcomes"}
 
 The first missing field is reported (not all of them): the file below
@@ -52,7 +52,7 @@ single, actionable next step.
   >     paths: ["lib/**"]
   > obligations: []
   > EOF
-  $ mathc validate --format=json missing-many.yaml | jq -c '{verdict, code, message}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json missing-many.yaml | jq -c '{verdict, code, message}'
   {"verdict":"reject","code":"MC-DECISION-INVALID","message":"missing required field: commitment"}
 
 Cleanup:

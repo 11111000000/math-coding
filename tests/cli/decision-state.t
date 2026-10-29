@@ -112,8 +112,8 @@ Case (a) — `mark-superseded --by=...` on an active decision
 exits 0, writes the YAML, re-validates, prints the summary
 line. (`accept` renamed to `parse-ok` in commit a602b361.)
 
-  $ mathc rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
-  $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-superseded \
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
+  $ MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe decision-state lifecycle-test-2026-10 mark-superseded \
   >     --by=lifecycle-test-replacement-2026-10@1
   mathc decision-state: set state=superseded; added superseded_by: lifecycle-test-replacement-2026-10@1
   validate: parse-ok
@@ -169,8 +169,8 @@ Case (b) — re-mint the fixture at `state: active` then
   >   `mathc decision-state` CLI; the dialectical slot does not
   >   apply.
   > YAML
-  $ mathc rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
-  $ MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-retired
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "decisions/lifecycle-test-2026-10.yaml" --write > /dev/null
+  $ MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe decision-state lifecycle-test-2026-10 mark-retired
   mathc decision-state: set state=retired
   validate: parse-ok
 
@@ -180,7 +180,7 @@ Case (b) — re-mint the fixture at `state: active` then
 Case (c) — re-issue `mark-retired` (idempotency). The
 dispatcher treats the no-op as a reject (exit 1), not a pass.
 
-  $ if MATH_CODING_ROOT="$tmp" mathc decision-state lifecycle-test-2026-10 mark-retired 2>/dev/null; then
+  $ if MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe decision-state lifecycle-test-2026-10 mark-retired 2>/dev/null; then
   >   echo "FAIL: expected exit 1 on idempotent mark-retired"
   > else
   >   echo "idempotent mark-retired rejected (exit $?)"
@@ -192,7 +192,7 @@ diagnostic naming the absent path; the diagnostic contains the
 basename so the cram sandbox path mismatch does not affect
 the assertion.
 
-  $ if MATH_CODING_ROOT="$tmp" mathc decision-state not-a-real-decision-2026-10 mark-superseded --by=other-2026-10@1 2>/dev/null; then
+  $ if MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe decision-state not-a-real-decision-2026-10 mark-superseded --by=other-2026-10@1 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on missing id"
   > else
   >   echo "missing id refused (exit $?)"
@@ -203,7 +203,7 @@ Case (e) — non-kebab id. The kebab-case validator exits 2
 before any disk I/O; the diagnostic mirrors
 `schemas/decision.json`.
 
-  $ if MATH_CODING_ROOT="$tmp" mathc decision-state Bad_ID mark-superseded --by=other-2026-10@1 2>/dev/null; then
+  $ if MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe decision-state Bad_ID mark-superseded --by=other-2026-10@1 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on non-kebab id"
   > else
   >   echo "bad id refused (exit $?)"

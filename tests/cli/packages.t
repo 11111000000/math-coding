@@ -8,12 +8,12 @@ Acceptance gate for obligation packages-cli-dispatcher in
 decisions/mathc-packages-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc packages --format=text | head -n 1
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=text | head -n 1
   math-coding packages
-  $ mathc packages --format=json | jq -e 'has("as_of") and has("counts") and has("decisions") and has("policy_id") and has("source")'
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -e 'has("as_of") and has("counts") and has("decisions") and has("policy_id") and has("source")'
   true
-  $ mathc packages --format=json | jq -e '.counts.total > 0'
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -e '.counts.total > 0'
   true
-  $ mathc packages --format=html | grep -qF 'data-mathc-package-count="'
-  $ count=$(mathc packages --format=json | jq '.counts.total')
-  $ mathc packages --format=html | grep -qF "data-mathc-package-count=\"$count\""
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=html | grep -qF 'data-mathc-package-count="'
+  $ count=$($INSIDE_DUNE/bin/mathc.exe packages --format=json | jq '.counts.total')
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=html | grep -qF "data-mathc-package-count=\"$count\""

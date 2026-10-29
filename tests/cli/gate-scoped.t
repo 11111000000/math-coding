@@ -318,9 +318,9 @@ human's word and not a check.
 The switch is named in the usage string, so a reader of `mathc gate
 --help` learns that it exists without reading the source.
 
-  $ mathc gate --help 2>&1 | head -1
+  $ $INSIDE_DUNE/bin/mathc.exe gate --help 2>&1 | head -1
   usage: mathc gate [--scope|--no-scope] [--execute|--no-execute] [--gaps-limit N] BASE HEAD
-  $ mathc gate --help 2>&1 | grep -c -- "--no-execute"
+  $ $INSIDE_DUNE/bin/mathc.exe gate --help 2>&1 | grep -c -- "--no-execute"
   2
 
   $ cd /

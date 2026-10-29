@@ -74,7 +74,7 @@ Scenario 1 — a waiver past its `expires_at` covers nothing:
   >   declared_triggers: []
   >   owner: human:maintainer
   > YAML
-  $ mathc rehash decisions/lapsed.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/lapsed.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/lapsed.yaml <<'YAML'
   > schema: math-coding/waiver-3.0-alpha
@@ -90,7 +90,7 @@ Scenario 1 — a waiver past its `expires_at` covers nothing:
   >   Fixture waiver whose 24h term is over.
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-lapsed.json; echo "exit=$?"
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check > /tmp/sc-lapsed.json; echo "exit=$?"
   exit=3
   $ jq -c '{verdict, subject: (.subjects[0] | {name, verdict, causes, waivers})}' /tmp/sc-lapsed.json
   {"verdict":"unknown","subject":{"name":"lapsed","verdict":"unknown","causes":["obligation alpha-obligation of decision lapsed has no attestations in the store"],"waivers":[]}}
@@ -120,7 +120,7 @@ Scenario 2 — control: the same project with a live waiver is
   >   Fixture waiver still inside its term.
   > unverified_obligation: alpha-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check > /tmp/sc-live.json; echo "exit=$?"
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check > /tmp/sc-live.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, subject: (.subjects[0] | {name, verdict, waivers: [.waivers[] | {id, expires_at, covers}]})}' /tmp/sc-live.json
   {"verdict":"open-with-waiver","subject":{"name":"lapsed","verdict":"open-with-waiver","waivers":[{"id":"live-waiver","expires_at":"2027-10-07T00:00:00Z","covers":["alpha-obligation"]}]}}

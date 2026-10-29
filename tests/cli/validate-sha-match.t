@@ -74,9 +74,9 @@ author can see the value the kernel expects:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-match-equal.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-equal.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-SHA-DIGEST-STALE","severity":"block"}
-  $ mathc validate sha-match-equal.yaml 2>&1 | grep -c 'is not the digest of this file'
+  $ $INSIDE_DUNE/bin/mathc.exe validate sha-match-equal.yaml 2>&1 | grep -c 'is not the digest of this file'
   1
 
 Remediation is `mathc rehash <file> --write`: it recomputes both
@@ -84,8 +84,8 @@ fields from the file's own bytes and verifies the stamped result is
 a fixed point before writing. After it, the SAME decision that was
 just rejected validates:
 
-  $ mathc rehash sha-match-equal.yaml --write > /dev/null
-  $ mathc validate --format=json sha-match-equal.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe rehash sha-match-equal.yaml --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-equal.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A decision with both hashes present and DIFFERENT is rejected with
@@ -131,13 +131,13 @@ messages describing the same defect.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-match-mismatch.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-mismatch.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-SHA-MISMATCH","severity":"block"}
 
 The full text-format reject message embeds both digests and points
 at the recompute algorithm (next_actions snippet):
 
-  $ mathc validate sha-match-mismatch.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate sha-match-mismatch.yaml
   reject: sha-match-mismatch.yaml
     code: MC-SHA-MISMATCH
     severity: block
@@ -179,7 +179,7 @@ missing:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-match-body-only.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-body-only.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A decision with ONLY `yaml_sha` (body_sha absent) is accepted
@@ -216,7 +216,7 @@ A decision with ONLY `yaml_sha` (body_sha absent) is accepted
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-match-yaml-only.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-yaml-only.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A decision with NEITHER hash is accepted (no comparison is
@@ -252,13 +252,13 @@ possible, vacuous truth):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json sha-match-neither.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json sha-match-neither.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 The diagnostic is reachable via `mathc explain-diagnostic` so
 authors can look up remediation:
 
-  $ mathc explain-diagnostic MC-SHA-MISMATCH | jq -c '{code, def_len: (.definition | length), rem_len: (.remediation | length)}'
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-SHA-MISMATCH | jq -c '{code, def_len: (.definition | length), rem_len: (.remediation | length)}'
   {"code":"MC-SHA-MISMATCH","def_len":320,"rem_len":506}
 
 Cleanup:

@@ -12,7 +12,7 @@ soft-deprecated form per
 `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --root=tests/cli/fixtures/migrate-bump \
   >     --manifest=decisions/migrations/3.0-alpha-to-3.2.yaml \
   >     --format=json \
@@ -36,7 +36,7 @@ ACTIONS invariant via jq rather than hardcoding counts, since
 the repo's decision inventory grows over time and the test
 would otherwise pin a stale literal.
 
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --from=math-coding/3.0-alpha \
   >     --to=math-coding/3.2 \
   >     --format=json \

@@ -16,7 +16,7 @@ Acceptance gate for obligation `spec-mathjax-rendered` in
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc render --out $tmpdir/dist --lang=both > $tmpdir/render-spec-out.txt
+  $ $INSIDE_DUNE/bin/mathc.exe render --out $tmpdir/dist --lang=both > $tmpdir/render-spec-out.txt
   $ test -f $tmpdir/dist/spec/algebra-3.2.html
   $ test -f $tmpdir/dist/spec/constitution.html
   $ test -f $tmpdir/dist/spec/domain.html

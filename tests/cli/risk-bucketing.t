@@ -58,7 +58,7 @@ under the 0.05 boundary). The kernel now reports mode = `tiny`
 (the default `mode_floor = tiny` shipped with the policy defaults;
 match the kernel's actual output below):
 
-  $ mathc mode lib/packages.ml
+  $ $INSIDE_DUNE/bin/mathc.exe mode lib/packages.ml
   {"impact":"0.5","irreversibility":"0.1","mode":"tiny","paths":[{"classify":"0.5","path":"lib/packages.ml"}],"probability":"0.5","risk":"0.025"}
 
 The sub-decision file is present and is accepted by the validator.
@@ -67,5 +67,5 @@ New verifier-scheme warnings emitted under the
 verdict line; the verdict-line first match captures the canonical
 verdict (`accept` was renamed to `parse-ok` in commit a602b361):
 
-  $ mathc validate decisions/plan-2026-10-improvements/t0-1.yaml 2>/dev/null | grep -E '^(parse-ok|accept):'
+  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/plan-2026-10-improvements/t0-1.yaml 2>/dev/null | grep -E '^(parse-ok|accept):'
   parse-ok: decisions/plan-2026-10-improvements/t0-1.yaml

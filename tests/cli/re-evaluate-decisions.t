@@ -16,10 +16,10 @@ Acceptance gate for obligation t1-2-re-evaluation-4-valued in
 decisions/plan-2026-10-improvements.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc re-evaluate-decisions
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate-decisions
   mathc re-evaluate-decisions: AXIOM_ID is required
   [2]
-  $ mathc re-evaluate-decisions BOGUS
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate-decisions BOGUS
   mathc re-evaluate-decisions: AXIOM_ID must be one of A0..A4 (got BOGUS)
   [2]
 
@@ -32,7 +32,7 @@ been a silent `compatible`, post-T1.2-without-run it would be
 `incompatible`, post-T1.2-with-run it is `compatible_after_run`.
 
   $ tmp=$(mktemp -d)
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp" mathc re-evaluate-decisions A0 > /tmp/re-eval.out
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_ATTESTATION_STORE="$tmp" $INSIDE_DUNE/bin/mathc.exe re-evaluate-decisions A0 > /tmp/re-eval.out
   $ ec=$?
   $ jq -r '.ran, .axiom' < /tmp/re-eval.out
   true

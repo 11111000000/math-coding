@@ -86,7 +86,7 @@ test projects the `id` and `verifier` fields into a flat list
 so a regression where the verifier field is dropped or
 substituted with the obligation id trips immediately.
 
-  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq -c '.decisions[0].obligations[] | {id, verifier}'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -c '.decisions[0].obligations[] | {id, verifier}'
   {"id":"obl-acceptance","verifier":"mathc self-check"}
   {"id":"obl-build","verifier":"dune runtest"}
 
@@ -94,16 +94,16 @@ Sanity: each obligation id MUST NOT equal its "verifier" field.
 This is the regression pin for the kernel-bugs v3.4 fix: pre-fix,
 the verifier field was a placeholder equal to the obligation id.
 
-  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[] | select(.id == .verifier)] | length'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq '[.decisions[0].obligations[] | select(.id == .verifier)] | length'
   0
 
 The JSON shape carries the `verifier` field for every obligation.
 A regression where the field is omitted (rather than substituted
 with the obligation id) is also caught here.
 
-  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | length'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq '[.decisions[0].obligations[].verifier] | length'
   2
-  $ MATH_CODING_ROOT="$tmpdir" mathc packages --format=json | jq '[.decisions[0].obligations[].verifier] | all(. != null and . != "")'
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq '[.decisions[0].obligations[].verifier] | all(. != null and . != "")'
   true
 
 Cleanup.

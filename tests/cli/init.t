@@ -24,7 +24,7 @@ Empty directory: init succeeds and creates the expected files.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ cd "$tmpdir"
-  $ mathc init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
   mathc init: created ./.math-coding/decisions, ./.math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -77,7 +77,7 @@ Brownfield with --merge: init proceeds.
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
   $ cd "$tmpdir"
-  $ mathc init . --merge --no-install > init.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init . --merge --no-install > init.log 2>&1
   $ grep -q 'created ./.math-coding/decisions' init.log && echo "layout: .math-coding/"
   layout: .math-coding/
   $ test -f .math-coding/policy.yaml && echo "policy.yaml created with --merge"
@@ -124,7 +124,7 @@ for this slice; the surface test pins the filesystem state.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install --with-ci-workflow > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install --with-ci-workflow > /dev/null 2>&1
   $ test -f "$tmpdir/.github/workflows/ci.yml" && echo "ci.yml: present"
   ci.yml: present
   $ grep -q '^name: math-coding' "$tmpdir/.github/workflows/ci.yml" \
@@ -139,7 +139,7 @@ by an unsolicited rewrite.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install > /dev/null 2>&1
   $ test ! -e "$tmpdir/.github" \
   >   && echo ".github: absent (default opt-out ok)"
   .github: absent (default opt-out ok)

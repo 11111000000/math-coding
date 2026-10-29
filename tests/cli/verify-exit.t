@@ -78,7 +78,7 @@ Scenario 1 -- every obligation skipped: exit 3 (not 0).
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc verify probe.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe verify probe.yaml
   verify: probe.yaml
     skipped-obligation: skipped
   [3]
@@ -129,7 +129,7 @@ Scenario 2 -- an obligation that fails decisively: exit 1.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc verify probe.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe verify probe.yaml
   verify: probe.yaml
     failing-obligation: fail
   [1]
@@ -181,7 +181,7 @@ Scenario 3 -- every obligation fulfilled: exit 0.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc verify probe.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe verify probe.yaml
   verify: probe.yaml
     passing-obligation: pass
   $ cd /
@@ -257,7 +257,7 @@ run" is.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc verify probe.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe verify probe.yaml
   verify: probe.yaml
     passing-obligation: pass
     skipped-obligation: skipped
@@ -310,7 +310,7 @@ verdicts, and the exit code is the same.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc verify probe.yaml --format=json
+  $ $INSIDE_DUNE/bin/mathc.exe verify probe.yaml --format=json
   {"path":"probe.yaml","verdicts":[{"obligation_id":"skipped-obligation","verdict":"skipped"}]}
   [3]
   $ cd /

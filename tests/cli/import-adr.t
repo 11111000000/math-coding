@@ -35,16 +35,16 @@ the status is mapped to the math-coding state.
   > 
   > Good JSON support.
   > EOF
-  $ mathc import-adr "$tmpdir/adr1.md" | head -5
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr1.md" | head -5
   ---
   schema: math-coding/3.2
   id: use-postgresql
   revision: 1
   state: active
-  $ mathc import-adr "$tmpdir/adr1.md" | grep -q '^id: use-postgresql$' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr1.md" | grep -q '^id: use-postgresql$' && \
   >   echo "id derived from title (kebab-case) ok"
   id derived from title (kebab-case) ok
-  $ mathc import-adr "$tmpdir/adr1.md" | grep -q 'state: active$' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr1.md" | grep -q 'state: active$' && \
   >   echo "MADR 'accepted' mapped to state=active ok"
   MADR 'accepted' mapped to state=active ok
   $ rm -rf "$tmpdir"
@@ -71,16 +71,16 @@ detected.
   > 
   > We will use Redis as a caching layer.
   > EOF
-  $ mathc import-adr "$tmpdir/adr2.md" | head -5
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr2.md" | head -5
   ---
   schema: math-coding/3.2
   id: 5-use-redis-for-caching
   revision: 1
   state: active
-  $ mathc import-adr "$tmpdir/adr2.md" | grep -q 'state: active$' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr2.md" | grep -q 'state: active$' && \
   >   echo "adr-tools 'Accepted' mapped to state=active ok"
   adr-tools 'Accepted' mapped to state=active ok
-  $ mathc import-adr "$tmpdir/adr2.md" | grep -q '^commitment: |' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/adr2.md" | grep -q '^commitment: |' && \
   >   echo "decision section mapped to commitment ok"
   decision section mapped to commitment ok
   $ rm -rf "$tmpdir"
@@ -107,12 +107,12 @@ is left as a placeholder glob).
   > Decision here.
   > EOF
   $ cd "$tmpdir"
-  $ mathc import-adr adr3.md --write
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr adr3.md --write
   wrote .math-coding/decisions/sample.yaml (id=sample, source_kind=adr-tools)
   $ cd "$DUNE_SOURCEROOT"
   $ test -f "$tmpdir/.math-coding/decisions/sample.yaml" && echo ".math-coding/decisions/sample.yaml: ok"
   .math-coding/decisions/sample.yaml: ok
-  $ cd "$tmpdir" && mathc validate .math-coding/decisions/sample.yaml | head -3
+  $ cd "$tmpdir" && $INSIDE_DUNE/bin/mathc.exe validate .math-coding/decisions/sample.yaml | head -3
   parse-ok: .math-coding/decisions/sample.yaml
     decision: sample
     revision: 1
@@ -162,15 +162,15 @@ MADR `### Consequences` subsection is parsed as outcomes list.
   > 
   > Monitor query latency.
   > EOF
-  $ mathc import-adr "$tmpdir/madr.md" | grep -E "^  - id: outcome" | wc -l
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/madr.md" | grep -E "^  - id: outcome" | wc -l
   2
-  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Good, because JSON support' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/madr.md" | grep -q 'Good, because JSON support' && \
   >   echo "outcome 1: parsed from MADR subsection"
   outcome 1: parsed from MADR subsection
-  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Bad, because we need' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/madr.md" | grep -q 'Bad, because we need' && \
   >   echo "outcome 2: parsed from MADR subsection"
   outcome 2: parsed from MADR subsection
-  $ mathc import-adr "$tmpdir/madr.md" | grep -q 'Monitor query latency' && \
+  $ $INSIDE_DUNE/bin/mathc.exe import-adr "$tmpdir/madr.md" | grep -q 'Monitor query latency' && \
   >   echo "commitment includes the chosen-option text"
   commitment includes the chosen-option text
   $ rm -rf "$tmpdir"

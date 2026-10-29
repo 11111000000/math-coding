@@ -103,7 +103,7 @@ digest is right, and its digest cannot be computed until the file
 exists - so the placeholder is what breaks the loop, and rehash is
 what closes it.
 
-  $ mathc rehash --write "$MATH_CODING_DECISIONS_DIR/small-a.yaml" "$MATH_CODING_DECISIONS_DIR/small-b.yaml" 2>&1 | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash --write "$MATH_CODING_DECISIONS_DIR/small-a.yaml" "$MATH_CODING_DECISIONS_DIR/small-b.yaml" 2>&1 | tail -1
   rehash: 2 changed, 0 already current, 0 skipped (written)
 
 The decisions are COMMITTED before anything is signed. Under
@@ -122,7 +122,7 @@ The exit code is 2 (input error) and not a single attestation is
 written -- the refusal is not a warning followed by a batch signed
 as someone else.
 
-  $ mathc attest-batch --from=decisions --dry-run > /dev/null 2> refuse.log; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --dry-run > /dev/null 2> refuse.log; echo "EXIT=$?"
   EXIT=2
   $ cat refuse.log
   mathc attest-batch: --producer=<identity> is required with --from=decisions
@@ -135,14 +135,14 @@ as someone else.
 
 `--help` must not advertise a default it no longer has.
 
-  $ mathc attest-batch --help 2>&1 | grep 'producer identity'
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --help 2>&1 | grep 'producer identity'
     --producer  <id> producer identity for --from=decisions (REQUIRED; there is no default)
 
 3. A runtime kind without a run: refuse. `--kind=test` claims
 something ran; printing `result: pass` for a run that never
 happened, five times over, is the defect this closes.
 
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=test --dry-run > /dev/null 2> kind.log; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=test --dry-run > /dev/null 2> kind.log; echo "EXIT=$?"
   EXIT=2
   $ head -1 kind.log
   mathc attest-batch: --kind=test needs --run=<command>
@@ -150,7 +150,7 @@ happened, five times over, is the defect this closes.
 `review` is the one kind allowed to rest on a human declaration,
 so it alone still needs nothing but a name.
 
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=review --dry-run 2> small.log | wc -l
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=review --dry-run 2> small.log | wc -l
   5
   $ grep -c 'bulk signature' small.log || true
   0
@@ -170,7 +170,7 @@ how many attestations, for how many decisions, and under whose name.
 The stdout stream still carries only the JSON, so the report can
 be redirected away without touching the output a caller parses.
 
-  $ mathc attest-batch --from=decisions --producer=human:fixture --dry-run 2> bulk.log | wc -l
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --dry-run 2> bulk.log | wc -l
   12
   $ cat bulk.log
   mathc attest-batch: about to issue 12 attestations across 2 decision(s)
@@ -180,7 +180,7 @@ be redirected away without touching the output a caller parses.
 3. `--run` is a command, not a shell. A `|` is refused before
 anything is read, exactly like the verify sandbox refuses one.
 
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=test --run="ls | wc -l" --dry-run > /dev/null 2> meta.log; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=test --run="ls | wc -l" --dry-run > /dev/null 2> meta.log; echo "EXIT=$?"
   EXIT=2
   $ cat meta.log
   mathc attest-batch: --run contains the shell metacharacter '|'; attest-batch never runs a shell
@@ -192,7 +192,7 @@ twelve -- and the report line names the run it was.
 
   $ printf '#!/bin/sh\necho "ran the suite: 12 cases"\nexit 0\n' > probe-ok.sh
   $ chmod +x probe-ok.sh
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=test --run="$tmpdir/probe-ok.sh" > /dev/null 2> run-ok.log; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=test --run="$tmpdir/probe-ok.sh" > /dev/null 2> run-ok.log; echo "EXIT=$?"
   EXIT=0
   $ grep -c '^wrote ' run-ok.log
   12
@@ -219,7 +219,7 @@ decoration.
 
   $ printf '#!/bin/sh\necho "1 test failed"\nexit 1\n' > probe-bad.sh
   $ chmod +x probe-bad.sh
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=test --result=pass --run="$tmpdir/probe-bad.sh" 2> run-bad.log > /dev/null; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=test --result=pass --run="$tmpdir/probe-bad.sh" 2> run-bad.log > /dev/null; echo "EXIT=$?"
   EXIT=0
   $ head -1 run-bad.log | sed "s|$tmpdir|<TMP>|g"
   mathc attest-batch: --run `<TMP>/probe-bad.sh` did not exit 0; the batch is signed result=fail
@@ -240,7 +240,7 @@ review of something that no longer exists, and under semantics A it
 goes stale like any other attestation. An attestation that can never
 be invalidated is not a declaration; it is a decoration.
 
-  $ mathc attest-batch --from=decisions --producer=human:fixture --kind=review > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:fixture --kind=review > /dev/null 2>&1
   $ python3 -c "
   > import json, glob
   > rows = [json.load(open(p)) for p in sorted(glob.glob('.test-math-coding/attestations/*.json'))]

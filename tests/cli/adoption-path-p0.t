@@ -46,7 +46,7 @@ file under src/.
 
 `mathc init` creates the forward layout.
 
-  $ mathc init . > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe init . > /dev/null
   $ ls .math-coding
   attestations
   decisions
@@ -55,16 +55,16 @@ file under src/.
 The scaffold `mathc new-decision` writes is a file the kernel accepts.
 The pre-fix default template carried no `axiom_link` and was rejected.
 
-  $ mathc new-decision p0-probe --write 2>&1 | grep -c 'wrote'
+  $ $INSIDE_DUNE/bin/mathc.exe new-decision p0-probe --write 2>&1 | grep -c 'wrote'
   1
-  $ mathc validate .math-coding/decisions/p0-probe.yaml 2>&1 | grep -c '^parse-ok'
+  $ $INSIDE_DUNE/bin/mathc.exe validate .math-coding/decisions/p0-probe.yaml 2>&1 | grep -c '^parse-ok'
   1
 
 The scope placeholder is reported rather than shipped silently: a scope
 that matches no file makes the materials digest a digest of nothing,
 and an empty digest is the freshness wildcard.
 
-  $ mathc new-decision p0-probe-2 --write 2>&1 | grep -c 'MC-SCOPE-PLACEHOLDER'
+  $ $INSIDE_DUNE/bin/mathc.exe new-decision p0-probe-2 --write 2>&1 | grep -c 'MC-SCOPE-PLACEHOLDER'
   1
   $ rm -f .math-coding/decisions/p0-probe-2.yaml
 
@@ -74,14 +74,14 @@ The decision is filled in and re-hashed; the digest is the kernel's own.
   $ sed -i 's|<TODO: fixture-path-or-kernel-verifier>|file-exists src|' .math-coding/decisions/p0-probe.yaml
   $ sed -i 's|<TODO: what-could-go-wrong>|src-changed-without-a-decision|' .math-coding/decisions/p0-probe.yaml
   $ sed -i 's|<human:role or human:name>|human:maintainer|' .math-coding/decisions/p0-probe.yaml
-  $ mathc rehash --write .math-coding/decisions/p0-probe.yaml > /dev/null
-  $ mathc rehash .math-coding/decisions/p0-probe.yaml | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash --write .math-coding/decisions/p0-probe.yaml > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash .math-coding/decisions/p0-probe.yaml | tail -1
   rehash: 0 changed, 1 already current, 0 skipped (dry-run)
 
 The attestation lands in the forward layout — the same place `mathc
 init` created and the same place the gate reads.
 
-  $ mathc attest-batch --from=decisions --kind=review --producer=human:t > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --kind=review --producer=human:t > /dev/null 2>&1
   $ ls .math-coding/attestations
   p0-probe-p0-probe-obligation-1.json
   $ test -d attestations && echo "legacy dir exists" || echo "no legacy dir"
@@ -102,9 +102,9 @@ The gate reads the store and the subject passes: exit 0.
 
   $ git add -A
   $ git -c user.email=t@example -c user.name=t commit -qm attested
-  $ mathc self-check > /dev/null; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"
   exit=0
-  $ mathc self-check | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['verdict']);print([ (s['name'],s['verdict']) for s in d['subjects']])"
+  $ $INSIDE_DUNE/bin/mathc.exe self-check | python3 -c "import json,sys;d=json.load(sys.stdin);print(d['verdict']);print([ (s['name'],s['verdict']) for s in d['subjects']])"
   pass
   [('p0-probe', 'pass')]
 

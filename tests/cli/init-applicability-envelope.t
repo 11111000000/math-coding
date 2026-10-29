@@ -26,7 +26,7 @@ this file is path-stable and passes on a clean tree.
   $ export MATH_CODING_ATTESTATIONS_DIR=".mc/attestations"
   $ export MATH_CODING_POLICY=".mc/policy.yaml"
   $ cd "$tmpdir"
-  $ mathc init . --no-install > init.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install > init.log 2>&1
   $ echo "init exit: $?"
   init exit: 0
 
@@ -47,7 +47,7 @@ The rev-1 exclusion is gone from the print.
 The scaffolded policy still validates, and it now asks the adopter
 about THEIR tree instead of about the kernel's own corpus.
 
-  $ mathc validate .mc/policy.yaml > /dev/null && echo "scaffolded policy: parse-ok"
+  $ $INSIDE_DUNE/bin/mathc.exe validate .mc/policy.yaml > /dev/null && echo "scaffolded policy: parse-ok"
   scaffolded policy: parse-ok
   $ grep -q 'verifier: file-exists src' .mc/policy.yaml && echo "obligation names the adopter's tree: ok"
   obligation names the adopter's tree: ok

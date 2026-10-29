@@ -17,7 +17,7 @@ internally consistent (the buckets partition the reported
 total). We assert these via jq rather than hardcoding a
 numeric count.
 
-  $ mathc packages --format=json > /tmp/packages.json
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json > /tmp/packages.json
 
 Every indexed decision_id is a non-empty string AND the
 indexed count matches the array length:
