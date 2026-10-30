@@ -36,6 +36,9 @@ cd plugin/math-coding-console
 The plugin's source directory is the one `paseo plugin ls` prints in its DIRECTORY column; point it
 at whichever checkout you are editing.
 
+`show-tab.sh <tab>` makes the console open on one tab instead of the verdict, which is how a tab is
+checked against a browser that cannot be driven by hand.
+
 ### Probing the console without a host
 
 The server half of the plugin is plain Node code over the kernel, so it can be exercised against a
