@@ -126,7 +126,6 @@ let template ~id ~paths =
     \    acceptance:\n\
     \      all:\n\
     \        - verifier: <fixture-path-or-kernel-verifier>\n\
-    \          result: pass\n\n\
      risk:\n\
     \  declared_triggers:\n\
     \    - <what-could-go-wrong>\n\
@@ -180,7 +179,6 @@ let template_minimal ~id ~paths =
     \    acceptance:\n\
     \      all:\n\
     \        - verifier: <TODO: fixture-path-or-kernel-verifier>\n\
-    \          result: pass\n\n\
      axiom_link:\n\
     \  - A0\n\n\
      counterexample: |\n\

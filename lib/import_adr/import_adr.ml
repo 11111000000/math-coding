@@ -366,7 +366,6 @@ let to_decision_yaml (p : parsed) : string =
     \    acceptance:\n\
     \      all:\n\
     \        - verifier: mathc validate\n\
-    \          result: pass\n\
      relations:\n\
     \  addresses: []\n\
      supersedes: []\n\

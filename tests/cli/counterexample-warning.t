@@ -41,7 +41,6 @@ plain accept.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -77,7 +76,6 @@ requirement at light mode).
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -108,7 +106,7 @@ dialectical objection) is also accepted without warning at
   >     {
   >       "id": "ob1",
   >       "claim": "A claim.",
-  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe", "result": "pass"}]}
+  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe"}]}
   >     }
   >   ],
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}

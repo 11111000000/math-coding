@@ -80,7 +80,6 @@ obligations:
     acceptance:
       all:
         - verifier: $verifier
-          result: pass
 YAML
   "$BIN" rehash --write "$out" >/dev/null 2>&1
 }

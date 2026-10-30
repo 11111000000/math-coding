@@ -64,7 +64,6 @@ under test routes its I/O through `.math-coding/`.
   >     acceptance:
   >       all:
   >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

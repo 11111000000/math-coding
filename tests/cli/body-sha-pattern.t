@@ -50,7 +50,6 @@ of the digest rule.
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -89,7 +88,6 @@ a placeholder that survived pre-fix) MUST be rejected with
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -126,7 +124,6 @@ PLAN.md §3.1 names.
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

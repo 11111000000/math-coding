@@ -56,7 +56,6 @@ obligations:
     acceptance:
       all:
         - verifier: "123456"
-          result: pass
 risk:
   declared_triggers: []
   owner: human:test

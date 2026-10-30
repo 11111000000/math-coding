@@ -85,7 +85,6 @@ against whichever corpus decision happens to hold one today.
   >     acceptance:
   >       all:
   >         - verifier: mathc-self-check-verdict-pass
-  >           result: pass
   > counterexample: |
   >   None -- synthetic.
   > risk:

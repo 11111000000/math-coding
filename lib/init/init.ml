@@ -151,7 +151,6 @@ let master_policy_template =
   \    acceptance:\n\
   \      all:\n\
   \        - verifier: file-exists src\n\
-  \          result: pass\n\
    risk:\n\
   \  declared_triggers:\n\
   \    - bootstrap-template-not-edited\n\

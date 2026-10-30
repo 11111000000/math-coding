@@ -61,7 +61,6 @@ Block instead of Pass:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > required_attestations:
   >   - kind_: review
   >     producer: human:ghost
@@ -115,7 +114,6 @@ no gap emitted:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > required_attestations:
   >   - kind_: review
   >     producer: human:alice
@@ -183,7 +181,6 @@ cannot establish that a check ran.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

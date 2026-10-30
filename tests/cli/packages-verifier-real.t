@@ -65,14 +65,12 @@ implementation that returns the obligation id would also
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   >   - id: obl-build
   >     outcome: o1
   >     claim: Another claim.
   >     acceptance:
   >       all:
   >         - verifier: dune runtest
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

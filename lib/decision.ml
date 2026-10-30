@@ -340,21 +340,30 @@ let[@warning "-32"] digest_status_of_bytes (bytes : string) : digest_status =
 (* Pure-validation view: maps parse_decision_value into
    Diagnostic.t option. Some diag = reject; None = accept. *)
 
-(* Parse a single obligation acceptance item (verifier OR review). *)
+(* Parse a single obligation acceptance item (verifier OR review).
+
+   An acceptance item NAMES a check. It does not state its outcome:
+   the outcome is measured, by running the check, and it is recorded
+   in the attestation store. The corpus carried a `result:` key on
+   every acceptance item -- 863 of them, all of them `pass` -- and
+   the key was read into the domain and then never consulted by
+   anything. It was decoration that reads like evidence: a reader
+   opening a decision file saw "pass" next to 863 promises and
+   could not tell that no check had run.
+
+   The constitution's separation is `declared != derived != attested
+   != reviewed != observed`. A `result:` in the promise's own file is
+   a DECLARED outcome sitting where an ATTESTED one belongs, and it
+   is dropped here: the item keeps the check's name and nothing
+   else. A corpus that wants to say "this passed" writes an
+   attestation. *)
 let[@warning "-32"] parse_verifier v =
   match v with
-  | Jsonl.Object ps -> (
+  | Jsonl.Object ps ->
       let id =
         match Schema.take_string ps "verifier" with Some s -> s | None -> ""
       in
-      let rstr =
-        match Schema.take_string ps "result" with Some s -> s | None -> ""
-      in
-      if id = "" then None
-      else
-        match Codec.parse_result rstr with
-        | Some result -> Some (Domain.Verifier { id; result })
-        | None -> None)
+      if id = "" then None else Some (Domain.Verifier { id })
   | _ -> None
 
 let[@warning "-32"] parse_review v =
@@ -368,17 +377,18 @@ let[@warning "-32"] parse_review v =
       in
       if authority = "" then None
       else
-        let ind = Schema.take_string rps "minimum_independence" in
+        let minimum_independence =
+          match Schema.take_string rps "minimum_independence" with
+          | Some s -> Some s
+          | None -> None
+        in
         Some
-          (Domain.Review
-             { review_authority = authority; minimum_independence = ind })
+          (Domain.Review { review_authority = authority; minimum_independence })
   | _ -> None
 
 let[@warning "-32"] parse_acceptance_item v =
   match v with
-  | Jsonl.Object ps
-    when Schema.take_string ps "verifier" <> None
-         && Schema.take_string ps "result" <> None ->
+  | Jsonl.Object ps when Schema.take_string ps "verifier" <> None ->
       parse_verifier v
   | _ -> ( match parse_review v with Some a -> Some a | None -> None)
 
@@ -394,17 +404,25 @@ type acceptance_shape =
   | ShapeAmbiguous
   | ShapeMalformed
   | ShapeEmpty
+  | ShapeDeclaredResult
 
 let[@warning "-32"] classify_acceptance_item v =
   match v with
   | Jsonl.Object ps -> (
-      let has_verifier_fields =
-        Schema.take_string ps "verifier" <> None
-        && Schema.take_string ps "result" <> None
-      in
+      (* An acceptance item names a check. It no longer states an
+         outcome: the `result:` key is gone from the corpus and from
+         the schema, because a declared outcome in the promise's own
+         file reads like evidence and is not. *)
+      let has_verifier_fields = Schema.take_string ps "verifier" <> None in
       let has_review_field = Schema.take_object ps "review" <> None in
+      (* An acceptance item that still carries a `result:` key states
+         an outcome in the promise's own file. The outcome is
+         measured, not declared, so the item is a declared result and
+         nothing else. *)
+      let declares_result = Schema.take_string ps "result" <> None in
       match (has_verifier_fields, has_review_field) with
       | true, true -> ShapeAmbiguous
+      | true, false when declares_result -> ShapeDeclaredResult
       | true, false -> (
           match parse_verifier v with
           | Some _ -> ShapeVerifier

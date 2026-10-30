@@ -52,7 +52,6 @@ MATH_CODING_DECISIONS_DIR-relative tree.
   >     acceptance:
   >       all:
   >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

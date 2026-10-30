@@ -34,9 +34,9 @@
       "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
       "acceptance": {
         "all": [
-          {"verifier": "mathc-foo-impl-runs-on-fixture", "result": "pass"},
-          {"verifier": "binary-exists /usr/bin/foo", "result": "pass"},
-          {"verifier": "brew-tap-installed foo", "result": "pass"}
+          {"verifier": "mathc-foo-impl-runs-on-fixture"},
+          {"verifier": "binary-exists /usr/bin/foo"},
+          {"verifier": "brew-tap-installed foo"}
         ]
       },
       "phase": "pre-merge",
@@ -50,9 +50,9 @@
       "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
       "acceptance": {
         "all": [
-          {"verifier": "file-exists /tmp/foo", "result": "pass"},
-          {"verifier": "mathc validate decisions/foo.yaml", "result": "pass"},
-          {"verifier": "mathc-bogus-impl-runs", "result": "pass"}
+          {"verifier": "file-exists /tmp/foo"},
+          {"verifier": "mathc validate decisions/foo.yaml"},
+          {"verifier": "mathc-bogus-impl-runs"}
         ]
       },
       "phase": "pre-merge",

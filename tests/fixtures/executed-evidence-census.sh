@@ -289,7 +289,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-negative-control-declaration
-          result: pass
 YAML
 fake_list="$work/files"
 : > "$fake_list"

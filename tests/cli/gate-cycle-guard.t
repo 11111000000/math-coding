@@ -61,7 +61,6 @@ and its verdict belongs to the run that started it.
   >     acceptance:
   >       all:
   >         - verifier: scripts/loop.sh
-  >           result: pass
   > assumptions: []
   > reversal: []
   > risk:

@@ -48,7 +48,6 @@ A `mode: considered` decision WITH antithesis is accepted:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -85,7 +84,6 @@ with `MC-ANTITHESIS-MISSING` (Block, exit 1):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -126,7 +124,6 @@ prior failures at HEAD pre-fix.)
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -165,7 +162,6 @@ author cannot satisfy the rule with " "):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

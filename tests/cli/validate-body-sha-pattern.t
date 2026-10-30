@@ -47,7 +47,6 @@ a real digest. Matching the pattern was never the whole rule:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -86,7 +85,6 @@ A decision with a `body_sha` that is NOT the canonical
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -121,7 +119,6 @@ survived the prior equality-only check is now rejected:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -163,7 +160,6 @@ the pattern is fine but the value is not:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

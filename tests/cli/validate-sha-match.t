@@ -69,7 +69,6 @@ author can see the value the kernel expects:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -126,7 +125,6 @@ messages describing the same defect.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -174,7 +172,6 @@ missing:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -211,7 +208,6 @@ A decision with ONLY `yaml_sha` (body_sha absent) is accepted
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -247,7 +243,6 @@ possible, vacuous truth):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

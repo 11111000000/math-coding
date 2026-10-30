@@ -26,7 +26,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-bump-replay.t
-          result: pass
 risk:
   declared_triggers:
     - fixture-removal

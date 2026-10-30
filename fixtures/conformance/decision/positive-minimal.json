@@ -31,7 +31,7 @@
       ],
       "acceptance": {
         "all": [
-          {"verifier": "manual-load-test", "result": "pass"}
+          {"verifier": "manual-load-test"}
         ]
       },
       "phase": "pre-release"

@@ -52,7 +52,6 @@ A `mode: standard` decision WITH `counterexample` is accepted:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -90,7 +89,6 @@ the same reject.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -125,7 +123,6 @@ treats absent as `standard`:
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -173,7 +170,6 @@ placeholder):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -204,7 +200,7 @@ an array with at least one non-empty entry satisfies the rule.
   >     {
   >       "id": "ob1",
   >       "claim": "A claim.",
-  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe", "result": "pass"}]}
+  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe"}]}
   >     }
   >   ],
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
@@ -231,7 +227,7 @@ an array with at least one non-empty entry satisfies the rule.
   >     {
   >       "id": "ob1",
   >       "claim": "A claim.",
-  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe", "result": "pass"}]}
+  >       "acceptance": {"all": [{"verifier": "tests/conformance.exe"}]}
   >     }
   >   ],
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
@@ -269,7 +265,6 @@ the verdict stays `parse-ok`.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -306,7 +301,6 @@ A `mode: tiny` decision WITHOUT counterexample: also accepts
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -343,7 +337,6 @@ includes strict):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -377,7 +370,6 @@ includes strict):
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

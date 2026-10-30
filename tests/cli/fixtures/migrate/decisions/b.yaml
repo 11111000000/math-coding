@@ -25,7 +25,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-dry-run.t
-          result: pass
 risk:
   declared_triggers:
     - fixture-removal

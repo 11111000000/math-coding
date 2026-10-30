@@ -91,14 +91,12 @@ rather than in a consumer.
   >     acceptance:
   >       all:
   >         - verifier: scripts/failing-probe.sh
-  >           result: pass
   >   - id: dir-missing
   >     claim: |
   >       A verifier that cannot be set up is a failure, not a crash.
   >     acceptance:
   >       all:
   >         - verifier: dir-exists src
-  >           result: pass
   >   - id: declared-by-a-human
   >     claim: |
   >       An obligation no program can check: a human's word. The
@@ -107,7 +105,6 @@ rather than in a consumer.
   >     acceptance:
   >       all:
   >         - verifier: manual-a-human-looked
-  >           result: pass
   >   - id: sibling-cannot-be-set-up
   >     claim: |
   >       One verifier passes and one cannot be set up. The obligation
@@ -115,9 +112,7 @@ rather than in a consumer.
   >     acceptance:
   >       all:
   >         - verifier: file-exists scoped.txt
-  >           result: pass
   >         - verifier: scripts/does-not-exist.sh
-  >           result: pass
   > assumptions: []
   > reversal: []
   > risk:
@@ -151,14 +146,12 @@ rather than in a consumer.
   >     acceptance:
   >       all:
   >         - verifier: manual-one
-  >           result: pass
   >   - id: untouched-two
   >     claim: |
   >       A claim.
   >     acceptance:
   >       all:
   >         - verifier: manual-two
-  >           result: pass
   > assumptions: []
   > reversal: []
   > risk:

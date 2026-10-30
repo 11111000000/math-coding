@@ -4,6 +4,7 @@
   %{bin:mathc.exe}
   %{bin:mathc_mcp.exe}
   (source_tree decisions)
+  (source_tree fixtures)
   (source_tree schemas)
   (source_tree spec)
   (source_tree tests/fixtures/self-check-fail)

@@ -34,15 +34,15 @@
       "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
       "acceptance": {
         "all": [
-          {"verifier": "file-exists /tmp/foo", "result": "pass"},
-          {"verifier": "mathc validate decisions/foo.yaml", "result": "pass"},
-          {"verifier": "shell-grep needle", "result": "pass"},
-          {"verifier": "dune build lib/mathcoding_core.cmxa", "result": "pass"},
-          {"verifier": "text-scan-decision-id", "result": "pass"},
-          {"verifier": "tests/cli/explain-positive.t", "result": "pass"},
-          {"verifier": "dune-build", "result": "pass"},
-          {"verifier": "scripts/render.sh", "result": "pass"},
-          {"verifier": "manual-review-of-existing-source", "result": "pass"}
+          {"verifier": "file-exists /tmp/foo"},
+          {"verifier": "mathc validate decisions/foo.yaml"},
+          {"verifier": "shell-grep needle"},
+          {"verifier": "dune build lib/mathcoding_core.cmxa"},
+          {"verifier": "text-scan-decision-id"},
+          {"verifier": "tests/cli/explain-positive.t"},
+          {"verifier": "dune-build"},
+          {"verifier": "scripts/render.sh"},
+          {"verifier": "manual-review-of-existing-source"}
         ]
       },
       "phase": "pre-merge",

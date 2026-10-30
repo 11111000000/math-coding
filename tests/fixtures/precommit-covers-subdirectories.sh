@@ -43,9 +43,54 @@ if [ -z "$bin" ]; then
   exit 1
 fi
 
-# What the check sees, and which files those are.
+# The check needs a decision filed under a sub-directory to compare
+# against. The corpus may or may not have one: a plan filed under
+# decisions/<sub-directory>/ is a COINCIDENCE of the corpus's shape,
+# and a check that depends on a coincidence stops testing its claim
+# the day the coincidence is gone -- the walk can go flat again and
+# the fixture would still pass. So the fixture plants its own case
+# and removes it again.
+plant_dir="decisions/fixture-subdir-check"
+planted="$plant_dir/planted.yaml"
+mkdir -p "$plant_dir"
+cat > "$planted" <<'EOF'
+---
+schema: math-coding/3.3
+id: fixture-subdir-planted
+revision: 1
+state: active
+intent: |
+  A decision filed under a sub-directory, planted by the check that
+  walks the corpus, so the walk's shape is the check's own business
+  and not the corpus's accident.
+commitment: |
+  The corpus walk reaches this file.
+axiom_link:
+  - A0
+counterexample: |
+  A walk that reads one directory would not see this file.
+scope:
+  paths:
+    - "lib/**"
+outcomes:
+  - id: reachable
+    statement: |
+      The walk reaches a decision filed under a sub-directory.
+obligations:
+  - id: reachable
+    outcome: reachable
+    claim: |
+      The file is seen.
+    acceptance:
+      all:
+        - verifier: file-exists lib
+EOF
+cleanup() {
+  rm -rf "$plant_dir"
+  rm -f "$report"
+}
 report="$(mktemp)"
-trap 'rm -f "$report"' EXIT
+trap cleanup EXIT
 "$bin" precommit --format=json >"$report" 2>/dev/null
 seen="$(jq -r '.total' "$report" 2>/dev/null)"
 in_sub="$(jq -r '[.files[] | select(.path | test("/decisions/[^/]+/"))] | length' "$report" 2>/dev/null)"
@@ -68,10 +113,29 @@ else
   bad "the check sees $in_sub of the $sub decisions filed under a sub-directory"
 fi
 
-if [ "$seen" -gt "$top" ]; then
-  ok "the check sees the sub-directories too ($seen against $top in the top directory)"
+# The walk is not flat: it reaches a decision filed under a
+# sub-directory. The old form compared the count against the number
+# of documents in the TOP directory, which made the assertion depend
+# on the corpus having a sub-directory at all -- and it stopped
+# depending on that the day the corpus lost one. The property under
+# test is "the walk reaches every decision", so it is compared with
+# the corpus's own count.
+# The corpus's own count, from the kernel's own walker: `mathc
+# negative-control` prints "of M decision(s)". A count taken from
+# `find` would be a second, name-based notion of what a decision is --
+# the exact defect this corpus once had.
+corpus_total="$("$bin" negative-control 2>/dev/null | sed -n 's/.*of \([0-9][0-9]*\) decision(s).*/\1/p' | head -1)"
+
+if [ "$seen" -eq "$corpus_total" ]; then
+  ok "the check sees the whole corpus: $seen of $corpus_total decisions"
 else
-  bad "the check sees $seen decisions, the same as the top directory's $top: the walk is flat again"
+  bad "the check sees $seen decisions, the corpus holds $corpus_total: the walk is not the corpus's walk"
+fi
+
+if [ "$in_sub" -gt 0 ]; then
+  ok "the walk is not flat: $in_sub decision(s) filed under a sub-directory are seen"
+else
+  bad "the walk is flat: no decision filed under a sub-directory is seen"
 fi
 
 echo
