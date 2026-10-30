@@ -37,9 +37,16 @@ prompt, then declines; exit 1. This guards against silent mutation
 of the installed binary.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ printf '' | $INSIDE_DUNE/bin/mathc.exe update
+  $ printf '' | $INSIDE_DUNE/bin/mathc.exe update --channel=v3.3.3
   mathc update: replace the installed mathc binary? [y/N] mathc update: declined; no changes made
   [1]
+
+The channel is PINNED here on purpose. The default channel resolves the
+latest upstream tag over the network, and a machine without one gets
+an extra line -- "could not reach upstream; falling back to installed
+version" -- which has nothing to do with the path this case is about:
+the operator's answer to the prompt. The pinned channel resolves
+without the network, so the case says the same thing everywhere.
 
 `mathc version --check` exits 0 when the local VERSION matches the
 upstream latest stable tag (no output) and exits 1 (printing the

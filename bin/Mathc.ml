@@ -1472,6 +1472,7 @@ let read_file_for_capsule path =
 
    Note: we read until EOF instead of using `in_channel_length` because
    pipes report 0 length (the data hasn't been buffered yet). *)
+
 let[@warning "-32"] read_all ic =
   let buf = Buffer.create 256 in
   (try
@@ -1481,11 +1482,56 @@ let[@warning "-32"] read_all ic =
    with End_of_file -> ());
   Buffer.contents buf
 
+(* Run an external command with stdout captured AND stderr captured,
+   not inherited.
+
+   A tool's stderr is not the kernel's report. When the gate asks git
+   for a diff, the doctor probes the release API and the updater asks
+   git for the latest tag, the child writes its OWN words -- "fatal:
+   unable to access", "Could not resolve host" -- into the middle of
+   the kernel's transcript. The reader then sees a network error where
+   the kernel owes a sentence, and a check that compares the
+   transcript fails on a machine without a network for a reason that
+   has nothing to do with the check.
+
+   The kernel speaks about a failed probe in its own words: the
+   doctor's section says `status: offline`, the updater says it could
+   not reach upstream. What the child said on stderr is the child's
+   account of it, and it is no evidence about the tree.
+
+   The two channels are drained one after the other, which is safe for
+   the outputs this kernel asks for (a diff, a tag list, a JSON body)
+   and would need a select loop for anything larger. *)
+let[@warning "-32"] run_proc_quiet prog (argv : string list) :
+    Unix.process_status * string =
+  let a = Array.of_list (prog :: argv) in
+  let out_r, out_w = Unix.pipe () in
+  let err_r, err_w = Unix.pipe () in
+  let pid = Unix.create_process prog a Unix.stdin out_w err_w in
+  Unix.close out_w;
+  Unix.close err_w;
+  let out_ic = Unix.in_channel_of_descr out_r in
+  let err_ic = Unix.in_channel_of_descr err_r in
+  let buf = Buffer.create 256 in
+  let drain ic =
+    try
+      while true do
+        ignore (Buffer.add_channel buf ic 4096)
+      done
+    with End_of_file -> ()
+  in
+  drain out_ic;
+  drain err_ic;
+  close_in_noerr out_ic;
+  close_in_noerr err_ic;
+  let _pid, status = Unix.waitpid [] pid in
+  (status, Buffer.contents buf)
+
 let[@warning "-32"] run_git_command base head args =
-  let argv = Array.of_list (("git" :: args) @ [ base ^ ".." ^ head ]) in
-  let ic = Unix.open_process_args_in "git" argv in
-  let raw = read_all ic in
-  let _ = Unix.close_process_in ic in
+  (* `run_proc_quiet` puts the program in front of the arguments
+     itself; naming it twice would run `git git diff ...`. *)
+  let argv = args @ [ base ^ ".." ^ head ] in
+  let _status, raw = run_proc_quiet "git" argv in
   raw
 
 (* A directory that carries a math-coding layout marker.
@@ -1737,16 +1783,7 @@ let[@warning "-32"] resolve_candidate_tree ~cmd ~root =
    (status, stdout_text). Mirrors the run_git_command helper at
    line 731. *)
 let[@warning "-32"] update_run_proc prog argv : Unix.process_status * string =
-  let a = Array.of_list (prog :: argv) in
-  let ic = Unix.open_process_args_in prog a in
-  let buf = Buffer.create 256 in
-  (try
-     while true do
-       Buffer.add_channel buf ic 4096
-     done
-   with End_of_file -> ());
-  let status = Unix.close_process_in ic in
-  (status, Buffer.contents buf)
+  run_proc_quiet prog argv
 
 (* Scan stdout line-by-line; helper for update_fetch_latest_tag. *)
 let[@warning "-32"] update_each_line s f =
@@ -11393,34 +11430,24 @@ let[@warning "-32"] doctor_section_path () : doctor_section =
  * two agree. The choice is documented here so a future
  * `4.0.0` bump that needs semver-order can be detected
  * by a single regression in tests/cli/doctor.t. *)
+
 let[@warning "-32"] doctor_section_latest () : doctor_section =
   let installed = try read_cli_version () with _ -> "(unreadable)" in
   let url =
     "https://api.github.com/repos/11111000000/math-coding/releases/latest"
   in
   let argv =
-    [|
-      "curl";
-      "-sS";
-      "--max-time";
-      "5";
-      "-H";
-      "Accept: application/vnd.github+json";
-      url;
-    |]
+    [
+      "-s"; "--max-time"; "5"; "-H"; "Accept: application/vnd.github+json"; url;
+    ]
   in
   let probe =
     try
-      let ic = Unix.open_process_args_in "curl" argv in
-      let buf = Buffer.create 256 in
-      (try
-         while true do
-           Buffer.add_channel buf ic 4096
-         done
-       with End_of_file -> ());
-      let _status = Unix.close_process_in ic in
-      Ok (Buffer.contents buf)
-    with _ -> Error "curl invocation failed"
+      let status, body = run_proc_quiet "curl" argv in
+      match status with
+      | Unix.WEXITED 0 -> Ok body
+      | _ -> Error "the release API did not answer"
+    with _ -> Error "the release probe could not be started"
   in
   match probe with
   | Error reason ->

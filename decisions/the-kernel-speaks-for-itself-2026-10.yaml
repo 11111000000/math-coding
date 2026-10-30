@@ -1,0 +1,109 @@
+---
+schema: math-coding/3.3
+id: the-kernel-speaks-for-itself-2026-10
+revision: 1
+state: active
+body_sha: "sha256:7cab3533466ed4657c4b174dc5d4b5d53759d18f7a56bec94539303e571734b4"
+yaml_sha: "sha256:7cab3533466ed4657c4b174dc5d4b5d53759d18f7a56bec94539303e571734b4"
+intent: |
+  Three checks of the nix build of the suite failed on a machine
+  without a network, and every one of them failed for the same
+  reason: the kernel asked a tool a question, the tool answered in
+  its own words, and the tool's words landed in the middle of the
+  kernel's transcript.
+
+  `mathc doctor` probes the release API with curl; `mathc update` and
+  `mathc version --check` ask git for the latest tag; the gate asks
+  git for a diff. Each of those children writes to stderr, and each
+  of those stderr streams was INHERITED by the kernel. So a reader
+  of `mathc doctor --json` saw
+
+      curl: (6) Could not resolve host: api.github.com
+      {"verdict":"pass",...}
+
+  -- the kernel's JSON, with a network error printed above it. The
+  check that compares the transcript then fails, and it fails for a
+  reason that has nothing to do with what it checks.
+commitment: |
+  1. Every external command the kernel runs has its stderr
+     CAPTURED, not inherited. `run_proc_quiet` is the single place
+     that spawns a child with both channels piped.
+  2. The kernel reports a failed probe in ITS OWN words. The doctor's
+     latest-version section says `status: offline` with the reason
+     "the release API did not answer"; the updater says it could not
+     reach upstream and falls back to the installed version. What the
+     child said on stderr is the child's account of the failure, and
+     it is no evidence about the tree.
+  3. A check that needs the network says so and skips. The doctor's
+     `latest` section is already `warn` when the probe is offline,
+     and the tests assert on that, not on the answer.
+axiom_link:
+  - A0
+counterexample: |
+  "The child's stderr is information: it tells the operator WHY the
+  probe failed, and hiding it loses that." The counterargument fails
+  on what the operator actually reads. The kernel's transcript is a
+  report about the TREE; a child's stderr is a report about the
+  child's trip to the network, and it arrives in a language the
+  kernel does not speak and in a place the reader did not ask about
+  it. The operator who runs `mathc doctor --json` wants to know
+  whether the tree is healthy and what the latest release is; a DNS
+  complaint in the middle of the JSON answers neither question and
+  breaks the one that was answered. The reason is still there -- it
+  is the kernel's own sentence, in the section, where a reader looks
+  for it.
+
+  The stronger form of the objection is about the DIFF: `mathc gate`
+  asks git for a diff, and git's "fatal: unable to access" was the
+  only sign that the diff it then reported was computed against a
+  tree it could not reach. A silent git would be a lie by omission.
+  The answer is that the gate's verdict is computed from the tree it
+  has, and the kernel says when that tree is not what was asked for.
+  Silence about the diff would be the lie; the kernel's own words
+  are not.
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/cli/doctor.t"
+    - "tests/cli/doctor-env-var.t"
+    - "tests/cli/update.t"
+    - "tests/cli/gate-cycle-guard.t"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+outcomes:
+  - id: the-transcript-is-the-kernels
+    statement: |
+      What a reader sees is what the kernel decided to say, and the
+      tools the kernel uses do not speak over it.
+obligations:
+  - id: the-childs-stderr-never-reaches-the-transcript
+    outcome: the-transcript-is-the-kernels
+    claim: |
+      The doctor, the update path and the gate run their children
+      with stderr captured: the transcript carries the kernel's
+      sentences and nothing else.
+    acceptance:
+      all:
+        - verifier: tests/cli/doctor.t
+        - verifier: tests/cli/update.t
+        - verifier: tests/cli/gate-cycle-guard.t
+  - id: the-failure-is-named-by-the-kernel
+    outcome: the-transcript-is-the-kernels
+    claim: |
+      A failed probe is named in the kernel's own words: the release
+      API "did not answer", and the upstream "could not be reached".
+    acceptance:
+      all:
+        - verifier: shell-grep bin/Mathc.ml the release API did not answer
+        - verifier: shell-grep bin/Mathc.ml could not reach upstream
+risk:
+  declared_triggers:
+    - a child's stderr reappears in a transcript
+    - a probe fails and the kernel says nothing about it
+  owner: human:maintainer
+relations:
+  addresses:
+    - mathc-doctor-subcommand-2026-10@1
+    - mathc-update-subcommand-2026-10@1
