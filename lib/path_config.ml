@@ -152,6 +152,62 @@ let[@warning "-32"] resolve_policy_path ?root () : string =
   resolve_with ?root "MATH_CODING_POLICY" ~default:default_policy_path
     ~fallback:legacy_policy_path ()
 
+(* The RISK-FLOOR policies file is a different artifact from the
+   master policy, and the two were sharing one resolver.
+*
+*   master policy   the active protocol DECISION (bootstrap-v3@3);
+*                   a decision document. Resolved by
+*                   `resolve_policy_path`.
+*   policies file   the multi-policy record that carries the
+*                   per-path `mode_floor` (algebra §9): a YAML
+*                   SEQUENCE of policy records. Resolved here.
+*
+* The collision was not cosmetic. `resolve_policy_path` returns
+* `.math-coding/policy.yaml` when it exists and `decisions/decision.yaml`
+* otherwise, and BOTH of those are decision documents: parsing either
+* as a policy sequence yields an empty list, and the kernel's policy
+* cache stays empty. So the `mode_floor` a project declares was never
+* read: every path classified as `tiny`, the friction ladder had one
+* rung, and `mathc mode` reported the silent baseline for a file whose
+* policy said `standard`.
+*
+* The file the kernel actually wants is `policies.yaml` at the project
+* root — the name `lib/policy.ml` already used, and the name this
+* repository's own file has carried since the 3.0 bootstrap.
+*
+* Precedence:
+*   1. `MATH_CODING_POLICIES` — the new, unambiguous name.
+*   2. `MATH_CODING_POLICY` — the old name. It has always controlled
+*      this file in the code (the master policy is located by id, not
+*      by path), so it keeps working.
+*   3. `policies.yaml` at the project root, if it is there.
+*   4. `policies.yaml` anyway: the loader treats an absent file as
+*      "no policy declared", which is algebra §9's default.
+*
+* Decision `record-proportionality-2026-10`. *)
+let default_policies_path = "policies.yaml"
+
+let[@warning "-32"] resolve_policies_path ?root () : string =
+  match Sys.getenv_opt "MATH_CODING_POLICIES" with
+  | Some p when String.trim p <> "" -> p
+  | _ -> (
+      match Sys.getenv_opt "MATH_CODING_POLICY" with
+      | Some p when String.trim p <> "" -> p
+      | _ -> default_policies_path)
+
+(* Join a resolver answer with the project root. An ABSOLUTE answer is
+   used as it is: `Filename.concat "/root" "/etc/policies.yaml"` is
+   "/root//etc/policies.yaml", which is not the file the operator
+   named. The env-var answers are absolute more often than not (a
+   path in a CI job is usually absolute), and the old composition
+   turned every one of them into a path that does not exist. *)
+let[@warning "-32"] join_root ?root rel =
+  if String.length rel > 0 && String.unsafe_get rel 0 = '/' then rel
+  else
+    match effective_root ?root () with
+    | Some r when r <> "" && r <> "." -> Filename.concat r rel
+    | _ -> rel
+
 (* --- root-joined variants ------------------------------------------- *)
 (* The functions above return *relative* paths; callers that already
    hold a project root compose with it themselves. Callers that do NOT

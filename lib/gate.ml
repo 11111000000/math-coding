@@ -985,6 +985,11 @@ type commit_info = {
   mode : Domain.mode;
   has_sibling_yaml : bool;
   trailer_decision_refs : string list;
+  (* The ids of the decisions the corpus holds. A trailer citation
+     counts only when it names one of them: "the commit says which
+     commitment this implements" is a claim the kernel can check, and
+     a claim it cannot check is a claim it must not accept. *)
+  corpus_decision_ids : string list;
 }
 
 let empty_commit_info =
@@ -993,7 +998,18 @@ let empty_commit_info =
     mode = `Tiny;
     has_sibling_yaml = false;
     trailer_decision_refs = [];
+    corpus_decision_ids = [];
   }
+
+(* The trailer citations that name a decision the corpus holds.
+   Algebra §5 and §20 both require the reference to RESOLVE:
+   `resolve(ref, parent(c)) ≠ ∅`. The old implementation accepted any
+   `Refs: decision:<id>@<rev>` line, resolvable or not, so a citation
+   of a decision that does not exist satisfied the rule. *)
+let[@warning "-32"] resolved_trailer_refs (c : commit_info) : string list =
+  List.filter
+    (fun id -> List.exists (String.equal id) c.corpus_decision_ids)
+    c.trailer_decision_refs
 
 (* Helpers *)
 let touches_protected_path files =
@@ -1014,13 +1030,24 @@ let obligation_has_review _ob = true
 let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
   match rule with
   | PreTemporalPrecedence -> (
-      (* algebra §5: tiny/light exempt, sibling_yaml suffices, trailer ref suffices *)
+      (* algebra §5: tiny/light exempt, sibling_yaml suffices, a
+         trailer reference that RESOLVES suffices *)
       match c.mode with
       | `Tiny | `Light -> true
-      | _ -> c.has_sibling_yaml || List.length c.trailer_decision_refs > 0)
+      | _ -> c.has_sibling_yaml || resolved_trailer_refs c <> [])
   | CoCommitDecision ->
-      (* algebra §5: protected paths require sibling decision *)
-      (not (touches_protected_path c.files)) || c.has_sibling_yaml
+      (* algebra §5: protected paths require a decision to be
+         COMMITTED WITH THE CHANGE. The spec names two ways: the
+         decision is added or edited in the same tree, OR the commit
+         cites it by trailer. The implementation had only the first
+         way, so every kernel change had to carry a decision FILE --
+         and the file was the reason the corpus grew: a change that
+         implements an existing commitment wrote a second decision
+         saying so, which is what `change_kind: implementation` marks,
+         and which KERNEL_AGENTS.md §Decisions says not to do. *)
+      (not (touches_protected_path c.files))
+      || c.has_sibling_yaml
+      || resolved_trailer_refs c <> []
   | CoCommitFixture ->
       (* algebra §15: every obligation needs verifier or review *)
       true (* obligation check happens in gate_v32 below *)
@@ -1078,14 +1105,14 @@ let[@warning "-32"] has_sibling_yaml files =
     files
 
 (* Build commit_info from the live gate inputs. *)
-let[@warning "-32"] commit_info_of ~changed_paths ~body =
+let[@warning "-32"] commit_info_of ~changed_paths ~body ~corpus_decision_ids =
   let files = List.sort String.compare changed_paths in
   let mode = Risk.mode files in
   let has_sibling_yaml = has_sibling_yaml files in
   let trailer_decision_refs =
     if body = "" then [] else parse_trailer_refs body
   in
-  { files; mode; has_sibling_yaml; trailer_decision_refs }
+  { files; mode; has_sibling_yaml; trailer_decision_refs; corpus_decision_ids }
 
 (* Detect any FailedEvidence gap in the obligations. Used by
    gate_v32 to honour the attestation check that the placeholder

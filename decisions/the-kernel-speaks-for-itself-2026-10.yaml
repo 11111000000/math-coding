@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: the-kernel-speaks-for-itself-2026-10
 revision: 1
 state: active
-body_sha: "sha256:7cab3533466ed4657c4b174dc5d4b5d53759d18f7a56bec94539303e571734b4"
-yaml_sha: "sha256:7cab3533466ed4657c4b174dc5d4b5d53759d18f7a56bec94539303e571734b4"
+body_sha: "sha256:6fec38adf61dda99feee88869ea319d1d64717f76fbfe26ffc9ee93def201590"
+yaml_sha: "sha256:6fec38adf61dda99feee88869ea319d1d64717f76fbfe26ffc9ee93def201590"
 intent: |
   Three checks of the nix build of the suite failed on a machine
   without a network, and every one of them failed for the same
@@ -105,5 +105,5 @@ risk:
   owner: human:maintainer
 relations:
   addresses:
-    - mathc-doctor-subcommand-2026-10@1
-    - mathc-update-subcommand-2026-10@1
+    - archive/decisions/mathc-doctor-subcommand-2026-10.yaml
+    - archive/decisions/mathc-update-subcommand-2026-10.yaml

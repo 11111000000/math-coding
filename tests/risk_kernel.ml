@@ -17,7 +17,7 @@ let[@warning "-32"] mode_to_string m =
  *   policy_override_zero_for_no_match
  *   mode_floor_axiom_path_is_exhaustive
  *   mode_floor_default_path_is_standard
- *   policies_yaml_has_default_and_axioms
+ *   policies_yaml_declares_meetable_floors
  *
  * The tests are pure: each calls a lib/policy.ml entry point
  * with a constructed policy list and asserts the produced
@@ -145,7 +145,28 @@ let[@warning "-32"] find_project_root () =
   in
   loop cwd
 
-let[@warning "-32"] policies_yaml_has_default_and_axioms () =
+(* The repository's own policy file must declare floors the repository
+   can MEET, and must declare one for the paths the kernel protects.
+
+   The floors are read by the kernel now (decision
+   `record-proportionality-2026-10`), so what this file says is what
+   `mathc mode` answers. Two properties are worth pinning:
+
+   1. The file parses, and it covers the kernel's protected paths
+      (`lib/**`, `bin/**`, `spec/**`, `schemas/**`, `axioms/**`) with
+      a floor above the silent baseline. A policy file that names
+      none of them would classify every kernel change as `tiny` --
+      the state this repository was in until 2026-10-30, because the
+      resolver pointed at a decision document instead of at this file.
+
+   2. NO declared floor exceeds `standard`, because algebra §10 makes
+      `strict` and `exhaustive` require a rebuttal artifact
+      (`rebuttals/<sha>.yaml`) and this repository keeps no such
+      directory. A floor nothing can satisfy is a floor that blocks
+      every change it covers, and a block that cannot be lifted is
+      not a gate. The check is DERIVED from the tree, not asserted:
+      if the rebuttals directory appears, the ceiling moves with it. *)
+let[@warning "-32"] policies_yaml_declares_meetable_floors () =
   let root = find_project_root () in
   let path = Filename.concat root "policies.yaml" in
   let exists = Sys.file_exists path in
@@ -153,14 +174,67 @@ let[@warning "-32"] policies_yaml_has_default_and_axioms () =
   let raw = In_channel.with_open_text path In_channel.input_all in
   let policies, errors = Policy.parse_policies raw in
   Alcotest.(check string) "no parse errors" "" errors;
-  let has_default =
-    List.exists (fun p -> p.Policy.policy_id = "math-coding-default") policies
+  let covers p prefix =
+    List.exists
+      (fun scope ->
+        let n = String.length prefix in
+        String.length scope >= n && String.sub scope 0 n = prefix)
+      p.Policy.scope_paths
   in
-  let has_axioms =
-    List.exists (fun p -> p.Policy.policy_id = "math-coding-axioms") policies
+  let floor_for prefix =
+    let matching = List.filter (fun p -> covers p prefix) policies in
+    match matching with
+    | [] -> None
+    | ps ->
+        Some
+          (Policy.max_mode_floor (List.map (fun p -> p.Policy.mode_floor) ps))
   in
-  Alcotest.(check bool) "default policy present" true has_default;
-  Alcotest.(check bool) "axioms policy present" true has_axioms
+  let protected = [ "lib/"; "bin/"; "spec/"; "schemas/"; "axioms/" ] in
+  List.iter
+    (fun prefix ->
+      match floor_for prefix with
+      | None ->
+          Alcotest.failf "no policy covers %s: the floor would be tiny" prefix
+      | Some `Tiny ->
+          Alcotest.failf
+            "the floor for %s is tiny: a kernel change would be silent" prefix
+      | Some _ -> ())
+    protected;
+  let support = [ "docs/"; "site/"; "scripts/"; "tests/" ] in
+  List.iter
+    (fun prefix ->
+      match floor_for prefix with
+      | Some (`Light | `Tiny) -> ()
+      | Some m ->
+          Alcotest.failf
+            "the floor for %s is %s: a support path must not carry a commitment"
+            prefix
+            (match m with
+            | `Tiny -> "tiny"
+            | `Light -> "light"
+            | `Standard | `Considered -> "standard"
+            | `Strict -> "strict"
+            | `Exhaustive -> "exhaustive")
+      | None -> Alcotest.failf "no policy covers %s" prefix)
+    support;
+  (* The ceiling is derived from what the repository can produce. *)
+  let rebuttals_dir = Filename.concat root "rebuttals" in
+  let keeps_rebuttals = Sys.file_exists rebuttals_dir in
+  List.iter
+    (fun p ->
+      match p.Policy.mode_floor with
+      | `Strict | `Exhaustive ->
+          if not keeps_rebuttals then
+            Alcotest.failf
+              "policy %s declares the %s floor but the repository keeps no \
+               rebuttals/ directory: algebra §10 makes that floor \
+               unsatisfiable"
+              p.Policy.policy_id
+              (match p.Policy.mode_floor with
+              | `Strict -> "strict"
+              | _ -> "exhaustive")
+      | _ -> ())
+    policies
 
 (* --- probability/override interactions --- *)
 
@@ -225,10 +299,11 @@ let () =
           Alcotest.test_case "axiom and pci on distinct paths" `Quick
             mode_floor_axiom_and_pci_distinct_paths;
         ] );
-      ( "policies_yaml_has_default_and_axioms",
+      ( "policies_yaml_declares_meetable_floors",
         [
-          Alcotest.test_case "policies.yaml has both policies" `Quick
-            policies_yaml_has_default_and_axioms;
+          Alcotest.test_case
+            "policies.yaml declares floors the repository can meet" `Quick
+            policies_yaml_declares_meetable_floors;
         ] );
       ( "probability_with_positive_override",
         [

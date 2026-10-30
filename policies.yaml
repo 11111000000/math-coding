@@ -1,46 +1,112 @@
-# policies.yaml — math-coding 3.0 project policy declaration.
+# policies.yaml — the per-path risk floors of this repository.
 #
-# Loaded once at mathc startup by `lib/policy.ml::load_policies`
-# (decision `risk-policy-driven-floor-2026-10`). The cache is
-# read by `lib/risk.ml::mode_floor` and
-# `lib/risk.ml::policy_override_probability`.
+# WHAT THIS FILE IS. A YAML SEQUENCE of policy records, each with a
+# `scope_paths` glob list and a `mode_floor`. The kernel reads it
+# once at startup (lib/policy.ml::load_policies) and the floors feed
+# `lib/risk.ml::mode_floor`, which is the second term of
 #
-# Schema: schemas/policy.json. Each entry is a policy record
-# with `scope_paths` (glob-like: `path`, `path/*`, `path/**`),
-# `mode_floor` (one of: tiny | light | standard | strict |
-# exhaustive — per `lib/codec.ml::parse_mode`),
-# and `override_probability` ∈ [-1, 1] (clamped at the kernel
-# boundary; OCAML_BEST_PRACTICES §11.25).
+#   mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
 #
-# The default policy catches every path matched by `scope_paths`.
-# The axioms policy is more specific; for `axioms/**` paths
-# both apply, and `mode_floor` is the max (per algebra §2).
-# Adding a new policy is a code change that requires its own
-# decision under bootstrap-v3.
+# (spec/algebra-3.2.md §2). The floor is what makes the friction
+# ladder have rungs: a path whose floor is `light` may be changed
+# with a one-line commit and a trailer; a path whose floor is
+# `standard` must carry a decision.
+#
+# WHAT THIS FILE IS NOT. It is not the master policy. The master
+# policy is the active protocol DECISION — `bootstrap-v3@3` in
+# `decisions/decision.yaml` — and it is located by id, not by path.
+# The two were sharing one resolver until 2026-10-30, and the shared
+# resolver pointed at a decision document, which parses as an empty
+# policy sequence. So every path classified as `tiny`, the floor was
+# dead, and `mathc mode` reported the silent baseline for a file
+# whose policy said `standard`. Decision
+# `record-proportionality-2026-10`.
+#
+# WHY NO FLOOR ABOVE `standard`. Algebra §10 makes `strict` and
+# `exhaustive` require a rebuttal artifact (`rebuttals/<sha>.yaml`).
+# This repository does not maintain that directory, so a floor above
+# `standard` would be a floor nothing can satisfy: every change to
+# the protected paths would be blocked, and a block that cannot be
+# lifted is not a gate. The floor a repository declares must be one
+# it can meet. `standard` is the ceiling here, and it is declared
+# where the commitment is real.
+#
+# THE FLOORS, and what each one buys.
+#
+#   standard  lib/** bin/** spec/** schemas/** axioms/**
+#             A change here can break a commitment, so it carries one:
+#             either a decision committed with the change, or a trailer
+#             that CITES an existing decision this change implements
+#             (`Refs: decision:<id>@<rev>`). The citation is checked:
+#             the cited decision's obligations are evaluated too, so
+#             the citation is not a way to escape the evidence.
+#
+#   light     everything else
+#             A change here cannot break a commitment the corpus
+#             keeps: docs, site pages, scripts, tests, tools, the
+#             corpus's own files. It costs a commit message and
+#             nothing else. This is the "silent" rung the ladder
+#             names, and it is where the record stopped growing: a
+#             doc fix used to need a decision file.
+#
+# A path that no policy names falls to `tiny` — the silent baseline.
+# That is the correct reading for `README.md`, `flake.nix`, the
+# plugin, and every other path no commitment is scoped to.
+#
+# Schema: schemas/policy.json.
 
-- policy_id: math-coding-default
+- policy_id: math-coding-kernel
   scope_paths:
     - "lib/**"
     - "bin/**"
-    - "tests/**"
-    - "spec/**"
-    - "schemas/**"
-    - "axioms/**"
-    - "site/**"
-    - "scripts/**"
-    - "decisions/**"
-    - "attestations/**"
   mode_floor: standard
   override_probability: 0.0
   obligations: []
   transitive_into: []
   data_flow_edges: []
 
-- policy_id: math-coding-axioms
-  parent: math-coding-default
+- policy_id: math-coding-protocol
   scope_paths:
+    - "spec/**"
+    - "schemas/**"
     - "axioms/**"
-  mode_floor: exhaustive
+  mode_floor: standard
+  override_probability: 0.0
+  obligations: []
+  transitive_into: []
+  data_flow_edges: []
+
+- policy_id: math-coding-support
+  scope_paths:
+    - "scripts/**"
+    - "tools/**"
+    - "tests/**"
+    - "fixtures/**"
+    - "templates/**"
+    - "render/**"
+    - "plugin/**"
+    - ".github/**"
+  mode_floor: light
+  override_probability: 0.0
+  obligations: []
+  transitive_into: []
+  data_flow_edges: []
+
+- policy_id: math-coding-docs
+  scope_paths:
+    - "docs/**"
+    - "site/**"
+  mode_floor: light
+  override_probability: 0.0
+  obligations: []
+  transitive_into: []
+  data_flow_edges: []
+
+- policy_id: math-coding-corpus
+  scope_paths:
+    - "decisions/**"
+    - "attestations/**"
+  mode_floor: light
   override_probability: 0.0
   obligations: []
   transitive_into: []

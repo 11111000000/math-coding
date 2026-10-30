@@ -4,8 +4,8 @@ id: adoption-friction-p0
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:a35bada1b8eb840be1eeed4da301704f1b8bd1268aa6da56baf92814298785dd"
-yaml_sha: "sha256:a35bada1b8eb840be1eeed4da301704f1b8bd1268aa6da56baf92814298785dd"
+body_sha: "sha256:347cb74acceb5aa7c0a96e26efb0e3b3ae319d0fe9d117070eb8ecae8c1191ab"
+yaml_sha: "sha256:347cb74acceb5aa7c0a96e26efb0e3b3ae319d0fe9d117070eb8ecae8c1191ab"
 intent: |
   Make the protocol usable by a project that adopts it, at the cost of
   the fewest agent turns, with every check fast enough to run on every
@@ -178,7 +178,7 @@ risk:
   owner: human:maintainer
 relations:
   addresses:
-    - path-resolver-audit-2026-11@1
+    - archive/decisions/path-resolver-audit-2026-11.yaml
     - kernel-fixes-found-bugs-2026-10@1
   supersedes: []
   superseded_by: []

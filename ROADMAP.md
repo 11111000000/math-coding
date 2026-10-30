@@ -32,9 +32,25 @@ inline KERNEL_AGENTS.md priority lists; KERNEL_AGENTS.md defers to this file.
 intent -> decision -> obligation -> change -> attestation -> revision
 ```
 
-Every commit on `main` must close at least one obligation. No obligation
-closes without a positive + negative fixture. No kernel change ships
-without a `decisions/*.yaml` decision under the active policy.
+A change is measured by the commitment it touches, and a decision is
+written for a COMMITMENT -- not for every change.
+
+- A change that implements an existing commitment names it in the
+  commit body (`Refs: decision:<id>@<rev>`) and does not write a
+  second decision saying so. The citation is checked: it must resolve
+  to a decision the corpus holds, and that decision's obligations are
+  evaluated with the change.
+- A change that makes a NEW commitment -- a new rule, a new contract,
+  a new risk acceptance, a policy change -- carries a
+  `decisions/*.yaml` decision of its own.
+- A change to a path the active policy floors at `light` -- the docs,
+  the site, the scripts, the tests -- carries neither. It costs a
+  commit message.
+- No obligation closes without a positive + negative fixture.
+
+The floors live in `policies.yaml` and the kernel reads them
+(`decisions/record-proportionality-2026-10`). A change to the floors
+is a protected policy transition.
 
 ## Priority queue (highest leverage first)
 

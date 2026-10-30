@@ -280,6 +280,23 @@ Do not create a decision for formatting, spelling, generated output,
 evidence refresh, implementation of an existing decision, or a
 behavior-preserving refactor with adequate characterization evidence.
 
+When the change implements a commitment that already exists, NAME the
+commitment in the commit body instead of writing a second decision:
+
+```text
+Refs: decision:<id>@<rev>
+```
+
+The citation is checked, not decorative: it must resolve to a decision
+the corpus holds, and the decision it names is evaluated with the
+change -- its obligations, its scope, its evidence. A trailer naming
+a decision that does not exist is a string, and it satisfies nothing.
+
+The per-path friction floors live in `policies.yaml` and the kernel
+reads them (`mathc mode PATH` reports the effective mode). A change to
+a path floored at `light` -- docs, site, scripts, tests -- needs
+neither a decision nor a trailer.
+
 Decision reasoning is proportional to risk:
 
 - low risk: commitment, obligation, reversal condition;

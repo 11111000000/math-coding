@@ -556,7 +556,17 @@ let[@warning "-32"] parse_policy v =
    where `errors = ""` indicates a clean parse.
    Malformed policy entries are silently dropped (the loader is
    total: it never raises). The error string is set only when the
-   top-level structure is not an array. *)
+   top-level structure is not an array.
+
+   The `policies:` WRAPPER is accepted as well: a document that holds
+   the sequence under a `policies` key parses the same as a bare
+   sequence. Both shapes are in the wild — the kernel's own
+   `policies.yaml` is a bare sequence, and the fixture in
+   `tests/cli/policy-env-var.t` writes the wrapper — and a resolver
+   that accepts only one of them reports "no policy declared" for the
+   other, which reads as "the project declared no floors" instead of
+   "the project declared floors in a shape the kernel did not read".
+   The empty sequence and the empty wrapper are the same answer. *)
 let parse_policies content =
   let v =
     try Codec.load_yaml_value content
@@ -564,12 +574,22 @@ let parse_policies content =
       (* Fall back to JSON parsing for *.json policies files. *)
       try Jsonl.parse content with _ -> Jsonl.Null)
   in
+  let sequence = function
+    | Jsonl.Array items -> Some items
+    | Jsonl.Object ps -> (
+        match Schema.take_array ps "policies" with
+        | Some items -> Some items
+        | None -> None)
+    | _ -> None
+  in
   match v with
-  | Jsonl.Array items ->
-      let policies = List.filter_map parse_policy items in
-      (policies, "")
   | Jsonl.Null -> ([], "")
-  | _ -> ([], "expected array of policies")
+  | _ -> (
+      match sequence v with
+      | Some items ->
+          let policies = List.filter_map parse_policy items in
+          (policies, "")
+      | None -> ([], "expected array of policies"))
 
 (* --- file loader (thin I/O wrapper) --- *)
 

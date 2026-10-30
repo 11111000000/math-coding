@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: test
-body_sha: "sha256:ce147685334f6e5170e5075f5c9434e1b4683601f0229cfc015bcfdd65e64531"
-yaml_sha: "sha256:ce147685334f6e5170e5075f5c9434e1b4683601f0229cfc015bcfdd65e64531"
+body_sha: "sha256:b54a141a4a0c5ecc82485d3a9ac82b8922a5c567086f89058376526f86bfb37c"
+yaml_sha: "sha256:b54a141a4a0c5ecc82485d3a9ac82b8922a5c567086f89058376526f86bfb37c"
 
 axiom_link:
   - A0
@@ -305,7 +305,7 @@ reversal:
 relations:
   addresses:
     - duplicate-mapping-keys-silent-drop-2026-10@1
-    - yaml-seq-item-continuation-2026-10@1
+    - archive/decisions/yaml-seq-item-continuation-2026-10.yaml
   refines: []
   contradicts: []
   supersedes: []

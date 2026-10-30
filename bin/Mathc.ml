@@ -6973,8 +6973,42 @@ let do_gate () =
     (fun (e : Memory.decision_entry) ->
       Hashtbl.replace scope_map e.Memory.decision_id e.Memory.scope_paths)
     memory.Memory.decisions;
+  (* THE COMMIT BODY, AND THE COMMITMENT IT CITES.
+   *
+   * The body is read here rather than further down because the set of
+   * decisions the gate evaluates depends on it. A commit that cites
+   * `Refs: decision:<id>@<rev>` says which commitment it implements,
+   * and algebra §20 lets that citation stand in for a committed
+   * decision file. For the citation to be worth anything, the
+   * decision it names has to be CHECKED -- otherwise the gate would
+   * accept a change that names a commitment and then verify nothing
+   * about it, which is the one thing the citation is for. So the
+   * cited decisions join the touched set, whatever their scope says.
+   *
+   * The rule the kernel applies is the spec's: the citation counts
+   * when it resolves to a decision the corpus holds
+   * (`Gate.resolved_trailer_refs`). A citation of a decision that
+   * does not exist resolves to nothing and counts for nothing. *)
+  let commit_body_raw =
+    try run_git_command !base !head [ "log"; "-1"; "--format=%B" ]
+    with _ -> ""
+  in
+  let corpus_decision_ids =
+    List.map
+      (fun (e : Memory.decision_entry) -> e.Memory.decision_id)
+      memory.Memory.decisions
+  in
+  let c_info =
+    Gate.commit_info_of ~changed_paths ~body:commit_body_raw
+      ~corpus_decision_ids
+  in
+  let cited = Gate.resolved_trailer_refs c_info in
   let touched =
-    decisions_touching_changes ~scopes:scope_map ~changed:changed_paths
+    let by_scope =
+      decisions_touching_changes ~scopes:scope_map ~changed:changed_paths
+    in
+    if cited = [] then by_scope
+    else List.sort_uniq String.compare (by_scope @ cited)
   in
   (* THE CHECKS RUN, NOW, ON THE CANDIDATE TREE.
    *
@@ -7125,11 +7159,6 @@ let do_gate () =
      the attestation store freshness). This preserves v3.0
      semantics for non-§15 callers and only tightens the bar
      when §15 evidence is present. *)
-  let commit_body_raw =
-    try run_git_command !base !head [ "log"; "-1"; "--format=%B" ]
-    with _ -> ""
-  in
-  let c_info = Gate.commit_info_of ~changed_paths ~body:commit_body_raw in
   let all_obligations =
     let dec_dir =
       Filename.concat root (Path_config.resolve_decisions_dir ~root ())
@@ -11908,17 +11937,27 @@ let dispatch () =
     print_usage stderr;
     exit 2
   end;
-  (* Load policies.yaml once at startup so the cached policy list
-     is populated before any `mathc mode` invocation runs. The
-     call is a no-op when the file is absent (algebra §9 default:
-     `policy(p) = default-policy`). The path is anchored at the
-     project root (find_project_root walks up to dune-project),
-     so the loader works from any cwd. See decision
-     `risk-policy-driven-floor-2026-10`. *)
+  (* Load the RISK-FLOOR policies file once at startup so the cached
+     policy list is populated before any `mathc mode` invocation runs.
+     The call is a no-op when the file is absent (algebra §9 default:
+     `policy(p) = default-policy`).
+
+     THE FILE THIS LOADS. Not the master policy: the master policy is
+     the active protocol DECISION (bootstrap-v3@3), located by id, and
+     the resolver this call used to use answered "the master policy"
+     with `.math-coding/policy.yaml` or `decisions/decision.yaml` --
+     both decision documents. Parsing either as a policy sequence
+     yields an empty list, so the policy cache stayed empty, every
+     path classified as `tiny`, and the `mode_floor` a project
+     declares was never read by the kernel that documents it. The
+     resolver now names the file the kernel wants:
+     `policies.yaml` at the project root, overridable with
+     `MATH_CODING_POLICIES` (or the older `MATH_CODING_POLICY`).
+     See decision `record-proportionality-2026-10`. *)
   let _ =
     let root = find_project_root (Sys.getcwd ()) in
     let path =
-      Filename.concat root (Path_config.resolve_policy_path ~root ())
+      Path_config.join_root ~root (Path_config.resolve_policies_path ~root ())
     in
     Policy.load_policies ~path ()
   in

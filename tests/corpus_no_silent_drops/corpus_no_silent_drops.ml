@@ -175,8 +175,24 @@ let[@warning "-32"] measure rel =
    floor makes that failure loud. *)
 let test_the_corpus_was_actually_read () =
   let files = decision_files () in
+  (* THE FLOOR MOVED, AND HERE IS WHY.
+   *
+   * The floor was 150: the corpus had 157 decisions, and the check
+   * said "the corpus was read". It was really a pin on the corpus's
+   * SIZE -- and a size pin is the opposite of what the corpus wants:
+   * `decisions/corpus-final-state-2026-10` says the corpus shrinks to
+   * about fifty rules, and `decisions/decision-level-census-2026-10`
+   * says the pins follow the truth down.
+   *
+   * The anti-vacuity this check exists for is "the directory listing
+   * returned something", and the loud half of it is already in the
+   * ledger: `read` fails with `Alcotest.failf "%s missing"` when the
+   * corpus is not there at all. So the floor is the non-empty one,
+   * and the loud reads carry the rest. A floor of 150 would have
+   * turned a corpus-pruning decision into a failing test, which is
+   * the wrong way round: the corpus is supposed to get smaller. *)
   Alcotest.check Alcotest.bool "decisions/ was found and is not empty" true
-    (List.length files > 150);
+    (List.length files > 0);
   Alcotest.check Alcotest.bool "policies.yaml was found" true
     (Sys.file_exists (Filename.concat repo_root "policies.yaml"))
 
