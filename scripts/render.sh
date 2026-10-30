@@ -18,8 +18,28 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The kernel binary. `@install` is the canonical place, but the build
+# that `scripts/dev build` runs does NOT produce it -- dune's default
+# alias builds the targets, not the install alias -- and the nix build
+# of the test suite builds the target directly. Both paths are tried:
+# a script that names one path and the build produces the other exits
+# 127, and the site verification goes down with it.
+MATHC="${MATHC_BIN:-_build/install/default/bin/mathc}"
+if [ ! -x "$MATHC" ] && [ -x "_build/default/bin/mathc.exe" ]; then
+  MATHC="_build/default/bin/mathc.exe"
+fi
+
 echo "[1/4] building mathc..."
-scripts/dev build
+# The binary is built only when it is missing: the nix build of the
+# test suite has already built it, and it has no dev environment to
+# build one with.
+if [ ! -x "$MATHC" ]; then
+  scripts/dev build
+  MATHC="${MATHC_BIN:-_build/install/default/bin/mathc}"
+  if [ ! -x "$MATHC" ] && [ -x "_build/default/bin/mathc.exe" ]; then
+    MATHC="_build/default/bin/mathc.exe"
+  fi
+fi
 
 echo "[2/4] running mathc render..."
 mkdir -p dist
@@ -30,7 +50,7 @@ mkdir -p dist
 # and .zh.html are omitted when their sources are absent. The
 # index pages (index.html, index.ru.html, index.zh.html) are
 # emitted unconditionally per language.
-_build/install/default/bin/mathc render --out dist --lang=all
+"$MATHC" render --out dist --lang=all
 
 echo "[3/4] copying assets..."
 mkdir -p dist/assets
@@ -53,7 +73,6 @@ done
 # for the bootstrap policy that the graph.html viewer fetches at
 # runtime. graph.json is not part of the static page set, so the
 # render dispatcher does not emit it.
-MATHC="${MATHC_BIN:-_build/install/default/bin/mathc}"
 if [ -x "$MATHC" ]; then
   echo "[3.5/4] building graph.json..."
   mkdir -p dist

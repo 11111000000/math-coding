@@ -197,7 +197,13 @@
           # yq (the workflow fixtures). All of them were missing
           # here, and the build had been failing behind the red CI
           # step for weeks.
-          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git pkgs.jq pkgs.ripgrep pkgs.yq ];
+          # bash is here because the suite runs the project's own
+          # scripts -- scripts/render.sh among them -- and their
+          # shebang is `#!/usr/bin/env bash`. Without bash in the
+          # sandbox the script is "not found", and the site
+          # assertions report a broken site instead of a missing
+          # interpreter.
+          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git pkgs.jq pkgs.ripgrep pkgs.yq pkgs.bash ];
           buildPhase = ''
             runHook preBuild
             export OCAMLPATH="${ocamlPath}"

@@ -675,14 +675,27 @@ let[@warning "-32"] test_fmt_clean () =
   in
   (try ignore (Unix.system ("rm -rf " ^ Filename.quote alt_build))
    with _ -> ());
-  let lock_path =
-    Filename.concat (Filename.get_temp_dir_name ()) "mathc-fmt-check.lock"
-  in
+  (* The check runs the project's OWN tool, scripts/fmt-check.sh, which
+     asks `ocamlformat --check` the same question with no dune lock and
+     no nix. The old form -- `nix develop .#test --command dune fmt
+     --preview` -- could not run where nix is absent, and the nix build
+     of the test suite is exactly such a place: the derivation has no nix
+     in it, so the command failed and the suite reported "the OCaml tree
+     needs reformatting" about a tree that was already clean. The
+     fixture that decides the matter is scripts/fmt-check.sh, and a
+     check that reports a formatting failure it did not measure is
+     worse than no check. *)
+  (* No `flock` here: the old command went through `nix develop` and
+     `dune fmt`, and the lock was there to keep those two from
+     contending for the workspace lock. `scripts/fmt-check.sh` asks
+     `ocamlformat` directly and takes no lock at all -- and the nix
+     build of the suite has neither `nix` nor `flock` in it, so the
+     old command failed there with 127 and the suite reported a
+     formatting failure about a tree that was clean. *)
   let cmd =
     Printf.sprintf
-      {|cd %s && flock %s -c 'DUNE_DISABLE_PROMOTION=1 nix develop .#test --command bash -c "dune fmt --build-dir %s --root . --preview"' > /tmp/fmt-out.txt 2> /tmp/fmt-err.txt; echo DONE_EXIT=$?|}
+      {|cd %s && bash scripts/fmt-check.sh > /tmp/fmt-out.txt 2> /tmp/fmt-err.txt; echo DONE_EXIT=$?|}
       (Filename.quote project_root)
-      (Filename.quote lock_path) (Filename.quote alt_build)
   in
   let ic = Unix.open_process_in cmd in
   let buf = Buffer.create 4096 in

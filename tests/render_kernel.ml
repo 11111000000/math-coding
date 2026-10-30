@@ -1207,7 +1207,24 @@ let[@warning "-32"] axioms_link_html_not_md () =
   (* Render `dist/` afresh and verify the rendered axiom pages
      carry the link to the rendered spec. *)
   let script = Filename.concat root "scripts/render.sh" in
-  let ec = Sys.command script in
+  (* The script writes into `dist/` and reads `assets/` by RELATIVE
+     path, so it must run with the repository root as its working
+     directory. The test process runs inside dune's sandbox, whose
+     working directory is the build tree: the script was therefore
+     looking for the kernel binary and the assets in a place where
+     they do not exist, and it exited 127 -- "command not found" --
+     which the site assertions reported as a broken site.
+
+     The script is invoked through `bash` rather than executed: its
+     shebang is `#!/usr/bin/env bash`, and the nix sandbox that runs
+     the suite has no `/usr/bin/env`, so the shebang could not be
+     resolved and the script was "not found" before its first line.
+     Naming the interpreter explicitly works in both places. *)
+  let ec =
+    Sys.command
+      (Printf.sprintf "cd %s && bash %s" (Filename.quote root)
+         (Filename.quote script))
+  in
   if ec <> 0 then
     Alcotest.failf "scripts/render.sh exited %d; cannot verify axiom pages" ec;
   let dist = Filename.concat root "dist" in
@@ -1345,7 +1362,13 @@ let () =
                  (diagrams-as-svg-2026-10) *)
               let root = project_root () in
               let script = Filename.concat root "scripts/render.sh" in
-              let ec = Sys.command script in
+              (* the repository root is the working directory: the
+                 script resolves the kernel and the assets relatively *)
+              let ec =
+                Sys.command
+                  (Printf.sprintf "cd %s && bash %s" (Filename.quote root)
+                     (Filename.quote script))
+              in
               if ec <> 0 then
                 Alcotest.failf
                   "scripts/render.sh exited %d; cannot verify inline figure \
@@ -1422,7 +1445,15 @@ let () =
                  build runs. *)
               let out_dir = Filename.concat root "dist" in
               let script_path = Filename.concat root "scripts/render.sh" in
-              let ec = Sys.command script_path in
+              (* through `bash`, from the repository root: the
+                 script's shebang needs `/usr/bin/env`, which the nix
+                 sandbox that runs the suite does not have, and it
+                 resolves its paths relatively. *)
+              let ec =
+                Sys.command
+                  (Printf.sprintf "cd %s && bash %s" (Filename.quote root)
+                     (Filename.quote script_path))
+              in
               if ec <> 0 then
                 Alcotest.failf
                   "scripts/render.sh exited %d; cannot verify dashboard/graph \
