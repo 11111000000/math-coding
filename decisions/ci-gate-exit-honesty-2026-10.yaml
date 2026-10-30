@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.3
 id: ci-gate-exit-honesty-2026-10
-revision: 1
+revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:c07e825720faa9151637c8c0d7568d3f550d8473809970f4aad033986ea4625e"
-yaml_sha: "sha256:c07e825720faa9151637c8c0d7568d3f550d8473809970f4aad033986ea4625e"
+body_sha: "sha256:92ec59b8525f80a2fa9ca620231820d4760e41e10f3c48591a24fa11efd8c916"
+yaml_sha: "sha256:92ec59b8525f80a2fa9ca620231820d4760e41e10f3c48591a24fa11efd8c916"
 
 intent: |
   Make the two gates that the project's central claim rests on
@@ -64,6 +64,31 @@ commitment: |
      step (`bash --noprofile --norc -e -o pipefail`), and exits 0
      only when step status == mathc status for exits 0, 1, 3 and
      for a crash-before-JSON exit 3.
+
+  WHAT CHANGED SINCE, 2026-10-30 (revision 2). Points 1 and 2 above
+  describe the step as it was on 2026-10-21. Two things moved:
+
+  (a) THE STEP IS AN AUDIT, NOT A MIRROR. The step was renamed
+      `mathc self-check (corpus audit)` on 2026-10-29 and now
+      DELEGATES the unknown verdict: exit 3 asks the corpus-debt
+      ratchet and adopts the ratchet's status (green while the
+      declared debt is under its ceiling, red when it is over),
+      while exit 1 - a decisive failure - stays red on its own. The
+      promise of point 1 stands for exits 0 and 1; for exit 3 the
+      step's status is the ratchet's, and the ratchet is what holds
+      the line (decisions/ci-self-check-is-an-audit-2026-10.yaml).
+
+  (b) THE SIMULATOR HAD STOPPED RUNNING. It kept the OLD step name
+      after the rename, so it failed on every run with "could not
+      extract the run: block" - and nothing ran it, so the comment
+      in ci.yml that said the rows were "checked, not asserted" was
+      false for a week. The simulator now finds the step and checks
+      the audit shape: five rows, the exit-3 row twice (the pin
+      holding and the pin biting), with the ratchet stubbed
+      (decisions/honest-instruments-2026-10.yaml).
+
+  The `jq` dump is still diagnostic-only, and the comment in ci.yml
+  now says what the body does.
 
   3. `scripts/dev verify` stage 2 no longer treats a `dune test`
      timeout as a pass. It falls back to `scripts/dev-fast-test
@@ -154,16 +179,18 @@ scope:
 outcomes:
   - id: ci-step-propagates-mathc-exit
     statement: |
-      The `mathc self-check (bootstrap-gate block)` step in
+      The `mathc self-check (corpus audit)` step in
       `.github/workflows/ci.yml` ends with `exit "${rc}"` where
       `rc` is mathc's own exit status, and its `jq` diagnostic
       dump runs under an `if` that cannot reach that line's
-      status.
+      status. An exit 3 is the one case that is delegated: the
+      step adopts the corpus-debt ratchet's status.
   - id: exit-honesty-is-checked-not-asserted
     statement: |
       `scripts/ci-step-exit-sim.sh` replays the ci.yml step body
-      verbatim against a stub mathc and exits nonzero when any
-      verdict is not carried through to the step status.
+      verbatim against a stub mathc and a stub ratchet, and exits
+      nonzero when any row reports something other than the status
+      the audit shape demands.
   - id: dune-test-hang-is-not-a-pass
     statement: |
       `scripts/dev verify` stage 2 fails on a `dune test`
@@ -182,9 +209,12 @@ obligations:
     claim: |
       Replaying the ci.yml self-check step body against a stub
       `mathc` yields a step exit status equal to mathc's for mathc
-      exits 0, 1 and 3, and for an exit 3 that emits no parsable
-      JSON. The block is read out of `.github/workflows/ci.yml` at
-      run time, not copied into the harness.
+      exits 0 and 1, and the corpus-debt ratchet's status for an
+      exit 3 - green while the declared debt is under its ceiling,
+      red when the pin bites - and for an exit 3 that emits no
+      parsable JSON. The block is read out of
+      `.github/workflows/ci.yml` at run time, not copied into the
+      harness.
     acceptance:
       all:
         - verifier: scripts/ci-step-exit-sim.sh
