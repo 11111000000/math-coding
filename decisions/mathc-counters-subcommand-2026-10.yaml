@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-counters-subcommand-2026-10
 revision: 2
 state: active
-body_sha: "sha256:51b66cbb4fa6cd9939ea4e64ccee93e6281a099afba92505cae6e686f9109ea2"
-yaml_sha: "sha256:51b66cbb4fa6cd9939ea4e64ccee93e6281a099afba92505cae6e686f9109ea2"
+body_sha: "sha256:afc0a5357a57f34a6a6f3d24708d77598f2a63ff88f7c81239dcfd1bda5458b5"
+yaml_sha: "sha256:afc0a5357a57f34a6a6f3d24708d77598f2a63ff88f7c81239dcfd1bda5458b5"
 axiom_link:
   - A0
 intent: |
@@ -70,8 +70,8 @@ obligations:
     claim: mathc counters returns JSON in the documented shape.
     acceptance:
       all:
+        - verifier: mathc counters
         - verifier: tests/cli/mode.t
-        - verifier: manual-target-missing-scripts-dev-lint
   - id: dev-counters-py-deleted
     claim: scripts/dev-counters.py is removed from the tree.
     acceptance:

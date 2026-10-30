@@ -224,7 +224,15 @@ let[@warning "-32"] collect_unparsed_tail_diagnostics path =
    / `verifier: dune test` widely. `dune-` covers the
    sentinel forms `dune-build` / `dune-runtest`. *)
 let[@warning "-32"] canonical_verifier_schemes =
-  [ "file-exists"; "dir-exists"; "bash"; "mathc"; "shell-grep"; "dune" ]
+  [
+    "file-exists";
+    "dir-exists";
+    "bash";
+    "mathc";
+    "shell-grep";
+    "shell-grep-absent";
+    "dune";
+  ]
 
 let[@warning "-32"] canonical_verifier_prefixes =
   [ "text-scan-"; "tests/"; "dune-"; "scripts/"; "manual-" ]
@@ -3844,13 +3852,51 @@ let[@warning "-32"] mass_issue_threshold = 10
  * batch-wide --run can only say "this one command exited 0", which is
  * one claim about many obligations.
  *)
+(* The double quote, as a character. *)
+let[@warning "-32"] quote = Char.chr 34
+
+(* Split a verifier string into a scheme and its arguments.
+
+   A DOUBLE-QUOTED argument keeps the spaces it was written with: the
+   scheme is the first token, and a token that opens with a quote
+   runs to the matching closing quote. Without this, a pattern that
+   contains a run of spaces -- a markdown table row, an indented
+   snippet -- cannot be written down at all: the split would collapse
+   the spaces and the check would look for a string the file does
+   not contain. *)
+let[@warning "-32"] split_verifier_args trimmed =
+  let n = String.length trimmed in
+  let acc = ref [] in
+  let buf = Buffer.create 32 in
+  let in_quote = ref false in
+  let quoted = ref false in
+  let flush () =
+    if Buffer.length buf > 0 then (
+      acc := Buffer.contents buf :: !acc;
+      Buffer.clear buf;
+      quoted := false)
+  in
+  let i = ref 0 in
+  while !i < n do
+    let c = trimmed.[!i] in
+    if !in_quote then
+      if c = quote then in_quote := false else Buffer.add_char buf c
+    else if c = quote && Buffer.length buf = 0 then (
+      in_quote := true;
+      quoted := true)
+    else if c = ' ' then flush ()
+    else Buffer.add_char buf c;
+    incr i
+  done;
+  flush ();
+  List.rev !acc
+
 let[@warning "-32"] parse_verifier_string s =
   let trimmed = String.trim s in
   if trimmed = "" then None
   else
     let parts =
-      trimmed |> String.split_on_char ' '
-      |> List.filter (fun t -> String.trim t <> "")
+      split_verifier_args trimmed |> List.filter (fun t -> String.trim t <> "")
     in
     match parts with [] -> None | scheme :: args -> Some (scheme, args)
 
@@ -3872,6 +3918,14 @@ let[@warning "-32"] mathc_scheme_allowlist =
     "context";
     "packages";
     "version";
+    (* The read-only commands a corpus promise can be checked by
+       without naming a file: `counters` and `stats` print JSON
+       about the tree, `session-start` writes one timestamp line
+       under .local/ and nothing else. A verifier that runs them
+       observes; it does not decide anything about the corpus. *)
+    "counters";
+    "stats";
+    "session-start";
     (* `rehash` without `--write` only reads: it recomputes each
        decision's digest and reports what would change, exiting 1
        only on a file it could not read or whose stamp is not a
@@ -4022,6 +4076,48 @@ let[@warning "-32"] repo_file ~project_root rel =
           | st when st.Unix.st_kind = Unix.S_REG -> Ok (real_abs, rel)
           | _ -> Error (Printf.sprintf "%s: not a regular file" rel))
 
+(* A path inside the repository that may be a FILE or a DIRECTORY.
+   The grep schemes search a tree as well as a file: a promise of the
+   shape "nothing under decisions/ carries the old prefix" is a fact
+   about a tree, and `repo_file` -- which admits regular files only --
+   could not state it. The containment rule is the same: the path
+   must resolve inside the repository. *)
+let[@warning "-32"] repo_path ~project_root rel =
+  if rel = "" then Error "empty path"
+  else if not (Filename.is_relative rel) then
+    Error
+      (Printf.sprintf
+         "%s: absolute path; a verifier names a path inside the repository" rel)
+  else if path_has_dotdot_segment rel then
+    Error
+      (Printf.sprintf
+         "%s: `..` segment; a verifier names a path inside the repository" rel)
+  else
+    let abs = Filename.concat project_root rel in
+    match Unix.realpath abs with
+    | exception _ ->
+        Error
+          (Printf.sprintf "%s: no such path in the repository (looked in %s)"
+             rel project_root)
+    | real_abs -> (
+        let real_root =
+          match Unix.realpath project_root with
+          | exception _ -> project_root
+          | r -> r
+        in
+        if not (path_is_under ~root:real_root real_abs) then
+          Error
+            (Printf.sprintf "%s: resolves outside the repository (%s)" rel
+               real_abs)
+        else
+          match Unix.stat real_abs with
+          | exception _ ->
+              Error (Printf.sprintf "%s: cannot stat (%s)" rel real_abs)
+          | st when st.Unix.st_kind = Unix.S_REG || st.Unix.st_kind = Unix.S_DIR
+            ->
+              Ok (real_abs, rel)
+          | _ -> Error (Printf.sprintf "%s: not a file or a directory" rel))
+
 let[@warning "-32"] ends_with ~suffix s =
   let ls = String.length s and lf = String.length suffix in
   ls >= lf && String.sub s (ls - lf) lf = suffix
@@ -4068,7 +4164,7 @@ type verifier_plan =
   (* repository-relative cram file, run via `dune runtest` *)
   | Plan_binary of string * string list
   (* dune exec target, argv handed to the binary *)
-  | Plan_grep of string * string
+  | Plan_grep of string * string * bool
 (* absolute file path, the fixed string that must appear in it *)
 
 type verifier_plan_result =
@@ -4291,7 +4387,27 @@ let[@warning "-32"] plan_verifier ~project_root scheme args =
         else
           match repo_file ~project_root file with
           | Error why -> Plan_fail why
-          | Ok (abs, _) -> Plan_ok (Plan_grep (abs, pattern)))
+          | Ok (abs, _) -> Plan_ok (Plan_grep (abs, pattern, true)))
+  else if scheme = "shell-grep-absent" then
+    (* `shell-grep-absent <path> <pattern...>`: the path must NOT
+       contain the pattern. The path may be a directory, and the
+       search is recursive: a corpus promise of the shape "nothing
+       under decisions/ carries the old prefix" is a fact about a
+       TREE, and a check that can only read one file cannot state
+       it.
+
+       The negative form is its own scheme rather than a flag: a
+       scheme name cannot be confused with a path, and the two
+       directions are different claims about different things. *)
+    match args with
+    | [] -> Plan_fail "shell-grep-absent: needs a path and a pattern"
+    | path :: rest -> (
+        let pattern = String.concat " " rest in
+        if pattern = "" then Plan_fail "shell-grep-absent: needs a pattern"
+        else
+          match repo_path ~project_root path with
+          | Error why -> Plan_fail why
+          | Ok (abs, _) -> Plan_ok (Plan_grep (abs, pattern, false)))
   else if starts_with "tests/" scheme then
     let rel, selector = split_case_selector scheme in
     if args <> [] then
@@ -4415,6 +4531,57 @@ let[@warning "-32"] string_contains haystack needle =
     in
     loop 0
 
+(* The directories a `shell-grep` over a tree does not descend into:
+   the build tree, the version-control directory, the generated
+   evidence and the store. A grep that walked them would read
+   gigabytes and would find the very strings it is looking for in
+   the artefacts it is meant to check. *)
+let[@warning "-32"] grep_skip_dirs =
+  [ "_build"; ".git"; "attestations"; ".math-coding" ]
+
+(* Does `needle` occur in the file at `path`? A file that cannot be
+   read counts as "unknown": a check over a file it cannot open is
+   not a check, and an unreadable target is a setup failure, not a
+   pass. *)
+let[@warning "-32"] file_contains path needle =
+  match read_file_text path with
+  | None -> None
+  | Some text -> Some (string_contains text needle)
+
+(* Search a path for `needle`. A file is searched; a directory is
+   searched recursively. `None` when the path does not exist or a
+   file in it cannot be read; `Some true/false` when the answer is
+   known. *)
+let[@warning "-32"] path_contains path needle =
+  if not (Sys.file_exists path) then None
+  else if not (Sys.is_directory path) then file_contains path needle
+  else
+    let found = ref false in
+    let unreadable = ref false in
+    let rec walk dir =
+      if not !found then
+        match Sys.readdir dir with
+        | entries ->
+            Array.iter
+              (fun name ->
+                if not !found then
+                  begin if name = "." || name = ".." then ()
+                  else
+                    let p = Filename.concat dir name in
+                    if List.mem name grep_skip_dirs then ()
+                    else if Sys.is_directory p then walk p
+                    else
+                      match file_contains p needle with
+                      | Some true -> found := true
+                      | Some false -> ()
+                      | None -> unreadable := true
+                  end)
+              entries
+        | exception _ -> unreadable := true
+    in
+    walk path;
+    if !found then Some true else if !unreadable then None else Some false
+
 let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
   function
   | Plan_dune args ->
@@ -4424,17 +4591,13 @@ let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
   | Plan_cram rel ->
       run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune"
         ~args:[ "runtest"; rel ]
-  | Plan_grep (abs, pattern) -> (
-      if
-        (* No process is spawned: the file is read and the pattern
-         searched for. A file that cannot be read is a check that
+  | Plan_grep (abs, pattern, want_present) -> (
+      (* No process is spawned: the path is read and the pattern
+         searched for. A path that cannot be read is a check that
          could not be set up (`Setup_fail`), not a check that failed. *)
-        not (Sys.file_exists abs)
-      then Setup_fail
-      else
-        match read_file_text abs with
-        | None -> Setup_fail
-        | Some text -> if string_contains text pattern then Pass else Fail)
+      match path_contains abs pattern with
+      | None -> Setup_fail
+      | Some found -> if found = want_present then Pass else Fail)
   | Plan_binary (target, argv) ->
       let args = [ "exec"; target ] in
       let args = if argv = [] then args else args @ [ "--" ] @ argv in

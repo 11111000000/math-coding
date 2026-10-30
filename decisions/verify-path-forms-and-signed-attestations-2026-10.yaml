@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:19ddb9ceb7f66334c0322297e3fa7532b7ed41e9810aa36d3c0e5e76cf8abd27"
-yaml_sha: "sha256:19ddb9ceb7f66334c0322297e3fa7532b7ed41e9810aa36d3c0e5e76cf8abd27"
+body_sha: "sha256:c08754ff8900e82edfd219862b3d53aa2c0a0ad1daabd111e30745740709d384"
+yaml_sha: "sha256:c08754ff8900e82edfd219862b3d53aa2c0a0ad1daabd111e30745740709d384"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -213,9 +213,7 @@ obligations:
       the digest is the sha256 of the run's output.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
-          needle: runtime_attestation_kinds
+        - verifier: tests/cli/verify-path-forms.t
 
   - id: review-digest-stays-empty
     claim: |

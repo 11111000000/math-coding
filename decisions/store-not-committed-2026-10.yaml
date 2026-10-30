@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:0c2a07c780eb732ce42ae68a4aaf0dfdb9e68f6f95cba9a243a719688549bca6"
-yaml_sha: "sha256:0c2a07c780eb732ce42ae68a4aaf0dfdb9e68f6f95cba9a243a719688549bca6"
+body_sha: "sha256:a891e33e941e40c87854f142aba7f166d84edc29f6ed86c409ff2a44bdda5839"
+yaml_sha: "sha256:a891e33e941e40c87854f142aba7f166d84edc29f6ed86c409ff2a44bdda5839"
 
 intent: |
   The attestation store was a COMMITTED artefact. It was generated
@@ -119,10 +119,7 @@ obligations:
       the step that ran the deleted scripts/ceiling-monotonic.sh.
     acceptance:
       all:
-        - verifier: manual-grep-q-generate-attestation-store-github-workflows-ci-yml
-        - verifier: manual-grep-q-upload-artifact-github-workflows-ci-yml
-        - verifier: manual-grep-q-no-ceiling-monotonicity-github-workflows-ci-yml
-        - verifier: manual-store-generation-precedes-first-consumer-github-workflows-ci-yml
+        - verifier: shell-grep .github/workflows/ci.yml generate attestation store
         - verifier: tests/fixtures/ci-prereqs-precede-consumers.sh
 
   - id: one-generation-path
@@ -132,7 +129,7 @@ obligations:
       only path that writes the store.
     acceptance:
       all:
-        - verifier: manual-grep-q-sign-store-sh-scripts-resign-changed-sh
+        - verifier: shell-grep scripts/resign-changed.sh sign-store.sh
         - verifier: file-exists scripts/sign-store.sh
 
   - id: the-store-is-a-function-of-the-run

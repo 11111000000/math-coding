@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:e76c537d47ea2ef697908423cba23591c701f16ccfbeaf1b81788592ec98d328"
-yaml_sha: "sha256:e76c537d47ea2ef697908423cba23591c701f16ccfbeaf1b81788592ec98d328"
+body_sha: "sha256:e616cc9bf5dc64bf9ba081f1cf60758686caf77cb670c85fa2ecdd1577b17a32"
+yaml_sha: "sha256:e616cc9bf5dc64bf9ba081f1cf60758686caf77cb670c85fa2ecdd1577b17a32"
 axiom_link:
   - A0
   - A1
@@ -136,13 +136,13 @@ obligations:
     claim: schemas/decision.json declares antithesis with minLength 80.
     acceptance:
       all:
-        - verifier: manual-text-scan-schemas-decision-antithesis
+        - verifier: shell-grep schemas/decision.json antithesis
   - id: spec-11-updated
     outcome: spec-11-names-antithesis
     claim: spec/algebra-3.2.md §11 mentions antithesis; §11.1 records rationale.
     acceptance:
       all:
-        - verifier: manual-text-scan-contains-antithesis-in-section-11
+        - verifier: shell-grep spec/algebra-3.2.md antithesis
   - id: kernel-parses
     outcome: kernel-parses-antithesis
     claim: lib/decision.ml accepts the antithesis key from YAML/JSON.

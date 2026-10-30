@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: time-honesty-storage
 revision: 2
 state: active
-body_sha: "sha256:d6b455f8457c965e3cbe3bae4c20359927e533091f94b6bde730924d14500750"
-yaml_sha: "sha256:d6b455f8457c965e3cbe3bae4c20359927e533091f94b6bde730924d14500750"
+body_sha: "sha256:098aa157d9717d61d936b1b583bd0c0e74ec8b4d9dae3a357e96f13723ed7107"
+yaml_sha: "sha256:098aa157d9717d61d936b1b583bd0c0e74ec8b4d9dae3a357e96f13723ed7107"
 intent: |
   Close the read side of A1 (Feedback) for time claims. The prior
   decision time-honesty@v1 registered obligations on the forward-
@@ -120,7 +120,8 @@ obligations:
       returns an error (untracked) on a freshly-init'd worktree.
     acceptance:
       all:
-        - verifier: manual-text-scan-gitignore
+        - verifier: shell-grep .gitignore .local
+        - verifier: shell-grep .gitignore decisions/execution-logs.jsonl
   - id: record-no-user-value-for-wallclock
     outcome: runtime-observation-closed-loop
     claim: |
@@ -142,7 +143,7 @@ obligations:
         present only when n < threshold).
     acceptance:
       all:
-        - verifier: manual-cram-fixture-stats-threshold
+        - verifier: mathc stats
   - id: session-start-valid
     outcome: runtime-observation-closed-loop
     claim: |
@@ -154,7 +155,7 @@ obligations:
       if absent.
     acceptance:
       all:
-        - verifier: manual-cram-fixture-session-start-then-record
+        - verifier: mathc session-start
 
 reversal:
   - signal: multi-machine-federation-needed

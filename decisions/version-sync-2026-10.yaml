@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:d9aace9f18fa2734b91286ab20d21875b66d34afe1fd5311094d04d485c9d558"
-yaml_sha: "sha256:d9aace9f18fa2734b91286ab20d21875b66d34afe1fd5311094d04d485c9d558"
+body_sha: "sha256:2703ebe05a7669b6135fe9dd1ac4830f3423b06f2bad0c9993d0bfdc357183b8"
+yaml_sha: "sha256:2703ebe05a7669b6135fe9dd1ac4830f3423b06f2bad0c9993d0bfdc357183b8"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -209,7 +209,7 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-sync-version-sh-write-git
+        - verifier: tests/fixtures/sync-version-clean-passes.sh
   - id: trap-log-entry-present
     claim: |
         `OCAML_BEST_PRACTICES.md` §11.27 records the

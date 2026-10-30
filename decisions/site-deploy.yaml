@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
-yaml_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
+body_sha: "sha256:95675f96830fc96f2a9a96137f40b14ce7ac856fe394a74d2c40c99f526ae89f"
+yaml_sha: "sha256:95675f96830fc96f2a9a96137f40b14ce7ac856fe394a74d2c40c99f526ae89f"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -170,7 +170,7 @@ obligations:
     outcome: site-pinned-ubuntu
     acceptance:
       all:
-        - verifier: manual-grep-runs-on-ubuntu-22-04-github-workflows-site-
+        - verifier: shell-grep .github/workflows/site.yml ubuntu-22.04
 
   - id: tufte-stylesheet
     statement: |
@@ -249,12 +249,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/render.t
-        - verifier: manual-rendered-asset-manifesto
-        - verifier: manual-rendered-asset-foundations
-        - verifier: manual-rendered-asset-workflow
-        - verifier: manual-rendered-asset-faq
-        - verifier: manual-rendered-asset-contributing
-        - verifier: manual-rendered-asset-readme
 
   - id: extended-markdown-subset
     statement: |

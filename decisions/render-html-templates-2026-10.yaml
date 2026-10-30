@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:4c65b01f97a3db995c7d6dff75619349403300318180a469bf829ec37bd0c9a9"
-yaml_sha: "sha256:4c65b01f97a3db995c7d6dff75619349403300318180a469bf829ec37bd0c9a9"
+body_sha: "sha256:4bd0737d386e56e1edf2b5b0229c0cfed3cccbdb2bae84201743cc21518f3065"
+yaml_sha: "sha256:4bd0737d386e56e1edf2b5b0229c0cfed3cccbdb2bae84201743cc21518f3065"
 
 intent: |
   Реализовать дизайн из
@@ -95,7 +95,10 @@ obligations:
       `open_in` / `open_in_bin`.
     acceptance:
       all:
-        - verifier: manual-grep-no-io-in-lib-render
+        - verifier: shell-grep-absent lib/render Sys.getenv_opt
+        - verifier: shell-grep-absent lib/render Sys.readdir
+        - verifier: shell-grep-absent lib/render Sys.file_exists
+        - verifier: shell-grep-absent lib/render open_in
 
 counterexample: |
   "Перенос `read_version_file` из `default_config` сломает тест,

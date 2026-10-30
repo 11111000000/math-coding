@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parser-risk-owner-default
 revision: 2
 state: active
-body_sha: "sha256:9bdb39dd7e29160bc6169fada843620b5fc921925f08dda4400de458366fcbd4"
-yaml_sha: "sha256:9bdb39dd7e29160bc6169fada843620b5fc921925f08dda4400de458366fcbd4"
+body_sha: "sha256:3e2a21a08eceb00a87e7a9af1e931ea2648687e20bb63438c06582894f4d626f"
+yaml_sha: "sha256:3e2a21a08eceb00a87e7a9af1e931ea2648687e20bb63438c06582894f4d626f"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -104,7 +104,7 @@ obligations:
       decisions/decision.yaml at the risk block.
     acceptance:
       all:
-        - verifier: manual-rg-n-owner-human-maintainer-decisions-decision-y
+        - verifier: "shell-grep decisions/decision.yaml owner: human:maintainer"
 
 reversal:
   - signal: kernel-default-owner-landed
