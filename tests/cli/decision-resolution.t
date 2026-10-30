@@ -190,7 +190,7 @@ kernel's tree (so it has no `dune-project` ancestor at all), run in
 the same directory, reports the same corpus. The operator's verdict
 does not depend on where the binary happens to live.
 
-  $ cp "$(command -v mathc)" "$tmp/bin/mathc"
+  $ cp "$INSIDE_DUNE/bin/mathc.exe" "$tmp/bin/mathc"
   $ cd "$tmp/proj"
   $ "$tmp/bin/mathc" counters --format=json | jq -c '{decisions: .decisions.total, obligations: .obligations.total}'
   {"decisions":2,"obligations":2}

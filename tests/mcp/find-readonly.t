@@ -22,19 +22,19 @@ The fixture invokes mathc_mcp as a subprocess.
   $ unset MCP_READ_WRITE
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":1,"method":"mathc/find","params":{"keyword":"mcp"}}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     > /tmp/find-readonly-1.json 2>/dev/null; then \
   >   grep -q '"id":1' /tmp/find-readonly-1.json \
   >     && grep -q 'mcp-agent-auto-connect-2026-10' /tmp/find-readonly-1.json \
   >     && echo "mathc/find MCP method: returns a packages-shaped JSON" \
   >     || echo "FAIL: mathc/find response missing"; \
-  > else echo "FAIL: mathc_mcp exit non-zero"; fi
+  > else echo "FAIL: $INSIDE_DUNE/bin/mathc_mcp.exe exit non-zero"; fi
   mathc/find MCP method: returns a packages-shaped JSON
 
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/find","params":{"keyword":"mcp"}}' \
-  >     | env MCP_READ_WRITE=off mathc_mcp 2>&1 \
+  >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe 2>&1 \
   >     | grep -q '"id":2'; then \
   >   echo "mathc/find (gate=off): read-only method still reachable"; \
   > else echo "FAIL: mathc/find gated by env"; fi
@@ -43,7 +43,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/gate","params":{"base":"HEAD","head":"HEAD~1"}}' \
-  >     | env MCP_READ_WRITE=off mathc_mcp 2>&1 \
+  >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe 2>&1 \
   >     | grep -q '"code":-32601'; then \
   >   echo "mathc/gate (gate=off): correctly rejected (-32601)"; \
   > else echo "FAIL: gate should be -32601"; fi

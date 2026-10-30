@@ -30,7 +30,7 @@ the system.
 
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":1,"method":"mathc/gate","params":{"base":"HEAD","head":"HEAD~1"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":1'; then \
   >   grep -q '"exit_code"' /dev/stdin || echo "mathc/gate: id present (exit code may be 0 or non-zero)"; \
   > else echo "FAIL: mathc/gate method not exposed"; fi
@@ -39,7 +39,7 @@ the system.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/attest","params":{"path":"nonexistent.xml"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":2'; then \
   >   echo "mathc/attest: id present (exits 2 on missing file is fine)"; \
   > else echo "FAIL: mathc/attest method not exposed"; fi
@@ -48,7 +48,7 @@ the system.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/record","params":{"decision_id":"foo@1","scale":"session"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":3'; then \
   >   echo "mathc/record: id present"; \
   > else echo "FAIL: mathc/record method not exposed"; fi
@@ -57,12 +57,12 @@ the system.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":4,"method":"mathc/re-evaluate-decisions","params":{"axiom_id":"A0"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":4' && \
-  >   mathc_mcp < /dev/null ; then \
+  >   $INSIDE_DUNE/bin/mathc_mcp.exe < /dev/null ; then \
   >   out=$(printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":4,"method":"mathc/re-evaluate-decisions","params":{"axiom_id":"A0"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp)
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe)
   >   echo "$out" | grep -q '"verdict"' && echo "mathc/re-evaluate-decisions: verdict present" || echo "FAIL: no verdict"
   > else echo "FAIL: mathc/re-evaluate-decisions method not exposed"; fi
   mathc/re-evaluate-decisions: verdict present
@@ -77,7 +77,7 @@ store.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":4,"method":"mathc/re-evaluate-decisions","params":{"axiom_id":"A0"}}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":4' ; then \
   >   echo "mathc/re-evaluate-decisions: id present"
   > else echo "FAIL: mathc/re-evaluate-decisions method not exposed"; fi
@@ -89,7 +89,7 @@ Method names NOT in the allowlist still return -32601.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":5,"method":"mathc/secret"}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"code":-32601'; then \
   >   echo "mathc/secret: correctly rejected (-32601)"; \
   > else echo "FAIL: mathc/secret should be rejected"; fi
@@ -100,7 +100,7 @@ The error message lists the new methods in the allowlist.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":6,"method":"mathc/secret"}' \
-  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" mathc_mcp \
+  >     | MATH_CODING_ATTESTATIONS_DIR="$mcp_store" $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q 'gate,attest,record,re-evaluate-decisions'; then \
   >   echo "error message lists read-write methods"; \
   > else echo "FAIL: error message missing read-write methods"; fi

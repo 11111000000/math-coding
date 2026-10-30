@@ -190,21 +190,31 @@
         checks.default = pkgs.stdenv.mkDerivation {
           name = "math-coding-tests";
           src = ./.;
-          # python3 is needed by the forge stub the CLI's forge
-          # verifier talks to; curl and git are needed by the
-          # fixtures. All three were missing here, and the build had
-          # been failing behind the red CI step for weeks.
-          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git ];
+          # The fixtures need these tools and the build had none of
+          # them: python3 (the forge stub the CLI's forge verifier
+          # talks to), curl and git (the fixtures), jq (244 calls
+          # across the cram tests) and ripgrep (the corpus scans).
+          # All of them were missing here, and the build had been
+          # failing behind the red CI step for weeks.
+          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git pkgs.jq pkgs.ripgrep ];
           buildPhase = ''
             runHook preBuild
             export OCAMLPATH="${ocamlPath}"
+            # The binaries are built FIRST, without running the
+            # suite. `dune test` alone does not build them: the cram
+            # tests reach the kernel through
+            # $INSIDE_DUNE/bin/mathc.exe, and dune's test deps
+            # (`%{bin:mathc.exe}`) resolve an installed program, not
+            # the build target. In a clean build -- which is what the
+            # nix sandbox is -- the path did not exist, and the
+            # suite failed with "No such file or directory". A stale
+            # _build directory hid this: the binary was there from
+            # an earlier build, so the same suite passed locally.
             # `dune test`, not `dune build @tests/runtest`: the
             # former RUNS the suite with dune's own sandbox (the
             # cram tests get the binary and the fixtures through the
             # declared deps), the latter only builds.
-            # The cram tests call the kernel through
-            # $INSIDE_DUNE/bin/mathc.exe, so dune builds the binary
-            # for them: the deps name the real target, `mathc.exe`.
+            dune build --root . bin/mathc.exe bin/mathc_mcp.exe
             dune test --root .
             runHook postBuild
           '';

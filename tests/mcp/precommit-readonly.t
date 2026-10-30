@@ -22,7 +22,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ unset MCP_READ_WRITE
   $ printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":1,"method":"mathc/precommit","params":{}}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     > /tmp/precommit-readonly-1.json 2>/dev/null
   $ grep -q '"id":1' /tmp/precommit-readonly-1.json \
   >   && grep -q '"total":' /tmp/precommit-readonly-1.json \
@@ -57,13 +57,13 @@ adds no failure mode the suite does not already carry.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/precommit","params":{"paths":["decisions/algebra-3.2.yaml","/tmp/nope-precommit-mcp.yaml"]}}' \
-  >     | mathc_mcp > /tmp/precommit-readonly-2.json 2>/dev/null; then \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe > /tmp/precommit-readonly-2.json 2>/dev/null; then \
   >   grep -q '"id":2' /tmp/precommit-readonly-2.json \
   >     && grep -q '"input_err":1' /tmp/precommit-readonly-2.json \
   >     && grep -q '"accepted":1' /tmp/precommit-readonly-2.json \
   >     && echo "mathc/precommit paths param: mixed accept/input_err reported" \
   >     || echo "FAIL: mathc/precommit paths param shape wrong"; \
-  >   else echo "FAIL: mathc_mcp exit non-zero"; fi
+  >   else echo "FAIL: $INSIDE_DUNE/bin/mathc_mcp.exe exit non-zero"; fi
   mathc/precommit paths param: mixed accept/input_err reported
 
 `mathc/precommit` (gate=off): read-only method still reachable
@@ -72,7 +72,7 @@ while the four read-write methods are rejected with -32601.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/precommit","params":{}}' \
-  >     | env MCP_READ_WRITE=off mathc_mcp 2>&1 \
+  >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe 2>&1 \
   >     | grep -q '"id":3'; then \
   >   echo "mathc/precommit (gate=off): read-only method still reachable"; \
   > else echo "FAIL: mathc/precommit gated by env"; fi
