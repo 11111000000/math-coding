@@ -43,7 +43,7 @@ export function ConsoleView({
   const queryClient = useQueryClient();
   const fetchState = useRpc(stateRpc);
 
-  const [tab, setTab] = useState(initialTab ?? "promises");
+  const [tab, setTab] = useState(initialTab ?? "verdict");
   const [decisionId, setDecisionId] = useState<string | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ decisionId: string; obligationId: string } | null>(
     null,
