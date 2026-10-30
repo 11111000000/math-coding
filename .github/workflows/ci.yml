@@ -109,6 +109,42 @@ jobs:
         run: ./scripts/dev verify
         timeout-minutes: 15
 
+      - name: debt ceilings are monotone
+        # A ceiling may fall and may never rise. The corpus says so in
+        # five places, and until this step existed the promise was kept
+        # by whoever happened to read the diff: between 2026-10-23 and
+        # 2026-10-26 seven ceilings were raised and only some of the
+        # raises carried a reason next to the number.
+        #
+        # scripts/ceiling-monotonic.sh reads every CEILING_* in
+        # tests/fixtures/*.sh, reads the same ceiling at the base
+        # commit, and fails a grow that carries no recorded
+        # `# ceiling-raise: <old> -> <new>, <reason>`. It also fails a
+        # ceiling that is declared and never compared - the other way
+        # a bound stops being a bound.
+        #
+        # It needs the history, which the checkout above fetches
+        # (fetch-depth: 0). ~1 s.
+        run: bash scripts/ceiling-monotonic.sh
+        continue-on-error: false
+        timeout-minutes: 5
+
+      - name: the self-check step reports what it must report
+        # The step below reads a verdict and has to report it. A
+        # comment asserting what it reports is not evidence: on
+        # 2026-10-29 the step was renamed and this simulator kept the
+        # old name, so it failed on every run and NOTHING ran it - and
+        # the comment in ci.yml that said "the three rows above are
+        # checked, not asserted" was false for a week.
+        #
+        # The simulator now finds the step, replays its body verbatim
+        # against a stub mathc (exit 0/1/3) and a stub corpus-debt
+        # ratchet (green and red), and fails if any row reports
+        # something other than what the audit shape demands. ~2 s.
+        run: bash scripts/ci-step-exit-sim.sh
+        continue-on-error: false
+        timeout-minutes: 5
+
       - name: generate attestation store
         # The store is GENERATED evidence, not a committed artefact:
         # `.gitignore` excludes `/attestations/`, so this checkout
@@ -147,6 +183,30 @@ jobs:
             'dune build --root . && bash scripts/sign-store.sh'
         timeout-minutes: 25
 
+      - name: honesty census (the store this commit produced)
+        # The two instruments that measure the STORE run HERE, after
+        # the sweep and before anything else reads the store.
+        #
+        # They used to run inside scripts/check.sh, which is BEFORE
+        # the sweep - so they measured a store that did not exist yet,
+        # and reported 0/0/0 and PASS over an empty directory. The
+        # census read `git ls-files attestations`, and the store
+        # stopped being committed on 2026-10-28, so the list was empty
+        # on every tree: a measurement of nothing that passed against
+        # ceilings of 886/364/6.
+        #
+        # Now: the census reads the store the way the kernel reads it
+        # (the directory), the legacy-debt fixture reads the same
+        # directory, and both refuse to measure a store that is not
+        # signed for this commit. Neither may SKIP here: after the
+        # sweep the store must exist, and exit 3 (nothing measured) is
+        # a failure of this step, not a pass.
+        run: |
+          bash tests/fixtures/executed-evidence-census.sh
+          bash tests/fixtures/legacy-attestation-debt.sh
+        continue-on-error: false
+        timeout-minutes: 10
+
       - name: mathc self-check (corpus audit)
         # Tier-1 ROADMAP #2 / AGENTS.md §Bootstrap-gate expiry mechanism.
         # The store this step reads is the one the "generate
@@ -160,12 +220,35 @@ jobs:
         # step. That is the honest reading, and the exit-honesty
         # contract below is what demands it.
         #
-        # EXIT HONESTY - the step's status IS mathc's status:
+        # EXIT HONESTY - the step's status is the status of the
+        # VERDICT THE STEP IS ABOUT, and never the status of a
+        # diagnostic:
         #   exit 0 = verdict pass    -> step green
-        #   exit 1 = verdict fail    -> step red
-        #   exit 3 = verdict unknown -> step red
+        #   exit 1 = verdict fail    -> step RED. A decisive failure
+        #                                 blocks, and nothing may
+        #                                 stand in for it.
+        #   exit 3 = verdict unknown -> the step asks the CORPUS-DEBT
+        #                                 RATCHET, and the step's
+        #                                 status is the RATCHET's:
+        #                                 green while the declared
+        #                                 debt is under its ceiling,
+        #                                 red when it is over. The
+        #                                 verdict is `unknown`, not
+        #                                 `fail`, and the corpus's
+        #                                 debt is measured by a
+        #                                 ceiling that may only fall.
         # per constitution.md Invariant 14 / 14b (exit honesty and
         # symmetric exit honesty: `exit 0 != verdict:Unknown`).
+        #
+        # THE COMMENT ABOVE USED TO SAY OTHERWISE. It claimed "exit 3
+        # -> step red", which the body below has never done. A
+        # comment that contradicts the code it describes is the
+        # second half of the defect this step was written to fix, so
+        # the comment is now the code's own shape. The rows are
+        # checked, not asserted: scripts/ci-step-exit-sim.sh replays
+        # this block against a stub mathc (exit 0/1/3) and a stub
+        # ratchet (green and red), and fails if any row reports
+        # something else. It is a CI step of its own.
         #
         # How the code is carried. `|| rc=$?` captures mathc's status
         # without tripping errexit, so the diagnostic dump still runs;
@@ -180,7 +263,8 @@ jobs:
         #
         # The block below is replayed verbatim by
         # scripts/ci-step-exit-sim.sh against a stub mathc that exits
-        # 0/1/3, so the three rows above are checked, not asserted.
+        # 0/1/3 and a stub ratchet, so the rows above are checked, not
+        # asserted. That script is a step of its own below.
         # ~5 s.
         run: |
           rc=0
@@ -239,7 +323,6 @@ jobs:
           BASE="$(git merge-base "${GITHUB_BASE_REF:-main}" "${GITHUB_SHA}" 2>/dev/null || echo "${GITHUB_SHA}^")"
           nix develop .#test --command bash -c \
             "_build/install/default/bin/mathc gate --no-execute '$BASE' '${GITHUB_SHA}'" || true
-          bash tests/fixtures/legacy-attestation-debt.sh || true
         continue-on-error: true
         timeout-minutes: 3
 

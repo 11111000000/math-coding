@@ -153,7 +153,21 @@ case "$rc" in
   3) fail "the self-check could not conclude (exit 3): the corpus is not in a state the kernel can judge" ;;
   *) fail "the self-check reported a failing verdict (exit $rc): run 'mathc self-check' and read the subjects" ;;
 esac
-bash tests/fixtures/executed-evidence-census.sh || fail "the honesty census"
+# The two store-measuring instruments. Exit 3 is UNKNOWN, not a
+# failure: it means the store is absent or signed for another tree,
+# which is a fact about the artefact and not a fact about the corpus.
+# Exit 1 is a real failure: the debt is over its ceiling.
+measure_store() {
+  local script="$1" label="$2" rc=0
+  bash "$script" || rc=$?
+  case "$rc" in
+    0) : ;;
+    3) echo "  $label: nothing was measured (the store is absent or signed for another tree)" ;;
+    *) fail "$label" ;;
+  esac
+}
+measure_store tests/fixtures/executed-evidence-census.sh "the honesty census"
+measure_store tests/fixtures/legacy-attestation-debt.sh "the legacy-attestation debt"
 printf '  %ss\n' "$(( $(date +%s) - t0 ))"
 
 # --- 5. gate --------------------------------------------------------------
