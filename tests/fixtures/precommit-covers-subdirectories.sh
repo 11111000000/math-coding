@@ -85,16 +85,11 @@ obligations:
       all:
         - verifier: file-exists lib
 EOF
-cleanup() {
-  rm -rf "$plant_dir"
-  rm -f "$report"
-}
 report="$(mktemp)"
-trap cleanup EXIT
+trap 'rm -rf "$plant_dir"; rm -f "$report"' EXIT
 "$bin" precommit --format=json >"$report" 2>/dev/null
 seen="$(jq -r '.total' "$report" 2>/dev/null)"
 in_sub="$(jq -r '[.files[] | select(.path | test("/decisions/[^/]+/"))] | length' "$report" 2>/dev/null)"
-top="$(find decisions -maxdepth 1 -name '*.yaml' 2>/dev/null | wc -l | tr -d ' ')"
 # The decisions the corpus holds under a sub-directory, by the
 # corpus's own rule: the waiver family and the migration manifests
 # are not decisions.

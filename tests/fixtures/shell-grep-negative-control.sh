@@ -57,8 +57,7 @@ fi
 tmp="tests/fixtures/nc-control-tmp"
 rm -rf "$tmp"
 mkdir -p "$tmp/tree"
-cleanup() { rm -rf "$tmp"; }
-trap cleanup EXIT
+trap 'rm -rf "$tmp"' EXIT
 
 printf 'the needle is here\n' >"$tmp/with-needle.txt"
 printf 'nothing to see\n' >"$tmp/without-needle.txt"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:95675f96830fc96f2a9a96137f40b14ce7ac856fe394a74d2c40c99f526ae89f"
-yaml_sha: "sha256:95675f96830fc96f2a9a96137f40b14ce7ac856fe394a74d2c40c99f526ae89f"
+body_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
+yaml_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -152,7 +152,9 @@ obligations:
     outcome: site-self-referential
     acceptance:
       all:
-        - verifier: manual-grep-l-mathc-packages-dist-html-wc-l-3
+        - verifier: shell-grep site bootstrap-v3
+        - verifier: shell-grep site mathc-packages-subcommand
+        - verifier: shell-grep site site-deploy
 
   - id: site-deploy-pipeline
     statement: |
@@ -182,8 +184,8 @@ obligations:
     outcome: tufte-css
     acceptance:
       all:
-        - verifier: manual-grep-qf-charter-assets-style-css
-        - verifier: manual-grep-qf-fbfaf6-assets-style-css
+        - verifier: shell-grep assets/style.css oxblood
+        - verifier: shell-grep assets/style.css Charter
 
   - id: sidenote-syntax
     statement: |

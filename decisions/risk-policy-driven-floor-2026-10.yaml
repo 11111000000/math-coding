@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:17c58256efa8a15dd16bfb4a200dbab35146439f233d3eedebded8ce30d063cf"
-yaml_sha: "sha256:17c58256efa8a15dd16bfb4a200dbab35146439f233d3eedebded8ce30d063cf"
+body_sha: "sha256:cfe19fdf15cac0fc3a64b3aaf41d356d18443f129e8678899f6c8012f3d2c97f"
+yaml_sha: "sha256:cfe19fdf15cac0fc3a64b3aaf41d356d18443f129e8678899f6c8012f3d2c97f"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -279,7 +279,7 @@ obligations:
       continues to function.
     acceptance:
       all:
-        - verifier: manual-grep-bin-mathc-loads-policies-at-startup
+        - verifier: shell-grep bin/Mathc.ml Policy.load_policies
 
   - id: policies_yaml_committed
     statement: |

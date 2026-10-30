@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
 revision: 2
 state: active
-body_sha: "sha256:753344d16ac3b0ec21e15d1ff1870212c0b4064955942ce2bc477b281eedf030"
-yaml_sha: "sha256:753344d16ac3b0ec21e15d1ff1870212c0b4064955942ce2bc477b281eedf030"
+body_sha: "sha256:e9e455aabc409a59d94df34cc75ee6336292e1cfa2e2921102038549185681d3"
+yaml_sha: "sha256:e9e455aabc409a59d94df34cc75ee6336292e1cfa2e2921102038549185681d3"
 mode: standard
 change_kind: implementation
 axiom_link:
@@ -104,7 +104,7 @@ obligations:
       including for files with attestation `schema: math-coding/attestation-3.0-alpha`.
     acceptance:
       all:
-        - verifier: manual-text-scan-attestation-enum
+        - verifier: shell-grep schemas/attestation.json math-coding/attestation-3.0-alpha
   - id: waiver-enum-accepts-3-3
     claim: |
       `mathc validate decisions/waivers/<existing>.yaml` exits 0.
@@ -116,7 +116,7 @@ obligations:
       `mathc validate decisions/<policy>.yaml` exits 0.
     acceptance:
       all:
-        - verifier: manual-text-scan-policy-enum
+        - verifier: mathc validate decisions/attestation-waiver-policy-schema-bump-3-3-2026-10.yaml
   - id: existing-attestations-still-validate
     claim: |
       `mathc validate` accepts a TRACKED attestation sample written

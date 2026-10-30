@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: mathc-validate-skip-non-decisions-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:902661e216dc91303c7e112e3e08c0237ed07e7d56437e442e8e9970ff9cfdb3"
-yaml_sha: "sha256:902661e216dc91303c7e112e3e08c0237ed07e7d56437e442e8e9970ff9cfdb3"
+body_sha: "sha256:2a342161dbca2359f5c41491ea8490de30131d366d5eeed0c55dee9eb507b267"
+yaml_sha: "sha256:2a342161dbca2359f5c41491ea8490de30131d366d5eeed0c55dee9eb507b267"
 intent: |
   Reverts the deferral recorded at
   `decisions/mathc-validate-skip-non-decisions-deferral-2026-10.yaml@1`
@@ -173,21 +173,21 @@ obligations:
       at least one match on a function definition line.
     acceptance:
       all:
-        - verifier: manual-text-scan-peek-schema-family
+        - verifier: shell-grep lib/decision.ml peek_schema_family
   - id: dispatcher-consults-peek
     statement: |
       `grep -nE 'peek_schema_family' bin/Mathc.ml` returns at
       least one match in `validate_with_counts`.
     acceptance:
       all:
-        - verifier: manual-text-scan-dispatcher-peek
+        - verifier: shell-grep bin/Mathc.ml peek_schema_family
   - id: emit-handles-aggregate
     statement: |
       `grep -nE 'Accept_aggregate' bin/Mathc.ml` returns at
       least one match in the `emit` function.
     acceptance:
       all:
-        - verifier: manual-text-scan-emit-aggregate
+        - verifier: shell-grep bin/Mathc.ml Accept_aggregate
   - id: cram-fixture-pass
     statement: |
       `tests/cli/validate-non-decisions.t` exits 0 (the cram
