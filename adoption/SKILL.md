@@ -1,8 +1,8 @@
 ---
 name: math-coding
 description: |
-  Apply the math-coding assurance protocol in a project. Use when the user
-  says "примени math-coding", "set up math-coding", "start tracking
+  Apply the math-coding assurance protocol in a project. Use when the
+  user says "примени math-coding", "set up math-coding", "start tracking
   decisions", "we need an audit trail", or mentions obligations,
   attestations, or waiver in a project context. Do not trigger on casual
   uses of "decision" or "obligation" in ordinary conversation.
@@ -16,59 +16,64 @@ Math-coding binds every change to a written commitment, a list of
 obligations, and bounded evidence. The kernel (`mathc`) checks that
 nothing is silently promoted from `unknown` to `pass`.
 
-The protocol does not prove software correctness. It refuses to.
+What it proves, exactly: a commitment was written down, somebody
+signed for it, and the evidence named a tree. What it does not prove:
+that the software is correct, or that the commitment was met. Read
+Step 4 before you sign anything — it is the difference between a trail
+and a receipt — and Known defects before you trust a scaffold.
 
 ## When to apply
 
-Opt-in. The protocol is a tool, not a default: apply it when one of
-the signals below holds, and leave it out when none of them does. The
-burden of proof sits on the application — an adopter who applies this
-skill names the signal that pays for it, and an adopter who does not
-apply it says why the protocol does not fit the project.
+Default: apply. `mathc init` prints the envelope it assumed: Path A,
+installed by default, a single maintainer included. Per
+`spec/algebra-3.2.md` §28 the burden of proof sits on the exclusion,
+not on the adoption: to skip, the project must be throwaway (a
+prototype, MVP, spike, one-day hackathon), and the rationale goes in
+the README, per §23.
 
-Signals that make the protocol pay for itself:
+What raises the ceremony above the cheapest rung (`mode_floor: light`):
 
-- Two or more AI agents (or humans) edit the same repository and need a
-  shared authority model.
-- Regulatory or contractual audit requires a tamper-evident trail.
-- A team of three or more will maintain the project for five or more
-  years; decisions must outlive the people who wrote them.
-- An AI agent writes into the repository, even when there is one human.
-  Code you did not write is code you cannot recall; the counterexample
+- two or more AI agents (or humans) edit the same repository;
+- regulatory or contractual audit needs a tamper-evident trail;
+- three or more maintainers on a five-or-more-year horizon;
+- an AI agent writes into the repository, even with one human. Code
+  you did not write is code you cannot recall; the counterexample
   paragraph is where you find out it was wrong.
 
-Where the protocol does apply, start at the light floor: declare
-`mode_floor: light` in the project's `policies.yaml` and the per-commit
-cost is `{commitment, counterexample}` — a `decision:<id>@<rev>` git
-trailer satisfies the gate without a sibling YAML. Raise the floor only
-when a signal above says the trail has to outlive the commit.
+Raise the floor with `mode_floor: <mode>` in the project's
+`policies.yaml`. Without that file the kernel uses its lowest rung
+(Tiny) — cheaper than light, not more expensive.
 
-The cost is real and it is measured. The project's own adoption
-experiment on five external projects put the with-protocol arm at
-~10 minutes a session against ~3 minutes for the control arm, and
-refuted three of its own hypotheses
-(`decisions/adoption-experiment-results-2026-10.yaml`). Ten minutes
-buys a trail a regulator or a second agent will read. It buys nothing
-for a script nobody reads twice.
+### Where the rule lives
 
-## When not to apply
+The applicability rule has one home: `spec/algebra-3.2.md` §28. This
+skill states the operational instruction and points there; it does not
+carry a second copy of the rule. If the two ever disagree, §28 wins
+and the disagreement is a bug in the corpus, not a choice you get to
+make.
 
-Every project that matches none of the signals above. "Only one
-maintainer", "no formal audit", and "an informal lgtm is enough" are
-exclusion criteria again: the protocol's minutes are paid by the
-adopter, so the adopter decides whether they are worth paying.
+## What the protocol costs (measured)
 
-The one class that needs no argument is `prototype_or_throwaway(P)` in
-§28, i.e. the project has no expected continuity:
+The project's own adoption experiment (2026-10-17, five external
+projects: click, express, cobra, ripgrep, sinatra) is in
+`docs/experiments/adoption-2026-10.md`:
 
-- The project is a prototype, MVP, hackathon, or throwaway script
-  whose code nobody will read again after the next refactor.
+- time to first decision: median ~4 min, worst ~14 min;
+- with-protocol session: median ~10 min; control arm ~3 min;
+- three of eight hypotheses refuted (H3 schema coverage, H4
+  throughput, H8 attest-batch);
+- the 10-vs-3 gap was dominated by a path-resolution defect, not by the
+  method. Once the layout was locked, per-decision overhead fell to
+  ~1-2 min.
 
-Skipping requires stating the rationale where a reader will find it
-(the project README, or the commit that starts the project). Applying
-requires the same in the other direction: name the signal. Then run
-`mathc init .` — it prints the envelope it assumed, so the choice
-lands in the record instead of in a habit.
+Ten minutes buys a trail a regulator or a second agent will read. It
+buys nothing for a script nobody reads twice — which is why §28 has one
+exclusion class instead of a philosophy.
+
+> For a three-command quickstart of the whole adoption, see
+> [QUICKSTART.md](QUICKSTART.md). For the ten-minute path from an empty
+> repository to a green gate, see
+> [docs/adoption-quickstart.md](../docs/adoption-quickstart.md).
 
 ## Step 1. Install the kernel
 
@@ -77,88 +82,70 @@ lands in the record instead of in a habit.
 # The script verifies SHA-256 of the downloaded binary against
 # SHA256SUMS on the same release. To pin a specific tag, pass
 # --version=<X>; to also install the per-user opencode skill, pass
-# --user-skill. See https://11111000000.github.io/math-coding/install.html
-# for the full matrix (release / Docker / Nix / source build).
+# --user-skill.
 curl -fsSL https://github.com/11111000000/math-coding/releases/download/edge/install.sh \
   | sh -s -- --user-skill
 export PATH="$HOME/.local/bin:$PATH"
 mathc version
 ```
 
-> For Docker or Nix: see USAGE.md §Install. For a three-command
-> quickstart of the whole adoption, see [QUICKSTART.md](QUICKSTART.md).
-> For the ten-minute path from an empty repository to a green gate,
-> see [docs/adoption-quickstart.md](../docs/adoption-quickstart.md).
+For Docker, Nix, a source build, or Alpine/musl, see USAGE.md
+§Install and QUICKSTART.md.
 
-If `~/.local/bin` is not on `$PATH`, the line above sets it for the
-current shell. Add it to your shell rc (`~/.bashrc`, `~/.zshrc`) for
-permanence.
+**The version trap.** `mathc version` prints `math-coding <X>: bootstrap`
+and does not identify the build: two different binaries both report
+`3.7.4`. Discriminate by behaviour instead — after Step 3 the scaffold
+must carry `schema: math-coding/3.3` and an `axiom_link:` block. A
+scaffold with `schema: math-coding/3.2` and no `axiom_link` comes from
+a binary older than 2026-10-26, whose default template the kernel
+rejects; reinstall from the `edge` tag and check again.
 
 ## Step 2. Bootstrap the repository
 
-For a new project, prefer `mathc init .` — it scaffolds
-`.math-coding/decisions/`, `.math-coding/attestations/`,
+```bash
+mathc init .
+```
+
+Creates `.math-coding/decisions/`, `.math-coding/attestations/`,
 `.math-coding/policy.yaml`, and (unless `--no-install`) the
-`.githooks/pre-commit` hook. This is the v3.4 default layout; the
-artifact tree is one directory instead of three.
+`.githooks/pre-commit` hook, then prints the applicability envelope it
+assumed. `mathc init` cannot observe team size, agent count, or audit
+obligations — it prints the envelope, it does not detect it. You raise
+or lower the floor yourself, in `policies.yaml`.
 
-For a brownfield project (an existing `decisions/` and `attestations/`
-at the repo root from a pre-3.4 release), do not migrate
-unnecessarily. The kernel's `lib/path_config.ml` resolver uses the
-new `.math-coding/` defaults when they exist, and falls back to the
-legacy `decisions/` + `attestations/` layout when `.math-coding/` is
-absent (see [§"Backward compatibility"](#backward-compatibility)
-below). Run `mathc validate decisions/decision.yaml` to confirm the
-kernel still sees your existing tree.
+`mathc init --merge` is wired: it keeps an existing master policy and
+proceeds with the rest of the scaffold. It does not migrate or delete
+a legacy `decisions/` + `attestations/` tree — the resolver prefers
+`.math-coding/` when it exists and falls back to the legacy layout
+when it does not, so both coexist until you remove one.
 
-If you are manual-bootstrapping a greenfield project without
-`mathc init`, the minimum to create is:
+To point the kernel at the legacy layout explicitly:
 
 ```bash
-mkdir -p .math-coding/decisions .math-coding/attestations
-
-# Copy the active policy from the math-coding repo.
-curl -fsSL https://raw.githubusercontent.com/11111000000/math-coding/main/decisions/decision.yaml \
-  > .math-coding/policy.yaml
-
-# Adjust scope.paths[] to match this repository's source tree.
-$EDITOR .math-coding/policy.yaml
+export MATH_CODING_DECISIONS_DIR=decisions
+export MATH_CODING_ATTESTATIONS_DIR=attestations
+export MATH_CODING_POLICY=decisions/decision.yaml
 ```
 
-To force the legacy layout for an explicit reason (e.g. matching an
-older CI that scans `decisions/`), set the env-var override before
-init or use the resolver at runtime:
-
-```bash
-MATH_CODING_DECISIONS_DIR=decisions \
-MATH_CODING_ATTESTATIONS_DIR=attestations \
-MATH_CODING_POLICY=decisions/decision.yaml \
-  mathc validate decisions/decision.yaml
-```
-
-`mathc version` should print `math-coding <version>: bootstrap` and
-exit 0 on the current release. If it does not, the binary you downloaded
-is not the same release as this skill; see `compatible_with` in the
-frontmatter above.
+The env var wins over the filesystem, and the resolver never consults
+the disk for it. This is what the hermetic tests use.
 
 ## Step 3. First decision
 
-Create `decisions/<id>.yaml` using the template below. Replace `<id>`
-with a kebab-case identifier (lowercase letters, digits, dashes; 1 to
-128 chars). Example: `jwt-rotation`, `no-tailwind`, `drop-legacy-api`.
+```bash
+mathc new-decision my-id --write
+```
 
-The `axiom_link` and `counterexample` fields are **required when
-`state=active`** (the default). The kernel emits
-`MC-COUNTEREXAMPLE-MISSING` (Block) before `MC-MISSING-INTENT`
-because axiom A3 orders counterexample first: the strongest
-objection to the commitment must be on the page when a reviewer
-reads it.
+The scaffold is a stub: fill in the TODO markers. Keep the shape — the
+kernel reads these keys:
 
 ```yaml
 ---
 schema: math-coding/3.3
 id: <id>
 revision: 1
+state: active
+mode: light
 
 intent: |
   One paragraph. What should become true after this decision lands?
@@ -166,14 +153,6 @@ intent: |
 commitment: |
   Two sentences max. What is promised. If you cannot phrase it in two
   sentences, the decision is not ready.
-
-axiom_link:
-  - A0
-  - A3
-counterexample: |
-  State the strongest plausible case where this decision is wrong, and
-  what would change your verdict. One paragraph. Empty here means the
-  reviewer is reading the commitment without its counterweight.
 
 outcomes:
   - id: <outcome-id>
@@ -191,7 +170,13 @@ obligations:
     acceptance:
       all:
         - verifier: <fixture-path-or-kernel-verifier>
-          result: pass
+
+axiom_link:
+  - A0
+
+counterexample: |
+  The strongest plausible case where this decision is wrong, and what
+  would change your verdict. One paragraph.
 
 risk:
   declared_triggers:
@@ -203,185 +188,167 @@ relations:
     - bootstrap-v3@3
 ```
 
-### Step 3.5. Minimal form
+`axiom_link` is required whenever `state: active`; an empty one is
+MC-AXIOM-LINK-MISSING, a block. `mode` decides what the dialectic
+costs you:
 
-For a one-shot decision (5-7 user-editable fields), use
-`--template=minimal` to emit the 13-line stub on schema
-`math-coding/3.3`:
-
-```bash
-mathc new-decision my-id --template=minimal
-```
-
-The stub has the same shape as the canonical template above but
-emits TODO markers in every field the user must fill in. The
-stub passes `mathc validate` (with the
-`deficit/MC-COUNTEREXAMPLE-MISSING` soft warning) because the
-kernel-required defaults (`mode: light`, `axiom_link: [A0]`,
-`risk.owner`) are baked in. The user is expected to fill in
-the TODO markers and re-run `mathc validate` after their first
-edit. The full template (`--template=full`) is preserved for
-backward compatibility with existing adopters.
-
-`--template=minimal` is the DEFAULT, and it is the default because
-the full template produces a file the kernel REJECTS: it carries no
-`axiom_link` and no `counterexample`, so `mathc validate` answers
-`MC-AXIOM-LINK-MISSING` (a block) to the very scaffold the previous
-command wrote. The minimal template carries the kernel-required
-defaults in the form the parser reads (`axiom_link:` as a block, not
-`axiom_link: [A0]` in the bracket form, which the YAML reader used
-to take for a plain string).
-
-## Step 4. Validate and self-check
-
-```bash
-mathc validate decisions/<id>.yaml   # exits 0 on accept, 1 on reject, 2 on input
-mathc self-check                     # exits 0 on pass; non-zero blocks merge
-```
-
-On a non-zero exit, the stderr line starts with an `MC-*` code. Run
-`mathc explain-diagnostic <CODE>` to get the remediation steps (Definition,
-Occurs when, Remediation) for that code.
-
-The first `mathc self-check` after a fresh bootstrap reports
-`unknown` and exits 3: the project has no decision yet, so there is
-nothing to judge. That is expected, and it is the ONLY state in
-which the kernel cannot conclude. As soon as the project has one
-decision and one attestation for it, the same command reports `pass`
-and exits 0.
-
-The whole path, measured on an empty project with the released
-binary, is seven commands:
-
-```bash
-mathc init .                                  # the forward layout
-mathc new-decision my-id --write              # a file the kernel accepts
-#   ... fill in the TODO markers ...
-mathc rehash --write .math-coding/decisions/my-id.yaml
-mathc validate .math-coding/decisions/my-id.yaml   # parse-ok
-mathc attest-batch --from=decisions --kind=review --producer=human:me
-git add -A && git commit -m "..."
-mathc self-check                              # pass, exit 0
-```
-
-No environment variable, and no directory the operator has to create
-by hand.
-
-To record an attestation when one is owed, write a file under
-`.math-coding/attestations/` (or `attestations/` on the pre-3.4
-legacy layout) matching `schemas/attestation.json`. The directory
-`mathc init` creates is the one the gate reads -- they are the same
-directory, resolved by one rule, and writing anywhere else produces
-an attestation the gate cannot see:
-
-```json
-{
-  "schema": "math-coding/attestation-3.0-alpha",
-  "kind": "attestation",
-  "subject": {
-    "decision": "<decision-id>@1",
-    "obligation": "<obligation-id>",
-    "candidate_tree": "HEAD",
-    "materials_digest": ""
-  },
-  "kind_": "test",
-  "producer": { "identity": "ci:bot" },
-  "result": "pass",
-  "issued_at": "<ISO-8601 timestamp>",
-  "id": "sha256:<64 hex chars>"
-}
-```
-
-The attestation `id` is the SHA-256 of the file content with the
-`id` field treated as a 64-zero placeholder (the same convention
-as the decision `body_sha`); `mathc attest` writes the field
-correctly. See `lib/attestations/attestations.ml` for the parser
-and `attestations/ux-3-*.json` for canonical examples.
-
-### Bulk attestations: `mathc attest-batch`
-
-For brownfield projects with many obligations, hand-writing one
-attestation JSON per obligation is slow and error-prone.
-`mathc attest-batch` generates the JSONs from a TSV manifest or
-by walking `MATH_CODING_DECISIONS_DIR` directly:
-
-```bash
-# Walk every obligation under the decisions dir (default
-# .math-coding/decisions). One attestation per obligation.
-mathc attest-batch --from=decisions --kind=review --producer=human:me
-
-# Read a TSV manifest: 4 required columns + 1 optional result.
-# decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity[<TAB>result]
-mathc attest-batch --manifest=manifest.tsv
-
-# Emit JSON to stdout, do not write files.
-mathc attest-batch --from=decisions --dry-run
-```
-
-Manifest format (TSV):
-
-```text
-decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity[<TAB>result]
-```
-
-| Column | Required | Notes |
+| mode | counterexample | antithesis |
 |---|---|---|
-| `decision_id` | yes | matches the decision YAML `id` |
-| `obligation_id` | yes | matches one `obligations[].id` |
-| `kind_` | yes | one of `review`, `test`, `build`, `analysis`, `observation` |
-| `producer_identity` | yes | e.g. `ci:bot`, `human:tester` |
-| `result` | no | defaults to `pass`; `pass` or `fail` |
+| tiny, light | optional (soft warning) | optional |
+| standard, strict, exhaustive | required (block, exit 1) | optional |
+| considered | required (block) | required |
 
-Output: one JSON file per row, written to
-`MATH_CODING_ATTESTATIONS_DIR` (default
-`.math-coding/attestations/`) as `<decision>-<obligation>.json`.
-The output schema string is `math-coding/attestation-3.3`; the
-SHA-256 `id` field is computed from the canonical JSON body
-(sorted keys, no whitespace), matching the upstream Python
-`scripts/generate-attestations.py` byte-for-byte at the digest
-boundary. Pure parsing lives in `lib/attestations/batch.ml`;
-cram fixtures in `tests/cli/attest-batch*.t` cover the positive,
-negative, and `--dry-run` paths.
+An empty counterexample at mode >= standard is MC-COUNTEREXAMPLE-MISSING
+(a block); at light it is a warning and the verdict stays accept. Do
+not read "the kernel accepts it" as "the counter-case was considered":
+at light, nothing checks that the slot was filled in honestly. That is
+what the mode floor is for.
+
+After editing, restamp the digest — the kernel validates the file's own
+bytes, and a scaffold's digest is stale the moment you type:
+
+```bash
+mathc rehash --write .math-coding/decisions/my-id.yaml
+mathc validate .math-coding/decisions/my-id.yaml
+```
+
+On a non-zero exit the stderr line starts with an `MC-*` code; run
+`mathc explain-diagnostic <CODE>` for the definition, when it occurs,
+and the remediation.
+
+## Step 4. Evidence — the part that decides what the trail is worth
+
+An attestation says "this obligation held at this tree". It is worth
+exactly what produced it.
+
+Order matters: the kernel refuses an attestation whose tree is not
+anchored to a commit, so `attest-batch` before the first commit exits 2
+("refusing to write an attestation with an unanchored candidate_tree").
+
+The honest path — execute the verifiers:
+
+```bash
+git add -A && git commit -m "feat: ..."
+mathc attest-batch --from=decisions --kind=test --producer=ci:<name> \
+  --run-per-obligation
+mathc self-check
+```
+
+`--run-per-obligation` runs each obligation's own verifier (the same
+strings `mathc verify` executes) and signs its verdict. A verifier the
+kernel cannot execute yields `inconclusive`, the obligation stays
+`skipped`, and `self-check` reports `unknown` with exit 3. That is the
+correct outcome, not a problem to work around.
+
+Two flags that keep the trail honest:
+
+- `--skip-failing` leaves a failing obligation unsigned instead of
+  overwriting a good signature;
+- `--only-changed` re-signs only the obligations whose scope
+  intersects the changed files. Under semantics A a scope change
+  invalidates the attestation that covered it, so a commit that touches
+  a scope must re-sign it.
+
+Do not sign for a human. `--producer=human:me` writes `result: pass`
+with an empty materials digest — the digest of nothing, which is the
+freshness wildcard: that attestation is fresh for every tree, for ever,
+and no change can invalidate it. A hand-written attestation JSON with
+`"result": "pass"` is the same laundering in a different shape. If you
+are an agent, sign as an agent (`--producer=agent:<name>`) and let the
+verifier produce the verdict.
+
+Check what is still open:
+
+```bash
+mathc gaps
+```
+
+`gaps` lists every promise that is declared, unknown, or waived, with
+the class of its check and what to do about it. Run it after signing.
+The difference it shows is the whole difference between a trail and a
+receipt: an obligation whose verifier is a placeholder is reported as
+`not-a-check` / `unknown` ("write the check, cover the gap with a dated
+waiver, or drop the promise"), while a review attestation with no
+executed verifier closes it and the promise disappears from the list.
+
+## Step 5. The gate
+
+```bash
+mathc self-check
+```
+
+- exit 0, `"verdict": "pass"` — every decision has a current
+  attestation reporting pass;
+- exit 3, `"verdict": "unknown"` — the kernel cannot conclude: no
+  decision yet, or an attestation that is inconclusive. The `causes`
+  and `remedies` arrays name the obligation;
+- exit 1 — a decision is rejected; `mathc validate <file>` and
+  `mathc explain-diagnostic <CODE>` give the remediation.
+
+`unknown` is the honest state. The kernel will not promote it, and
+neither should you.
 
 ## What the kernel refuses
 
-These five outcomes are how the kernel says "no":
-
-- **missing result** — a decision without `obligations[]`.
-- **missing obligation** — an obligation without `acceptance.verifier`.
-- **missing fixture** — a verifier naming a path that does not exist.
+- **missing result** — a decision without `obligations[]`;
+- **missing obligation** — an obligation without `acceptance.verifier`;
+- **missing fixture** — a verifier naming a path that does not exist;
 - **missing authority** — a protected-policy transition not under the
-  previously active policy.
+  previously active policy;
 - **missing expiry** — a waiver without `expires_at`.
 
-`unknown`, `waived`, and `reviewed` are not `pass`. The kernel will not
-silently promote them.
+`unknown`, `waived`, and `reviewed` are not `pass`.
+
+## Known defects in this release
+
+Verified against the build of 2026-10-30. Each one is a reason to
+check, not a reason to skip.
+
+1. **The scaffold is not valid YAML for strict parsers.** The emitted
+   stub contains an unquoted `<TODO: fixture-path-or-kernel-verifier>`;
+   PyYAML stops on it ("mapping values are not allowed in this
+   context"). The kernel's own reader is lenient and `mathc validate`
+   answers `parse-ok`. If your tooling reads decision files with a
+   strict parser, quote the verifier placeholder before filling it in.
+2. **The scaffold's `risk` block is swallowed.** In the same stub the
+   `risk:` key is indented under the `counterexample` block scalar, so a
+   strict parser reads the trigger and the owner as part of the
+   counterexample text and the decision has no `risk` at all. The
+   kernel then defaults the owner to `human:maintainer`, and your
+   `declared_triggers` are silently gone. Fix the indentation after
+   scaffolding and confirm `risk.owner` and `risk.declared_triggers`
+   are really there.
+3. **`mathc validate` accepts a scaffold full of TODOs.** It checks
+   shape, not content: intent, commitment, outcome and verifier may
+   all still be placeholders and the verdict stays `accept`. A green
+   validate is not a decision.
+4. **The scope placeholder is the freshness wildcard.** A decision
+   whose `scope.paths` names no real file has an empty materials
+   digest, so its attestation never goes stale. Replace the placeholder
+   with the paths the decision actually covers; the scaffold warns
+   about this at write time.
+5. **Two binaries report the same version.** See Step 1.
 
 ## Files you touch
 
-You only edit these in the target repository:
+Only these, in the target repository:
 
-- `.math-coding/decisions/*.yaml` — the commitments (or
-  `decisions/*.yaml` on the pre-3.4 legacy layout).
-- `.math-coding/attestations/*.json` — the evidence (or
-  `attestations/*.json` on the pre-3.4 legacy layout).
-- `.math-coding/policy.yaml` — the active policy (or
-  `decisions/decision.yaml` on the pre-3.4 legacy layout).
-- **NOT** `schemas/*.json` — the kernel parses by hand and reads
-  no JSON-Schema file, so a brownfield repository does not need
-  `schemas/` on disk for `mathc validate` to work. Only pin a local
-  copy if you are deliberately targeting a pre-v3.4 schema version.
+- `.math-coding/decisions/*.yaml` — the commitments;
+- `.math-coding/attestations/*.json` — the evidence;
+- `.math-coding/policy.yaml` — the active policy;
+- `policies.yaml` — the mode floor you declare (optional).
 
-You do not read or edit `spec/`, `axioms/`, `lib/`, or any
-math-coding-internal documentation while adopting the protocol in a
-different project. Those exist for the people who maintain the kernel
-itself.
+The kernel parses by hand and reads no JSON-Schema file, so a
+brownfield repository needs no `schemas/` on disk for `mathc validate`
+to work. Do not read or edit `spec/`, `axioms/`, `lib/`, or the
+kernel's own internal documentation while adopting the protocol in
+another project.
 
 ## Deploy this skill to your platform
 
-This file is the canonical skill. To use it in another agent platform,
-copy the platform-specific file from the math-coding release tarball
-under `dist/adoption/<platform>/` into the matching path:
+This file is the canonical source. `scripts/dist-adoption.sh` renders
+the platform drops into `dist/adoption/<platform>/`; they are build
+artifacts, not sources.
 
 | Platform | Target path |
 |---|---|
@@ -390,118 +357,60 @@ under `dist/adoption/<platform>/` into the matching path:
 | Cursor | `.cursor/rules/math-coding.md` |
 | GitHub Copilot | `.github/instructions/math-coding.instructions.md` |
 
-If you cannot copy a file (the agent session is read-only), ask the
-user to paste the file from `dist/adoption/<platform>/` into the path
-above. The agent must not edit the source repository's internal docs.
+The in-repo OpenCode copy must stay byte-for-byte identical to this
+file (`scripts/check-opencode-skill.sh`). If the agent session is
+read-only, ask the user to copy the file from `dist/adoption/<platform>/`
+into the path above.
+
 ## MCP integration
 
-The `mathc` binary ships with a companion `mathc_mcp` JSON-RPC 2.0 server
-over stdio. The server exposes 11 `mathc/<name>` methods:
+`mathc_mcp` is a JSON-RPC 2.0 server over stdio, shipped beside the
+binary. Fourteen methods:
 
-  mathc/validate, mathc/explain, mathc/packages, mathc/mode,
-  mathc/re-evaluate, mathc/rebuttals, mathc/self-check,
-  mathc/gate, mathc/attest, mathc/record,
-  mathc/re-evaluate-decisions
+- read-only (10): `validate`, `explain`, `packages`, `mode`,
+  `re-evaluate`, `rebuttals`, `self-check`, `find`, `precommit`,
+  `graph`;
+- read-write (4): `gate`, `attest`, `record`, `re-evaluate-decisions`.
 
-Read-only methods (validate, explain, packages, mode, re-evaluate,
-rebuttals, self-check) are listed at
-`decisions/mcp-server-impl-2026-10.yaml`. Read-write methods (gate,
-attest, record, re-evaluate-decisions) are listed at
-`ux-3-mcp-read-write-2026-10.yaml`. Both are emitted from the same
-allowlist in `lib/mcp/dispatch.ml`.
+One request per line on stdin, one response per line on stdout; stderr
+is diagnostics; EOF on stdin exits 0. Launch it directly:
 
-Wire protocol: one JSON-RPC request per line on stdin, one response
-per line on stdout. stderr is reserved for server diagnostics.
-EOF-on-stdin exits cleanly with code 0.
-
-The MCP server shell-out to the `mathc` binary is resolved via
-`Sys.executable_name` (strip the `_mcp` suffix); the mathc install
-path installs both `mathc` and `mathc_mcp` side-by-side. Launch
-the server directly:
-
-  $ ~/.local/bin/mathc_mcp     # reads JSON-RPC from stdin, writes to stdout
+    ~/.local/bin/mathc_mcp
 
 An MCP-aware agent (opencode, Claude Code, Cursor) can launch this
-binary as a stdio MCP server. The agent then sees `mathc::validate`
-et al. as direct tool calls, without a `bash` shell round-trip.
+binary as a stdio MCP server and see `mathc::validate` and the rest as
+direct tool calls, without a `bash` round-trip.
 
-### Read-write gating via `MCP_READ_WRITE`
-
-The four read-write methods (`mathc/gate`, `mathc/attest`,
-`mathc/record`, `mathc/re-evaluate-decisions`) produce side
-effects (writes to `attestations/` and `decisions/execution-logs.jsonl`).
-A strict agent host can disable them by setting
-`MCP_READ_WRITE=off` (or any value other than `on`, `true`,
-`1`, or unset) before launching `mathc_mcp`. The four methods
-then return `-32601 Method not found` with a message that
-names the env var; the seven read-only methods plus
-`mathc/find` continue to work. The default (env unset) keeps
-all 11 methods reachable, so existing agent hosts are
-unaffected. Operators who want a one-shot warning when the
-gate is off can also inspect stderr — the server prints
-`mathc_mcp: MCP_READ_WRITE=<value> — read-write methods disabled.`
-exactly once per process.
+Set `MCP_READ_WRITE=off` to disable the four write methods; they then
+answer `-32601 Method not found` and the read-only ten keep working.
+The default (env unset) keeps all fourteen reachable. The server prints
+one line to stderr when the write methods are off.
 
 ## Environment variables
 
-The kernel reads five environment variables at startup. Four are
-implemented in `lib/path_config.ml` and consulted by every site that
-needs to find a decisions / attestations / policies path; the fifth
-documents the planned location for system-wide templates and
-schemas.
-
 | Variable | Default | Purpose |
 |---|---|---|
-| `MATH_CODING_DECISIONS_DIR` | `.math-coding/decisions` | Where the kernel reads and writes `*.yaml` decisions. Set explicitly to override (e.g. `=decisions` for the legacy layout). |
+| `MATH_CODING_DECISIONS_DIR` | `.math-coding/decisions` | Where the kernel reads and writes `*.yaml` decisions. Set it to `decisions` for the legacy layout. |
 | `MATH_CODING_ATTESTATIONS_DIR` | `.math-coding/attestations` | Where the kernel reads and writes `*.json` attestations. |
-| `MATH_CODING_POLICIES` | `policies.yaml` | The per-path risk floors (algebra §9): a YAML *sequence* of policy records, each with `scope_paths` and a `mode_floor`. This is the file that decides how much friction a path costs — `mathc mode PATH` reports the effective mode. An absent file means "no floors declared", and every path is then `tiny` (the silent baseline). |
-| `MATH_CODING_POLICY` | — | The older name for the same file. It is kept working because it is what the code has always controlled; set either one, not both. |
-| `MATH_CODING_HOME` | `$XDG_DATA_HOME/math-coding/<version>` | System-wide templates and schema directory (planned for v3.5; not yet consulted at runtime). |
+| `MATH_CODING_POLICY` | `.math-coding/policy.yaml` | Master policy path consulted by `mathc validate` and `mathc self-check`. |
+| `MATH_CODING_HOME` | `$XDG_DATA_HOME/math-coding/<version>` | System-wide templates and schema directory (planned for v3.5; not consulted at runtime). |
 
-The two files this repository used to confuse are now separate:
-the **master policy** is the active protocol *decision*
-(`bootstrap-v3@3`, located by id), and the **policies file** is the
-risk-floor sequence above. Until 2026-10-30 one resolver answered for
-both and named a decision document for the second, so the floors a
-project declared were never read.
-
-Precedence in the resolver (`lib/path_config.ml::resolve_with`):
-
-1. The env-var, if set to a non-empty value: wins unconditionally.
-   No filesystem check; a typo surfaces at the call site, not here.
-2. The new-default path (`.math-coding/...`), if it exists on disk.
-3. The legacy fallback (`decisions/`, `attestations/`,
-   `decisions/decision.yaml`), if it exists on disk.
-4. The new-default path, synthesised (so a fresh `mathc init`
-   against an empty directory still creates `.math-coding/`).
-
-The resolver returns *relative* paths; callers compose with
-`Filename.concat root ...` as before. See
-[`lib/path_config.ml`](lib/path_config.ml) for the exact three-tier
-contract and PLAN.md §0.1 for the original design notes.
+Precedence in the resolver: the env var wins unconditionally (no
+filesystem check); otherwise the new-default path if it exists; otherwise
+the legacy fallback; otherwise the new-default path, synthesised.
 
 ## Backward compatibility
 
-Projects bootstrapped against any 3.0–3.3 release — those with
-`decisions/` and `attestations/` at the repo root and a master policy
-at `decisions/decision.yaml` — continue to work without any
-configuration change on 3.4:
+Projects bootstrapped against a 3.0–3.3 release — `decisions/` and
+`attestations/` at the repo root, master policy at
+`decisions/decision.yaml` — keep working with no configuration change:
+the resolver prefers `.math-coding/...` when it is present and falls
+back to the legacy layout when it is not; no migration, no rename, no
+deprecation warning. `mathc init` on a project that already has
+`decisions/` emits a clean tree under `.math-coding/` and leaves the
+legacy tree in place — they coexist until you remove one.
 
-- The kernel resolver prefers `.math-coding/...` when present,
-  but falls back to `decisions/` and `attestations/` when
-  `.math-coding/` is absent. No migration, no auto-rename, no
-  deprecation warning at `mathc validate` time.
-- `mathc attest` and `mathc attest-batch` write to the same
-  directory the kernel reads from; legacy stores are not re-rooted.
-- `mathc init` on a project that already has `decisions/`
-  succeeds and emits a clean tree under `.math-coding/`, leaving
-  the legacy tree in place — they coexist until the operator
-  removes one. `mathc init --merge` (planned, not yet wired in
-  v3.4) will offer an explicit deletion step.
-
-To opt into the legacy layout explicitly — for a CI that scans
-`decisions/` for instance — set the env-var override before the
-mathc command:
+To opt into the legacy layout explicitly:
 
 ```bash
 export MATH_CODING_DECISIONS_DIR=decisions
@@ -509,10 +418,3 @@ export MATH_CODING_ATTESTATIONS_DIR=attestations
 export MATH_CODING_POLICY=decisions/decision.yaml
 mathc validate decisions/<id>.yaml
 ```
-
-The resolver honours these names whether or not the named
-directory exists; the env-var wins, the filesystem is not
-consulted for that variable. This makes hermetic cram tests
-trivial: `export MATH_CODING_DECISIONS_DIR=.test-math-coding/decisions`
-is the recommended invocation in `tests/cli/*.t`.
-
