@@ -139,10 +139,16 @@ for path in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'),
     if not m_id:
         continue
     decision = m_id.group(1)
-    m_obl = re.search(r'^obligations:[ \t]*\r?\n(.*?)(?=^\S|\Z)', text, re.M | re.S)
+    # The block may be an empty list (`obligations: []`), which is the
+    # shape a decision takes when its obligations are gone, and the
+    # items may be indented with any number of spaces. A parse that
+    # misses an obligation makes its attestations ORPHANS, and an
+    # orphan is a number the ceiling is measured against.
+    m_obl = re.search(r'^obligations:[ \t]*(\[\])?[ \t]*\r?\n(.*?)(?=^\S|\Z)',
+                      text, re.M | re.S)
     if not m_obl:
         continue
-    items = re.split(r'^  - id:[ \t]*', m_obl.group(1), flags=re.M)
+    items = re.split(r'^[ \t]*- id:[ \t]*', m_obl.group(2), flags=re.M)
     for item in items[1:]:
         head, _, rest = item.partition('\n')
         obl = head.strip()
@@ -229,14 +235,68 @@ for family, count in families.most_common(12):
 PY
 }
 
-# The store the GATE sees: git-tracked files only
-# (lib/gate.ml::store_keep_for admits nothing else). The disk also
-# holds gitignored scratch attestations the gate never reads, and
-# counting those would measure a different thing.
+# --- the store the gate reads ----------------------------------------------
+#
+# THE STORE IS THE DIRECTORY, NOT GIT'S INDEX.
+#
+# `bin/Mathc.ml::store_keep_for` admits every file under the store root
+# (lib/attestations/attestations.ml::any_file): the store is a
+# GENERATED artefact and is no longer in git's index
+# (decisions/store-not-committed-2026-10.yaml). This fixture used to
+# read `git ls-files attestations`, and that list has been EMPTY on
+# every tree since the store stopped being committed -- so the census
+# measured NOTHING, reported 0/0/0, and passed against ceilings of
+# 886/364/6. A measurement of nothing is not a measurement. The
+# instrument reads the directory the kernel reads now, and when there
+# is nothing there it says so with exit 3 (unknown), never with a
+# green "0 of 0".
+#
+# The store must also be CURRENT: an attestation names the tree it was
+# produced against, and a store signed for an older commit says
+# nothing about this one. Same rule, same reason, as
+# tests/fixtures/legacy-attestation-debt.sh.
+STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-${MATH_CODING_ATTESTATIONS_DIR:-attestations}}"
 store_list="$(mktemp)"
 trap 'rm -f "$store_list"' EXIT
-git ls-files attestations > "$store_list"
+: > "$store_list"
+if [ -d "$STORE_DIR" ]; then
+  find "$STORE_DIR" -maxdepth 1 -type f -name '*.json' | LC_ALL=C sort > "$store_list"
+fi
 
+# Nothing measured is UNKNOWN, not pass. The exit code says which:
+#   0  the store was measured and every ceiling held
+#   1  the store was measured and a ceiling did not hold
+#   3  nothing was measured (no store, or a store for another tree)
+# The caller decides what 3 means: scripts/check.sh counts it as
+# SKIPPED (not verified), and the CI step that runs AFTER the sweep
+# counts it as a failure, because there the store must exist.
+measure_possible=1
+if [ ! -s "$store_list" ]; then
+  ok "no attestation store in $STORE_DIR: there is nothing to measure, and a measurement of nothing is not a measurement"
+  measure_possible=0
+else
+  head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+  store_trees="$(python3 - "$STORE_DIR" <<'PYT'
+import glob, json, os, sys
+trees = set()
+for f in glob.glob(os.path.join(sys.argv[1], '*.json')):
+    try:
+        d = json.load(open(f, encoding='utf-8'))
+    except Exception:
+        continue
+    t = (d.get('subject') or {}).get('candidate_tree')
+    if t:
+        trees.add(t)
+print(' '.join(sorted(trees)))
+PYT
+)"
+  if [ "$store_trees" != "$head_sha" ]; then
+    ok "the store in $STORE_DIR is signed for [$store_trees], not for HEAD ($head_sha): regenerate it before measuring the store"
+    measure_possible=0
+  fi
+fi
+
+if [ "$measure_possible" = "1" ]; then
 read -r unanchored unexecuted orphans <<<"$(measure "$store_list" decisions 2>/dev/null)"
 if [ -z "${unanchored:-}" ] || [ -z "${unexecuted:-}" ] || [ -z "${orphans:-}" ]; then
   bad "the census measurement produced no numbers - the corpus parse or the store read failed"
@@ -268,6 +328,7 @@ fi
 # --- 4. the families, so a reader can see WHAT is not executed ---------
 printf 'ok: unexecuted-pass families (top):\n'
 measure "$store_list" decisions 2>&1 >/dev/null | sed 's/^/     /'
+fi
 
 # --- 5. NEGATIVE CONTROL: the bound must have teeth ---------------------
 # A store with more unexecuted passes than the ceiling must be
@@ -307,9 +368,15 @@ else
   bad "negative control: the measurement did not detect an inflated store - the ceiling cannot bind"
 fi
 
-if [ "$fail" -eq 0 ]; then
-  echo "executed-evidence-census: PASS"
-  exit 0
+if [ "$fail" -ne 0 ]; then
+  echo "executed-evidence-census: FAIL"
+  exit 1
 fi
-echo "executed-evidence-census: FAIL"
-exit 1
+if [ "$measure_possible" -ne 1 ]; then
+  # The negative control above still ran and still bites, so the
+  # instrument is not broken - there was simply nothing to measure.
+  echo "executed-evidence-census: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
+fi
+echo "executed-evidence-census: PASS"
+exit 0

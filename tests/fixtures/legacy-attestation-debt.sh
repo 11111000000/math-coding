@@ -32,7 +32,12 @@
 # the only reader of these three ceilings: the separate ratchet that
 # used to fail a fixture declaring a ceiling it never compared was
 # removed on 2026-10-28 with the rest of the corpus-debt
-# meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
+# meta-layer (decisions/corpus-meta-layer-2026-10.yaml), and it was
+# RESTORED on 2026-10-30
+# (decisions/honest-instruments-2026-10.yaml). A ceiling that is
+# declared and never compared is now caught by
+# scripts/ceiling-monotonic.sh, which is in CI; a ceiling that grows
+# without a recorded reason is caught by the same script.
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -171,10 +176,27 @@ for f in sorted(glob.glob(os.path.join(store, '*.json'))):
     if dec:
         have.add(dec)
 unattested = 0
-for f in sorted(glob.glob('decisions/*.yaml')):
-    if '/waivers/' in f:
+# The corpus is walked the way the kernel walks it: RECURSIVELY, and
+# by the kernel's own rule of what a decision IS
+# (lib/memory.ml::decision_document_id -- a document with a top-level
+# `id:` whose `schema:` is not one of the non-decision schemas). The
+# walk used to read decisions/*.yaml only, so a decision filed in a
+# sub-directory was invisible to this measurement; the kernel's walk
+# is recursive and this instrument must not read a different corpus
+# than the one it measures.
+NON_DECISION_SCHEMA_PREFIXES = ('math-coding/waiver-', 'math-coding/obligations-',
+                                 'math-coding/attestation-', 'math-coding/migration-manifest')
+for f in sorted(glob.glob(os.path.join('decisions', '**', '*.yaml'), recursive=True)):
+    rel = os.path.relpath(f, 'decisions')
+    if any(part.startswith('.') for part in rel.split(os.sep)):
         continue
-    text = open(f).read()
+    try:
+        text = open(f, encoding='utf-8', errors='replace').read()
+    except OSError:
+        continue
+    sch = re.search(r'^schema:\s*(\S+)', text, re.M)
+    if sch and sch.group(1).startswith(NON_DECISION_SCHEMA_PREFIXES):
+        continue
     m = re.search(r'^id:\s*(\S+)', text, re.M)
     # THE DEBT IS ABOUT LIVE RULES. A decision that is not in force
     # is not a rule: the sweep does not sign it, and its absence from
@@ -189,22 +211,30 @@ print(legacy, unattested)
 PY
 }
 
-# The store directory. `MATH_CODING_ATTESTATION_STORE` is the kernel's
-# own precedence; the default is the repository's own store.
-STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-attestations}"
+# The store directory. The kernel's own precedence: the legacy name
+# wins over the canonical one, and the canonical one wins over the
+# default (bin/Mathc.ml::resolve_store_root). A fixture that reads a
+# DIFFERENT directory from the one the kernel reads measures a
+# different thing.
+STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-${MATH_CODING_ATTESTATIONS_DIR:-attestations}}"
 shopt -s nullglob
 store_files=("$STORE_DIR"/*.json)
 shopt -u nullglob
 if [ ${#store_files[@]} -eq 0 ]; then
-  # No store: nothing to measure. The store is generated, and an
-  # artefact that has not been generated is not debt -- it is a tree
-  # on which the sweep has not run yet. The fixture says so and exits
-  # green; when a store exists, the three ceilings below are measured
-  # against it.
-  ok "no attestation store in $STORE_DIR: nothing to measure"
+  # NOTHING MEASURED IS UNKNOWN, NOT PASS. The store is generated: a
+  # tree on which the sweep has not run has nothing to measure, and a
+  # fixture that reports "PASS" over an empty directory is a check
+  # that cannot fail. The exit code carries the difference:
+  #   0  the debt was measured and every ceiling held
+  #   1  the debt was measured and a ceiling did not hold
+  #   3  nothing was measured (no store, or a store for another tree)
+  # scripts/check.sh counts 3 as SKIPPED (not verified); the CI step
+  # that runs AFTER the sweep counts it as a failure, because there
+  # the store must exist.
+  ok "no attestation store in $STORE_DIR: there is nothing to measure, and a measurement of nothing is not a measurement"
   echo
-  echo "legacy-attestation-debt: PASS"
-  exit 0
+  echo "legacy-attestation-debt: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
 fi
 
 # THE STORE IS GENERATED FOR A TREE, AND A STORE FROM ANOTHER TREE IS
@@ -236,8 +266,8 @@ PYT
 if [ "$store_trees" != "$head_sha" ]; then
   ok "the store in $STORE_DIR is signed for [$store_trees], not for HEAD ($head_sha): regenerate it before measuring the debt"
   echo
-  echo "legacy-attestation-debt: PASS"
-  exit 0
+  echo "legacy-attestation-debt: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
 fi
 
 read -r legacy unattested <<< "$(measure "$STORE_DIR")"
