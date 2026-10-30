@@ -1,0 +1,170 @@
+---
+schema: math-coding/3.3
+id: paseo-console-plugin-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0de80c376c886f88b1b1aebf85792da52a895d18c8440a868e02d9918993b4b4"
+yaml_sha: "sha256:0de80c376c886f88b1b1aebf85792da52a895d18c8440a868e02d9918993b4b4"
+intent: |
+  The protocol's cost is not paid in writing a decision. It is paid in
+  LOOKING at the corpus. To learn whether the promises still hold, a
+  person runs `mathc self-check`, reads a JSON document, and runs
+  `mathc gaps` to learn which promise is open and what would close it.
+  The corpus in this repository is 153 decisions and 541 obligations;
+  its state is knowable only by running the kernel and reading what it
+  says.
+
+  Meanwhile the review of a decision happens where nobody is looking.
+  A person reads the decision, judges it, and signs nothing: the
+  signature is a `review` attestation in a JSON file under
+  `attestations/`, and the person who would write it does not know
+  whether the file is named the way the kernel expects, whether the
+  store admits a file that is not in the tree, or what the verdict
+  became afterwards. The protocol asks for a human declaration and
+  gives the human no instrument for making it.
+
+  So the protocol is present but not used, in the way a rule that is
+  expensive to check is present but not used. The console is that
+  instrument: the corpus's state, in the tool the person already lives
+  in, and a signature that the kernel itself writes.
+commitment: |
+  1. `plugin/math-coding-console/` is a Paseo plugin. Its client half
+     is a workspace panel, a screen, a sidebar row, two Command Center
+     entries, a slash command and a settings screen; its server half
+     answers nine RPC contracts over one runner.
+
+  2. The console SHOWS what the kernel says and nothing else. Every
+     verdict, every count, every promise state comes out of `mathc`:
+     `counters`, `gaps`, `packages`, `self-check`, `doctor`, `gate`.
+     The console computes no verdict of its own, because a second
+     measurer is a second opinion nobody asked for, and the two would
+     drift.
+
+  3. The console READS the corpus for its TEXT only: the intent, the
+     commitment, the scope, the declared risk, the counterexample, the
+     antithesis. The obligation list comes from the kernel's index,
+     because the list is what the gate sees. Fifteen files in this
+     repository carry YAML the kernel's own parser reads and a
+     spec-conforming parser rejects; their structure and verdicts
+     reach the console, and the console says that their prose does
+     not.
+
+  4. The console SIGNS a human review through the kernel
+     (`mathc attest-batch`), never by writing the attestation itself:
+     an attestation's id is the digest of its own canonical body, and a
+     document the kernel did not write is a document the gate cannot
+     read. The console shows what a signature will REPLACE before it
+     replaces it, and reports the verdict the kernel actually reached
+     afterwards rather than the one it expected.
+
+  5. The console CONTROLS the kernel: self-check, validate, verify,
+     rehash, attest-batch, negative controls, doctor, gate, context,
+     render, session-start, record, new-decision, decision-state. Every
+     button runs a subcommand and shows what it said.
+
+  6. `plugin/math-coding-console/dev.sh` is the development loop:
+     typecheck, install, reload, status. The plugin is installed FROM
+     THE SOURCE DIRECTORY, so an edit reaches the running plugin
+     without a daemon restart — a restart would kill the agent doing
+     the edit.
+
+  7. Two fixtures hold the contract: `paseo-console-contract.sh`
+     checks what the plugin registers and where its code may live, and
+     `paseo-console-negative-control.sh` breaks a copy of the plugin
+     four ways and requires the first fixture to notice each one.
+axiom_link:
+  - A0
+  - A1
+counterexample: |
+  The strongest objection is that the console is a second implementation
+  of the corpus reader, and every implementation of a corpus reader is
+  a place where the console and the kernel can disagree.
+
+  The objection is right about the danger and wrong about the remedy.
+  It is right that a console which parsed the decisions itself and
+  decided what each obligation was worth would be a second measurer,
+  and the measure would drift: the console would report an obligation
+  as satisfied that the gate reports as open, and the operator would
+  trust the brighter number. That is the failure this decision is
+  written against, and it is why the commitment above puts every
+  verdict behind the kernel and puts the contract fixture on the rule
+  that the plugin writes no attestation document and computes no
+  verdict.
+
+  It is wrong that reading the corpus at all is the second
+  implementation. The console does not decide what a decision means:
+  it shows the decision's own words, next to the verdict the kernel
+  reached about it. Two things are shown side by side, and only one
+  of them is a verdict. The alternative is worse than a reader: the
+  operator runs `mathc packages` and reads a table of ids, and
+  separately opens each file in an editor to find out what the promise
+  was. That is the second implementation, and it is the human's.
+
+  The residue of the objection is admitted rather than answered away:
+  the console's YAML reader is stricter than the kernel's, so fifteen
+  decisions reach the console without their prose. The console says
+  so, in the file's own row, rather than showing an empty intent as
+  though the decision had none.
+scope:
+  paths:
+    - "plugin/**"
+    - "tests/fixtures/paseo-console-contract.sh"
+    - "tests/fixtures/paseo-console-negative-control.sh"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+outcomes:
+  - id: the-corpus-is-readable-in-the-tool
+    statement: |
+      A person can read the state of the corpus, and every open promise
+      with the reason it is open, without leaving the tool they work in.
+  - id: a-human-review-is-signable
+    statement: |
+      A person can read a decision, judge it, and sign it, and the
+      signature is one the kernel wrote and the gate can read.
+obligations:
+  - id: the-console-is-wired
+    outcome: the-corpus-is-readable-in-the-tool
+    claim: |
+      The plugin registers every part it promises, every RPC contract
+      has a handler in the daemon, the client reaches for no DOM
+      global, and the server half and the client half do not import
+      each other.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-contract.sh
+  - id: the-verdicts-come-from-the-kernel
+    outcome: the-corpus-is-readable-in-the-tool
+    claim: |
+      Every verdict the console shows is the kernel's. The console asks
+      the kernel for the corpus index, for the promise census and for
+      the self-check, the path that produces a verdict reads no YAML,
+      and the server writes no attestation document of its own.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-kernel-authority.sh
+  - id: the-checks-can-fail
+    outcome: the-corpus-is-readable-in-the-tool
+    claim: |
+      The checks report a broken plugin. A check that cannot fail is
+      not a check, so the negative control breaks a copy of the plugin
+      six ways and requires the checks to notice each one.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-negative-control.sh
+negative_control: tests/fixtures/paseo-console-negative-control.sh
+risk:
+  declared_triggers:
+    - the plugin drifts from the kernel's CLI and a subcommand it calls
+      no longer exists
+    - the console's own YAML reader diverges further from the kernel's
+      and more decisions lose their prose
+    - a future Paseo release changes the plugin API and the client half
+      stops evaluating
+  owner: human:maintainer
+relations:
+  addresses:
+    - agent-onboarding@1

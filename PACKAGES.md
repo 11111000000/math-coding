@@ -315,6 +315,24 @@ This isolates I/O from the pure kernel (see `OCAML_KERNEL_CONVENTIONS §10.1`).
 | `semantics.md` | Operational rules (prose; superseded by `algebra-3.2.md` §15) |
 | `algebra-3.2.md` | Formal mathematical specification of the 3.2-ideal kernel (31 sections, §0–§30) |
 
+## Paseo console (`plugin/math-coding-console/`)
+
+| Path | Purpose |
+|---|---|
+| `index.client.tsx` | The client half: workspace panel, screen, sidebar row, Command Center entries, slash command, settings screen |
+| `index.server.ts` | The server half: nine RPC contracts over one kernel runner |
+| `shared/contracts.ts` | The RPC contracts, and the shapes the client renders |
+| `shared/verdict.ts` | The one place the verdict vocabulary is named |
+| `server/kernel.ts` | The kernel readers; the path every verdict comes from |
+| `server/corpus.ts` | The reader over the corpus files, for their text alone |
+| `server/layout.ts` | Where the corpus lives, under either layout |
+| `client/console.tsx` | The console: six views over one repository |
+| `dev.sh` | The development loop: typecheck, install, reload, status |
+| `scripts/probe.ts` | The console's read model, exercised without a host |
+
+The console is a view and a control surface over the kernel. It computes no verdict of its own.
+See `docs/paseo-console.md` and `decisions/paseo-console-plugin-2026-10.yaml`.
+
 ## Axiom packages (`axioms/`)
 
 | File | Axiom | Summary |
