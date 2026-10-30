@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: paseo-console-plugin-2026-10
 revision: 1
 state: active
-body_sha: "sha256:0de80c376c886f88b1b1aebf85792da52a895d18c8440a868e02d9918993b4b4"
-yaml_sha: "sha256:0de80c376c886f88b1b1aebf85792da52a895d18c8440a868e02d9918993b4b4"
+body_sha: "sha256:439c78b565c6fe3622a0cd18a51705d2807afd977b0ea5ea2931e1936b39beda"
+yaml_sha: "sha256:439c78b565c6fe3622a0cd18a51705d2807afd977b0ea5ea2931e1936b39beda"
 intent: |
   The protocol's cost is not paid in writing a decision. It is paid in
   LOOKING at the corpus. To learn whether the promises still hold, a
@@ -68,10 +68,17 @@ commitment: |
      without a daemon restart — a restart would kill the agent doing
      the edit.
 
-  7. Two fixtures hold the contract: `paseo-console-contract.sh`
-     checks what the plugin registers and where its code may live, and
+  7. Four fixtures hold the contract.
+     `paseo-console-contract.sh` checks what the plugin registers and
+     where its code may live. `paseo-console-kernel-authority.sh`
+     checks where its verdicts come from: the server writes no
+     attestation document of its own, the verdict path reads no YAML,
+     and the runner is anchored on the repository.
+     `paseo-console-renders.sh` renders every view of the console with
+     the corpus's own data, so a view that throws is found before
+     somebody opens that tab. And
      `paseo-console-negative-control.sh` breaks a copy of the plugin
-     four ways and requires the first fixture to notice each one.
+     seven ways and requires the other three to notice each one.
 axiom_link:
   - A0
   - A1
@@ -146,6 +153,15 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/paseo-console-kernel-authority.sh
+  - id: every-view-renders
+    outcome: the-corpus-is-readable-in-the-tool
+    claim: |
+      Every view of the console renders, with the corpus's own data. A
+      view that throws is invisible until somebody opens that tab, and
+      the tab a person needs is often the one nobody opened that day.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-renders.sh
   - id: the-checks-can-fail
     outcome: the-corpus-is-readable-in-the-tool
     claim: |

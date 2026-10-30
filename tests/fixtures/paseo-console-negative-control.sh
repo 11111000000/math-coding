@@ -52,6 +52,15 @@ cp -r "$PLUGIN" "$tmp/plugin-copy"
 # copy is laid out the way the fixture expects.
 mkdir -p "$tmp/repo/plugin" "$tmp/repo/tests/fixtures"
 cp -r "$tmp/plugin-copy" "$tmp/repo/plugin/math-coding-console"
+# The render check needs the plugin's dependencies AND a corpus to read. A
+# symlink is enough for both: the copy is a scratch tree, and neither the real
+# node_modules nor the real corpus is copied.
+if [ -d "$PLUGIN/node_modules" ]; then
+  ln -s "$PWD/$PLUGIN/node_modules" "$tmp/repo/plugin/math-coding-console/node_modules"
+fi
+if [ -d "$PWD/decisions" ]; then
+  ln -s "$PWD/decisions" "$tmp/repo/decisions"
+fi
 cp "$CONTRACT" "$tmp/repo/tests/fixtures/paseo-console-contract.sh"
 cp "$AUTHORITY" "$tmp/repo/tests/fixtures/paseo-console-kernel-authority.sh"
 rm -rf "$tmp/plugin-copy"
@@ -150,6 +159,20 @@ else
   else
     bad "the authority check failed for the wrong reason:"
     sed 's/^/    /' "$tmp/b6.log"
+  fi
+fi
+
+# --- break 7: a view that throws at render time ---------------------------
+sed -i 's|  const verdict = state.verdict;|  throw new Error("the control broke this view");\n  const verdict = state.verdict;|' \
+  "$tmp/repo/plugin/math-coding-console/client/verdict-view.tsx"
+if bash "$tmp/repo/plugin/math-coding-console/scripts/render-check.sh" "$PWD/$tmp/repo" >"$tmp/b7.log" 2>&1; then
+  bad "the render check passed with a view that throws: the control cannot fail"
+else
+  if grep -q "did not render" "$tmp/b7.log" || grep -q "threw" "$tmp/b7.log"; then
+    ok "the render check reports a view that throws"
+  else
+    bad "the render check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b7.log"
   fi
 fi
 

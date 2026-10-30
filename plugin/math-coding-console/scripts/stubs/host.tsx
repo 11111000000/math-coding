@@ -101,7 +101,7 @@ export const DocumentFrame = host("iframe");
 export const Markdown = host("div");
 export const ScrollView = host("div");
 export const FlatList = host("div");
-export const TextInput = host("input");
+export const TextInput = host("div");
 export const StreamedText = host("span");
 export const copyText = async (_text: string) => undefined;
 

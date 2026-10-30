@@ -51,15 +51,24 @@ The first prints what the console would show: the verdict, the coverage, the pro
 decisions and the review queue. The second signs a review and prints what the kernel's store holds
 afterwards. Both are how the console's claims are checked while it is being written.
 
+```bash
+./scripts/render-check.sh /path/to/math-coding/repo
+```
+
+The third renders every view of the console with the corpus's own data, in Node, against the smallest
+stubs that let a view render. It finds a view that throws before somebody opens that tab. It does not
+prove how the console looks: that is checked by opening it in Paseo.
+
 ## What holds it
 
 ```bash
 bash tests/fixtures/paseo-console-contract.sh            # what the plugin registers
 bash tests/fixtures/paseo-console-kernel-authority.sh     # where its verdicts come from
-bash tests/fixtures/paseo-console-negative-control.sh     # that the two above can fail
+bash tests/fixtures/paseo-console-renders.sh             # that every view renders
+bash tests/fixtures/paseo-console-negative-control.sh     # that the three above can fail
 ```
 
-The negative control breaks a copy of the plugin six ways and requires the other two fixtures to
+The negative control breaks a copy of the plugin seven ways and requires the other three fixtures to
 notice each one. A check that cannot fail is not a check.
 
 ## Where the verdicts come from
