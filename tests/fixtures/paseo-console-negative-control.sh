@@ -23,6 +23,7 @@ cd "$(dirname "$0")/../.."
 
 CONTRACT="tests/fixtures/paseo-console-contract.sh"
 AUTHORITY="tests/fixtures/paseo-console-kernel-authority.sh"
+MOSAIC="tests/fixtures/paseo-console-mosaic.sh"
 PLUGIN="plugin/math-coding-console"
 
 fail=0
@@ -63,6 +64,7 @@ if [ -d "$PWD/decisions" ]; then
 fi
 cp "$CONTRACT" "$tmp/repo/tests/fixtures/paseo-console-contract.sh"
 cp "$AUTHORITY" "$tmp/repo/tests/fixtures/paseo-console-kernel-authority.sh"
+cp "$MOSAIC" "$tmp/repo/tests/fixtures/paseo-console-mosaic.sh"
 rm -rf "$tmp/plugin-copy"
 
 # --- the unbroken copy passes ---------------------------------------------
@@ -175,6 +177,81 @@ else
     sed 's/^/    /' "$tmp/b7.log"
   fi
 fi
+
+# --- break 8: the mosaic stops reading the promise census ------------------
+sed -i 's/  const gaps = await readGaps(root);/  const gaps = { value: null, error: "broken for the control" };/' \
+  "$tmp/repo/plugin/math-coding-console/server/handlers.ts"
+if bash "$tmp/repo/tests/fixtures/paseo-console-mosaic.sh" >"$tmp/b8.log" 2>&1; then
+  bad "the mosaic check passed without the census: the control cannot fail"
+else
+  if grep -q "does not read readGaps" "$tmp/b8.log"; then
+    ok "the mosaic check reports a mosaic that does not read the census"
+  else
+    bad "the mosaic check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b8.log"
+  fi
+fi
+cp "$PLUGIN/server/handlers.ts" "$tmp/repo/plugin/math-coding-console/server/handlers.ts"
+
+# --- break 9: the join is not computed -------------------------------------
+sed -i 's/      namingLivePromise: namingLive,/      namingLivePromise: 0,/' \
+  "$tmp/repo/plugin/math-coding-console/server/handlers.ts"
+if bash "$tmp/repo/tests/fixtures/paseo-console-mosaic.sh" >"$tmp/b9.log" 2>&1; then
+  bad "the mosaic check passed without the join: the control cannot fail"
+else
+  if grep -q "the join is not computed" "$tmp/b9.log"; then
+    ok "the mosaic check reports a mosaic that does not compute the join"
+  else
+    bad "the mosaic check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b9.log"
+  fi
+fi
+cp "$PLUGIN/server/handlers.ts" "$tmp/repo/plugin/math-coding-console/server/handlers.ts"
+
+# --- break 10: the cell states are declared a second time ------------------
+printf '\nconst secondVocabulary = z.enum(["observed", "declared", "open", "uncheckable", "failed", "waived"]);\n' \
+  >>"$tmp/repo/plugin/math-coding-console/shared/contracts.ts"
+if bash "$tmp/repo/tests/fixtures/paseo-console-mosaic.sh" >"$tmp/b10.log" 2>&1; then
+  bad "the mosaic check passed with a second vocabulary: the control cannot fail"
+else
+  if grep -q "declared again" "$tmp/b10.log"; then
+    ok "the mosaic check reports a second declaration of the cell states"
+  else
+    bad "the mosaic check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b10.log"
+  fi
+fi
+cp "$PLUGIN/shared/contracts.ts" "$tmp/repo/plugin/math-coding-console/shared/contracts.ts"
+
+# --- break 11: the server assigns a verdict of its own --------------------
+printf '\nconst inventedVerdict = { verdict: "pass" };\n' \
+  >>"$tmp/repo/plugin/math-coding-console/server/kernel.ts"
+if bash "$tmp/repo/tests/fixtures/paseo-console-mosaic.sh" >"$tmp/b11.log" 2>&1; then
+  bad "the mosaic check passed with an invented verdict: the control cannot fail"
+else
+  if grep -q "assigns a verdict" "$tmp/b11.log"; then
+    ok "the mosaic check reports a verdict the server assigned itself"
+  else
+    bad "the mosaic check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b11.log"
+  fi
+fi
+cp "$PLUGIN/server/kernel.ts" "$tmp/repo/plugin/math-coding-console/server/kernel.ts"
+
+# --- break 12: the client imports a module the host does not offer ---------
+printf '\nimport { readFileSync } from "node:fs";\n' \
+  >>"$tmp/repo/plugin/math-coding-console/client/mosaic.tsx"
+if (cd "$tmp/repo/plugin/math-coding-console" && npx tsx scripts/client-bundle.ts) >"$tmp/b12.log" 2>&1; then
+  bad "the client bundle check passed with a node: import: the control cannot fail"
+else
+  if grep -q "the client half imports" "$tmp/b12.log"; then
+    ok "the client bundle check reports a module the host does not offer"
+  else
+    bad "the client bundle check failed for the wrong reason:"
+    sed 's/^/    /' "$tmp/b12.log"
+  fi
+fi
+cp "$PLUGIN/client/mosaic.tsx" "$tmp/repo/plugin/math-coding-console/client/mosaic.tsx"
 
 echo
 if [ "$fail" -eq 0 ]; then

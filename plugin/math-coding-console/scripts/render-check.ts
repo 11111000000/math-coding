@@ -16,11 +16,13 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { createElement, type ReactNode } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { buildState } from "../server/handlers";
+import { buildChange, buildMosaic, buildState } from "../server/handlers";
 import { ActionsView } from "../client/actions-view";
+import { ChainSheet } from "../client/chain";
+import { InstrumentFrame } from "../client/frame";
+import { MosaicView } from "../client/mosaic";
 import { DecisionSheet } from "../client/decision-sheet";
 import { DecisionsView } from "../client/decisions-view";
-import { EvidenceView } from "../client/evidence-view";
 import { PromisesView } from "../client/promises-view";
 import { ReviewSheet } from "../client/review-sheet";
 import { ReviewView } from "../client/review-view";
@@ -56,8 +58,35 @@ async function main() {
     process.exit(1);
   }
 
+  const mosaic = await buildMosaic(root);
+
   const noop = () => undefined;
   const views: [string, () => ReactNode][] = [
+    [
+      "Mosaic",
+      () =>
+        createElement(MosaicView, {
+          theme,
+          compact: false,
+          mosaic,
+          onOpenCell: noop,
+          onOpenDecision: noop,
+        }),
+    ],
+    [
+      "Chain sheet",
+      () =>
+        createElement(ChainSheet, {
+          theme,
+          cell: mosaic.cells[0] ?? null,
+          open: false,
+          onOpenChange: noop,
+        }),
+    ],
+    [
+      "Instrument frame",
+      () => createElement(InstrumentFrame, { theme, state, mosaic }),
+    ],
     ["Verdict", () => createElement(VerdictView, { theme, state, onOpenDecision: noop })],
     [
       "Promises",
@@ -77,7 +106,6 @@ async function main() {
           onOpenDecision: noop,
         }),
     ],
-    ["Evidence", () => createElement(EvidenceView, { theme, state })],
     [
       "Actions",
       () => createElement(ActionsView, { theme, root: state.root, attestRunCommand: "", onRefresh: noop }),

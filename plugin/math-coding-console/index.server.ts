@@ -1,6 +1,8 @@
 import type { PluginServerContext } from "@getpaseo/plugin/server";
 import {
+  buildChange,
   buildDecision,
+  buildMosaic,
   buildPromiseList,
   buildState,
   changeLifecycle,
@@ -12,10 +14,12 @@ import {
 } from "./server/handlers";
 import {
   actionRpc,
+  changeRpc,
   decisionRpc,
   diagnosticRpc,
   gateRpc,
   lifecycleRpc,
+  mosaicRpc,
   promiseListRpc,
   reviewSubmitRpc,
   searchRpc,
@@ -27,6 +31,8 @@ export default function contribute(server: PluginServerContext) {
   const settings = server.registerSettings(preferences);
 
   server.handle(stateRpc, (input) => buildState(input.root));
+  server.handle(mosaicRpc, (input) => buildMosaic(input.root));
+  server.handle(changeRpc, (input) => buildChange(input.root, input.base, input.head));
   server.handle(promiseListRpc, (input) =>
     buildPromiseList(input.root, {
       state: input.state,

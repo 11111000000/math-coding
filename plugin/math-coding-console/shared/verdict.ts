@@ -65,6 +65,62 @@ export function verdictTone(verdict: string): VerdictTone {
 }
 
 /**
+ * The six states a promise can be in, as the MOSAIC draws them.
+ *
+ * The vocabulary is the constitution's own: `declared != derived !=
+ * attested != reviewed != observed`. A promise closed by a machine run and
+ * a promise closed by a person's word are DIFFERENT states, and the
+ * picture says so.
+ *
+ * These six words live HERE and nowhere else. Two places that name them
+ * are two vocabularies, and two vocabularies drift: one of them will
+ * call a promise observed while the kernel calls it open.
+ */
+export const CELL_STATES = [
+  /** Closed by a machine run (test / build / analysis / observation), current. */
+  "observed",
+  /** Closed by a person's word (a review attestation), current. */
+  "declared",
+  /** No current evidence. */
+  "open",
+  /** The corpus names no check for it at all. The paper layer. */
+  "uncheckable",
+  /** A decisive failure. */
+  "failed",
+  /** Accepted by a named, in-force, expiring waiver. */
+  "waived",
+] as const;
+
+export type CellState = (typeof CELL_STATES)[number];
+
+/**
+ * The cell a promise belongs in.
+ *
+ * This is NOT a verdict. The kernel has already decided: `verdict` is
+ * what the kernel's obligation index says. This maps that answer onto a
+ * colour, and it is the only place the mapping happens.
+ *
+ * `attestationKind` is what separates `observed` from `declared`: both
+ * are `pass` in the kernel's index, and the constitution says a
+ * declaration is not an observation.
+ */
+export function cellFor(args: {
+  verdict: string;
+  attestationKind: string | null;
+  censusClass: string | null;
+}): CellState {
+  const { verdict, attestationKind, censusClass } = args;
+  if (verdict === "pass") {
+    const runtime = ["test", "build", "analysis", "observation"];
+    return runtime.includes(attestationKind ?? "") ? "observed" : "declared";
+  }
+  if (verdict === "fail") return "failed";
+  if (verdict === "waived") return "waived";
+  if (censusClass === "not-a-check") return "uncheckable";
+  return "open";
+}
+
+/**
  * Is this verdict a promise that is still open?
  *
  * The words that mean "not settled" live here and nowhere else. A second
