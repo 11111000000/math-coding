@@ -73,8 +73,9 @@ obligations:
       contain the OCaml-only `lib/**`, `bin/**`, `spec/**`.
     acceptance:
       all:
+        - verifier: shell-grep lib/init/init.ml src/**
+        - verifier: shell-grep-absent lib/init/init.ml lib/**
         - verifier: tests/cli/init-scope-language-agnostic.t
-        - verifier: manual-self-check-verdict
   - id: kernel-side-docs-have-disambiguation-banner
     claim: |
       README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and

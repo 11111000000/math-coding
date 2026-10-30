@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: antithesis-mode-considered-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5539997116993f474f006fe69d8c1341e58c6f8b96709114bc0f7fb75cc96d51"
-yaml_sha: "sha256:5539997116993f474f006fe69d8c1341e58c6f8b96709114bc0f7fb75cc96d51"
+body_sha: "sha256:38a7bbb8bfde0689eeb7b2be52ca433e69ba7ee9826ca34554b00dc9e517a346"
+yaml_sha: "sha256:38a7bbb8bfde0689eeb7b2be52ca433e69ba7ee9826ca34554b00dc9e517a346"
 intent: |
   Resolve the spec/code contradiction in
   `spec/algebra-3.2.md:422-423` vs
@@ -238,7 +238,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-        - verifier: manual-target-missing-tests-t2-1-mathc-validate-regress
   - id: synthetic-considered-rejected
     statement: |
       The cram fixture `tests/cli/validate-considered-antithesis.t`

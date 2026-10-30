@@ -6,8 +6,8 @@ state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
-body_sha: "sha256:e4a1ccd69931573ce456964dff1d7bbf6f4d7a1abb5c63060523bd993b8c29e4"
-yaml_sha: "sha256:e4a1ccd69931573ce456964dff1d7bbf6f4d7a1abb5c63060523bd993b8c29e4"
+body_sha: "sha256:63fbb3c4396182a5922b721ef0c0264ca2c97ba99375dcb8e361a2408fe0a266"
+yaml_sha: "sha256:63fbb3c4396182a5922b721ef0c0264ca2c97ba99375dcb8e361a2408fe0a266"
 
 axiom_link:
   - A0
@@ -181,7 +181,7 @@ obligations:
       pre-change behaviour.
     acceptance:
       all:
-        - verifier: manual-shell-grep-nix-develop-test-command-bash-c-scrip
+        - verifier: shell-grep scripts/dev-env.sh nix develop
 
   - id: upstream-documented
     claim: |

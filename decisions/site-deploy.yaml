@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
-yaml_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
+body_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
+yaml_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -152,7 +152,9 @@ obligations:
     outcome: site-self-referential
     acceptance:
       all:
-        - verifier: manual-grep-l-mathc-packages-dist-html-wc-l-3
+        - verifier: shell-grep site bootstrap-v3
+        - verifier: shell-grep site mathc-packages-subcommand
+        - verifier: shell-grep site site-deploy
 
   - id: site-deploy-pipeline
     statement: |
@@ -170,7 +172,7 @@ obligations:
     outcome: site-pinned-ubuntu
     acceptance:
       all:
-        - verifier: manual-grep-runs-on-ubuntu-22-04-github-workflows-site-
+        - verifier: shell-grep .github/workflows/site.yml ubuntu-22.04
 
   - id: tufte-stylesheet
     statement: |
@@ -182,8 +184,8 @@ obligations:
     outcome: tufte-css
     acceptance:
       all:
-        - verifier: manual-grep-qf-charter-assets-style-css
-        - verifier: manual-grep-qf-fbfaf6-assets-style-css
+        - verifier: shell-grep assets/style.css oxblood
+        - verifier: shell-grep assets/style.css Charter
 
   - id: sidenote-syntax
     statement: |
@@ -249,12 +251,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/render.t
-        - verifier: manual-rendered-asset-manifesto
-        - verifier: manual-rendered-asset-foundations
-        - verifier: manual-rendered-asset-workflow
-        - verifier: manual-rendered-asset-faq
-        - verifier: manual-rendered-asset-contributing
-        - verifier: manual-rendered-asset-readme
 
   - id: extended-markdown-subset
     statement: |

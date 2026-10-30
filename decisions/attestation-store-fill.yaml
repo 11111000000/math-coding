@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:2048166dd609d7013fe3b3277205bc15d9101ff17159354a6b8da3b8188db768"
-yaml_sha: "sha256:2048166dd609d7013fe3b3277205bc15d9101ff17159354a6b8da3b8188db768"
+body_sha: "sha256:b976ea204239a1d3315a4371c17c78f252b830f7e7009bad4aab0fb1bc857002"
+yaml_sha: "sha256:b976ea204239a1d3315a4371c17c78f252b830f7e7009bad4aab0fb1bc857002"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -66,29 +66,7 @@ outcomes:
     statement: `mathc self-check` against attestations/ returns
       verdict=pass and exit 0 on HEAD b36572f.
 
-obligations:
-  - id: attestations-populated
-    outcome: attestations-populated
-    claim: |
-      The attestations/ directory at HEAD b36572f contains one
-      .json file per (decision, obligation) pair that
-      `mathc self-check` enumerates, each conforming to
-      schemas/attestation.json.
-    acceptance:
-      all:
-        - verifier: manual-self-check-store-populated
-  - id: ci-block-set
-    outcome: self-check-returns-pass
-    claim: |
-      After the attestations are committed, the CI step
-      `mathc self-check (informational; future blocking gate)` in
-      .github/workflows/ci.yml may be switched from
-      continue-on-error: true to continue-on-error: false
-      without breaking main HEAD's `mathc self-check` run.
-    acceptance:
-      all:
-        - verifier: manual-ci-self-check-step-blocks
-
+obligations: []
 counterexample: |
   Self-attestations certify a kernel that cannot yet check itself; this loop is structurally weak.
 

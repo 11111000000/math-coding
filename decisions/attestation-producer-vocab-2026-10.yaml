@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:e10ae6b915a5c6217ec3731eb52e8e8dbe0f11232289ab689f636fc3f2a076d9"
-yaml_sha: "sha256:e10ae6b915a5c6217ec3731eb52e8e8dbe0f11232289ab689f636fc3f2a076d9"
+body_sha: "sha256:447af0330be351d1a30ac117ff4bb7df23946eb8491779193d4314b4a146f1aa"
+yaml_sha: "sha256:447af0330be351d1a30ac117ff4bb7df23946eb8491779193d4314b4a146f1aa"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -317,11 +317,11 @@ obligations:
       I13 fixture coverage requires a pair per kernel-enforced MUST.
     acceptance:
       all:
+        - verifier: file-exists fixtures/conformance/attestation/positive-human-review.json
+        - verifier: file-exists fixtures/conformance/attestation/positive-human-runtime-anchored.json
+        - verifier: file-exists fixtures/conformance/attestation/negative-untagged-producer.json
+        - verifier: file-exists fixtures/conformance/attestation/negative-human-runtime-unanchored.json
         - verifier: tests/conformance.ml
-        - verifier: manual-file-exists-unqualified
-          path: fixtures/conformance/attestation/negative-untagged-producer.json
-        - verifier: manual-file-exists-unqualified
-          path: fixtures/conformance/attestation/positive-human-runtime-anchored.json
 
   - id: corpus-remains-loadable
     outcome: grandfathered-not-rewritten

@@ -6,8 +6,8 @@ state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: implementation
-body_sha: "sha256:2da46bca1c86503711f19894eef0f2ec48afa15132058d52e4ed27d5b07d5795"
-yaml_sha: "sha256:2da46bca1c86503711f19894eef0f2ec48afa15132058d52e4ed27d5b07d5795"
+body_sha: "sha256:ca5bee0cfbae1a675a1e146cd022addd00abd7fdccfc015c8b44c27082d9c25b"
+yaml_sha: "sha256:ca5bee0cfbae1a675a1e146cd022addd00abd7fdccfc015c8b44c27082d9c25b"
 axiom_link:
   - A0
   - A1
@@ -518,10 +518,10 @@ obligations:
       future agent encountering the gap can act.
     acceptance:
       all:
+        - verifier: shell-grep decisions/docker-availability-guarantee-2026-10.yaml docker-mirror-policy-2026-XX
+        - verifier: shell-grep decisions/docker-availability-guarantee-2026-10.yaml docker-retention-policy-2026-XX
+        - verifier: shell-grep decisions/docker-availability-guarantee-2026-10.yaml install-sh-auto-fallback-2026-XX
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
-        - verifier: manual-grep-q-docker-mirror-policy-decisions-docker-ava
-        - verifier: manual-grep-q-docker-retention-policy-decisions-docker-
-        - verifier: manual-grep-q-install-sh-auto-fallback-decisions-docker
 
 reversal:
   - signal: docker-channel-deprecated

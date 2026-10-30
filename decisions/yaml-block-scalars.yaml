@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 6
 state: active
-body_sha: "sha256:659c9e3c34e678297aefc890da4afc35f4376e93bd124d8ac15734ed08f02396"
-yaml_sha: "sha256:659c9e3c34e678297aefc890da4afc35f4376e93bd124d8ac15734ed08f02396"
+body_sha: "sha256:0e8356fd444c01b4f60523529a56876aa75e46c18fbbdec6e2796eb73978a8ce"
+yaml_sha: "sha256:0e8356fd444c01b4f60523529a56876aa75e46c18fbbdec6e2796eb73978a8ce"
 intent: |
   Close deficit D1 and D2 from docs/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
@@ -238,8 +238,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/yaml_block_scalars.ml
-        - verifier: manual-shell-grep-dune-build-runtest
-          needle: dune build @runtest
   - id: yaml-block-scalars-loader-extended
     outcome: kernel-handles-block-scalars
     claim: |

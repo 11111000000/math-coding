@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:f1689e1724688d3b237fd92ed6a3bed022e2e706447640216aece6c3e4380b19"
-yaml_sha: "sha256:f1689e1724688d3b237fd92ed6a3bed022e2e706447640216aece6c3e4380b19"
+body_sha: "sha256:1d9f2258cea596deb81e2fbaf825da49c6a35d379286043d971508bc29396ee7"
+yaml_sha: "sha256:1d9f2258cea596deb81e2fbaf825da49c6a35d379286043d971508bc29396ee7"
 
 intent: |
   Close the F9 finding from
@@ -165,7 +165,7 @@ obligations:
       default `none`.
     acceptance:
       all:
-        - verifier: manual-mathc-help-text-verifies-sandbox
+        - verifier: shell-grep bin/Mathc.ml --sandbox
 
 risk:
   declared_triggers:

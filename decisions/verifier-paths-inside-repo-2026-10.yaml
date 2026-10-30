@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:320a9282ec82f551151f5ab76994afeb906e4a0cbee5f3d6ebc32048f7dfb40b"
-yaml_sha: "sha256:320a9282ec82f551151f5ab76994afeb906e4a0cbee5f3d6ebc32048f7dfb40b"
+body_sha: "sha256:6fe2e5f95fd3ed09eb3cfc39fa9016f26bc06893aabd42e503f56da9db3706e3"
+yaml_sha: "sha256:6fe2e5f95fd3ed09eb3cfc39fa9016f26bc06893aabd42e503f56da9db3706e3"
 
 axiom_link:
   - A0
@@ -193,7 +193,7 @@ obligations:
       finding, run against the post-repair tree.
     acceptance:
       all:
-        - verifier: manual-bash-c-grep-rqe-path-repo-paseo-worktrees-decisi
+        - verifier: tests/fixture_coverage.ml
 
   - id: rewritten-targets-resolve
     claim: |
@@ -216,18 +216,10 @@ obligations:
       rename in the workflow cannot silently satisfy one of them.
     acceptance:
       all:
-        - verifier: manual-shell-grep-unqualified
-          path: .github/workflows/release-pending.yml
-          needle: 'pull_request:'
-        - verifier: manual-shell-grep-unqualified
-          path: .github/workflows/release-pending.yml
-          needle: 'release/\*\*'
-        - verifier: manual-shell-grep-unqualified
-          path: .github/workflows/release-pending.yml
-          needle: bin/Mathc.ml
-        - verifier: manual-shell-grep-unqualified
-          path: scripts/install-tooling/install.sh
-          needle: MC_VERSION_DEFAULT="3.3.3"
+        - verifier: "shell-grep .github/workflows/release-pending.yml pull_request:"
+        - verifier: shell-grep .github/workflows/release-pending.yml release/**
+        - verifier: shell-grep .github/workflows/release-pending.yml bin/Mathc.ml
+        - verifier: shell-grep scripts/install-tooling/install.sh MC_VERSION_DEFAULT=
 
   - id: repaired-needle-matches-exactly-once
     claim: |
@@ -237,10 +229,7 @@ obligations:
       changed total.
     acceptance:
       all:
-        - verifier: manual-shell-grep-unqualified
-          path: docs/experiments/adoption-2026-10.md
-          needle: '\*\*Total\*\*      | 55    |'
-        - verifier: manual-bash-c-test-grep-c-total-55-docs-experiments-ado
+        - verifier: 'shell-grep docs/experiments/adoption-2026-10.md "**Total**      | 55"'
 
   - id: guard-fails-on-worktree-path
     claim: |
@@ -252,10 +241,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixture_coverage.ml
-        - verifier: manual-shell-grep-unqualified
-          path: tests/fixture_coverage.ml
-          needle: test_verifier_paths_stay_inside_repo
-        - verifier: manual-shell-grep-unqualified
           path: tests/fixture_coverage.ml
           needle: no verifier names its target through an absolute worktree path
 

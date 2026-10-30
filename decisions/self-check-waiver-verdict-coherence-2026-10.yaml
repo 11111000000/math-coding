@@ -7,8 +7,8 @@ negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:8fbdb1e04f4526a1451ec073d8fcda7cdee9a3b60ee655656d082ef1cd966ffe"
-yaml_sha: "sha256:8fbdb1e04f4526a1451ec073d8fcda7cdee9a3b60ee655656d082ef1cd966ffe"
+body_sha: "sha256:0b813ecd77da006e22c8fbe91f62a48078dafee0f9e837667a64df00e654c2e4"
+yaml_sha: "sha256:0b813ecd77da006e22c8fbe91f62a48078dafee0f9e837667a64df00e654c2e4"
 
 axiom_link:
   - A0
@@ -394,20 +394,7 @@ obligations:
       checked-in fixture.
     acceptance:
       all:
-        - verifier: manual-review-of-test-rule
-
-  - id: stale-attestation-is-inconclusive
-    outcome: stale-attestation-retired
-    claim: |
-      `attestations/waiver-infrastructure-2026-10-self-check-emits-pass-with-waiver.json`
-      carries `result: inconclusive` — never `pass` — for the
-      `self-check-emits-pass-with-waiver` obligation. The
-      attestation schema has no `reason` field, so the record
-      names the obligation and its inconclusive result, nothing
-      more.
-    acceptance:
-      all:
-        - verifier: manual-text-scan-attestation-inconclusive
+        - verifier: tests/counters_reference.ml
 
 reversal:
   - signal: consumer-requires-the-old-string

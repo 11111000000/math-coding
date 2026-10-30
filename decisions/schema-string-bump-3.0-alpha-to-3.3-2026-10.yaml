@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a8069b70f5db39a1d5ba4dbab8f529c3c135e40ea3454d529e5ac0976754b027"
-yaml_sha: "sha256:a8069b70f5db39a1d5ba4dbab8f529c3c135e40ea3454d529e5ac0976754b027"
+body_sha: "sha256:f7377bde71c1e16952728ff94e9866f70258c5d7ba5b4aff3d1e79b14d6cd511"
+yaml_sha: "sha256:f7377bde71c1e16952728ff94e9866f70258c5d7ba5b4aff3d1e79b14d6cd511"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -156,7 +156,8 @@ obligations:
       each starting with `https://math-coding.org/schema/3.3/`.
     acceptance:
       all:
-        - verifier: manual-text-scan-schema-id
+        - verifier: shell-grep-absent schemas math-coding.org/schema/3.2
+        - verifier: shell-grep-absent schemas math-coding.org/schema/3.0-alpha
   - id: schema-enum-accepts-3-3
     statement: |
       `schemas/decision.json`'s `schema` property enum carries

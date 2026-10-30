@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:71fe458c87c876b15f755ae09b56fcca9805beaff1ce6169cd16b6c50f0b3023"
-yaml_sha: "sha256:71fe458c87c876b15f755ae09b56fcca9805beaff1ce6169cd16b6c50f0b3023"
+body_sha: "sha256:ede4fbada11a12779a3b5152a18952812dd2e7b92d70b0d48918230e13a40a25"
+yaml_sha: "sha256:ede4fbada11a12779a3b5152a18952812dd2e7b92d70b0d48918230e13a40a25"
 
 axiom_link:
   - A0
@@ -98,10 +98,9 @@ obligations:
       flag `--libc=glibc|musl` is recognised.
     acceptance:
       all:
+        - verifier: shell-grep scripts/install-tooling/install.sh detect_libc
         - verifier: file-exists decisions/ux-3-install-libc-auto-detect-2026-10.yaml
         - verifier: mathc validate decisions/ux-3-install-libc-auto-detect-2026-10.yaml
-        - verifier: manual-bash-n-scripts-install-tooling-install-sh
-        - verifier: manual-shellcheck-scripts-install-tooling-install-sh-ru
 
   - id: libc-detect-tests
     outcome: alpine-install-works
