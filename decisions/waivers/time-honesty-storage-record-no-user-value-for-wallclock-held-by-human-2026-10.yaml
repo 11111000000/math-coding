@@ -1,0 +1,21 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: time-honesty-storage-record-no-user-value-for-wallclock-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: time-honesty-storage
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The property is the CLI SURFACE of `mathc record` (no numeric flag
+  is accepted for the wall-clock scale), and the corpus has no
+  executable scheme that asserts a CLI's accepted flags: the canonical
+  forms the kernel can run are file/dir existence, a `mathc`
+  subcommand, a `dune` target, a test path and a script path. The
+  maintainer holds this one.
+
+  The hold expires 2027-01-29. If no executable fixture has taken
+  over by then, this obligation should be re-examined.
+unverified_obligation: record-no-user-value-for-wallclock

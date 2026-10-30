@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:3171dae379d5e3190791aaf9efedf843b2c6858a294768432542ba73ff224f36"
-yaml_sha: "sha256:3171dae379d5e3190791aaf9efedf843b2c6858a294768432542ba73ff224f36"
+body_sha: "sha256:443ede9e225330a1bac8bdec7fadc9604b09aa775b55bd43d3ae0714b6f1f88d"
+yaml_sha: "sha256:443ede9e225330a1bac8bdec7fadc9604b09aa775b55bd43d3ae0714b6f1f88d"
 
 intent: { source: "issue:a-check-that-cannot-fail-is-not-a-check-2026-10-23", text: "The corpus had 224 decisions that declare an executable verifier and name no negative control. Nothing in the corpus distinguished a fixture with teeth from a fixture that passes whatever happens: both report green, and the difference is invisible unless somebody breaks the property on purpose and watches the check catch it. Every fixture this session added carries such a negative control - including one that rebuilds the pre-fix version of the code it guards and shows that the guard catches it - but nothing REQUIRED it, so the property was a habit of one author rather than a rule." }
 
@@ -95,7 +95,7 @@ obligations:
       returns the code, definition, occurs_when and remediation.
     acceptance:
       all:
-        - verifier: manual-negative-control-diagnostic
+        - verifier: mathc explain-diagnostic MC-NEGATIVE-CONTROL-MISSING
           result: pass
 
 risk:

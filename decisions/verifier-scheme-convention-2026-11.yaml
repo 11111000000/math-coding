@@ -4,8 +4,8 @@ id: verifier-scheme-convention-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:d7f7f2f212ac41a64f5b25b006c37588940f4fd6a5b5070a3fdecb9ec84e7364"
-yaml_sha: "sha256:d7f7f2f212ac41a64f5b25b006c37588940f4fd6a5b5070a3fdecb9ec84e7364"
+body_sha: "sha256:21b7fc6c536c09ff9e0dc2f1703ce4b8a3abd78b672cf699108789a5d2c52572"
+yaml_sha: "sha256:21b7fc6c536c09ff9e0dc2f1703ce4b8a3abd78b672cf699108789a5d2c52572"
 
 intent: { source: "issue:plan-c5-verifier-scheme", text: "Surface acceptance.all[*].verifier strings that use a verifier scheme name NOT in the canonical list, as a Warn diagnostic from `mathc validate`. The validator still parses-ok on the file; the warning flags the operator that the scheme string is non-canonical. Plan-decision C5 of plan-2026-11-adoption-fixes." }
 
@@ -108,11 +108,7 @@ obligations:
       unchanged (Warn, not Block).
     acceptance:
       all:
-        - verifier: manual-validate-fixture-unknown-warns
-          result: pass
-        - verifier: manual-shell-grep-unqualified
-          path: "$DUNE_SOURCEROOT"
-          needle: MC-VERIFIER-SCHEME-UNKNOWN
+        - verifier: tests/cli/validate-verifier-scheme-unknown.t
           result: pass
 
   - id: c5-no-new-unknowns

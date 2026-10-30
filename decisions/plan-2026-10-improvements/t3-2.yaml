@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-2
 revision: 1
 state: active
-body_sha: "sha256:32df369de9a60c0a099cd0f918cb1a7cc9b8f2a444810e7d33f2ca8e8c71d48c"
-yaml_sha: "sha256:32df369de9a60c0a099cd0f918cb1a7cc9b8f2a444810e7d33f2ca8e8c71d48c"
+body_sha: "sha256:c809537d3a22e6cf26b6644519c27ebd3c7203dddfb71d76dc4ae94d025a3b9a"
+yaml_sha: "sha256:c809537d3a22e6cf26b6644519c27ebd3c7203dddfb71d76dc4ae94d025a3b9a"
 axiom_link:
   - A0
   - A1
@@ -269,8 +269,6 @@ obligations:
       (no waiver is consulted, no spurious promotion).
     acceptance:
       all:
-        - verifier: text-scan-bin-mathc-ml-evaluate-decision-every-gap-waived
-          result: pass
         - verifier: tests/cli/gate-waiver-scope.t
           result: pass
   - id: dual-failure-evidence-positive
@@ -366,7 +364,7 @@ obligations:
       all:
         - verifier: text-scan-decisions-t3-2-yaml-dual-failure-obligations
           result: pass
-        - verifier: file-exists attestations/t3-2-a3-review-marker.json
+        - verifier: manual-human-review-marker-t3-2-a3-review-marker
           result: pass
 
 reversal:

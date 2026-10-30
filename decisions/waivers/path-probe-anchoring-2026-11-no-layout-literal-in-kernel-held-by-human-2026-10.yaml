@@ -1,0 +1,17 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: path-probe-anchoring-2026-11-no-layout-literal-in-kernel-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: path-probe-anchoring-2026-11
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that bin/Mathc.ml carries no layout literal of its own is a
+  property of the source text, and the kernel runs no grep over the
+  kernel. A maintainer reads the diff of bin/Mathc.ml before it is merged
+  and confirms that every path still goes through the resolver helpers.
+  This acceptance holds until 2027-01-29.
+unverified_obligation: no-layout-literal-in-kernel

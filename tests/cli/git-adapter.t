@@ -17,7 +17,7 @@ bootstrap/adapters.yaml.
   $ git add . && git commit -q -m initial
   $ echo b > b.txt
   $ git add . && git commit -q -m second
-  $ mathc assess HEAD~1 HEAD
+  $ $INSIDE_DUNE/bin/mathc.exe assess HEAD~1 HEAD
   ["b.txt"]
   $ cd /
   $ rm -rf "$tmp"

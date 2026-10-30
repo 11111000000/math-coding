@@ -19,7 +19,7 @@ The alias exits 0 and writes the canonical JSON to stdout (the
 warning goes to stderr; pipelines that capture stdout are
 unaffected).
 
-  $ mathc attest "$tmp/report.xml" 2>/tmp/alias.stderr
+  $ $INSIDE_DUNE/bin/mathc.exe attest "$tmp/report.xml" 2>/tmp/alias.stderr
   {"error_count":0,"failure_count":1,"skip_count":0,"suite_name":"demo","test_count":2,"tests":[{"classname":"d","message":null,"name":"pass-case","result":"pass","time":null},{"classname":"d","message":null,"name":"fail-case","result":"fail","time":null}]}
 
 The stderr warning names both the deprecated verb and the

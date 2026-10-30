@@ -18,7 +18,7 @@ the per-user skill path — so the file could not pass on any run.
   $ mkdir -p "$tmpdir/xdg"
   $ export XDG_CONFIG_HOME="$tmpdir/xdg"
   $ export HOME="$tmpdir"
-  $ mathc init "$tmpdir/repo" --agent opencode --no-install > init.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir/repo" --agent opencode --no-install > init.log 2>&1
   $ grep -q 'created .*/repo/.math-coding/decisions' init.log && echo "layout: .math-coding/"
   layout: .math-coding/
   $ grep -q 'per-user opencode skill: installed at ' init.log && echo "per-user line present"
@@ -39,7 +39,7 @@ a generic agent does not need a per-user copy).
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/xdg"
   $ export XDG_CONFIG_HOME="$tmpdir/xdg"
-  $ mathc init "$tmpdir/repo" --agent generic --no-install > init.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir/repo" --agent generic --no-install > init.log 2>&1
   $ ! grep -q 'per-user opencode skill' init.log && echo "no per-user line for generic agent"
   no per-user line for generic agent
   $ test ! -e "${XDG_CONFIG_HOME}/opencode/skills/math-coding/SKILL.md" \

@@ -10,5 +10,5 @@ Acceptance gate for obligation context-capsule-required-for-gate
 in bootstrap/validate-and-context.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc context main HEAD --budget 100000 | jq -c '[.items[] | select(.detail_ref == "decision:bootstrap-v3")] | {count: length, priority: (.[0].priority // null)}'
+  $ $INSIDE_DUNE/bin/mathc.exe context main HEAD --budget 100000 | jq -c '[.items[] | select(.detail_ref == "decision:bootstrap-v3")] | {count: length, priority: (.[0].priority // null)}'
   {"count":1,"priority":"RequiredForGate"}

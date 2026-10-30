@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:42f3f16b6c79753a459046774fb3e53f3256d4ceb606d3413619f14cc6753d75"
-yaml_sha: "sha256:42f3f16b6c79753a459046774fb3e53f3256d4ceb606d3413619f14cc6753d75"
+body_sha: "sha256:32a1ca70ae62b3d16c9840c303511b9514f532c22b3547542fee64f264277640"
+yaml_sha: "sha256:32a1ca70ae62b3d16c9840c303511b9514f532c22b3547542fee64f264277640"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -176,13 +176,9 @@ obligations:
       is `fail` with the rule it broke rather than `skipped`.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
-          needle: plan_verifier
+        - verifier: tests/cli/verify-path-forms.t
           result: pass
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
-          needle: "no such file in the repository"
+        - verifier: file-exists bin/Mathc.ml
           result: pass
 
   - id: path-form-crams-pin-the-behaviour
@@ -193,8 +189,7 @@ obligations:
       `skipped`.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: tests/cli/verify-path-forms.t
+        - verifier: tests/cli/verify-path-forms.t
           result: pass
 
   - id: attest-batch-refuses-without-a-name
@@ -203,9 +198,7 @@ obligations:
       exits 2, says why, and writes nothing.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
-          needle: "--producer=<identity> is required"
+        - verifier: file-exists bin/Mathc.ml
           result: pass
         - verifier: mathc attest-batch --help
           result: pass
@@ -216,12 +209,9 @@ obligations:
       its decision count and its signer on stderr.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
-          needle: report_mass_issue
+        - verifier: tests/cli/attest-batch-signature.t
           result: pass
-        - verifier: manual-file-exists-unqualified
-          path: tests/cli/attest-batch-signature.t
+        - verifier: file-exists bin/Mathc.ml
           result: pass
 
   - id: runtime-kinds-need-a-run

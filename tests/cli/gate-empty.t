@@ -27,7 +27,7 @@ invariants rather than counts.
   $ git add . && git commit -q -m initial
   $ echo b > b.txt
   $ git add . && git commit -q -m second
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" mathc gate --no-scope --no-execute HEAD~1 HEAD | jq -c 'del(.now) | {verdict, all_missing: (.gaps | length > 0 and all(.kind == "MissingEvidence")), every_obligation_is_a_gap: (.gaps_total == .obligations), obligations_positive: (.obligations > 0)}'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$tmp/does-not-exist" $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD | jq -c 'del(.now) | {verdict, all_missing: (.gaps | length > 0 and all(.kind == "MissingEvidence")), every_obligation_is_a_gap: (.gaps_total == .obligations), obligations_positive: (.obligations > 0)}'
   {"verdict":"unknown","all_missing":true,"every_obligation_is_a_gap":true,"obligations_positive":true}
   $ cd /
   $ rm -rf "$tmp"

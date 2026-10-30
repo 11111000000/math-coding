@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:f0c7303937ca18ebd578b33d6f0aa3feab64ce663c93d00ab434de91936a4cac"
-yaml_sha: "sha256:f0c7303937ca18ebd578b33d6f0aa3feab64ce663c93d00ab434de91936a4cac"
+body_sha: "sha256:aec728466797a84130a39a0beb557749af45f99d8d2ceb9f79036d3d5e7f3190"
+yaml_sha: "sha256:aec728466797a84130a39a0beb557749af45f99d8d2ceb9f79036d3d5e7f3190"
 
 axiom_link:
   - A0
@@ -106,7 +106,7 @@ outcomes:
       При срабатывании эвристики выводится soft warning.
   - id: trap-log-records-deficit
     statement: |
-      `OCAML_BEST_PRACTICES.md §11.39` описывает дефицит,
+      `OCAML_KERNEL_CONVENTIONS.md §11.39` описывает дефицит,
       симптом и резолюцию.
 
 obligations:
@@ -127,7 +127,7 @@ obligations:
   - id: trap-log-11-39-present
     outcome: trap-log-records-deficit
     claim: |
-      `OCAML_BEST_PRACTICES.md` содержит заголовок
+      `OCAML_KERNEL_CONVENTIONS.md` содержит заголовок
       `### 11.39` в разделе `## 11. OCaml 5 trap log`,
       описывающий дефицит и резолюцию.
     acceptance:

@@ -64,7 +64,7 @@ MADR + adr-tools project: adopt imports all ADRs.
   > 
   > Foo.
   > EOF
-  $ mathc adopt "$tmpdir" --merge --no-install > adopt.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install > adopt.log 2>&1
   $ sed "s|$tmpdir|<TMP>|g" adopt.log | grep -E 'step|detected'
   mathc adopt: detected MADR + adr-tools at <TMP>
     step 1/2: mathc init (scaffold math-coding in <TMP>)
@@ -95,7 +95,7 @@ the next block, where the target really is a brownfield.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
   exit=0
   $ test -f "$tmpdir/.math-coding/policy.yaml" && echo "empty: init ran ok"
   empty: init ran ok
@@ -109,9 +109,9 @@ is explicitly exempt from.
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/adr"
   $ printf '# 1. Keep the DB\n\n## Status\n\nAccepted\n\n## Context\n\nc\n\n## Decision\n\nd\n' > "$tmpdir/docs/adr/0001-db.md"
-  $ mathc adopt "$tmpdir" --no-install 2>&1 >/dev/null | sed "s|$tmpdir|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --no-install 2>&1 >/dev/null | sed "s|$tmpdir|<TMP>|g"
   mathc adopt: refusing to proceed in brownfield project; pass --merge to override.
-  $ mathc adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --no-install >/dev/null 2>&1; echo "exit=$?"
   exit=3
   $ test ! -d "$tmpdir/decisions" && echo "refused: nothing scaffolded"
   refused: nothing scaffolded
@@ -125,7 +125,7 @@ MADR and adr-tools are also present.
   $ mkdir -p "$tmpdir/docs/arc42" "$tmpdir/docs/adr" "$tmpdir/adr"
   $ echo "test" > "$tmpdir/docs/adr/0001-madr.md"
   $ echo "test" > "$tmpdir/adr/0001-adr.md"
-  $ mathc adopt "$tmpdir" --merge --no-install --only=arc42 2>&1 | grep -E "step 2|wrote" | head | sed "s|$tmpdir|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install --only=arc42 2>&1 | grep -E "step 2|wrote" | head | sed "s|$tmpdir|<TMP>|g"
       wrote <TMP>/.math-coding/decisions/bootstrap-v3-arc42-compatibility.yaml
   $ test ! -f "$tmpdir/.math-coding/decisions/1-madr.yaml" && echo "--only=arc42 skipped MADR"
   --only=arc42 skipped MADR
@@ -141,7 +141,7 @@ Dry-run: prints what would be done, does not run anything.
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/adr"
   $ echo "test" > "$tmpdir/docs/adr/0001.md"
-  $ mathc adopt "$tmpdir" --merge --no-install --dry-run 2>&1 | grep -E "step|detected" | sed "s|$tmpdir|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install --dry-run 2>&1 | grep -E "step|detected" | sed "s|$tmpdir|<TMP>|g"
   mathc adopt: detected MADR (docs/adr/) at <TMP>
     step 1/2: mathc init (scaffold math-coding in <TMP>)
     step 2/2: mathc import-adr <TMP>/docs/adr/0001.md --write

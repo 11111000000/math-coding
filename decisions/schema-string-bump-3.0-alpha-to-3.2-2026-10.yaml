@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.2
 revision: 1
 state: active
-body_sha: "sha256:ba9d0705b18c3179b0bbd622dcb6a1b3cf37fc433125839f12cad49c68f4ef7c"
-yaml_sha: "sha256:ba9d0705b18c3179b0bbd622dcb6a1b3cf37fc433125839f12cad49c68f4ef7c"
+body_sha: "sha256:ed8d931152d57026f29d85f52e38db72e09986b3ff906d89040f37df917990da"
+yaml_sha: "sha256:ed8d931152d57026f29d85f52e38db72e09986b3ff906d89040f37df917990da"
 intent: |
   Close the schema-string drift between `decisions/*.yaml`
   (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
@@ -70,21 +70,25 @@ commitment: |
        with a single `bump-schema-string` action. This is
        the audit trail that a future agent can replay to
        understand what changed and why.
-    3. For each of the 72 live `decisions/*.yaml` files
-       EXCEPT `decisions/obligations.yaml` (which has a
-       dedicated aggregator schema-string
+    3. The bulk bump WAS applied to every live
+       `decisions/*.yaml` file EXCEPT `decisions/obligations.yaml`
+       (which has a dedicated aggregator schema-string
        `math-coding/obligations-3.0-alpha`):
-         a. Rewrite the `schema:` line from
+         a. the `schema:` line was rewritten from
             `math-coding/3.0-alpha` to `math-coding/3.2`;
-         b. Recompute `body_sha` and `yaml_sha` against
+         b. `body_sha` and `yaml_sha` were recomputed against
             the post-rewrite content via the algorithm
             documented in algebra §7 (placeholder
             `sha256:000…0` substituted for both hash
             fields, then SHA-256 of that).
-       No other field changes; no comment stripping; no
-       YAML key reorder.
-    4. Run `mathc validate` on every modified file and
-       confirm `accept` in the commit-message narration
+       No other field changed; no comment stripping; no
+       YAML key reorder. The corpus has since moved on to
+       `math-coding/3.3`
+       (`decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml`),
+       so the uniform 3.2 state is a RECORD of the executed
+       migration, not a promise the corpus still keeps.
+    4. `mathc validate` was run on every modified file and
+       `accept` confirmed in the commit-message narration
        (the per-file verdict is recorded in the commit
        body, not as a separate artefact).
     5. Add positive + negative fixtures
@@ -197,20 +201,6 @@ obligations:
         - verifier: mathc validate decisions/decision.yaml
           result: pass
 
-  - id: seventy-two-decisions-bumped
-    statement: |
-      All 72 live decisions/*.yaml (every file in
-      `decisions/` except `decisions/obligations.yaml`)
-      carry `schema: math-coding/3.2`. `mathc validate`
-      returns `accept` for each. The bulk bump preserves
-      every other field; `body_sha` and `yaml_sha`
-      recompute against the post-rewrite content.
-    outcome: schema-3.2-accepted
-    acceptance:
-      all:
-        - verifier: manual-bash-c-for-f-in-decisions-yaml-do-f-decisions-ob
-          result: pass
-
   - id: migration-manifest-non-empty
     statement: |
       `decisions/migrations/3.0-alpha-to-3.2.yaml` exists
@@ -220,7 +210,7 @@ obligations:
     outcome: first-real-migration-cycle
     acceptance:
       all:
-        - verifier: manual-bash-c-test-s-decisions-migrations-3-0-alpha-to-
+        - verifier: file-exists decisions/migrations/3.0-alpha-to-3.2.yaml
           result: pass
 
   - id: bulk-bump-replayable

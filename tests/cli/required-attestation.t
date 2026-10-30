@@ -70,7 +70,7 @@ Block instead of Pass:
   >   owner: human:maintainer
   > EOF
   $ git add decisions/ dune-project && git commit -q -m "add decision"
-  $ MATH_CODING_ROOT="$tmp" mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/req-att-gate.json
+  $ MATH_CODING_ROOT="$tmp" $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/req-att-gate.json
   [1]
   $ jq -c '{verdict, has_required_attestation_gap: ([.gaps[].obligation_id] | any(. | startswith("req-att-sample/required-attestation:")))}' < /tmp/req-att-gate.json
   {"verdict":"block","has_required_attestation_gap":true}
@@ -128,7 +128,7 @@ no gap emitted:
   > {"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"req-att-sample","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:alice"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
   > EOF
   $ git add attestations/ && git commit -q -m "add attestation"
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/req-att-gate-ok.json
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/req-att-gate-ok.json
   $ jq -c '{verdict, has_required_attestation_gap: ([.gaps[].obligation_id] | any(. | startswith("req-att-sample/required-attestation:")))}' < /tmp/req-att-gate-ok.json
   {"verdict":"pass","has_required_attestation_gap":false}
   $ cd /
@@ -194,7 +194,7 @@ cannot establish that a check ran.
   > {"schema":"math-coding/attestation-3.0-alpha","kind":"attestation","subject":{"decision":"no-req-sample","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}
   > EOF
   $ git add attestations/ && git commit -q -m "attestation"
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/no-req-gate.json
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/no-req-gate.json
   $ jq -c '{verdict, has_required_attestation_gap: ([.gaps[].obligation_id] | any(. | startswith("no-req-sample/required-attestation:")))}' < /tmp/no-req-gate.json
   {"verdict":"pass","has_required_attestation_gap":false}
 

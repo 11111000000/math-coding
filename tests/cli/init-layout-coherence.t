@@ -30,7 +30,7 @@ caller's cwd holds a legacy `decisions/`.
   $ mkdir -p ../target
   $ cd "$DUNE_SOURCEROOT"
   $ cd "$tmp/caller-decisions"
-  $ mathc init "$tmp/target" --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmp/target" --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
   mathc init: created <TMP>/target/.math-coding/decisions, <TMP>/target/.math-coding/attestations
   $ test -d "$tmp/target/.math-coding/decisions" && echo "v3.4 layout: ok"
   v3.4 layout: ok
@@ -42,7 +42,7 @@ attestations and policy all resolve to the legacy paths, and the
 three agree.
 
   $ mkdir -p "$tmp/legacy/decisions" "$tmp/legacy/attestations" && touch "$tmp/legacy/decisions/decision.yaml"
-  $ mathc init "$tmp/legacy" --merge --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmp/legacy" --merge --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
   mathc init: created <TMP>/legacy/decisions, <TMP>/legacy/attestations
   $ test -f "$tmp/legacy/decisions/decision.yaml" && echo "legacy policy preserved"
   legacy policy preserved
@@ -53,7 +53,7 @@ Layout coherence on a half-migrated directory: `decisions/` without
 a master policy is still one layout, not two.
 
   $ mkdir -p "$tmp/mixed/decisions"
-  $ mathc init "$tmp/mixed" --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmp/mixed" --no-install 2>&1 | grep created | sed "s|$tmp|<TMP>|g"
   mathc init: created <TMP>/mixed/decisions, <TMP>/mixed/attestations
   $ test ! -d "$tmp/mixed/.math-coding" && echo "single layout: ok"
   single layout: ok
@@ -68,7 +68,7 @@ explicit path.
   $ git -C "$tmp/root" config user.name "t"
   $ git -C "$tmp/root" commit -q --allow-empty -m initial
   $ cd "$DUNE_SOURCEROOT"
-  $ MATH_CODING_ROOT="$tmp/root" mathc attest-batch --from=decisions --producer=human:integration-test --dry-run 2>/dev/null | wc -l
+  $ MATH_CODING_ROOT="$tmp/root" $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:integration-test --dry-run 2>/dev/null | wc -l
   4
 
 Cleanup.

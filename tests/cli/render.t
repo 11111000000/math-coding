@@ -16,7 +16,7 @@ under `--lang=all`.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc render --out $tmpdir/dist --lang=all > $tmpdir/render-out.txt
+  $ $INSIDE_DUNE/bin/mathc.exe render --out $tmpdir/dist --lang=all > $tmpdir/render-out.txt
   $ head -n 1 $tmpdir/render-out.txt | grep -qF '[render] writing'
   $ tail -n 1 $tmpdir/render-out.txt | grep -qF 'render OK:'
   $ test -f $tmpdir/dist/index.html

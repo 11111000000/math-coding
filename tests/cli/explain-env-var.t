@@ -25,7 +25,7 @@ resolver's relative path opens correctly (same convention as
 `.math-coding/decisions/` (the resolver output), not the
 hard-coded `decisions/decision.yaml`.
 
-  $ mathc explain decision:bootstrap-v3 | jq -c '{kind, id, path}'
+  $ $INSIDE_DUNE/bin/mathc.exe explain decision:bootstrap-v3 | jq -c '{kind, id, path}'
   {"kind":"decision","id":"bootstrap-v3","path":".math-coding/decisions/decision.yaml"}
 
 Cleanup.

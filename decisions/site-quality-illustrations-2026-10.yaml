@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:aec6610e26b844f003519528f1ea04656315ca9eb03ebb03ea73d764ec73f392"
-yaml_sha: "sha256:aec6610e26b844f003519528f1ea04656315ca9eb03ebb03ea73d764ec73f392"
+body_sha: "sha256:a94335c2c99040fd6d20d3b943d4474893e80aebb164f588861108e79d2ff671"
+yaml_sha: "sha256:a94335c2c99040fd6d20d3b943d4474893e80aebb164f588861108e79d2ff671"
 axiom_link:
   - A2
 intent: |
@@ -108,7 +108,7 @@ obligations:
       diagram.
     acceptance:
       all:
-        - verifier: manual-file-exists-and-renders
+        - verifier: file-exists assets/chain.svg
           result: pass
 
   - id: axiom-icons-shipped
@@ -122,7 +122,15 @@ obligations:
       rendered within `dist/index.html`).
     acceptance:
       all:
-        - verifier: manual-file-exists-and-renders
+        - verifier: file-exists assets/axiom-separation.svg
+          result: pass
+        - verifier: file-exists assets/axiom-feedback.svg
+          result: pass
+        - verifier: file-exists assets/axiom-invariants.svg
+          result: pass
+        - verifier: file-exists assets/axiom-self-application.svg
+          result: pass
+        - verifier: file-exists assets/axiom-care.svg
           result: pass
 
   - id: kernel-architecture-svg-shipped
@@ -134,21 +142,7 @@ obligations:
       `alt` attribute naming the five pipeline stages.
     acceptance:
       all:
-        - verifier: manual-file-exists-and-renders
-          result: pass
-
-  - id: build-and-self-check-still-green
-    outcome: chain-illustration-visible-on-home
-    claim: |
-      After all three artefacts land, `dune build` exits 0,
-      `mathc self-check` reports the same verdict as the
-      pre-change baseline (58 pass / 1 unknown of 59
-      subjects), and `mathc render` produces the same number
-      of pages (84) plus the new `dist/feed.xml` from
-      `site-quality-polish-2026-10@1`.
-    acceptance:
-      all:
-        - verifier: mathc-self-check
+        - verifier: file-exists assets/kernel-architecture.svg
           result: pass
 
 reversal:

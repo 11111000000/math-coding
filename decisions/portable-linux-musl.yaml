@@ -49,8 +49,8 @@ axiom_link:
 #                 Alpine/musl targets. The glibc pipeline and the
 #                 §30 violation history are unchanged.
 state: active
-body_sha: "sha256:0ecf6a328e6663686d85a98c287ed7f5255920aa1812561b60d9b14b2c36cfd1"
-yaml_sha: "sha256:0ecf6a328e6663686d85a98c287ed7f5255920aa1812561b60d9b14b2c36cfd1"
+body_sha: "sha256:efb6953c64a48d1b240069bbf42f9eccf642b6af5866f68d96b8f7f38c988c51"
+yaml_sha: "sha256:efb6953c64a48d1b240069bbf42f9eccf642b6af5866f68d96b8f7f38c988c51"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
@@ -235,7 +235,7 @@ obligations:
       or any system glibc.
     acceptance:
       all:
-        - verifier: mathc-self-check-verdict
+        - verifier: manual-ci-run-musl-artifact-version-banner
           result: pass
 
   - id: glibc-binary-still-works
@@ -297,7 +297,7 @@ obligations:
       decision DEFERRED without rolling back the glibc pipeline.
     acceptance:
       all:
-        - verifier: mathc-self-check-verdict
+        - verifier: manual-ci-run-alpine-build-evidence-recorded
           result: pass
 
 reversal:

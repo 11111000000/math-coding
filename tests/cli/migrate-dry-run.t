@@ -15,7 +15,7 @@ and zero warnings; `b.yaml` is already at the target schema-string
 so it shows zero actions and zero warnings.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --root=tests/cli/fixtures/migrate \
   >     --manifest=tests/cli/fixtures/migrate/decisions/migrations/3.2-to-3.2.1.yaml \
   >     --format=json \

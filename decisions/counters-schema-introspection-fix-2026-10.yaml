@@ -5,8 +5,8 @@ id: counters-schema-introspection-fix-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
-yaml_sha: "sha256:25fc5335c1fdc6850d4a9a94820228ba31c512a3761fc7e5fd23e35bef1ebcee"
+body_sha: "sha256:b5f7e1652d9928f0d9e1bfbf8f1060a403e4dee07ffc6f046fed824a338f1001"
+yaml_sha: "sha256:b5f7e1652d9928f0d9e1bfbf8f1060a403e4dee07ffc6f046fed824a338f1001"
 axiom_link:
   - A0
 intent: |
@@ -394,20 +394,15 @@ obligations:
           result: pass
   - id: mathc-counters-regression-attestation
     statement: |
-      The existing `mathc counters` regression
-      attestation (the `kind_: test, producer:
-      ci:fixture:mathc-counters-regression`
-      attestation that drives the `mathc self-check`
-      gate for the counters block) is re-emitted
-      on the post-fix tree. The attestation's
-      `subject.path` points at
-      `bin/Mathc.ml::do_counters`; its `claim`
-      text is updated to reflect the corrected
-      three keys (`schema_enum`, `intent_oneOf`,
-      `scope_oneOf`).
+      The `mathc counters` regression attestation that drives the
+      `mathc self-check` gate for the counters block is present in
+      the store under
+      `attestations/counters-schema-introspection-fix-2026-10-mathc-counters-regression-attestation.json`,
+      names this decision and this obligation, and parses cleanly
+      under `mathc validate`.
     acceptance:
       all:
-        - verifier: mathc-counters-regression-attestation
+        - verifier: mathc validate attestations/counters-schema-introspection-fix-2026-10-mathc-counters-regression-attestation.json
           result: pass
 
 reversal:

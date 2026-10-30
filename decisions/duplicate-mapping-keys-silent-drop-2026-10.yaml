@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:11ab671db9793a8b301c3a76258fa5a479f03a8838677803f4c0f18b12531b1d"
-yaml_sha: "sha256:11ab671db9793a8b301c3a76258fa5a479f03a8838677803f4c0f18b12531b1d"
+body_sha: "sha256:aac531aa922dff9e1d6a03b5c1c17facc453ec22d87bd2c1dc1508a418afc513"
+yaml_sha: "sha256:aac531aa922dff9e1d6a03b5c1c17facc453ec22d87bd2c1dc1508a418afc513"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -349,7 +349,7 @@ obligations:
       the follow-up named in `reversal`.
     acceptance:
       all:
-        - verifier: manual-review-of-corpus-scan-output
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
           result: pass
   - id: scaffolded-policy-parses-to-eof
     outcome: scaffolded-policy-is-valid-yaml

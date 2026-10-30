@@ -1,0 +1,19 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: mathc-packages-subcommand-packages-site-bridge-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: mathc-packages-subcommand
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The site pages are produced by `mathc packages --format=html` and not by
+  a second walker in `lib/render.ml`. A maintainer reads the two modules
+  and confirms there is one producer; the acceptance runs until
+  2027-01-29.
+unverified_obligation: packages-site-bridge
+compensating_controls:
+  - re-evaluate on or before 2027-01-29
+  - replace the declaration with an executable check, or withdraw the promise

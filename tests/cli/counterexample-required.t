@@ -59,7 +59,7 @@ Positive case: decision with `counterexample` present must accept.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json ok.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json ok.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 Negative case: decision WITHOUT `counterexample:` must reject
@@ -98,7 +98,7 @@ diagnostic is the dialectic one. The fixture MUST NOT contain
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json missing-cx.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json missing-cx.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING","severity":"block"}
 
 Default mode (mode absent, which `lib/codec.ml::parse_mode`
@@ -134,7 +134,7 @@ treats absent as standard (per `decisions/kernel-bugs-v3.4-2026-10.yaml`).
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json default-mode-missing.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json default-mode-missing.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING"}
 
 The diagnostic is reachable via `mathc explain-diagnostic` and the
@@ -142,7 +142,7 @@ remediation text is not blank. This catches a regression where the
 diagnostic was added to the dispatcher but not to the registry.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -r '.remediation' | head -3
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -r '.remediation' | head -3
   Add a `counterexample: |` block with one or two
   sentences naming the strongest objection to the
   decision. Re-run `mathc validate`. For mode >=

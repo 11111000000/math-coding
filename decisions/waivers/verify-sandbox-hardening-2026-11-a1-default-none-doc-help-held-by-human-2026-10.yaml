@@ -1,0 +1,21 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: verify-sandbox-hardening-2026-11-a1-default-none-doc-help-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: verify-sandbox-hardening-2026-11
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The property is the CONTENT of `mathc --help` (the sandbox default
+  and the `--sandbox=none` form are documented), and the corpus has no
+  executable scheme that reads a command's help text: the canonical
+  forms the kernel can run are file/dir existence, a `mathc`
+  subcommand, a `dune` target, a test path and a script path. The
+  maintainer holds this one.
+
+  The hold expires 2027-01-29. If no executable fixture has taken
+  over by then, this obligation should be re-examined.
+unverified_obligation: a1-default-none-doc-help

@@ -42,7 +42,7 @@ the probe tree.
   > obligations:
   >   - id: trivial-obligation
   >     claim: |
-  >       validates under mathc validate with active state.
+  >       validates under $INSIDE_DUNE/bin/mathc.exe validate with active state.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/doctor-env-var.t
@@ -71,7 +71,7 @@ through the resolver: with MATH_CODING_POLICY set, the path is
 `decisions/decision.yaml`). The decisions section counts the
 env-routed probe decision (total=1).
 
-  $ mathc doctor --json | jq -c '[.sections[] | select(.id == "config") | (.details.path | endswith(".math-coding/policy.yaml"))], [.sections[] | select(.id == "decisions") | .details.total]'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -c '[.sections[] | select(.id == "config") | (.details.path | endswith(".math-coding/policy.yaml"))], [.sections[] | select(.id == "decisions") | .details.total]'
   [true]
   [1]
 

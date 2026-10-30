@@ -1,0 +1,19 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: bootstrap-v3-preserve-v2-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: bootstrap-v3
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The v2.1-final tag resolves to a reachable commit, which is the recovery
+  path the cutover depends on. The kernel has no git-tag scheme, so a
+  maintainer confirms the tag by hand; the acceptance runs until
+  2027-01-29.
+unverified_obligation: preserve-v2
+compensating_controls:
+  - re-evaluate on or before 2027-01-29
+  - replace the declaration with an executable check, or withdraw the promise

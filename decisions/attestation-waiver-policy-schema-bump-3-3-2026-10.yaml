@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
 revision: 2
 state: active
-body_sha: "sha256:f51c56802e0d641d67f996689d231d362b979f247e8434e06f362997338def25"
-yaml_sha: "sha256:f51c56802e0d641d67f996689d231d362b979f247e8434e06f362997338def25"
+body_sha: "sha256:50d278dfed69623540f2234a78644747c947391ecfa4ef465b17656067a9be09"
+yaml_sha: "sha256:50d278dfed69623540f2234a78644747c947391ecfa4ef465b17656067a9be09"
 mode: standard
 change_kind: implementation
 axiom_link:
@@ -54,7 +54,7 @@ commitment: |
      `{"enum": ["math-coding/waiver-3.0-alpha", "math-coding/waiver-3.3"]}`.
   3. `schemas/policy.json:8` declares `schema` as
      `{"enum": ["math-coding/3.0-alpha/policy", "math-coding/3.3/policy"]}`.
-  4. `decisions/migrations/3.0-alpha-to-3.3.yaml` declares
+  4. `archive/decisions/3.0-alpha-to-3.3.yaml` declares
      three additional `bump-schema-string` actions mapping
      `attestation-3.0-alpha → attestation-3.3`,
      `waiver-3.0-alpha → waiver-3.3`, and
@@ -90,7 +90,7 @@ outcomes:
       `{"enum": ["math-coding/3.0-alpha/policy", "math-coding/3.3/policy"]}`.
   - id: migration-manifest-extended
     statement: |
-      `decisions/migrations/3.0-alpha-to-3.3.yaml` declares
+      `archive/decisions/3.0-alpha-to-3.3.yaml` declares
       three additional `bump-schema-string` actions mapping
       `attestation-3.0-alpha → attestation-3.3`,
       `waiver-3.0-alpha → waiver-3.3`, and
@@ -111,7 +111,7 @@ obligations:
       `mathc validate decisions/waivers/<existing>.yaml` exits 0.
     acceptance:
       all:
-        - verifier: manual-text-scan-waiver-enum
+        - verifier: mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
           result: pass
   - id: policy-enum-accepts-3-3
     claim: |
@@ -119,16 +119,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-policy-enum
-          result: pass
-  - id: migration-manifest-extended
-    claim: |
-      `decisions/migrations/3.0-alpha-to-3.3.yaml` lists 8
-      `bump-schema-string` actions (4 for decision schema,
-      1 for attestation, 1 for waiver, 1 for policy, plus
-      the prior 4 for decision families).
-    acceptance:
-      all:
-        - verifier: manual-text-scan-migration-actions
           result: pass
   - id: existing-attestations-still-validate
     claim: |

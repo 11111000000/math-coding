@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:dc30005854ac1a2d9818c51a89b3656c853f35929e0e3c1904a55f6780a1f0a2"
-yaml_sha: "sha256:dc30005854ac1a2d9818c51a89b3656c853f35929e0e3c1904a55f6780a1f0a2"
+body_sha: "sha256:26eeb97d328afb9c2cd3510785b86996347803cbc75fb090facc0d4e151c2866"
+yaml_sha: "sha256:26eeb97d328afb9c2cd3510785b86996347803cbc75fb090facc0d4e151c2866"
 axiom_link:
   - A3
 intent: |
@@ -25,8 +25,10 @@ counterexample: |
   policy-protected; any staged change to spec/*.md requires
   a paired decision/*.yaml, regardless of behavioural impact.
 commitment: |
-  1. `head -1 spec/constitution.md` matches
-     `^# Math-coding 3\.3\.0-alpha constitution$`.
+  1. `head -1 spec/constitution.md` names the constitution it
+     governs: `# Math-coding <version> constitution`. The version
+     literal moves with every release bump; this decision's own
+     bump carried it to `3.3.0-alpha`.
   2. No semantic change to the 14 invariants; only the
      version literal in the H1 changes.
   3. The change is editorial (per AGENTS.md §Before work
@@ -38,12 +40,16 @@ outcomes:
   - id: constitution-header-uses-3-3
     statement: |
       `head -1 spec/constitution.md` is
-      `# Math-coding 3.3.0-alpha constitution`.
+      `# Math-coding <version> constitution` — the version the
+      constitution governs.
 obligations:
   - id: constitution-header-bumped
     claim: |
-      `head -1 spec/constitution.md` matches
-      `^# Math-coding 3\.3\.0-alpha constitution$`.
+      `head -1 spec/constitution.md` names the constitution it
+      governs: `# Math-coding <version> constitution`. The literal
+      moves with every release bump; what this obligation holds
+      is the rule, not the spelling this decision was written
+      against.
     acceptance:
       all:
         - verifier: manual-text-scan-constitution-header

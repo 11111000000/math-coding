@@ -26,12 +26,21 @@
 
 set -uo pipefail
 
-# Identify staged files. pre-commit-hooks.nix passes the list of
-# paths on stdin (one per line) when pass_filenames is true.
-declare -a staged
-while IFS= read -r path; do
-  staged+=("$path")
-done
+# Identify the files in question. pre-commit-hooks.nix passes them as
+# ARGUMENTS (one per argv entry), the way pre-commit itself does.
+# The earlier version of this script read them from stdin instead:
+# in the nix build stdin is an open pipe that never reaches EOF, so
+# the read loop blocked forever and the `nix flake check` step hung
+# instead of failing. The stdin path is kept as a fallback, with a
+# one-second read timeout so an open stdin cannot block the check.
+declare -a staged=()
+if [ "$#" -gt 0 ]; then
+  staged=("$@")
+else
+  while IFS= read -r -t 1 path; do
+    staged+=("$path")
+  done || true
+fi
 
 # If the hook is invoked without filenames (e.g., from `nix flake
 # check`), bail without error.

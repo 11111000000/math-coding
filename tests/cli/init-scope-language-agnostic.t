@@ -15,7 +15,7 @@ is a `bwrap` tmp dir, the test `cd`s into a `mktemp -d`.
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ export MATH_CODING_POLICY=".test-math-coding/policy.yaml"
   $ cd "$tmpdir"
-  $ mathc init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
   mathc init: created ./.test-math-coding/decisions, ./.test-math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -64,7 +64,7 @@ regression pin for `decisions/defense-and-init-scope-2026-11.yaml:25-37`):
 Scaffolded policy must still validate cleanly (the language-agnostic
 defaults do not break the schema):
 
-  $ mathc validate .test-math-coding/policy.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate .test-math-coding/policy.yaml
   parse-ok: .test-math-coding/policy.yaml
     decision: bootstrap-v3
     revision: 1

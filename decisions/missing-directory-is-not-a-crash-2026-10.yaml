@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:7157102a2d932aefff7580d434b0f8d680f1180b525284759719d5a621dd00e3"
-yaml_sha: "sha256:7157102a2d932aefff7580d434b0f8d680f1180b525284759719d5a621dd00e3"
+body_sha: "sha256:a96eb3188949d9af8d4aed574bacd07b82f1315aa6b110ce9f8c00716abeb9f2"
+yaml_sha: "sha256:a96eb3188949d9af8d4aed574bacd07b82f1315aa6b110ce9f8c00716abeb9f2"
 
 axiom_link:
   - A0
@@ -80,10 +80,13 @@ scope:
 obligations:
   - id: the-suite-passes-without-a-store
     claim: |
-      `dune test` passes on a tree with no `attestations/` directory.
+      The repository suite passes on a tree with no `attestations/`
+      directory: `scripts/check.sh` runs every shell fixture under
+      `tests/fixtures/`, every cram fixture under `tests/` and
+      every Alcotest binary, and exits 0.
     acceptance:
       all:
-        - verifier: bash scripts/check.sh
+        - verifier: scripts/check.sh
           result: pass
   - id: this-decision-validates
     claim: |

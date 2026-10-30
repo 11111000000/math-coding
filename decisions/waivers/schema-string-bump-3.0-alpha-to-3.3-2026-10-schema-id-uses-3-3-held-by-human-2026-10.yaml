@@ -1,0 +1,24 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: schema-string-bump-3.0-alpha-to-3.3-2026-10-schema-id-uses-3-3-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: schema-string-bump-3.0-alpha-to-3.3-2026-10
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The `$id` family label of `schemas/*.json` is a release-brand
+  string, not a kernel input: the validator parses decisions by
+  hand and reads no JSON-Schema file, so no executable scheme in
+  this corpus can observe the `$id` of a schema. The maintainer
+  holds it: every `schemas/*.json` `$id` reads
+  `https://math-coding.org/schema/3.3/<name>.json`, and the
+  label is re-set deliberately at each brand bump.
+
+  The hold expires 2027-01-29. If the label has not been
+  re-checked by then, this obligation should be rewritten as an
+  executable check (a fixture that reads the six `$id` values) or
+  dropped.
+unverified_obligation: schema-id-uses-3-3

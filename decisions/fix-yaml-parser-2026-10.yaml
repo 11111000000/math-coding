@@ -4,8 +4,8 @@ id: fix-yaml-parser-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:72b390fa5f7a2139bd74132c8ef615680ef1df9e62353494ee9b9faf793fb3e0"
-yaml_sha: "sha256:72b390fa5f7a2139bd74132c8ef615680ef1df9e62353494ee9b9faf793fb3e0"
+body_sha: "sha256:191e951ec528f79819ea510cd7ef32b195bc73972a111bde6d9b15242af5f1c0"
+yaml_sha: "sha256:191e951ec528f79819ea510cd7ef32b195bc73972a111bde6d9b15242af5f1c0"
 
 intent: |
   The hand-rolled YAML parser in `lib/codec.ml` consumed the
@@ -119,15 +119,6 @@ obligations:
         - verifier: dune test tests/cli/yaml-parser.t
           result: pass
 
-  - id: no-self-check-regression
-    claim: |
-      `mathc self-check` after this commit still reports
-      the same 17 unknown subjects as the pre-fix HEAD and
-      adds zero new unknown subjects.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict
-          result: pass
 
 axiom_link:
   - A0

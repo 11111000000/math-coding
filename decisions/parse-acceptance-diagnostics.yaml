@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:6f5891e2a89352a8373b87362d328ba92cc31be447a9fef6114cfc2dab802f1a"
-yaml_sha: "sha256:6f5891e2a89352a8373b87362d328ba92cc31be447a9fef6114cfc2dab802f1a"
+body_sha: "sha256:e40c0bb0b7dc279701ba378d34185796c622bd6d009f9ee923c8ac803a686a13"
+yaml_sha: "sha256:e40c0bb0b7dc279701ba378d34185796c622bd6d009f9ee923c8ac803a686a13"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same
@@ -92,11 +92,17 @@ obligations:
       ShapeVerifier (only verifier+result), ShapeReview (only
       review), ShapeAmbiguous (both), ShapeMalformed (one shape
       present but unparseable), ShapeEmpty (neither).
+      The two shapes that carry a diagnostic are pinned by the
+      corpus fixtures: `fixtures/conformance/decision/positive-ambiguous-acceptance.json`
+      is classified ShapeAmbiguous and
+      `fixtures/conformance/decision/positive-malformed-acceptance.json`
+      is classified ShapeMalformed; the other three shapes are the
+      silent defaults every other decision in the corpus exercises.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-conformance-ml-positive-amb
+        - verifier: tests/cli/ambiguous-acceptance.t
           result: pass
-        - verifier: manual-target-missing-tests-conformance-ml-positive-mal
+        - verifier: tests/cli/malformed-acceptance.t
           result: pass
   - id: diagnostic-emission-cli
     outcome: diagnostic-emission

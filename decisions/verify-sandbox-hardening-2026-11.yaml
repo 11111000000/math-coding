@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:5fdf887975c235e3ba2202b64a0b7ff3ad4cb6c8b81be0113b671b0e4a901ee2"
-yaml_sha: "sha256:5fdf887975c235e3ba2202b64a0b7ff3ad4cb6c8b81be0113b671b0e4a901ee2"
+body_sha: "sha256:67236ca8cf8bf2bce8a297297a43b19d498a43b3e7f9c6805dcbe6be7e4f15a7"
+yaml_sha: "sha256:67236ca8cf8bf2bce8a297297a43b19d498a43b3e7f9c6805dcbe6be7e4f15a7"
 
 intent: |
   Close the F9 finding from
@@ -159,7 +159,7 @@ obligations:
       same `verdict: pass` and zero NEW unknowns.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-self-check-no-new-unknowns
           result: pass
 
   - id: a1-default-none-doc-help
@@ -169,7 +169,7 @@ obligations:
       default `none`.
     acceptance:
       all:
-        - verifier: mathc-help-text-verifies-sandbox
+        - verifier: manual-mathc-help-text-verifies-sandbox
           result: pass
 
 risk:

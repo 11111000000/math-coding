@@ -31,11 +31,11 @@ full body shape, which is load-bearing in a separate test.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null | head -3
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation 2>/dev/null | head -3
   ---
   schema: math-coding/3.3
   id: jwt-rotation
-  $ grep -q '^schema: math-coding/3.3' <(MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation 2>/dev/null) \
+  $ grep -q '^schema: math-coding/3.3' <(MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation 2>/dev/null) \
   >   && echo "schema-string: ok"
   schema-string: ok
   $ rm -rf "$tmpdir"
@@ -61,7 +61,7 @@ sed-strip the tmpdir prefix instead).
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation --write 2>&1 | sed "s|$tmpdir|<TMP>|g"
   deficit/MC-SCOPE-PLACEHOLDER: scope.paths still names the placeholder <path/glob/that/this/decision/touches/**>; a scope that matches no file makes the materials digest a digest of nothing, and an empty digest is the freshness wildcard. Replace it with the paths this decision actually covers.
   mathc new-decision: wrote <TMP>/.math-coding/decisions/jwt-rotation.yaml
   $ test -f "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" && echo "file: ok"
@@ -78,7 +78,7 @@ whole template, so every template edit would otherwise move the
 expectation for no reason. A scaffold that shipped the placeholder
 would report `1 changed` here, and the file would not validate.
 
-  $ mathc rehash "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$tmpdir/.math-coding/decisions/jwt-rotation.yaml" | tail -1
   rehash: 0 changed, 1 already current, 0 skipped (dry-run)
   $ rm -rf "$tmpdir"
 
@@ -88,8 +88,8 @@ existing file content is untouched.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write >/dev/null 2>/dev/null
-  $ if MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --write 2>/dev/null; then
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation --write >/dev/null 2>/dev/null
+  $ if MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation --write 2>/dev/null; then
   >   echo "FAIL: expected exit 1 on overwrite"; exit 1
   > else
   >   echo "second --write refused (exit $?)"
@@ -102,7 +102,7 @@ mathc prints the template with a one-line note and exits 0.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision jwt-rotation --interactive 2>/dev/null | head -1
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision jwt-rotation --interactive 2>/dev/null | head -1
   mathc new-decision: --interactive is a no-op stub in this slice; the printed template below is the scaffold.
   $ rm -rf "$tmpdir"
 
@@ -110,7 +110,7 @@ Negative case: invalid id (uppercase) exits 2 with the regex
 violation message.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc new-decision BadID 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe new-decision BadID 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on invalid id"; exit 1
   > else
   >   echo "invalid id refused (exit $?)"
@@ -128,7 +128,7 @@ the user fills the stub in).
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/min-stub.yaml
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id --template=minimal > "$stub"
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-min-id --template=minimal > "$stub"
   $ grep -q '^schema: math-coding/3.3' "$stub" && echo "schema 3.3: ok"
   schema 3.3: ok
   $ grep -q '^state: active' "$stub" && echo "state active: ok"
@@ -136,10 +136,10 @@ the user fills the stub in).
   $ grep -q '^  addresses:' "$stub" && grep -q '^    - bootstrap-v3@3' "$stub" \
   >   && echo "relations.bootstrap-v3: ok"
   relations.bootstrap-v3: ok
-  $ mathc validate "$stub" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "validate: ok"
+  $ $INSIDE_DUNE/bin/mathc.exe validate "$stub" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "validate: ok"
   validate: ok
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-default-validates > "$tmpdir/default.yaml" 2>/dev/null
-  $ mathc validate "$tmpdir/default.yaml" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "the default scaffold validates: ok"
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-default-validates > "$tmpdir/default.yaml" 2>/dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe validate "$tmpdir/default.yaml" 2>&1 | grep -qE '^(parse-ok|accept):' && echo "the default scaffold validates: ok"
   the default scaffold validates: ok
   $ rm -rf "$tmpdir"
 
@@ -153,9 +153,9 @@ and the bare default emits the same content as
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/full-stub.yaml
   $ default=$tmpdir/default-stub.yaml
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-full-id --template=full > "$stub" 2>/dev/null
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id > "$default" 2>/dev/null
-  $ diff -u "$default" <(MATH_CODING_ROOT="$tmpdir" mathc new-decision test-min-id --template=minimal 2>/dev/null) >/dev/null && echo "default == --template=minimal: ok"
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-full-id --template=full > "$stub" 2>/dev/null
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-min-id > "$default" 2>/dev/null
+  $ diff -u "$default" <(MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-min-id --template=minimal 2>/dev/null) >/dev/null && echo "default == --template=minimal: ok"
   default == --template=minimal: ok
   $ grep -q '^schema: math-coding/3.2' "$stub" && echo "schema 3.2: ok"
   schema 3.2: ok
@@ -165,7 +165,7 @@ Invalid --template value: `--template=invalid` exits 2 with the
 "expected minimal|full" diagnostic.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc new-decision test-id --template=invalid 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe new-decision test-id --template=invalid 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on invalid --template"; exit 1
   > else
   >   echo "invalid template refused (exit $?)"
@@ -182,7 +182,7 @@ in-tree callers).
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ stub=$tmpdir/min-stub.yaml
-  $ MATH_CODING_ROOT="$tmpdir" mathc new-decision test-id --template=minimal > "$stub"
-  $ mathc validate --format=json "$stub" 2>/dev/null | jq -r '.verdict' 2>/dev/null || echo "no jq available"
+  $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe new-decision test-id --template=minimal > "$stub"
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json "$stub" 2>/dev/null | jq -r '.verdict' 2>/dev/null || echo "no jq available"
   parse-ok
   $ rm -rf "$tmpdir"

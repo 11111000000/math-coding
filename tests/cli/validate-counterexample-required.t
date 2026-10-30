@@ -57,7 +57,7 @@ A `mode: standard` decision WITH `counterexample` is accepted:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-standard-with-counterexample.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-standard-with-counterexample.yaml | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A `mode: standard` decision WITHOUT counterexample is rejected
@@ -95,7 +95,7 @@ the same reject.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-standard-no-counterexample.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-standard-no-counterexample.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING","severity":"block"}
 
 Default mode (mode absent, which defaults to standard) WITHOUT
@@ -130,13 +130,13 @@ treats absent as `standard`:
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json default-mode-no-counterexample.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json default-mode-no-counterexample.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING"}
 
 Full text-format reject for the new rule embeds the decision
 id and the spec reference:
 
-  $ mathc validate mode-standard-no-counterexample.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate mode-standard-no-counterexample.yaml
   reject: mode-standard-no-counterexample.yaml
     code: MC-COUNTEREXAMPLE-MISSING
     severity: block
@@ -178,7 +178,7 @@ placeholder):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-standard-whitespace-counterexample.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-standard-whitespace-counterexample.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING"}
 
 JSON form: counterexample as an array of strings (one per
@@ -210,7 +210,7 @@ an array with at least one non-empty entry satisfies the rule.
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
   > }
   > EOF
-  $ mathc validate --format=json mode-standard-empty-array.json | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-standard-empty-array.json | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING"}
 
   $ cat > mode-strict-with-counterexample.json <<EOF
@@ -237,7 +237,7 @@ an array with at least one non-empty entry satisfies the rule.
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
   > }
   > EOF
-  $ mathc validate --format=json mode-strict-with-counterexample.json | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-strict-with-counterexample.json | jq -c '{verdict, code}'
   {"verdict":"parse-ok","code":null}
 
 A `mode: light` decision WITHOUT counterexample: warns but
@@ -274,7 +274,7 @@ the verdict stays `parse-ok`.
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-light-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-light-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
@@ -311,7 +311,7 @@ A `mode: tiny` decision WITHOUT counterexample: also accepts
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-tiny-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-tiny-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
   [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
@@ -348,7 +348,7 @@ includes strict):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-strict-no-counterexample.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-strict-no-counterexample.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING","severity":"block"}
 
 `mode: exhaustive` WITHOUT counterexample: same reject:
@@ -382,7 +382,7 @@ includes strict):
   >   declared_triggers: []
   >   owner: human:maintainer
   > EOF
-  $ mathc validate --format=json mode-exhaustive-no-counterexample.yaml | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-exhaustive-no-counterexample.yaml | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-COUNTEREXAMPLE-MISSING","severity":"block"}
 
 The diagnostic is reachable via `mathc explain-diagnostic` so
@@ -390,7 +390,7 @@ authors can look up the remediation step (note: the explanation
 includes both the soft Warn and the hard Block paths because
 the rule is mode-conditional):
 
-  $ mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -r '.remediation' | head -10
+  $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -r '.remediation' | head -10
   Add a `counterexample: |` block with one or two
   sentences naming the strongest objection to the
   decision. Re-run `mathc validate`. For mode >=

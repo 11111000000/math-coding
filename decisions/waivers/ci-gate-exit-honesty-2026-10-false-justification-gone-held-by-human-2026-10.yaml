@@ -1,0 +1,19 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: ci-gate-exit-honesty-2026-10-false-justification-gone-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: ci-gate-exit-honesty-2026-10
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  Neither the CI workflow nor `scripts/dev` claims that `scripts/check.sh`
+  proves the Alcotest suite, and the workflow no longer lets `jq` decide
+  the step's status. A maintainer reads both files and confirms the
+  removal; the acceptance runs until 2027-01-29.
+unverified_obligation: false-justification-gone
+compensating_controls:
+  - re-evaluate on or before 2027-01-29
+  - replace the declaration with an executable check, or withdraw the promise

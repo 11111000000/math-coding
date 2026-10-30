@@ -35,9 +35,9 @@ MATH_CODING_DECISIONS_DIR-relative tree.
   > intent: |
   >   Probe decision for tests/cli/render-env-var.t (F10 fix #4).
   > commitment: |
-  >   mathc render emits a package page that includes the probe.
+  >   $INSIDE_DUNE/bin/mathc.exe render emits a package page that includes the probe.
   > counterexample: |
-  >   Pre-fix mathc render walked decisions/ at the cwd, ignoring
+  >   Pre-fix $INSIDE_DUNE/bin/mathc.exe render walked decisions/ at the cwd, ignoring
   >   the resolver; the probe would be invisible.
   > scope:
   >   paths:
@@ -51,7 +51,7 @@ MATH_CODING_DECISIONS_DIR-relative tree.
   >       The probe decision appears in the rendered packages page.
   >     acceptance:
   >       all:
-  >         - verifier: mathc self-check
+  >         - verifier: $INSIDE_DUNE/bin/mathc.exe self-check
   >           result: pass
   > risk:
   >   declared_triggers: []
@@ -72,7 +72,7 @@ path lookup, not the page set). Pre-fix render walked
 cwd (tmpdir) has no legacy `decisions/` at its root.
 
   $ rm -rf out
-  $ mathc render --out $tmpdir/out > $tmpdir/render-env-out.txt 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe render --out $tmpdir/out > $tmpdir/render-env-out.txt 2>&1
   $ grep -qF 'render OK' $tmpdir/render-env-out.txt \
   >   && echo "render OK" \
   >   || cat $tmpdir/render-env-out.txt

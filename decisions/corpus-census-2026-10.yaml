@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:49aecb2f6d4944b419087bc4acae1dac436d93fc37f4dfa9fcc87a2afc6dda01"
-yaml_sha: "sha256:49aecb2f6d4944b419087bc4acae1dac436d93fc37f4dfa9fcc87a2afc6dda01"
+body_sha: "sha256:6c1a2e436c3961d25e7759cd9ffe3f3379b623a2f69a689fcb157c0e930d2a4e"
+yaml_sha: "sha256:6c1a2e436c3961d25e7759cd9ffe3f3379b623a2f69a689fcb157c0e930d2a4e"
 
 axiom_link:
   - A0
@@ -95,7 +95,7 @@ obligations:
       pre-commit gate over `decisions/*.yaml` passes.
     acceptance:
       all:
-        - verifier: bash scripts/pre-commit
+        - verifier: tests/fixtures/precommit-covers-subdirectories.sh
           result: pass
   - id: this-decision-validates
     claim: |

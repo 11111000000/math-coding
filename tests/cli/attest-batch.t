@@ -205,7 +205,7 @@ and this case would assert nothing at all.
   >   '  - A3' \
   >   'intent: |' \
   >   '  Case-3 fixture: a 5-obligation decision used to' \
-  >   '  verify that mathc attest-batch flips the self-check' \
+  >   '  verify that $INSIDE_DUNE/bin/mathc.exe attest-batch flips the self-check' \
   >   '  verdict from unknown to pass.' \
   >   'commitment: |' \
   >   '  Five obligations; each verifier mathc self-check.' \

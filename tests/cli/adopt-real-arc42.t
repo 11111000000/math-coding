@@ -42,7 +42,7 @@ v3.4 layout.
   $ cp -r "$snapshot"/. "$tmpdir"/
   $ cd "$tmpdir"
   $ git init -q 2>/dev/null
-  $ mathc adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "detected|step 1b|step 2|wrote" | head -10 | sed "s|$tmpdir|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install 2>&1 | grep -E "detected|step 1b|step 2|wrote" | head -10 | sed "s|$tmpdir|<TMP>|g"
   wrote <TMP>/.math-coding/decisions/use-ocaml.yaml (id=use-ocaml, source_kind=MADR)
   wrote <TMP>/.math-coding/decisions/1-use-ocamlformat-for-source-formatting.yaml (id=1-use-ocamlformat-for-source-formatting, source_kind=adr-tools)
   mathc adopt: detected arc42 + MADR + adr-tools at <TMP>
@@ -76,9 +76,9 @@ not.
   $ cp -r "$snapshot"/. "$tmpdir"/
   $ cd "$tmpdir"
   $ git init -q 2>/dev/null
-  $ mathc adopt "$tmpdir" --merge --no-install >/dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe adopt "$tmpdir" --merge --no-install >/dev/null 2>&1
   $ for f in .math-coding/decisions/*.yaml; do
-  >   if mathc validate "$f" >/dev/null 2>&1; then
+  >   if $INSIDE_DUNE/bin/mathc.exe validate "$f" >/dev/null 2>&1; then
   >     echo "validate $f: ok"
   >   else
   >     echo "validate $f: FAIL"
@@ -87,7 +87,7 @@ not.
   validate .math-coding/decisions/1-use-ocamlformat-for-source-formatting.yaml: ok
   validate .math-coding/decisions/bootstrap-v3-arc42-compatibility.yaml: ok
   validate .math-coding/decisions/use-ocaml.yaml: ok
-  $ if mathc validate .math-coding/policy.yaml >/dev/null 2>&1; then
+  $ if $INSIDE_DUNE/bin/mathc.exe validate .math-coding/policy.yaml >/dev/null 2>&1; then
   >   echo "validate .math-coding/policy.yaml: ok"
   > else
   >   echo "validate .math-coding/policy.yaml: FAIL"
@@ -100,5 +100,5 @@ project (the new side-decision is META-style and does not
 add a new live obligation).
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc self-check >/dev/null 2>&1; ec=$?; if [ "$ec" = 1 ] || [ "$ec" = 3 ]; then echo "self-check still runs (it reported a verdict, it did not go green)"; else echo "self-check regressed (exit $ec)"; exit 1; fi
+  $ $INSIDE_DUNE/bin/mathc.exe self-check >/dev/null 2>&1; ec=$?; if [ "$ec" = 1 ] || [ "$ec" = 3 ]; then echo "self-check still runs (it reported a verdict, it did not go green)"; else echo "self-check regressed (exit $ec)"; exit 1; fi
   self-check still runs (it reported a verdict, it did not go green)

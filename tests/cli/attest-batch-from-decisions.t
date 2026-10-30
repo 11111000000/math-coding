@@ -86,13 +86,13 @@ test exercises (walking a decisions directory, one attestation
 per obligation), so the fixture is rehashed and the validate
 assertion below is left exactly as it was.
 
-  $ mathc rehash "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml" --write | sed '/^$/d'
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml" --write | sed '/^$/d'
     STAMP foo-decision.yaml
   rehash: 1 changed, 0 already current, 0 skipped (written)
 
 Validate the fixture before exercising --from=decisions.
 
-  $ mathc validate "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
+  $ $INSIDE_DUNE/bin/mathc.exe validate "$MATH_CODING_DECISIONS_DIR/foo-decision.yaml"
   parse-ok: .test-math-coding/decisions/foo-decision.yaml
     decision: foo-decision
     revision: 1
@@ -101,7 +101,7 @@ Validate the fixture before exercising --from=decisions.
 
 Run --from=decisions. Two obligations -> two files.
 
-  $ mathc attest-batch --from=decisions --producer=human:integration-test --kind=review 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:integration-test --kind=review 2>&1 | sed "s|$tmpdir|<TMP>|g"
   wrote <TMP>/.test-math-coding/attestations/foo-decision-obl-acceptance.json
   wrote <TMP>/.test-math-coding/attestations/foo-decision-obl-noise.json
   $ ls .test-math-coding/attestations
@@ -132,7 +132,7 @@ not pick up the populated `.test-math-coding/decisions` from the
 earlier step.
 
   $ empty=$(mktemp -d)
-  $ if MATH_CODING_DECISIONS_DIR="$empty" mathc attest-batch --from=decisions --out="$empty" 2>/dev/null; then
+  $ if MATH_CODING_DECISIONS_DIR="$empty" $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --out="$empty" 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on empty dir"; exit 1
   > else
   >   echo "empty decisions dir refused (exit $?)"

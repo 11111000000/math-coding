@@ -9,6 +9,6 @@ mathc-explain-dispatcher-shipped in
 decisions/mathc-explain-subcommand.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc explain nonexistent:foo
+  $ $INSIDE_DUNE/bin/mathc.exe explain nonexistent:foo
   {"code":"MC-REF-UNKNOWN","id":"foo","kind":"nonexistent","message":"kind 'nonexistent' is not addressable to a single file in this revision; the dispatcher resolves decision/spec/axiom/doc only"}
   [2]

@@ -30,7 +30,7 @@ The exact-match lines below lock in the canonical verdicts
 on a healthy install. A regression that flips `install`
 or `config` to `warn`/`fail` will surface here.
 
-  $ mathc doctor | sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' -e 's/^\[attestations\] (pass|warn|fail)$/[attestations] <PASS-or-WARN>/'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor | sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' -e 's/^\[attestations\] (pass|warn|fail)$/[attestations] <PASS-or-WARN>/'
   [install] pass
     Install
   [path] warn
@@ -50,7 +50,7 @@ The JSON envelope's `sections` array has >= 5 entries
 (acceptance gate from obligation d10-mathc-doctor-subcommand
 in `plan-2026-10-distro-friction@1`):
 
-  $ mathc doctor --json | jq -e '.sections | length >= 5'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -e '.sections | length >= 5'
   true
 
 Every section carries an `id`, a `verdict` in
@@ -60,7 +60,7 @@ following filter checks that no offline section is
 exit 0 means "the install is locally healthy, independent
 of network reachability":
 
-  $ mathc doctor --json | jq -e '[.sections[] | select(.verdict == "fail")] | length == 0'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -e '[.sections[] | select(.verdict == "fail")] | length == 0'
   true
 
 The `latest` section is allowed to be `pass` or `warn`
@@ -68,7 +68,7 @@ The `latest` section is allowed to be `pass` or `warn`
 available); the contract is that exit 0 is the answer to
 "is my install healthy locally?":
 
-  $ mathc doctor --json | jq -e '.sections[] | select(.id == "latest") | .verdict | IN("pass", "warn")'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -e '.sections[] | select(.id == "latest") | .verdict | IN("pass", "warn")'
   true
 
 The exit code is 0 when no section is `fail` (the spec
@@ -76,7 +76,7 @@ acceptance contract from obligation d10-mathc-doctor-subcommand
 verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
 
   $ doctmp=$(mktemp -d)
-  $ mathc doctor > "$doctmp/doctor.txt"; ec=$?
+  $ $INSIDE_DUNE/bin/mathc.exe doctor > "$doctmp/doctor.txt"; ec=$?
   $ sed -E -e 's/^\[decisions\] (pass|warn|fail)$/[decisions] <PASS-or-WARN>/' -e 's/^\[latest\] (pass|warn|fail)$/[latest] <PASS-or-WARN>/' -e 's/^\[attestations\] (pass|warn|fail)$/[attestations] <PASS-or-WARN>/' "$doctmp/doctor.txt"
   [install] pass
     Install
@@ -98,12 +98,12 @@ verifier `mathc doctor exits 0 with sections a,b,c,d printed`):
 The seven required section ids are present (a-g per the
 obligation claim in `decisions/mathc-doctor-subcommand-2026-10.yaml`):
 
-  $ mathc doctor --json | jq -e '.sections | map(.id) | sort == ["attestations","config","decisions","install","latest","path","self_check"]'
+  $ $INSIDE_DUNE/bin/mathc.exe doctor --json | jq -e '.sections | map(.id) | sort == ["attestations","config","decisions","install","latest","path","self_check"]'
   true
 
 Unknown flags produce a usage error (exit 2):
 
-  $ if mathc doctor --bogus 2>&1 | grep -q 'doctor: unknown option'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe doctor --bogus 2>&1 | grep -q 'doctor: unknown option'; then
   >   echo "doctor --bogus: input error"
   > else echo "FAIL: doctor --bogus did not error"; fi
   doctor --bogus: input error

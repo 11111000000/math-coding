@@ -1,0 +1,18 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: dialectic-method-v3-spec-11-updated-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: dialectic-method-v3
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that `spec/algebra-3.2.md` §11 names the antithesis slot
+  and §11.1 records the rationale is a property of the SPEC TEXT, and
+  the kernel runs no check over a prose section of a spec file. A
+  maintainer confirms on every edit of §11 that the slot is still named
+  and the rationale still recorded. This acceptance holds until
+  2027-01-29.
+unverified_obligation: spec-11-updated

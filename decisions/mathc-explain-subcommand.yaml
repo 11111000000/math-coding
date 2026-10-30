@@ -4,9 +4,9 @@ id: mathc-explain-subcommand
 revision: 4
 state: active
 
-body_sha: "sha256:6a558336a5be550191209a2d7c693e78704ccb83edffabf922c709c060aefafe"
+body_sha: "sha256:133af1898c7626e2b269badb79d302f147460741bace75661b58ff6c0cbfdbaf"
 
-yaml_sha: "sha256:6a558336a5be550191209a2d7c693e78704ccb83edffabf922c709c060aefafe"
+yaml_sha: "sha256:133af1898c7626e2b269badb79d302f147460741bace75661b58ff6c0cbfdbaf"
 
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
@@ -74,18 +74,6 @@ assumptions:
 
 
 obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: manual-review-of-existing-source
-          result: pass
   - id: mathc-explain-spec-promoted
     outcome: spec-row-promoted
     claim: |
@@ -120,9 +108,9 @@ obligations:
       (cf. tests/cli/context-truncated-omitted.t).
     acceptance:
       all:
-        - verifier: manual-cram-fixture-tests-cli-explain-positive-t
+        - verifier: tests/cli/explain-positive.t
           result: pass
-        - verifier: manual-cram-fixture-tests-cli-explain-negative-t
+        - verifier: tests/cli/explain-negative.t
           result: pass
 
 

@@ -16,7 +16,7 @@ that needs to resolve a project-relative path.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":1,"method":"mathc/packages"}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | tee /tmp/mcp-test-1.json \
   >     | grep -q '"id":1'; then \
   >     grep -q '"exit_code":0' /tmp/mcp-test-1.json && \
@@ -28,7 +28,7 @@ that needs to resolve a project-relative path.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/validate","params":{"path":"decisions/decision.yaml"}}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | tee /tmp/mcp-test-2.json \
   >     | grep -q '"verdict":"parse-ok"'; then \
   >     grep -q '"exit_code":0' /tmp/mcp-test-2.json && \
@@ -36,7 +36,7 @@ that needs to resolve a project-relative path.
   >   else echo "FAIL: parse-ok verdict not present"; fi
   mathc/validate: parse-ok with exit_code=0 ok
 
-  $ if printf 'not valid json\n' | mathc_mcp \
+  $ if printf 'not valid json\n' | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | tee /tmp/mcp-test-3.json \
   >     | grep -q '"code":-32700'; then \
   >     grep -q '"message":"Parse error' /tmp/mcp-test-3.json && \
@@ -46,7 +46,7 @@ that needs to resolve a project-relative path.
 
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/gate"}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | tee /tmp/mcp-test-4.json \
   >     | grep -q '"code":-32602'; then \
   >     grep -q 'Invalid params' /tmp/mcp-test-4.json && \
@@ -57,7 +57,7 @@ that needs to resolve a project-relative path.
   $ printf '%s\n%s\n' \
   >   '{"jsonrpc":"2.0","id":10,"method":"mathc/packages"}' \
   >   '{"jsonrpc":"2.0","id":11,"method":"mathc/self-check"}' \
-  >   | mathc_mcp > /tmp/mcp-test-5.json
+  >   | $INSIDE_DUNE/bin/mathc_mcp.exe > /tmp/mcp-test-5.json
   $ wc -l < /tmp/mcp-test-5.json | tr -d ' '
   2
   $ head -1 /tmp/mcp-test-5.json | grep -q '"id":10' && echo "first id=10 ok"
@@ -67,6 +67,6 @@ that needs to resolve a project-relative path.
 
   $ printf '%s\n' \
   >   '{"jsonrpc":"2.0","id":99,"method":"mathc/packages"}' \
-  >   | mathc_mcp > /dev/null
+  >   | $INSIDE_DUNE/bin/mathc_mcp.exe > /dev/null
   $ echo $?
   0

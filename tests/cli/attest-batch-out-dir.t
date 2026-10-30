@@ -28,7 +28,7 @@ Nested output directory that does not exist yet: created, no crash.
   $ git -C "$tmp" config user.name "t"
   $ git -C "$tmp" commit -q --allow-empty -m initial
   $ printf 'd1\to1\treview\thuman:me\n' > m.tsv
-  $ mathc attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=m.tsv --out=a/b/c 2>&1 | sed 's|^wrote |wrote |'
   wrote a/b/c/d1-o1.json
   $ test -f a/b/c/d1-o1.json && echo "nested out dir: created"
   nested out dir: created
@@ -36,7 +36,7 @@ Nested output directory that does not exist yet: created, no crash.
 A header row is skipped; the data row after it is emitted.
 
   $ printf 'decision_id\tobligation_id\tkind_\tproducer_identity\tresult\nd1\to1\treview\thuman:me\tpass\n' > h.tsv
-  $ mathc attest-batch --manifest=h.tsv --out=hdr 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=h.tsv --out=hdr 2>&1
   wrote hdr/d1-o1.json
   $ test ! -f hdr/decision_id-obligation_id.json && echo "no header artefact"
   no header artefact
@@ -46,13 +46,13 @@ A header row is skipped; the data row after it is emitted.
 An invalid `kind_` is refused with the schema enum in the message.
 
   $ printf 'd1\to1\trevew\thuman:me\tpass\n' > k.tsv
-  $ if mathc attest-batch --manifest=k.tsv --out=bad 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=k.tsv --out=bad 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad kind"; exit 1
   > else
   >   echo "bad kind refused (exit $?)"
   > fi
   bad kind refused (exit 2)
-  $ mathc attest-batch --manifest=k.tsv --out=bad 2>&1 | grep -q 'kind_ must be one of test|review|build|analysis|observation' && echo "enum named in the diagnostic"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=k.tsv --out=bad 2>&1 | grep -q 'kind_ must be one of test|review|build|analysis|observation' && echo "enum named in the diagnostic"
   enum named in the diagnostic
   $ test ! -d bad && echo "nothing written on a refused manifest"
   nothing written on a refused manifest
@@ -60,7 +60,7 @@ An invalid `kind_` is refused with the schema enum in the message.
 An invalid `result` is refused the same way.
 
   $ printf 'd1\to1\treview\thuman:me\tmaybe\n' > r.tsv
-  $ if mathc attest-batch --manifest=r.tsv --out=bad2 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=r.tsv --out=bad2 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad result"; exit 1
   > else
   >   echo "bad result refused (exit $?)"
@@ -70,7 +70,7 @@ An invalid `result` is refused the same way.
 `--kind` on the --from=decisions path is validated against the same
 enum (it previously accepted anything and wrote an unloadable file).
 
-  $ if mathc attest-batch --from=none --kind=nope 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --from=none --kind=nope 2>/dev/null; then
   >   echo "FAIL: expected exit 2 on bad --kind"; exit 1
   > else
   >   echo "bad --kind refused (exit $?)"
@@ -80,7 +80,7 @@ enum (it previously accepted anything and wrote an unloadable file).
 An unwritable output directory is an exit-2 diagnostic naming the
 path, not `mathc: internal error`.
 
-  $ if mathc attest-batch --manifest=m.tsv --out=/proc/x/y 2>"$tmp/ab.err"; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=m.tsv --out=/proc/x/y 2>"$tmp/ab.err"; then
   >   echo "FAIL: expected non-zero exit on unwritable out"; exit 1
   > else
   >   echo "unwritable out refused (exit $?)"
@@ -95,7 +95,7 @@ this scratch project the default `.math-coding/decisions` does not
 exist and neither does the legacy one, so the walker reports nothing
 rather than silently reading the repository the harness runs in.
 
-  $ if mathc attest-batch --from=decisions --producer=human:integration-test --dry-run >/dev/null 2>"$tmp/ab2.err"; then
+  $ if $INSIDE_DUNE/bin/mathc.exe attest-batch --from=decisions --producer=human:integration-test --dry-run >/dev/null 2>"$tmp/ab2.err"; then
   >   echo "FAIL: expected exit 2 with no decisions"; exit 1
   > else
   >   echo "empty project refused (exit $?)"

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: antithesis-mode-considered-2026-10
 revision: 1
 state: active
-body_sha: "sha256:7c4ffd110a8a04649a86fef2abbc71a226097a9b9c3860eb328715be3269b329"
-yaml_sha: "sha256:7c4ffd110a8a04649a86fef2abbc71a226097a9b9c3860eb328715be3269b329"
+body_sha: "sha256:568d4bee702cfef7485e659091756d00f23bb4a7a7b5a2192b7ac738640a5f12"
+yaml_sha: "sha256:568d4bee702cfef7485e659091756d00f23bb4a7a7b5a2192b7ac738640a5f12"
 intent: |
   Resolve the spec/code contradiction in
   `spec/algebra-3.2.md:422-423` vs
@@ -206,21 +206,29 @@ assumptions:
 obligations:
   - id: mode-has-considered
     statement: |
-      `grep -nE 'Considered' lib/domain.ml` returns at
-      least one match on a line containing
-      `type mode`.
+      `lib/domain.ml`'s `type mode` lists `Considered` as a
+      constructor. The cram fixture
+      `tests/cli/validate-considered-antithesis.t` proves it
+      behaviourally: a decision with `mode: considered` is
+      accepted, which the parser can only do when the
+      constructor exists.
     acceptance:
       all:
-        - verifier: manual-text-scan-mode-considered
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
   - id: parser-uses-considered-guard
     statement: |
-      `grep -nE 'antithesis_required_missing' lib/decision.ml`
-      shows the guard referring to a `Considered` check,
-      not the older Standard check.
+      `lib/decision.ml`'s `antithesis_required_missing` guard
+      refers to a `Considered` check, not the older Standard
+      check. The cram fixture
+      `tests/cli/validate-considered-antithesis.t` proves it
+      behaviourally: a `mode: considered` decision without an
+      `antithesis:` block is rejected with
+      `MC-ANTITHESIS-MISSING`, while a `mode: standard` one
+      without it is accepted.
     acceptance:
       all:
-        - verifier: manual-text-scan-considered-guard
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
   - id: legacy-decisions-still-validate
     statement: |
@@ -237,25 +245,25 @@ obligations:
           result: pass
   - id: synthetic-considered-rejected
     statement: |
-      A cram fixture `tests/cli/validate-considered-missing-antithesis.t`
+      The cram fixture `tests/cli/validate-considered-antithesis.t`
       runs `mathc validate` against a synthetic
-      `tests/cli/fixtures/considered-missing-antithesis.yaml`
-      fixture and asserts that the CLI exits non-zero with
+      `mode: considered` decision with an empty `antithesis:`
+      block and asserts that the CLI exits non-zero with
       `MC-ANTITHESIS-MISSING` on stderr.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-cli-validate-considered-mis
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
   - id: synthetic-considered-accepted
     statement: |
-      A cram fixture `tests/cli/validate-considered-with-antithesis.t`
+      The cram fixture `tests/cli/validate-considered-antithesis.t`
       runs `mathc validate` against a synthetic
-      `tests/cli/fixtures/considered-with-antithesis.yaml`
-      fixture and asserts that the CLI exits 0 with
-      `accept:` on stdout.
+      `mode: considered` decision with a non-empty `antithesis:`
+      block and asserts that the CLI exits 0 with `parse-ok:` on
+      stdout.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-cli-validate-considered-wit
+        - verifier: tests/cli/validate-considered-antithesis.t
           result: pass
   - id: dune-build-and-tests-green
     statement: |

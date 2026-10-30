@@ -48,7 +48,7 @@ exists). The test passing here proves the embedded-schemas path
 produces the same verdict as the on-disk-schemas path.
 (`accept` was renamed to `parse-ok` in commit a602b361.)
 
-  $ mathc validate test.json
+  $ $INSIDE_DUNE/bin/mathc.exe validate test.json
   parse-ok: test.json
     decision: redis-origin-fallback
     revision: rev:41aa92
@@ -58,7 +58,7 @@ produces the same verdict as the on-disk-schemas path.
 Run with --format=json to get the machine-readable verdict. The
 verdict field MUST be "parse-ok"; the exit code MUST be 0.
 
-  $ mathc validate --format=json test.json
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json test.json
   {"verdict":"parse-ok","path":"test.json","decision":"redis-origin-fallback","revision":"rev:41aa92","obligations":1,"assumptions":1}
 
 Negative case: a malformed JSON document must STILL be rejected
@@ -83,9 +83,9 @@ violates a required field and assert reject with exit code 1.
   >   "risk": {"declared_triggers": [], "owner": "human:maintainer"}
   > }
   > EOF
-  $ mathc validate --format=json bad.json | jq -c '{verdict, code, severity}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json bad.json | jq -c '{verdict, code, severity}'
   {"verdict":"reject","code":"MC-DECISION-INVALID","severity":"warn"}
-  $ if mathc validate bad.json > /dev/null 2>&1; then
+  $ if $INSIDE_DUNE/bin/mathc.exe validate bad.json > /dev/null 2>&1; then
   >   echo "FAIL: expected reject on missing intent"; exit 1
   > else
   >   echo "missing intent rejected (exit $?)"

@@ -1,0 +1,22 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: time-honesty-storage-stats-n-threshold-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: time-honesty-storage
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The property is the JSON SHAPE of `mathc stats` and the instant at
+  which the quantiles block appears, and the corpus has no executable
+  scheme that asserts a subcommand's output shape: the canonical
+  forms the kernel can run are file/dir existence, a `mathc`
+  subcommand, a `dune` target, a test path and a script path. The
+  maintainer holds this one: `n`, `threshold` (30), `scale` and the
+  `quantiles`/`warning` switch at the threshold.
+
+  The hold expires 2027-01-29. If no executable fixture has taken
+  over by then, this obligation should be re-examined.
+unverified_obligation: stats-n-threshold

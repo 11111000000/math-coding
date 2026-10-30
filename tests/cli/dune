@@ -1,8 +1,8 @@
 (cram
  (applies_to whole_subtree)
  (deps
-  %{bin:mathc}
-  %{bin:mathc_mcp}
+  %{bin:mathc.exe}
+  %{bin:mathc_mcp.exe}
   (source_tree decisions)
   (source_tree schemas)
   (source_tree spec)

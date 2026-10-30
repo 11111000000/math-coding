@@ -10,5 +10,5 @@ Acceptance gate for obligation rebuttals-subcommand-spec-row
 in decisions/3-2-cli-catalog.yaml.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc rebuttals 8fa7fcf
+  $ $INSIDE_DUNE/bin/mathc.exe rebuttals 8fa7fcf
   {"commit_sha":"8fa7fcf","rebuttals":[],"stats":{"accepted":0,"ignored_non_binding":0,"never_resolved":0,"pending":0,"rejected_with_reason":0,"total":0}}

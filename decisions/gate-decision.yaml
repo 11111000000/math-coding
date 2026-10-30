@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: gate-decision
 revision: 3
 state: active
-body_sha: "sha256:4687267429405533baff6bcaa7d7c495d97b08b24eabac85a11090a1201e44d3"
-yaml_sha: "sha256:4687267429405533baff6bcaa7d7c495d97b08b24eabac85a11090a1201e44d3"
+body_sha: "sha256:8b18b585afe3f684ce9f93b9a54450d3ad369b8b6216d99820617a83683eeef2"
+yaml_sha: "sha256:8b18b585afe3f684ce9f93b9a54450d3ad369b8b6216d99820617a83683eeef2"
 intent: |
   Introduce the `mathc gate BASE HEAD` subcommand that evaluates a
   candidate tree against the active policy and produces a gate
@@ -146,7 +146,7 @@ obligations:
       with the two.
     acceptance:
       all:
-        - verifier: manual-gate-shape-fixture
+        - verifier: tests/cli/gate-scaffold.t
           result: pass
 
 reversal:

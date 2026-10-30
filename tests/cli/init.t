@@ -24,7 +24,7 @@ Empty directory: init succeeds and creates the expected files.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ cd "$tmpdir"
-  $ mathc init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
   mathc init: created ./.math-coding/decisions, ./.math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -61,7 +61,7 @@ Brownfield (arc42): init refuses with exit 3 and a clear message.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
-  $ if mathc init "$tmpdir" 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on brownfield"; exit 1
   > else
   >   echo "init refused on brownfield (exit $?)"
@@ -77,7 +77,7 @@ Brownfield with --merge: init proceeds.
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/docs/arc42"
   $ cd "$tmpdir"
-  $ mathc init . --merge --no-install > init.log 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init . --merge --no-install > init.log 2>&1
   $ grep -q 'created ./.math-coding/decisions' init.log && echo "layout: .math-coding/"
   layout: .math-coding/
   $ test -f .math-coding/policy.yaml && echo "policy.yaml created with --merge"
@@ -90,7 +90,7 @@ Refuse to overwrite an existing policy without --merge.
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
   $ mkdir -p "$tmpdir/.math-coding" && echo 'old' > "$tmpdir/.math-coding/policy.yaml"
-  $ if mathc init "$tmpdir" --no-install 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on existing policy"; exit 1
   > else
   >   echo "init refused to overwrite (exit $?)"
@@ -104,13 +104,13 @@ Refuse to overwrite an existing policy without --merge.
 Unknown --agent value: exit 2 with help.
 
   $ cd "$DUNE_SOURCEROOT"
-  $ if mathc init /tmp --agent bogus 2>/dev/null; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init /tmp --agent bogus 2>/dev/null; then
   >   echo "FAIL: expected non-zero exit on unknown agent"; exit 1
   > else
   >   echo "unknown agent refused (exit $?)"
   > fi
   unknown agent refused (exit 2)
-  $ if mathc init /tmp --agent bogus 2>&1 | grep -q 'expected: generic'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe init /tmp --agent bogus 2>&1 | grep -q 'expected: generic'; then
   >   echo "error message lists valid agent values"
   > else
   >   echo "FAIL: error message missing valid agent list"; exit 1
@@ -124,7 +124,7 @@ for this slice; the surface test pins the filesystem state.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install --with-ci-workflow > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install --with-ci-workflow > /dev/null 2>&1
   $ test -f "$tmpdir/.github/workflows/ci.yml" && echo "ci.yml: present"
   ci.yml: present
   $ grep -q '^name: math-coding' "$tmpdir/.github/workflows/ci.yml" \
@@ -139,7 +139,7 @@ by an unsolicited rewrite.
 
   $ cd "$DUNE_SOURCEROOT"
   $ tmpdir=$(mktemp -d)
-  $ mathc init "$tmpdir" --no-install > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe init "$tmpdir" --no-install > /dev/null 2>&1
   $ test ! -e "$tmpdir/.github" \
   >   && echo ".github: absent (default opt-out ok)"
   .github: absent (default opt-out ok)

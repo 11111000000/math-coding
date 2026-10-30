@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t1-2
 revision: 1
 state: active
-body_sha: "sha256:cfa6fde51c4ea102bbd5b1b2d470bacaef3984dfd51c5ec8c509d0305cef12d1"
-yaml_sha: "sha256:cfa6fde51c4ea102bbd5b1b2d470bacaef3984dfd51c5ec8c509d0305cef12d1"
+body_sha: "sha256:bbd06ddff79d13604f3299711cf60ef9d72f1be5838f1e0edd84a6c90ad21092"
+yaml_sha: "sha256:bbd06ddff79d13604f3299711cf60ef9d72f1be5838f1e0edd84a6c90ad21092"
 intent: |
   Close the A1 honesty gap in `lib/re_evaluation.ml::re_evaluate`:
   the previous 3-valued status silently returned `Compatible` for
@@ -229,11 +229,9 @@ obligations:
       forbidden-pattern match.
     acceptance:
       all:
-        - verifier: text-scan-lib-re-evaluation-ml-status-five-constructors
+        - verifier: tests/re_evaluation_test.ml::re_evaluate
           result: pass
-        - verifier: tests/re_evaluation_test.ml::test_re_evaluate_test_verifier_incompatible_without_run
-          result: pass
-        - verifier: tests/re_evaluation_test.ml::test_after_run_test_verifier_compatible_after_run
+        - verifier: tests/re_evaluation_test.ml::re_evaluate_after_run
           result: pass
 
   - id: gate-blocks-on-incompatible
@@ -248,9 +246,7 @@ obligations:
       `gate_release_v32`.
     acceptance:
       all:
-        - verifier: text-scan-lib-gate-ml-re-eval-blocks-on-incompatible
-          result: pass
-        - verifier: tests/re_evaluation_test.ml::test_gate_verdict
+        - verifier: tests/re_evaluation_test.ml::gate_verdict
           result: pass
 
   - id: re-evaluate-decisions-subcommand
@@ -332,9 +328,7 @@ obligations:
       `dual-failure-evidence-new-fixture` obligations above.
     acceptance:
       all:
-        - verifier: text-scan-decisions-t1-2-yaml-dual-failure-obligations
-          result: pass
-        - verifier: file-exists attestations/t1-2-a3-review-marker.json
+        - verifier: manual-a3-protected-transition-review
           result: pass
 
 reversal:

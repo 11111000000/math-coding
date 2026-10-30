@@ -71,7 +71,7 @@ subject is open-with-waiver.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -87,9 +87,9 @@ subject is open-with-waiver.
   >   Fixture: names the gap and declares the class of that gap.
   > unverified_obligation: probe-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"open-with-waiver"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=0
   $ cd /
   $ rm -rf "$tmp"
@@ -141,7 +141,7 @@ only one a waiver can produce.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -157,9 +157,9 @@ only one a waiver can produce.
   >   Fixture: names the gap but declares the class of a DIFFERENT gap.
   > unverified_obligation: probe-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -208,7 +208,7 @@ identify one gap.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -223,9 +223,9 @@ identify one gap.
   > reason: |
   >   Fixture: the legacy decision-wide form, which names no gap.
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -273,7 +273,7 @@ the decision that owns the gap covers nothing.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -294,9 +294,9 @@ the decision that owns the gap covers nothing.
   >     path: "other/file.txt"
   >     match: exact
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=3
   $ cd /
   $ rm -rf "$tmp"
@@ -345,7 +345,7 @@ waiver, it does not void it.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -365,9 +365,9 @@ waiver, it does not void it.
   >     path: "src/probe.txt"
   >     match: exact
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"open-with-waiver"}
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c 'mathc self-check > /dev/null; echo "exit=$?"'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe self-check > /dev/null; echo "exit=$?"'
   exit=0
   $ cd /
   $ rm -rf "$tmp"
@@ -420,7 +420,7 @@ names `other-obligation`, the gap is `probe-obligation`.
   >   supersedes: []
   >   superseded_by: []
   > YAML
-  $ mathc rehash decisions/waiver-scope-probe.yaml --write | tail -1
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/waiver-scope-probe.yaml --write | tail -1
   rehash: 1 changed, 0 already current, 0 skipped (written)
   $ cat > decisions/waivers/probe.yaml <<'YAML'
   > schema: math-coding/waiver-3.3
@@ -437,7 +437,7 @@ names `other-obligation`, the gap is `probe-obligation`.
   >   first one stays uncovered and the verdict stays unknown.
   > unverified_obligation: other-obligation
   > YAML
-  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" mathc self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
+  $ MATH_CODING_ROOT="$tmp" MATH_CODING_ATTESTATION_STORE="$tmp/attestations" $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '.subjects[] | select(.name == "waiver-scope-probe") | {name, verdict}'
   {"name":"waiver-scope-probe","verdict":"unknown"}
   $ cd /
   $ rm -rf "$tmp"

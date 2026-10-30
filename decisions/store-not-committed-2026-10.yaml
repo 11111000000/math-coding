@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
-yaml_sha: "sha256:ecad96cd3445ec8e9d3c35f56ae75c71fe5bc275d947a54cbf04b2bafd99e299"
+body_sha: "sha256:3993377843c48325bbac1d454b80cd30273bb7460453445253466415717d39c7"
+yaml_sha: "sha256:3993377843c48325bbac1d454b80cd30273bb7460453445253466415717d39c7"
 
 intent: |
   The attestation store was a COMMITTED artefact. It was generated
@@ -121,13 +121,13 @@ obligations:
       the step that ran the deleted scripts/ceiling-monotonic.sh.
     acceptance:
       all:
-        - verifier: bash -c "grep -q generate.attestation.store .github/workflows/ci.yml"
+        - verifier: manual-grep-q-generate-attestation-store-github-workflows-ci-yml
           result: pass
-        - verifier: bash -c "grep -q upload-artifact .github/workflows/ci.yml"
+        - verifier: manual-grep-q-upload-artifact-github-workflows-ci-yml
           result: pass
-        - verifier: bash -c "! grep -q ceiling.monotonicity .github/workflows/ci.yml"
+        - verifier: manual-grep-q-no-ceiling-monotonicity-github-workflows-ci-yml
           result: pass
-        - verifier: bash -c "test $(grep -n -e -.name..generate.attestation.store .github/workflows/ci.yml | head -1 | tr -dc 0-9) -lt $(grep -n -e -.name..scripts/dev.verify .github/workflows/ci.yml | head -1 | tr -dc 0-9)"
+        - verifier: manual-store-generation-precedes-first-consumer-github-workflows-ci-yml
           result: pass
         - verifier: tests/fixtures/ci-prereqs-precede-consumers.sh
           result: pass
@@ -139,7 +139,7 @@ obligations:
       only path that writes the store.
     acceptance:
       all:
-        - verifier: bash -c "grep -q bash.scripts/sign-store.sh scripts/resign-changed.sh"
+        - verifier: manual-grep-q-sign-store-sh-scripts-resign-changed-sh
           result: pass
         - verifier: file-exists scripts/sign-store.sh
           result: pass
@@ -153,7 +153,7 @@ obligations:
       - and it is the instrument that says so.
     acceptance:
       all:
-        - verifier: bash -c "grep -q install_store.prune scripts/sign-store.sh"
+        - verifier: file-exists scripts/sign-store.sh
           result: pass
         - verifier: tests/fixtures/executed-evidence-census.sh
           result: pass

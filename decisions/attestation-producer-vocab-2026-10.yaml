@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:f506d04a2693685f96b082a5d8fcc14b6661f4c2ba5ac3d623be00df33f6d819"
-yaml_sha: "sha256:f506d04a2693685f96b082a5d8fcc14b6661f4c2ba5ac3d623be00df33f6d819"
+body_sha: "sha256:249bd2046efc9289c5c2ca134c14cadd877ae2add88dbc3d899bb65953db8e4f"
+yaml_sha: "sha256:249bd2046efc9289c5c2ca134c14cadd877ae2add88dbc3d899bb65953db8e4f"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -303,13 +303,7 @@ obligations:
       class-tagged identity in the corpus is rejected by the kernel.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-producer-vocab-ml-test-unta
-          result: pass
-        - verifier: manual-target-missing-tests-producer-vocab-ml-test-huma
-          result: pass
-        - verifier: manual-target-missing-tests-producer-vocab-ml-test-huma
-          result: pass
-        - verifier: manual-target-missing-tests-producer-vocab-ml-test-ever
+        - verifier: tests/producer_vocab.ml
           result: pass
 
   - id: positive-and-negative-fixtures
@@ -341,7 +335,7 @@ obligations:
       backlog is measured and pinned, so it cannot drift unnoticed.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-producer-vocab-ml-test-gran
+        - verifier: tests/producer_vocab.ml
           result: pass
         - verifier: tests/store_admission.ml
           result: pass
@@ -355,7 +349,11 @@ obligations:
       carry `mathc explain-diagnostic` entries that say so.
     acceptance:
       all:
-        - verifier: manual-target-missing-scripts-dev-ready
+        - verifier: mathc explain-diagnostic MC-PRODUCER-CLASS-UNDECLARED
+          result: pass
+        - verifier: mathc explain-diagnostic MC-PRODUCER-HUMAN-UNANCHORED
+          result: pass
+        - verifier: mathc validate decisions/attestation-producer-vocab-2026-10.yaml
           result: pass
 
   - id: no-verdict-change

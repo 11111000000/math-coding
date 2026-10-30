@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:e5aafe910a11b4bf280266eb78cd74a0ce1337dfeff7ba4428d913d51a1a3d12"
-yaml_sha: "sha256:e5aafe910a11b4bf280266eb78cd74a0ce1337dfeff7ba4428d913d51a1a3d12"
+body_sha: "sha256:dbe2c3eabcc32e6e73342a7fec97a4bc20780bc911fe7692b2edb723735dbef1"
+yaml_sha: "sha256:dbe2c3eabcc32e6e73342a7fec97a4bc20780bc911fe7692b2edb723735dbef1"
 
 axiom_link:
   - A0
@@ -205,14 +205,11 @@ obligations:
       document the counters were read from.
     acceptance:
       all:
-        - verifier: manual-file-exists-unqualified
-          path: .github/workflows/release-pending.yml
+        - verifier: file-exists .github/workflows/release-pending.yml
           result: pass
-        - verifier: manual-file-exists-unqualified
-          path: bin/Mathc.ml
+        - verifier: file-exists bin/Mathc.ml
           result: pass
-        - verifier: manual-file-exists-unqualified
-          path: docs/plans/plan-2026-10-adoption-fixes-2026-10.md
+        - verifier: file-exists docs/plans/plan-2026-10-adoption-fixes-2026-10.md
           result: pass
 
   - id: release-gate-needles-match-under-pinned-semantics
@@ -287,7 +284,7 @@ obligations:
       verdict in either direction.
     acceptance:
       all:
-        - verifier: mathc-self-check-no-new-unknowns
+        - verifier: manual-self-check-no-new-unknowns
           result: pass
         - verifier: manual-bash-c-build-install-default-bin-mathc-rehash-dr
           result: pass

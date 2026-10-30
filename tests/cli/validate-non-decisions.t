@@ -14,14 +14,14 @@ Per `decisions/mathc-validate-skip-non-decisions-fix-2026-10.yaml@1`.
 A waiver file (schema: math-coding/waiver-*) accepts without
 the decision parser running:
 
-  $ mathc validate --format=json decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml | jq -c '{verdict, kind, id}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml | jq -c '{verdict, kind, id}'
   {"verdict":"parse-ok","kind":"waiver","id":"audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10"}
 
 The obligations aggregator (schema: math-coding/obligations-*)
 also accepts; the id is read from the nested `decision.id:`
 field:
 
-  $ mathc validate --format=json decisions/obligations.yaml | jq -c '{verdict, kind, id}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/obligations.yaml | jq -c '{verdict, kind, id}'
   {"verdict":"parse-ok","kind":"obligations","id":"bootstrap-v3"}
 
 A waiver file without `kind: waiver` does NOT take the fast
@@ -47,7 +47,7 @@ path (it falls through to the decision parser and rejects):
   > unverified_obligation: [some-obligation]
   > compensating_controls: [see revocation]
   > EOF
-  $ mathc validate --format=json waiver-without-kind.yaml | jq -c '{verdict, code}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json waiver-without-kind.yaml | jq -c '{verdict, code}'
   {"verdict":"reject","code":"MC-DECISION-INVALID"}
 
 A regular decision file still validates through the decision
@@ -58,14 +58,14 @@ per-obligation verifier-scheme warnings for these files and is
 not part of this projection:
 
   $ cd "$DUNE_SOURCEROOT"
-  $ mathc validate --format=json decisions/decision.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/decision.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
   {"verdict":"parse-ok","decision":"bootstrap-v3","has_obligations":true}
-  $ mathc validate --format=json decisions/algebra-3.2.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/algebra-3.2.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
   {"verdict":"parse-ok","decision":"algebra-3.2","has_obligations":true}
 
 Text-format output for a waiver file:
 
-  $ mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
   parse-ok: decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
     kind: waiver
     id: audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10
@@ -80,7 +80,7 @@ before the dispatch):
   > schema: math-coding/waiver-3.0-alpha
   > id: truncated-demo
   > EOF
-  $ mathc validate --format=json truncated.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json truncated.yaml
   {"verdict":"reject","path":"truncated.yaml","code":"MC-DECISION-INVALID","severity":"warn","message":"missing required field: intent"}
   [1]
   $ cd /

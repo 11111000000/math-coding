@@ -1,0 +1,19 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: attestation-waiver-policy-schema-bump-3-3-2026-10-policy-enum-accepts-3-3-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: attestation-waiver-policy-schema-bump-3-3-2026-10
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The policy schema enum still accepts `math-coding/3.0-alpha/policy`
+  alongside `math-coding/3.3/policy`. The corpus carries no policy document
+  with a schema field, so a maintainer reads the enum; the acceptance runs
+  until 2027-01-29.
+unverified_obligation: policy-enum-accepts-3-3
+compensating_controls:
+  - re-evaluate on or before 2027-01-29
+  - replace the declaration with an executable check, or withdraw the promise

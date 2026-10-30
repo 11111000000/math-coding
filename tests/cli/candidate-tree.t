@@ -32,7 +32,7 @@ A batch written into a tree that HAS a commit carries that commit's
 id -- a full object id, not a symbolic ref:
 
   $ mkdir -p "$tmp/out"
-  $ mathc attest-batch --manifest="$manifest" --out="$tmp/out" --run="printf probe" > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$manifest" --out="$tmp/out" --run="printf probe" > /dev/null 2>&1
   $ one="$tmp/out/d1-onboarding-d1-obl-acceptance.json"
   $ test -f "$one" && echo "attestation written: ok"
   attestation written: ok
@@ -49,7 +49,7 @@ grep is the load-bearing one: a fallback that printed `HEAD` and
 still exited nonzero would satisfy the exit-code check alone.
 
   $ mkdir -p "$tmp/notrepo" "$tmp/outA"
-  $ MATH_CODING_ROOT="$tmp/notrepo" mathc attest-batch --manifest="$manifest" --out="$tmp/outA" > "$tmp/a.out" 2> "$tmp/a.err"; echo "EXIT=$?"
+  $ MATH_CODING_ROOT="$tmp/notrepo" $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$manifest" --out="$tmp/outA" > "$tmp/a.out" 2> "$tmp/a.err"; echo "EXIT=$?"
   EXIT=2
   $ test "$(ls -A "$tmp/outA" | wc -l)" = 0 && echo "no file written: ok"
   no file written: ok
@@ -63,7 +63,7 @@ the same terms:
 
   $ mkdir -p "$tmp/outB"
   $ git init -q "$tmp/empty"
-  $ MATH_CODING_ROOT="$tmp/empty" mathc attest-batch --manifest="$manifest" --out="$tmp/outB" > "$tmp/b.out" 2> "$tmp/b.err"; echo "EXIT=$?"
+  $ MATH_CODING_ROOT="$tmp/empty" $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$manifest" --out="$tmp/outB" > "$tmp/b.out" 2> "$tmp/b.err"; echo "EXIT=$?"
   EXIT=2
   $ test "$(ls -A "$tmp/outB" | wc -l)" = 0 && echo "no file written: ok"
   no file written: ok
@@ -74,7 +74,7 @@ And with `git` absent from PATH entirely. `mathc` is invoked by
 absolute path because the PATH override removes it too:
 
   $ mkdir -p "$tmp/nopath" "$tmp/outC"
-  $ mathc_bin=$(command -v mathc)
+  $ mathc_bin=$INSIDE_DUNE/bin/mathc.exe
   $ PATH="$tmp/nopath" "$mathc_bin" attest-batch --manifest="$manifest" --out="$tmp/outC" > "$tmp/c.out" 2> "$tmp/c.err"; echo "EXIT=$?"
   EXIT=2
   $ grep -q 'refusing to write an attestation with an unanchored candidate_tree' "$tmp/c.err" && echo "refusal names the field: ok"

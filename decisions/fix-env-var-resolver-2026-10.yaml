@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:71fad909bd9684c9b290953d5675dfa3355f3400bd2c0d950332e0c378509a26"
-yaml_sha: "sha256:71fad909bd9684c9b290953d5675dfa3355f3400bd2c0d950332e0c378509a26"
+body_sha: "sha256:b6929b20ceb205e455ae0cbc851d76da59f9790e6a2cd45e55b2ad2203720985"
+yaml_sha: "sha256:b6929b20ceb205e455ae0cbc851d76da59f9790e6a2cd45e55b2ad2203720985"
 
 intent: |
   Route every CLI subcommand that writes or tree-walks the
@@ -286,46 +286,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
-    evidence: tests-pass
-  - id: no-self-check-regression
-    statement: |
-      `mathc self-check` reports exactly the same set of
-      unknown subjects at HEAD `plan/adoption-fixes-2026-10`
-      (the 18-unknown baseline, of which 17 are pre-existing
-      and 1 is the plan-decision itself). Zero NEW unknown
-      subjects are introduced by this fix.
-
-      Before-fix baseline (captured in
-      `/tmp/unknown-baseline.txt` against the worktree
-      HEAD `a1b320a`):
-
-      ```
-      attestation-waiver-policy-schema-bump-3-3-2026-10
-      constitution-header-3-3-update-202-10
-      enable-counters-drift-test-2026-10
-      fix-curl-exit-code
-      fix-mcp-sigpipe
-      fix-validate-id
-      kernel-typo-fixes-batch-2026-10
-      mobile-menu-collapse-and-hide-on-scroll-2026-10
-      p8-hook-deficit-2026-10
-      placeholder-sha-cleanup-2026-10
-      plan-2026-10-adoption-fixes-2026-10
-      plan-2026-10-improvements
-      re-eval-remediation-todo-fix-2026-10
-      render-module-split
-      render-module-split-phase1a-2026-10
-      render-ordered-lists-2026-10
-      site-axiom-img-and-dropdown-2026-10
-      site-dropdown-anim-2026-10
-      ```
-
-      After-fix count: 18 (same set + plan-decision) when
-      this decision's attestations are present.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict
           result: pass
     evidence: tests-pass
 

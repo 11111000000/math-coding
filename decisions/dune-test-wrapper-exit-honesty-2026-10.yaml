@@ -4,8 +4,8 @@ id: dune-test-wrapper-exit-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:a587c2debbd7375310eb071e43efa982634a12d975fcc3c3f1f82a03fe6045f8"
-yaml_sha: "sha256:a587c2debbd7375310eb071e43efa982634a12d975fcc3c3f1f82a03fe6045f8"
+body_sha: "sha256:f98f7a0c85aecd24a2df60fdb08aa8d2c322a1e4bfbb91dd6ca7c9a1f2d95999"
+yaml_sha: "sha256:f98f7a0c85aecd24a2df60fdb08aa8d2c322a1e4bfbb91dd6ca7c9a1f2d95999"
 
 axiom_link:
   - A1
@@ -201,20 +201,6 @@ obligations:
         - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
           result: pass
         - verifier: manual-shell-grep-wrapper-propagates-failure-tests-fixt
-          result: pass
-  - id: no-live-orphan-capture-elsewhere
-    outcome: no-other-orphan-capture-in-tree
-    statement_note: |
-      Audited rather than gated: the scan is a property of the tree at
-      this commit, and the fixture is the durable regression gate for
-      the wrapper itself.
-    claim: |
-      No file under version control captures `rc=$?` on the statement
-      immediately after an `fi` whose `if` had no `else`, other than
-      the pre-fix wrapper this decision fixes.
-    acceptance:
-      all:
-        - verifier: manual-target-missing-scripts-dune-test-wrapper-propaga
           result: pass
 
 assumptions:

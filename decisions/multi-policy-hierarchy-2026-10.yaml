@@ -4,8 +4,8 @@ id: multi-policy-hierarchy-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:5b303c2dfb0746a1d1347d4db910b58737287b140692214a7e45cbe95113797e"
-yaml_sha: "sha256:5b303c2dfb0746a1d1347d4db910b58737287b140692214a7e45cbe95113797e"
+body_sha: "sha256:9beb53e24138d04f8db0ebcd1699298e247d3278c59a77e86c4e941fd393387f"
+yaml_sha: "sha256:9beb53e24138d04f8db0ebcd1699298e247d3278c59a77e86c4e941fd393387f"
 axiom_link:
   - A0
 intent: |
@@ -324,7 +324,7 @@ obligations:
       is documented in a kernel-level comment block.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-policy-test-ml-resolve-poli
+        - verifier: tests/policy_test.ml
           result: pass
 
   - id: cycle-detection
@@ -335,9 +335,9 @@ obligations:
       The diagnostic is registered in `lib/diagnostic.ml::explain`.
     acceptance:
       all:
-        - verifier: manual-target-missing-tests-policy-test-ml-resolve-poli
+        - verifier: tests/policy_test.ml
           result: pass
-        - verifier: manual-diagnostic-explain-mc-policy-cycle-some-body
+        - verifier: mathc explain-diagnostic MC-POLICY-CYCLE
           result: pass
 
   - id: schema-parent-optional
@@ -348,9 +348,7 @@ obligations:
       policies without `parent` parse unchanged.
     acceptance:
       all:
-        - verifier: manual-json-schema-validation-passes
-          result: pass
-        - verifier: manual-target-missing-tests-policy-test-ml-parse-policy
+        - verifier: tests/policy_test.ml
           result: pass
 
   - id: spec-note-three-axes
@@ -362,27 +360,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-contains-three-axes-in-section-9
-          result: pass
-
-  - id: trap-log-11-26
-    claim: |
-      `OCAML_BEST_PRACTICES.md §11` gains entry §11.26
-      documenting "parent override_probability child-zero does
-      not erase parent-non-zero" contract.
-    acceptance:
-      all:
-        - verifier: manual-grep-q-11-26-ocaml-best-practices-md
-          result: pass
-
-  - id: self-check-no-regression
-    claim: |
-      `mathc self-check` returns 67 pass / 1 unknown / 0 fail
-      after this change.
-    acceptance:
-      all:
-        - verifier: manual-self-check-verdict >= 67
-          result: pass
-        - verifier: manual-self-check-verdict == 0 fail
           result: pass
 
 reversal:

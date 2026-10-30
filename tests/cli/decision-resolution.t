@@ -140,28 +140,28 @@ is `probe-alpha`. The second: filed in a sub-directory, file name
   > relations:
   >   addresses: []
   > EOF
-  $ mathc rehash "$tmp/proj/.math-coding/decisions/probe-file-name.yaml" --write > /dev/null
-  $ mathc rehash "$tmp/proj/.math-coding/decisions/nested/probe-nested.yaml" --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$tmp/proj/.math-coding/decisions/probe-file-name.yaml" --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash "$tmp/proj/.math-coding/decisions/nested/probe-nested.yaml" --write > /dev/null
 
 HALF ONE — the project the operator stands in. The binary under test
 is the build-tree one (`mathc` on PATH), which lives under the
 kernel's own `dune-project`. The corpus it reports must be the
 operator's two decisions, not the kernel's 268.
 
-  $ mathc counters --format=json | jq -c '{decisions: .decisions.total, decision_count: .obligations.decision_count, obligations: .obligations.total}'
+  $ $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -c '{decisions: .decisions.total, decision_count: .obligations.decision_count, obligations: .obligations.total}'
   {"decisions":2,"decision_count":2,"obligations":2}
 
 The same two decisions are the package list, keyed by ID — the
 nested one included.
 
-  $ mathc packages --format=json | jq -c '.decisions | map(.decision_id) | sort'
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -c '.decisions | map(.decision_id) | sort'
   ["probe-alpha","probe-beta-in-subdir"]
 
 And the same two are the self-check subjects. The verdict is
 `unknown` (no attestations yet), which is a verdict about the
 operator's project — not the kernel's `fail`.
 
-  $ mathc self-check 2>/dev/null | jq -c '{verdict, subjects: (.subjects | length), names: [.subjects[].name] | sort}'
+  $ $INSIDE_DUNE/bin/mathc.exe self-check 2>/dev/null | jq -c '{verdict, subjects: (.subjects | length), names: [.subjects[].name] | sort}'
   {"verdict":"unknown","subjects":2,"names":["probe-alpha","probe-beta-in-subdir"]}
 
 The exit code of the self-check is the operator's corpus verdict, not
@@ -169,20 +169,20 @@ the kernel's. `unknown` is non-zero by constitution Invariant 14, and
 the number is 3 — not 1, which is what the kernel's own red corpus
 produces.
 
-  $ mathc self-check > /dev/null 2>&1; echo "EXIT=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe self-check > /dev/null 2>&1; echo "EXIT=$?"
   EXIT=3
 
 HALF TWO — resolution BY ID, not by file name. `mathc find
 --obligation=` looks the decision up by the id it declares. The
 nested decision is found.
 
-  $ mathc find --obligation=beta-obligation | jq -c '.decisions | map(.decision_id)'
+  $ $INSIDE_DUNE/bin/mathc.exe find --obligation=beta-obligation | jq -c '.decisions | map(.decision_id)'
   ["probe-beta-in-subdir"]
 
 The id that differs from the file name is the one that is reported —
 the file name never appears.
 
-  $ mathc find --obligation=alpha-obligation | jq -c '.decisions | map(.decision_id)'
+  $ $INSIDE_DUNE/bin/mathc.exe find --obligation=alpha-obligation | jq -c '.decisions | map(.decision_id)'
   ["probe-alpha"]
 
 HALF THREE — the installed binary. The same binary, copied OUT of the
@@ -190,7 +190,7 @@ kernel's tree (so it has no `dune-project` ancestor at all), run in
 the same directory, reports the same corpus. The operator's verdict
 does not depend on where the binary happens to live.
 
-  $ cp "$(command -v mathc)" "$tmp/bin/mathc"
+  $ cp "$INSIDE_DUNE/bin/mathc.exe" "$tmp/bin/mathc"
   $ cd "$tmp/proj"
   $ "$tmp/bin/mathc" counters --format=json | jq -c '{decisions: .decisions.total, obligations: .obligations.total}'
   {"decisions":2,"obligations":2}
@@ -211,7 +211,7 @@ was never read was recorded as a decision that failed.
   $ cd "$tmp/proj"
   $ printf 'probe-beta-in-subdir\tbeta-obligation\ttest\tmanual:probe\n' > manifest.tsv
   $ mkdir -p out
-  $ mathc attest-batch --manifest=manifest.tsv --out=out --run-per-obligation > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest=manifest.tsv --out=out --run-per-obligation > /dev/null 2>&1
   $ jq -e '.result == "pass" and .subject.materials_digest != "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"' out/probe-beta-in-subdir-beta-obligation.json
   true
 
@@ -221,7 +221,7 @@ names the kernel's checkout. A caller standing in another project
 must not be answered from the kernel's checkout.
 
   $ cd "$tmp/proj"
-  $ DUNE_SOURCEROOT="$DUNE_SOURCEROOT" mathc counters --format=json | jq -c '.decisions.total'
+  $ DUNE_SOURCEROOT="$DUNE_SOURCEROOT" $INSIDE_DUNE/bin/mathc.exe counters --format=json | jq -c '.decisions.total'
   2
 
 And the sub-directory walk is independent of the root: the decision
@@ -230,7 +230,7 @@ and it is NOT in the kernel's corpus under a different id (there is
 no such decision there — the kernel's corpus is a different corpus).
 
   $ cd "$tmp/proj"
-  $ mathc packages --format=json | jq -c '[.decisions[] | select(.decision_id == "probe-beta-in-subdir")] | length'
+  $ $INSIDE_DUNE/bin/mathc.exe packages --format=json | jq -c '[.decisions[] | select(.decision_id == "probe-beta-in-subdir")] | length'
   1
 
 Cleanup.

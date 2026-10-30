@@ -22,7 +22,7 @@ and `bin/Mathc.ml::env_or_default`).
   $ git -C "$tmpdir" commit -q --allow-empty -m initial
   $ export MATH_CODING_ATTESTATIONS_DIR=".test-math-coding/attestations"
   $ mkdir -p "$MATH_CODING_ATTESTATIONS_DIR"
-  $ mathc attest-batch \
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
   >   --run="printf probe" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR"
@@ -113,7 +113,7 @@ Row 2 has no 5th column in the manifest; the binary defaults it to
 Re-running overwrites deterministically (no double-emission on
 subsequent runs of the same row).
 
-  $ mathc attest-batch \
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch \
   >   --manifest="$DUNE_SOURCEROOT/tests/cli/fixtures/attest-batch/manifest.tsv" \
   >   --run="printf probe" \
   >   --out="$MATH_CODING_ATTESTATIONS_DIR"

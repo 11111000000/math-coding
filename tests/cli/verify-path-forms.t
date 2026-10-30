@@ -142,22 +142,22 @@ can reach.
 
 A script runs: the exit code IS the verdict.
 
-  $ mathc verify scratch.yaml 2>/dev/null | grep -E 'script-passes|script-fails'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>/dev/null | grep -E 'script-passes|script-fails'
     script-passes: pass
     script-fails: fail
 
 A path that is not in the repository is `fail` with the reason —
 never `skipped`. The reason names the rule that broke.
 
-  $ mathc verify scratch.yaml 2>&1 >/dev/null | sed "s|$tmp|<TMP>|g" | grep 'no such file' | head -2
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | sed "s|$tmp|<TMP>|g" | grep 'no such file' | head -2
   mathc verify: scripts/missing.sh — scripts/missing.sh: no such file in the repository (looked in <TMP>)
   mathc verify: tests/absent_module.ml — tests/absent_module.ml: no such file in the repository (looked in <TMP>)
 
 The `..` rule and the executable rule each have their own message.
 
-  $ mathc verify scratch.yaml 2>&1 >/dev/null | grep '`\.\.` segment'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | grep '`\.\.` segment'
   mathc verify: scripts/../outside.sh — scripts/../outside.sh: `..` segment; a verifier names a file inside the repository
-  $ mathc verify scratch.yaml 2>&1 >/dev/null | grep 'not executable'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | grep 'not executable'
   mathc verify: scripts/ok.sh.bak — scripts/ok.sh.bak: not executable
 
 Every `tests/` path form is planned before anything runs, so a
@@ -166,21 +166,21 @@ fail the same way. Four hits: scripts/missing.sh, tests/absent_module.ml,
 the same module through its `::case` form, and tests/cli/absent.t.
 Under the old resolver all four were `skipped`.
 
-  $ mathc verify scratch.yaml 2>&1 >/dev/null | grep -c 'no such file in the repository'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | grep -c 'no such file in the repository'
   4
 
 A verifier that needs a shell names the metacharacter that stopped
 it. The kernel never spawns /bin/sh, and an obligation that did not
 run is not a `skipped` obligation.
 
-  $ mathc verify scratch.yaml 2>&1 >/dev/null | grep "shell metacharacter"
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | grep "shell metacharacter"
   mathc verify: scripts/ok.sh | grep ok — scripts/ok.sh: contains the shell metacharacter '|'; `mathc verify` never runs a shell, so this obligation cannot be checked here
   mathc verify: dune build @install | tail -1 — contains the shell metacharacter '|'; `mathc verify` never runs a shell, so this obligation cannot be checked here
 
 Back-compat: a token that is neither a scheme nor a path form is
 still `skipped`, and `skipped` still exits 0 for that obligation.
 
-  $ mathc verify scratch.yaml 2>/dev/null | grep 'unknown-scheme'
+  $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>/dev/null | grep 'unknown-scheme'
     unknown-scheme: skipped
 
 Cleanup.

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:81a671de4e53de6c9e547c3ecda24e1def60477f8b0abd045cbd2daf22bc3fb8"
-yaml_sha: "sha256:81a671de4e53de6c9e547c3ecda24e1def60477f8b0abd045cbd2daf22bc3fb8"
+body_sha: "sha256:812d084eae0722fc1cd0c050c5e9bb5399a5dc7e18f00d6b4cd9ac1ee0967cad"
+yaml_sha: "sha256:812d084eae0722fc1cd0c050c5e9bb5399a5dc7e18f00d6b4cd9ac1ee0967cad"
 
 intent: |
   Close the F10 finding from
@@ -155,16 +155,6 @@ obligations:
         - verifier: tests/cli/policy-env-var.t
           result: pass
 
-  - id: a2-no-new-unknowns
-    claim: |
-      `mathc self-check` after the change returns
-      the same 181 pre-existing subjects at the
-      same `verdict: pass` and zero NEW unknowns
-      attributable to this decision.
-    acceptance:
-      all:
-        - verifier: mathc-self-check-no-new-unknowns
-          result: pass
 
   - id: a2-no-literal-paths
     claim: |

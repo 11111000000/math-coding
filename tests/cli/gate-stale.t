@@ -35,7 +35,7 @@ runtest` recurses until the test times out.
   $ git add . && git commit -q -m initial
   $ echo b > b.txt
   $ git add . && git commit -q -m second
-  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-stale/attestations" bash -c 'mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-stale.out; ec=$?; jq -c "del(.now) | {verdict, has_stale_gap: (.gaps_by_kind.StaleEvidence > 0), no_failed_gap: ((.gaps_by_kind.FailedEvidence // 0) == 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-stale.out; echo "exit=$ec"'
+  $ MATH_CODING_ROOT="$DUNE_SOURCEROOT" MATH_CODING_DECISIONS_DIR="decisions" MATH_CODING_ATTESTATION_STORE="$DUNE_SOURCEROOT/tests/fixtures/gate-stale/attestations" bash -c '$INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/gate-stale.out; ec=$?; jq -c "del(.now) | {verdict, has_stale_gap: (.gaps_by_kind.StaleEvidence > 0), no_failed_gap: ((.gaps_by_kind.FailedEvidence // 0) == 0), obligations_positive: (.obligations > 0)}" < /tmp/gate-stale.out; echo "exit=$ec"'
   {"verdict":"unknown","has_stale_gap":true,"no_failed_gap":true,"obligations_positive":true}
   exit=3
   $ cd /

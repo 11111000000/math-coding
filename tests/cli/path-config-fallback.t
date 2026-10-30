@@ -61,7 +61,7 @@ through to the legacy path.
   > relations:
   >   addresses: []
   > EOF
-  $ mathc rehash decisions/foo.yaml --write > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash decisions/foo.yaml --write > /dev/null
 
 The new-default `.math-coding/` MUST NOT exist -- the test
 specifically validates the no-`.math-coding/` branch.
@@ -74,7 +74,7 @@ the user passed (`decisions/foo.yaml`), but the resolver
 internally picks `decisions/` (the fallback) when
 `.math-coding/decisions/` does not exist.
 
-  $ mathc validate decisions/foo.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/foo.yaml
   parse-ok: decisions/foo.yaml
     decision: foo-decision
     revision: 1

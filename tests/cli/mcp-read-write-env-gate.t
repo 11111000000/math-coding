@@ -23,7 +23,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ unset MCP_READ_WRITE
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":1,"method":"mathc/gate","params":{"base":"HEAD","head":"HEAD~1"}}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":1'; then \
   >   echo "default-env: mathc/gate is reachable"; \
   > else echo "FAIL: default-env returned no id=1"; fi
@@ -32,7 +32,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ cd "$DUNE_SOURCEROOT"
   $ printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":2,"method":"mathc/gate","params":{"base":"HEAD","head":"HEAD~1"}}' \
-  >     | env MCP_READ_WRITE=off mathc_mcp \
+  >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     > /tmp/mcp-off-out.json 2>/tmp/mcp-off-err.txt
   $ grep -q '"code":-32601' /tmp/mcp-off-out.json \
   >   && grep -q 'read-write methods are disabled via MCP_READ_WRITE=off' /tmp/mcp-off-out.json \
@@ -45,7 +45,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":7,"method":"mathc/validate","params":{"path":"decisions/decision.yaml"}}' \
-  >     | env MCP_READ_WRITE=off mathc_mcp \
+  >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"id":7'; then \
   >   echo "MCP_READ_WRITE=off: read-only mathc/validate id=7 still works"; \
   > else echo "FAIL: read-only method id=7 missing"; fi
@@ -54,7 +54,7 @@ The fixture invokes mathc_mcp as a subprocess.
   $ cd "$DUNE_SOURCEROOT"
   $ printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":3,"method":"mathc/attest","params":{"path":"nonexistent.xml"}}' \
-  >     | env MCP_READ_WRITE=garbage mathc_mcp \
+  >     | env MCP_READ_WRITE=garbage $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     > /tmp/mcp-garbage-out.json 2>/tmp/mcp-garbage-err.txt
   $ grep -q '"code":-32601' /tmp/mcp-garbage-out.json \
   >   && grep -q 'MCP_READ_WRITE=garbage' /tmp/mcp-garbage-err.txt \
@@ -70,7 +70,7 @@ both gate states:
   $ unset MCP_READ_WRITE
   $ if printf '%s\n' \
   >     '{"jsonrpc":"2.0","id":4,"method":"mathc/secret"}' \
-  >     | mathc_mcp \
+  >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     | grep -q '"code":-32601'; then \
   >   echo "mathc/secret (default): correctly rejected (-32601)"; \
   > else echo "FAIL: should be -32601"; fi

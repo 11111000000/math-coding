@@ -10,7 +10,7 @@ emits no plan and exits 2.
 
 Unknown migration kind:
 
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --root=tests/cli/fixtures/migrate \
   >     --manifest=tests/cli/fixtures/migrate/decisions/migrations/malformed.yaml \
   >     --format=json
@@ -29,7 +29,7 @@ Missing required field on a well-known kind (rename-field without `to`):
   >   - kind: rename-field
   >     from: countercase
   > EOF
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --root=tests/cli/fixtures/migrate \
   >     --manifest=/tmp/incomplete.yaml \
   >     --format=json

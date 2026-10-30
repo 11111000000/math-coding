@@ -23,13 +23,13 @@ to the scratch tree.
 `mathc session-start` anchors the wall-clock so `record` accepts
 the event without MC-SESSION-MISSING.
 
-  $ mathc session-start >/dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe session-start >/dev/null
 
 `mathc record --class feature-add` writes the event line to
 `<root>/<MATH_CODING_DECISIONS_DIR>/execution-logs.jsonl`,
 NOT to the legacy `decisions/execution-logs.jsonl`.
 
-  $ mathc record --decision-id bootstrap-v3 --scale step-count --value 7 >/dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe record --decision-id bootstrap-v3 --scale step-count --value 7 >/dev/null
   $ test -f "$tmpdir/.math-coding/decisions/execution-logs.jsonl" \
   >   && echo "wrote to .math-coding/: ok"
   wrote to .math-coding/: ok
@@ -40,7 +40,7 @@ NOT to the legacy `decisions/execution-logs.jsonl`.
 `mathc stats` reads from the same resolver-resolved path. The
 sample count includes the just-recorded event (n=1).
 
-  $ mathc stats --scale step-count | jq -c '{n, p50: .quantiles.p50}'
+  $ $INSIDE_DUNE/bin/mathc.exe stats --scale step-count | jq -c '{n, p50: .quantiles.p50}'
   {"n":1,"p50":null}
 
 Cleanup.

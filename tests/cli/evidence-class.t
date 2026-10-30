@@ -67,7 +67,7 @@ Setup: a project with one decision and one hand-written attestation.
   >   superseded_by: []
   > YAML
   $ mkdir -p src && echo 'x' > src/f.txt
-  $ mathc rehash --write .math-coding/decisions/probe.yaml > /dev/null
+  $ $INSIDE_DUNE/bin/mathc.exe rehash --write .math-coding/decisions/probe.yaml > /dev/null
   $ git add -A
   $ git -c user.email=t@example -c user.name=t commit -qm init
   $ tree=$(git rev-parse HEAD)
@@ -89,7 +89,7 @@ pass. The oracle re-reads a decision and asks whether its claim
 contradicts an axiom; it does not execute the obligation's verifier.
 
   $ rm -rf .math-coding/attestations && mkdir -p .math-coding/attestations
-  $ mathc re-evaluate-decisions A0 > /dev/null 2>&1
+  $ $INSIDE_DUNE/bin/mathc.exe re-evaluate-decisions A0 > /dev/null 2>&1
   $ cat .math-coding/attestations/*probe-ob1.json | jq -c '{kind_, result, run: .producer.run}'
   {"kind_":"review","result":"inconclusive","run":"mathc re-evaluate-decisions A0"}
 
@@ -127,7 +127,7 @@ REJECTED -- a runtime-class pass that names no run and declares no
 machine class. The obligation is not discharged, the gap names the
 class, and the verdict is `unknown` (exit 3, never exit 0).
 
-  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-unanchored.json; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-unanchored.json; echo "exit=$?"
   exit=3
   $ jq -c '{verdict, gap_kind: .gaps[0].kind, class_named: ([.gaps[0].causes[] | select(contains("source class is not established"))] | length > 0), remedy_named: ([.gaps[0].remedies[] | select(contains("producer.run"))] | length > 0)}' < /tmp/evc-unanchored.json
   {"verdict":"unknown","gap_kind":"Unknown","class_named":true,"remedy_named":true}
@@ -139,7 +139,7 @@ establishes the class.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci-bot","run":"dune runtest"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000002"}
   > JSON
-  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-run.json; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-run.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-run.json
   {"verdict":"pass","gaps":0}
@@ -149,7 +149,7 @@ ACCEPTED -- the second anchor: a declared machine producer, no run.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000003"}
   > JSON
-  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-ci.json; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-ci.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-ci.json
   {"verdict":"pass","gaps":0}
@@ -161,7 +161,7 @@ not the declaration.
   $ cat > .math-coding/attestations/probe-ob1.json <<'JSON'
   > {"schema":"math-coding/attestation-3.3","kind":"attestation","subject":{"decision":"probe","obligation":"ob1","candidate_tree":"HEAD","materials_digest":""},"kind_":"review","producer":{"identity":"human:maintainer"},"result":"pass","issued_at":"2026-10-08T00:00:00Z","id":"sha256:0000000000000000000000000000000000000000000000000000000000000004"}
   > JSON
-  $ mathc gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-review.json; echo "exit=$?"
+  $ $INSIDE_DUNE/bin/mathc.exe gate --no-scope --no-execute HEAD~1 HEAD > /tmp/evc-review.json; echo "exit=$?"
   exit=0
   $ jq -c '{verdict, gaps: (.gaps | length)}' < /tmp/evc-review.json
   {"verdict":"pass","gaps":0}

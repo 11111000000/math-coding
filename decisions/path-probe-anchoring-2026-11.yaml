@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:7ea63ea18390e7880df9a345156c3d5ec11074a22b5aec785cba2378044f665f"
-yaml_sha: "sha256:7ea63ea18390e7880df9a345156c3d5ec11074a22b5aec785cba2378044f665f"
+body_sha: "sha256:e7387d5699f37f52a819b3c7ffbda2939d310fb6160e34d22a0eac1711fd1af5"
+yaml_sha: "sha256:e7387d5699f37f52a819b3c7ffbda2939d310fb6160e34d22a0eac1711fd1af5"
 
 axiom_link:
   - A0
@@ -163,7 +163,7 @@ obligations:
       `dune build @all` succeeds with all call sites anchored.
     acceptance:
       all:
-        - verifier: manual-bash-c-scripts-dev-env-sh-mc-run-in-shell-dune-b
+        - verifier: dune build @all
           result: pass
 
 risk:

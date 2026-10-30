@@ -58,7 +58,7 @@ verify run forks the sandboxed child.
 strict mode emits the RLIMIT banner (Linux) or the Linux-only
 fallback warning (non-Linux); either is acceptable.
 
-  $ if mathc verify --sandbox=strict scratch-verify.yaml 2>&1 | grep -qE 'RLIMIT_NPROC=1|Linux-only'; then
+  $ if $INSIDE_DUNE/bin/mathc.exe verify --sandbox=strict scratch-verify.yaml 2>&1 | grep -qE 'RLIMIT_NPROC=1|Linux-only'; then
   >   echo "strict-mode-primitive-notice: ok"
   > else
   >   echo "strict-mode-primitive-notice: MISSING"

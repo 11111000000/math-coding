@@ -22,7 +22,7 @@ and leaves the original untouched.
 Dry-run first: no file appears; the summary records the
 intended path.
 
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --from=math-coding/3.0-alpha \
   >     --to=math-coding/3.2 \
   >     --root=tests/cli/fixtures/migrate-bump \
@@ -38,7 +38,7 @@ Now without `--dry-run`: the sibling file appears; the
 summary records `outcome: "wrote"`. The original file is
 untouched (still at `math-coding/3.0-alpha`).
 
-  $ mathc migrate \
+  $ $INSIDE_DUNE/bin/mathc.exe migrate \
   >     --from=math-coding/3.0-alpha \
   >     --to=math-coding/3.2 \
   >     --root=tests/cli/fixtures/migrate-bump \

@@ -1,0 +1,20 @@
+---
+schema: math-coding/waiver-3.0-alpha
+kind: waiver
+id: algebra-3.2-notation-flag-2026-10-held-by-human-2026-10
+policy_id: bootstrap-v3
+rule: obligation-inconclusive-attestation
+subject: algebra-3.2-notation-flag-2026-10
+issuer: human:maintainer
+issued_at: 2026-10-29T00:00:00Z
+expires_at: 2027-01-29T00:00:00Z
+reason: |
+  The promise that `spec/algebra-3.2.md` carries a "Notation note" block
+  immediately after §2 that names this decision and summarises the
+  ambiguity is a property of the SPEC TEXT. The kernel runs no check over
+  a prose block in a spec section, and the corpus's executable schemes
+  (file-exists, mathc, dune, tests/, scripts/) cannot express "this
+  paragraph says this". A maintainer confirms on every edit of §2 that
+  the note is still there and still names this decision. This acceptance
+  holds until 2027-01-29.
+unverified_obligation: notation-note-present
