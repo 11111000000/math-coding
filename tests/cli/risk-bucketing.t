@@ -53,13 +53,16 @@ comment blocks may move, but the bucket body is stable):
     else `Exhaustive
 
 The `mathc mode` subcommand exercises the kernel end-to-end. Path
-`lib/packages.ml` classifies at risk = 0.025 (which would be `tiny`
-under the 0.05 boundary). The kernel now reports mode = `tiny`
-(the default `mode_floor = tiny` shipped with the policy defaults;
-match the kernel's actual output below):
+`lib/packages.ml` classifies at risk = 0.025, which is `tiny` on its
+own under the 0.05 boundary. The EFFECTIVE mode is the floor:
+`max(risk_to_mode(risk(c)), mode_floor(c))`, and `policies.yaml`
+floors `lib/**` at `standard`. The floor was dead until 2026-10-30
+-- the resolver named a decision document instead of the policy
+file, so every path read as `tiny` -- and this snapshot recorded the
+dead behaviour. See `decisions/record-proportionality-2026-10`:
 
   $ $INSIDE_DUNE/bin/mathc.exe mode lib/packages.ml
-  {"impact":"0.5","irreversibility":"0.1","mode":"tiny","paths":[{"classify":"0.5","path":"lib/packages.ml"}],"probability":"0.5","risk":"0.025"}
+  {"impact":"0.5","irreversibility":"0.1","mode":"standard","paths":[{"classify":"0.5","path":"lib/packages.ml"}],"probability":"0.5","risk":"0.025"}
 
 The sub-decision file is present and is accepted by the validator.
 New verifier-scheme warnings emitted under the
