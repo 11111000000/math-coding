@@ -68,50 +68,48 @@ fail=0
 ok() { printf "ok: %s\n" "$1"; }
 bad() { printf "FAIL: %s\n" "$1"; fail=1; }
 
-# The ceilings. Measured on 2026-10-25 against v3.7.2.
+# The ceilings. MEASURED on 2026-10-30 against the store the sweep
+# produced for this tree - 527 attestations - which is the FIRST time
+# this instrument measured a store at all. It read `git ls-files
+# attestations`, and the store stopped being committed on 2026-10-28,
+# so every number it reported was a number over an EMPTY list: 0
+# unanchored, 0 unexecuted, 0 orphans, against ceilings of 886, 364
+# and 6.
 #
-#   UNANCHORED 886 - runtime attestations with no `producer.run`. Only
-#     11 of 894 attestations name a run at all; 880 of the runtime
-#     ones do not, and the re-signing of the verifier-path tree added
-#     three more. The store is signed by `scripts/sign-store.sh`,
-#     which drives `mathc attest-batch --run-per-obligation`; the
-#     kernel executes the verifier and then writes the attestation
-#     WITHOUT recording what it executed. The information exists at
-#     the moment of writing and is dropped at the JSON boundary.
-#     Three slots of the ceiling are this decision's own three
-#     attestations, which the same signing path wrote.
+#   UNANCHORED 0 - no runtime attestation in the store names no run.
+#     The sweep records the command it ran, so a machine-grade claim
+#     can be re-run and compared
+#     (decisions/attestation-producer-vocab-2026-10).
 #
-# ceiling-raise: 881 -> 883, this decision's own three attestations are written by the same signing path
-# ceiling-raise: 883 -> 886, the re-signing of the verifier-path tree added three more unanchored attestations
+#   UNEXECUTED 10 - passes claimed for obligations that name a
+#     verifier the kernel CANNOT execute beside one it can. The
+#     kernel downgrades such an obligation to inconclusive; the
+#     number is what is left of that disagreement in the store.
 #
-#   UNEXECUTED 364 - passes claimed for obligations whose verifier the
-#     kernel cannot execute. The families are `manual-*` declarations
-#     (a declaration that a named file exists, or that a human read a
-#     source) and bare slugs (`mathc-self-check`,
-#     `mathc-render-nav-spec-link`, ...), which name no command at
-#     all.
-#
-#   ORPHANS 6 - attestations naming an obligation the corpus does not
-#     have: three for `t1-2`, one for `t3-2`, one for
-#     `update-check-notify-2026-10` and one for
-#     `ux-3-init-copies-ci-workflow-2026-10`. The decisions `t1-2` and
-#     `t3-2` are not in the corpus at all; the other two name an
-#     obligation id that belongs to a different section of the file.
+#   ORPHANS 0 - the sweep prunes the store to what it observed, so
+#     every attestation in it names an obligation the corpus has.
 #
 # All three may only fall. See the header for why they are measured
 # and what they mean.
-CEILING_UNANCHORED=886
-CEILING_UNEXECUTED=364
-CEILING_ORPHANS=6
+#
+# ceiling-fall: 886 -> 0, the old ceiling was measured over an EMPTY store: the instrument read git's index, and the store stopped being committed on 2026-10-28
+# ceiling-fall: 364 -> 10, the same measurement, now against the store the sweep produced for this tree; and five of the fifteen were the census's own stale copy of the kernel's scheme list, which no longer exists
+# ceiling-fall: 6 -> 0, the same measurement, and the sweep prunes the store to what it observed
+CEILING_UNANCHORED=0
+CEILING_UNEXECUTED=10
+CEILING_ORPHANS=0
 
-# measure <store-file-list-file> <decisions-dir>
+# measure <store-file-list-file> <decisions-dir> [kernel-file]
 # prints "<unanchored> <unexecuted_pass> <orphans>"; the family
-# breakdown of the unexecuted passes goes to stderr.
+# breakdown of the unexecuted passes goes to stderr. It prints "none"
+# when the kernel's own list of executable schemes cannot be read: a
+# census that cannot tell a check from a declaration must not report
+# a number.
 measure() {
-  python3 - "$1" "$2" <<'PY'
+  python3 - "$1" "$2" "${3:-bin/Mathc.ml}" <<'PY'
 import glob, json, os, re, sys, collections
 
-store_list, decisions_dir = sys.argv[1], sys.argv[2]
+store_list, decisions_dir, kernel_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
 # --- the decision corpus: obligation id -> verifier strings -------------
 # The corpus is YAML and the kernel is the authority on it, but this
@@ -162,8 +160,32 @@ for path in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'),
 # --- what the kernel can execute ---------------------------------------
 # bin/Mathc.ml: the command schemes `run_one_verifier` executes, and
 # the path forms `plan_verifier` resolves.
-COMMAND_SCHEMES = {'file-exists', 'dir-exists', 'mathc', 'bash',
-                   'shell-grep', 'dune'}
+#
+# THE LIST IS READ OUT OF THE KERNEL, NOT COPIED. The census used to
+# carry its own set of the schemes the kernel can execute, and a copy
+# drifts: the kernel learned `shell-grep-absent` on 2026-10-29, and
+# the census went on calling it a declaration - four obligations were
+# counted as unexecuted that the kernel could execute. The list is
+# now read from the kernel's own `canonical_verifier_schemes`
+# binding, so a scheme the kernel learns is a scheme the census
+# knows. If the binding cannot be read, the census reports NOTHING
+# rather than a number from a stale copy.
+def kernel_schemes(path):
+    try:
+        text = open(path, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return None
+    m = re.search(r'canonical_verifier_schemes\s*=\s*\[(.*?)\]', text, re.S)
+    if not m:
+        return None
+    schemes = set(re.findall(r'"([^"]+)"', m.group(1)))
+    return schemes or None
+
+
+COMMAND_SCHEMES = kernel_schemes(kernel_path)
+if COMMAND_SCHEMES is None:
+    print("none")
+    sys.exit(0)
 RUNTIME_KINDS = {'test', 'build', 'analysis', 'observation'}
 
 def runnable(verifier):
@@ -298,11 +320,17 @@ fi
 
 if [ "$measure_possible" = "1" ]; then
 read -r unanchored unexecuted orphans <<<"$(measure "$store_list" decisions 2>/dev/null)"
-if [ -z "${unanchored:-}" ] || [ -z "${unexecuted:-}" ] || [ -z "${orphans:-}" ]; then
+if [ "${unanchored:-}" = "none" ]; then
+  ok "the kernel's list of executable schemes could not be read from bin/Mathc.ml: a census that cannot tell a check from a declaration must not report a number"
+  measure_possible=0
+elif [ -z "${unanchored:-}" ] || [ -z "${unexecuted:-}" ] || [ -z "${orphans:-}" ]; then
   bad "the census measurement produced no numbers - the corpus parse or the store read failed"
   echo "executed-evidence-census: FAIL"
   exit 1
 fi
+fi
+
+if [ "$measure_possible" = "1" ]; then
 
 # --- 1. unanchored runtime attestations --------------------------------
 if [ "$unanchored" -le "$CEILING_UNANCHORED" ]; then

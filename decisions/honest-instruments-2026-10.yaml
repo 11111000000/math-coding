@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:ac335ce70a5ad51a3826462893173f34c6675bae631f3a3d98e3c18c3d4c105a"
-yaml_sha: "sha256:ac335ce70a5ad51a3826462893173f34c6675bae631f3a3d98e3c18c3d4c105a"
+body_sha: "sha256:87e9bada1e72516c4f543d89e5c7246ab8f1b1bfafd7b1e8981748e5af6c1391"
+yaml_sha: "sha256:87e9bada1e72516c4f543d89e5c7246ab8f1b1bfafd7b1e8981748e5af6c1391"
 
 axiom_link:
   - A0
@@ -66,6 +66,19 @@ intent: |
   scope path that names nothing - stands, and this decision does not
   pretend otherwise.
 
+  The census's OWN COPY of the kernel's scheme list was stale. The
+  census has to know which verifiers the kernel can execute, and it
+  carried its own set: `file-exists`, `dir-exists`, `mathc`, `bash`,
+  `shell-grep`, `dune`. The kernel learned `shell-grep-absent` on
+  2026-10-29, and the census went on calling it a declaration - five
+  obligations were counted as "passes for checks that were never
+  executed" that the kernel could execute. A copy of the kernel's
+  dispatch is how a corpus ends up with two answers to one question,
+  and the census's own header said so. The list is now READ OUT of
+  the kernel's `canonical_verifier_schemes` binding, and a census
+  that cannot read it reports nothing rather than a number from a
+  stale copy.
+
   The measure of all this is not the number of instruments. It is that
   a red step now means something, and a green one can be trusted to
   have looked.
@@ -77,20 +90,23 @@ commitment: |
   2. The legacy-debt fixture measures the same store under the same
      rule of freshness, and it walks the corpus the way the kernel
      walks it.
-  3. NOTHING MEASURED IS EXIT 3, NOT EXIT 0. `scripts/check.sh` counts
+  3. The census reads the kernel's list of executable schemes out of
+     the kernel, so a scheme the kernel learns is a scheme the census
+     knows, and a census that cannot read the list reports nothing.
+  4. NOTHING MEASURED IS EXIT 3, NOT EXIT 0. `scripts/check.sh` counts
      exit 3 as SKIPPED (not verified, and named as such in its
      summary); the CI step that runs AFTER the sweep counts it as a
      FAILURE, because there the store must exist.
-  4. Both store-measuring instruments run in CI after the sweep that
+  5. Both store-measuring instruments run in CI after the sweep that
      produced the store, and they run as their own blocking step.
-  5. The step simulator finds the step it checks, and checks the
+  6. The step simulator finds the step it checks, and checks the
      contract the step has: pass is green, a decisive failure is red,
      and an unknown verdict takes the ratchet's status - green while
      the debt is under its ceiling, red when the pin bites.
-  6. The ceiling ratchet is back and in CI: a ceiling that grows
+  7. The ceiling ratchet is back and in CI: a ceiling that grows
      without a recorded `ceiling-raise:` reason fails, and a ceiling
      that is declared and never compared fails.
-  7. The comment in ci.yml says what the step does. The comment and
+  8. The comment in ci.yml says what the step does. The comment and
      the body are checked against each other by the simulator.
 
 outcomes:

@@ -5,6 +5,56 @@
 
 ## Unreleased
 
+**The instruments that measured the corpus were measuring nothing**
+(`decisions/honest-instruments-2026-10.yaml`).
+Four checks, four false readings, and one of them had been the
+instrument that said the store was clean.
+
+The honesty census enumerated the attestation store with
+`git ls-files attestations`, and the store stopped being committed on
+2026-10-28 — so the list was empty on every tree. The census measured
+nothing, reported 0 unanchored, 0 unexecuted passes and 0 orphans,
+and passed against ceilings of 886, 364 and 6. It had not looked at
+the store since the day the store stopped being in git. The
+legacy-debt fixture reported PASS over an absent store, and over a
+store signed for another tree. The CI self-check step was renamed on
+2026-10-29 and the simulator that checks it kept the old name, so it
+failed on every run with "could not extract the run: block" and
+nothing ran it — the comment in ci.yml that said the three rows were
+"checked, not asserted" was false for a week. And the ceiling ratchet,
+the program that kept the promise "a debt ceiling may fall and may
+never rise", had been removed with the corpus-debt meta-layer on
+2026-10-28, leaving two of that decision's three named losses
+uncovered: a ceiling could grow with no recorded reason, and a
+ceiling could stop being a ceiling while its number stood still.
+
+What they do now. The census reads the store the way the kernel reads
+it — the directory, not git's index — and the legacy-debt fixture
+reads the same directory and walks the corpus the way the kernel walks
+it (recursively, by the kernel's own rule of what a decision is).
+Neither claims a verdict it did not measure: nothing to measure is
+exit 3, unknown, which scripts/check.sh counts as skipped and named
+as not verified, and which the CI step that runs after the sweep
+counts as a failure, because there the store must exist. The
+simulator finds the step it checks and replays five rows against a
+stub mathc and a stub ratchet: a decisive failure is red, an unknown
+verdict takes the ratchet's status, and the pin can still make it
+red. The ratchet is back, in CI, with its own fixture proving it can
+fail on a synthetic corpus.
+
+The census had one more copy of the kernel's own rules, and it was
+stale too: it carried its own list of the schemes the kernel can
+execute, and the kernel learned `shell-grep-absent` on 2026-10-29 —
+so five obligations were counted as "passes for checks that were
+never executed" that the kernel executes happily. The list is now
+read out of the kernel's `canonical_verifier_schemes` binding, and a
+census that cannot read it reports nothing rather than a number from a
+stale copy.
+
+The decision that removed the ratchet is amended: two of its three
+losses are covered again, and the third — a scope path that names
+nothing — stands.
+
 **The protocol becomes reachable**
 (`decisions/adoption-friction-p0-2026-10.yaml`).
 The documented path for a project that adopts math-coding was twelve
