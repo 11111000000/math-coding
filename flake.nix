@@ -193,10 +193,11 @@
           # The fixtures need these tools and the build had none of
           # them: python3 (the forge stub the CLI's forge verifier
           # talks to), curl and git (the fixtures), jq (244 calls
-          # across the cram tests) and ripgrep (the corpus scans).
-          # All of them were missing here, and the build had been
-          # failing behind the red CI step for weeks.
-          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git pkgs.jq pkgs.ripgrep ];
+          # across the cram tests), ripgrep (the corpus scans) and
+          # yq (the workflow fixtures). All of them were missing
+          # here, and the build had been failing behind the red CI
+          # step for weeks.
+          nativeBuildInputs = ocamlDeps ++ ocamlSelect ocamlPackages ++ [ pkgs.python3 pkgs.curl pkgs.git pkgs.jq pkgs.ripgrep pkgs.yq ];
           buildPhase = ''
             runHook preBuild
             export OCAMLPATH="${ocamlPath}"
@@ -215,6 +216,17 @@
             # cram tests get the binary and the fixtures through the
             # declared deps), the latter only builds.
             dune build --root . bin/mathc.exe bin/mathc_mcp.exe
+            # The suite reads a git work tree: `mathc context main
+            # HEAD`, `mathc gate` and the attestation writer all
+            # resolve a commit, and refuse to guess one. The nix
+            # source is a copy without .git, so the work tree is
+            # created here -- one commit on `main`, which is what
+            # the tests diff against.
+            git init -q -b main .
+            git config user.email "ci@example.invalid"
+            git config user.name "ci"
+            git add -A
+            git commit -q -m "nix build: the tree under test"
             dune test --root .
             runHook postBuild
           '';
