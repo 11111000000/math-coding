@@ -59,24 +59,37 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # ceiling-fall: 16 -> 0, the old ceiling was measured against the committed store; the store is generated now and the sweep writes the digest it measured
 CEILING_LEGACY=0
 # A LIVE RULE that carries no attestation at all: the sweep could not
-# sign it. One such decision exists, and it is the one that pins these
-# ceilings: its verifier is the sweep's own path, so signing it would
-# be a cycle.
+# sign it. Three such decisions exist, and they are the CYCLE:
 #
-# MEASURED 2026-10-30: one. The MEASUREMENT changed twice and the
-# number did not move: the walk of decisions/ became recursive and
+#   executed-evidence-census-2026-10   verifier: the census fixture
+#   honest-attestation-emission-2026-10 verifier: the census fixture
+#   legacy-attestation-debt-2026-10     verifier: this fixture
+#
+# A cycle: the verifier of the decision IS a fixture that measures the
+# store, and the store is what the sweep is producing. The fixture
+# cannot conclude while the store is half-written, so the sweep
+# cannot sign the decision that names it.
+#
+# UNTIL 2026-10-30 THIS WAS HIDDEN, AND IT WAS HIDDEN BY THE VACUOUS
+# CENSUS. The census used to read git's index, find nothing, report
+# 0/0/0 and exit 0 - so the sweep signed those two decisions with a
+# pass that stood for nothing. The census reads the store now, so it
+# says "unknown" mid-sweep, and the sweep leaves the decisions
+# UNSIGNED. Two decisions moved from a green that meant nothing to an
+# honest unknown. That is the trade this change makes: the debt is
+# bigger and it is real.
+#
+# MEASURED 2026-10-30: three. The MEASUREMENT changed twice and the
+# count moved with it: the walk of decisions/ became recursive and
 # follows the kernel's rule of what a decision is (a decision in a
 # sub-directory used to be invisible here), and a decision with NO
 # OBLIGATIONS is no longer counted - there is nothing to attest, and
 # the sweep signs what it observes.
 #
-# The ceiling STAYS at 1. A narrower measurement would be a cheat if it
-# hid a live decision; here it names a live decision that the census
-# cannot move yet (other decisions still reference it) and that the
-# sweep cannot sign (its verifier is scripts/check.sh, which contains
-# this fixture: a cycle). The cycle is a known debt of its own kind,
-# and the number that is pinned here is still the number the truth is.
-CEILING_UNATTESTED=1
+# The ceiling says 3, which is the number the truth is.
+#
+# ceiling-raise: 1 -> 3, the census reads the store now, so it cannot conclude while the sweep is writing it: two decisions the sweep used to sign with a meaningless green are honestly unsigned
+CEILING_UNATTESTED=3
 # The DECLARED inconclusive - a `manual:` obligation, which the
 # kernel does not execute and says so - is not debt. The UNDECLARED
 # kind is: an obligation whose verifier the kernel CAN execute, that

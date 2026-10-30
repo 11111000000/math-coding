@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:87e9bada1e72516c4f543d89e5c7246ab8f1b1bfafd7b1e8981748e5af6c1391"
-yaml_sha: "sha256:87e9bada1e72516c4f543d89e5c7246ab8f1b1bfafd7b1e8981748e5af6c1391"
+body_sha: "sha256:0345ccfcdb6344fd45829087e91ca9199ab9d26cb1ed6fd101e2df046d00b87b"
+yaml_sha: "sha256:0345ccfcdb6344fd45829087e91ca9199ab9d26cb1ed6fd101e2df046d00b87b"
 
 axiom_link:
   - A0
@@ -82,6 +82,19 @@ intent: |
   The measure of all this is not the number of instruments. It is that
   a red step now means something, and a green one can be trusted to
   have looked.
+
+  AND THE DEBT GOT BIGGER, ON PURPOSE. Three live decisions are now
+  UNSIGNED where one was: `executed-evidence-census-2026-10`,
+  `honest-attestation-emission-2026-10` and
+  `legacy-attestation-debt-2026-10`. Their verifier is a fixture that
+  measures the store, and the store is what the sweep is producing -
+  a cycle. The census used to break the cycle by accident: it read an
+  empty list, reported 0/0/0 and exited 0, so the sweep signed those
+  two decisions with a pass that stood for nothing. The census reads
+  the store now, so it cannot conclude while the store is half
+  written, and the sweep leaves the decisions unsigned. Two decisions
+  moved from a green that meant nothing to an honest unknown. The
+  ceiling moved 1 -> 3, with the reason next to the number.
 
 commitment: |
   1. The census reads the store the way the kernel reads it - the
@@ -210,6 +223,14 @@ risk:
     run here produces a different attestation there. The remedy is
     not a looser ceiling but a visible one: every raise carries its
     reason, and the reason is in the diff.
+  the-cycle-decisions-never-get-signed: |
+    Expected, and named. Three live decisions name a store-measuring
+    fixture as their verifier, so the sweep can never sign them: the
+    fixture cannot conclude while the sweep is writing the store it
+    measures. The ceiling says 3 and the names are in the fixture. The
+    remedy, if the corpus wants those decisions attested, is to move
+    their verifier off the store - not to make the census measure
+    less.
 
 counterexample: |
   The strongest objection to this decision is that it makes a number
