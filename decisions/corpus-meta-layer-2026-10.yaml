@@ -1,16 +1,25 @@
 ---
 schema: math-coding/3.3
 id: corpus-meta-layer-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/no-shadow-corpus.sh
-body_sha: "sha256:b85ee6aad7ed1e803044b7dd9023b0450a37e2392227e884a0eb920ccc10bb75"
-yaml_sha: "sha256:b85ee6aad7ed1e803044b7dd9023b0450a37e2392227e884a0eb920ccc10bb75"
+body_sha: "sha256:d49f567c237d205909052c3c6739ffb661d4921b6a815c849da5dbaffa551e27"
+yaml_sha: "sha256:d49f567c237d205909052c3c6739ffb661d4921b6a815c849da5dbaffa551e27"
 
 # The paths this decision removed, 2026-10-28. The fixture that guards
 # the removal reads this list, so the list lives in ONE place and the
 # guard does not have to repeat the names.
+#
+# TWO OF THEM CAME BACK on 2026-10-30
+# (decisions/honest-instruments-2026-10.yaml):
+# `scripts/ceiling-monotonic.sh` and
+# `tests/fixtures/ceiling-monotonic-check.sh`. The ceiling ratchet is
+# not a census of the corpus's tidiness - it compares a number with
+# its own past, which is a property of the DIFF and not a copy of the
+# corpus - so the argument that removed the meta-layer does not reach
+# it. The other eleven paths are still gone and still guarded.
 removed:
   - "tests/fixtures/self-check-pass"
   - "scripts/regenerate-self-check-fixture.sh"
@@ -20,9 +29,7 @@ removed:
   - "scripts/prune-dead-scope-paths.py"
   - "scripts/migrate-verifiers.py"
   - "scripts/classify-failed-verifiers.py"
-  - "scripts/ceiling-monotonic.sh"
   - "scripts/audit-scopes.py"
-  - "tests/fixtures/ceiling-monotonic-check.sh"
   - "tests/fixtures/no-dead-scope-paths.sh"
   - "tests/fixtures/scope-invalidation-breadth.sh"
 
@@ -137,6 +144,10 @@ counterexample: |
       the ratchet was written to catch, measured on this corpus on
       2026-10-23: seven raises in three days, six of them
       unrecorded.
+      REVERSED on 2026-10-30
+      (decisions/honest-instruments-2026-10.yaml): the ratchet is
+      back, in CI, and it fails a raise that carries no recorded
+      reason.
 
   (b) A CEILING could stop being a ceiling. A declared ceiling whose
       comparison was deleted while its number stood used to be
@@ -146,6 +157,9 @@ counterexample: |
       stayed GREEN for four days because the debt happened to be under
       the ceiling. Nothing in the corpus now distinguishes a ceiling
       that is bound from a ceiling that is only written down.
+      REVERSED on 2026-10-30
+      (decisions/honest-instruments-2026-10.yaml): the same checker
+      fails a ceiling that is declared and never compared.
 
   (c) A SCOPE PATH could name nothing. A path that matches no
       tracked file is not a weaker claim, it is no claim: it
@@ -153,6 +167,7 @@ counterexample: |
       about what the obligation depends on. The corpus had 162 such
       entries across 81 decisions; they were pruned, and the check
       that kept them pruned is gone. The next one will stay.
+      NOT REVERSED. This is the loss that stands.
 
   That is the loss, and it is real. What makes it defensible is that
   none of the three is a property of the KERNEL: each of them is a
@@ -203,6 +218,15 @@ antithesis: |
   are compensated. It claims only that the meta-layer was measuring
   the corpus's bookkeeping, that the bookkeeping was a copy of the
   corpus, and that the copy cost more than the measurement was worth.
+
+  WHAT CAME BACK, 2026-10-30
+  (decisions/honest-instruments-2026-10.yaml). The ceiling ratchet is
+  not a census of the corpus's tidiness. It compares a number with
+  its own past, which is a property of the DIFF and not a copy of the
+  corpus, so the argument above does not reach it: a copy of the
+  corpus goes stale, and a comparison with the past does not. It is
+  back, with it the two losses it used to cover, and the third loss
+  (a scope path that names nothing) stands.
 
 outcomes:
   - id: the-shadow-corpus-is-gone
@@ -285,16 +309,18 @@ risk:
     - a-scope-path-names-nothing
     - the-mirror-is-reintroduced-because-someone-wants-a-full-corpus-store
   a-ceiling-grows-without-a-recorded-reason: |
-    Expected. The ratchet that caught it is gone. A ceiling is now
-    moved by a diff that changes a number, and a reader of the diff
-    is the only mechanism left. The corpus's own convention — a
-    `ceiling-raise:` comment next to the number — survives as prose
-    and is not checked.
+    Expected, and COVERED AGAIN since 2026-10-30
+    (decisions/honest-instruments-2026-10.yaml). The ratchet that
+    caught it is back: `scripts/ceiling-monotonic.sh` compares every
+    `CEILING_*` with its value at the base commit and fails a grow
+    that carries no `ceiling-raise:` reason next to the number. It
+    runs in CI. The risk now is that it is not run: a check that
+    exists and is not called is a comment.
   a-ceiling-is-declared-and-never-compared: |
-    Expected, and the more dangerous of the two: the number stays,
-    the comparison goes, and the diff shows a number that did not
-    move. The three legacy ceilings are still compared, by
-    `tests/fixtures/legacy-attestation-debt.sh`; no other ceiling is.
+    Expected, and COVERED AGAIN since 2026-10-30
+    (decisions/honest-instruments-2026-10.yaml): the same checker
+    fails a ceiling that no line outside the negative-control section
+    compares. The risk now is that it is not run.
   a-scope-path-names-nothing: |
     Expected. A scope path that matches no tracked file contributes
     nothing to the materials digest, so it is harmless until the day
