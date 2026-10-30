@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.3
 id: grep-schemes-are-executable-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:0146bca9a84c0720f641c67d157b9b37bdb52cce928da03bd1644f2aae6a3957"
-yaml_sha: "sha256:0146bca9a84c0720f641c67d157b9b37bdb52cce928da03bd1644f2aae6a3957"
+body_sha: "sha256:f634f740063b5d4bf37ec312e928e1ba6b74628c5c3b370d987cbfe044b5ca38"
+yaml_sha: "sha256:f634f740063b5d4bf37ec312e928e1ba6b74628c5c3b370d987cbfe044b5ca38"
 intent: |
   The corpus had 114 promises that no program kept, and the reason was
   in the kernel rather than in the corpus: the two schemes a promise
@@ -28,7 +28,11 @@ commitment: |
      written down at all: the split collapsed every run of spaces and
      the check looked for a string the file does not contain.
   4. `repo_path` admits a directory where `repo_file` admits only a
-     regular file, with the same containment rule.
+     regular file, with the same containment rule. BOTH forms use it:
+     a promise about a tree is checkable, and the scheme that says so
+     must not be the one that refuses it. The positive form kept
+     `repo_file` for one revision, so `shell-grep site bootstrap-v3`
+     was refused before it ran.
   5. `counters`, `stats` and `session-start` join the read-only
      allowlist of the `mathc` scheme.
 axiom_link:
@@ -65,6 +69,15 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/shell-grep-negative-control.sh
+  - id: both-forms-search-a-tree
+    outcome: schemes-are-executable
+    claim: |
+      Both forms accept a directory: the positive form finds the
+      pattern somewhere under it, the negative form finds it nowhere
+      under it.
+    acceptance:
+      all:
+        - verifier: shell-grep site bootstrap-v3
   - id: the-read-only-commands-are-allowed
     outcome: schemes-are-executable
     claim: |
