@@ -313,18 +313,92 @@ jobs:
         # `dune runtest` inside a `dune runtest` recurses, and the
         # recursion ends in a timeout, not in a verdict.
         #
-        # REPORTING, NOT BLOCKING, and the reason is written down
-        # rather than remembered: the corpus still carries legacy
-        # attestations, and the whole-corpus question is still asked
-        # by `mathc self-check` above, which IS blocking. This step
-        # prints the verdict on every push so the number that decides
-        # when it becomes blocking is visible.
+        # BLOCKING, AND THE REASON IS WRITTEN DOWN RATHER THAN
+        # REMEMBERED. The step used to be `continue-on-error: true`
+        # with `|| true` on the command, so the gate could not fail
+        # anything: it printed a verdict that nobody had to answer
+        # for. The wall of a repository is the gate, and a wall that
+        # reports is furniture.
+        #
+        # The gate's exit codes are the kernel's own
+        # (constitution.md Invariant 14: a blocking verdict MUST
+        # produce a nonzero exit):
+        #
+        #   exit 0 = pass / open-with-waiver -> the step is GREEN.
+        #   exit 1 = block                   -> the step is RED. A
+        #     named check failed, or a required review is missing.
+        #   exit 2 = input error             -> the step is RED. An
+        #     unresolvable ref is not a verdict, and a step that
+        #     cannot ask its question must not read as an answer.
+        #   exit 3 = unknown                 -> the gate could not
+        #     conclude, and there are TWO reasons for that, and they
+        #     are not the same thing:
+        #
+        #     (a) the change touches a promise the CORPUS does not
+        #         keep by machine -- a `manual-` declaration. The
+        #         verdict is `unknown` because the promise has no
+        #         evidence BY DESIGN. That is the corpus's own debt,
+        #         and the corpus-debt ratchet holds the line: green
+        #         while the declared debt is under its ceiling, red
+        #         when it grows.
+        #     (b) the change touches an obligation with NO EVIDENCE:
+        #         missing, stale, or no store at all. That is THIS
+        #         change not being covered, and it blocks.
+        #
+        #     (a) and (b) are told apart by the gate's own
+        #     `gaps_by_kind` histogram, which is why the verdict
+        #     document is written to a file and read back. Collapsing
+        #     them would either make the corpus's debt block every
+        #     change (12 of the last 15 commits touch a decision that
+        #     carries a declaration) or let an uncovered change
+        #     through.
+        #
+        # The `jq` dump is DIAGNOSTIC ONLY. The verdict comes from
+        # the exit code, and the exit code comes from the gate.
+        #
+        # The block below is replayed verbatim by
+        # scripts/ci-step-exit-sim.sh against a stub mathc and a stub
+        # ratchet, so the rows above are checked, not asserted. That
+        # script is a CI step of its own below. ~5 s.
         run: |
           BASE="$(git merge-base "${GITHUB_BASE_REF:-main}" "${GITHUB_SHA}" 2>/dev/null || echo "${GITHUB_SHA}^")"
+          rc=0
           nix develop .#test --command bash -c \
-            "_build/install/default/bin/mathc gate --no-execute '$BASE' '${GITHUB_SHA}'" || true
-        continue-on-error: true
-        timeout-minutes: 3
+            "_build/install/default/bin/mathc gate --no-execute '$BASE' '${GITHUB_SHA}' > /tmp/gate.json 2> /tmp/gate.err" || rc=$?
+          echo "gate exit=${rc}"
+          if [ -s /tmp/gate.json ]; then
+            jq -c '{verdict, obligations, gaps_total, gaps_by_kind}' /tmp/gate.json || true
+          else
+            echo "--- the gate produced no verdict document ---" >&2
+            cat /tmp/gate.err >&2 || true
+          fi
+          if [ "${rc}" = "1" ]; then
+            echo "the gate blocks this change: a named check failed, or a required review is missing" >&2
+            exit 1
+          fi
+          if [ "${rc}" = "2" ]; then
+            echo "the gate could not ask its question (exit 2): an input error is not a verdict" >&2
+            exit 1
+          fi
+          if [ "${rc}" = "3" ]; then
+            if [ ! -s /tmp/gate.json ]; then
+              echo "the gate produced no verdict document: the step could not ask its question" >&2
+              exit 1
+            fi
+            uncovered="$(jq -r '[(.gaps_by_kind // {} | to_entries[] | select(.key == "MissingEvidence" or .key == "StaleEvidence" or .key == "NoAttestationStore") | .value)] | add // 0' /tmp/gate.json 2>/dev/null || echo 0)"
+            if [ "${uncovered:-0}" -gt 0 ]; then
+              echo "the gate could not conclude, and ${uncovered} of the gaps are missing or stale evidence: this change is not covered" >&2
+              exit 1
+            fi
+            # What is left are the corpus's declared promises: the
+            # corpus's own debt, and the ratchet is what holds the
+            # line.
+            bash tests/fixtures/self-check-debt-ceiling.sh
+            exit $?
+          fi
+          exit "${rc}"
+        continue-on-error: false
+        timeout-minutes: 5
 
       - name: nix flake check (OCaml_BEST_PRACTICES + pre-commit hooks)
         # Runs shellcheck + ocamlformat via pre-commit-hooks.nix on the
@@ -353,13 +427,18 @@ jobs:
         # The self-check's report for THIS commit. The audit step
         # prints it and the ratchet reads it; uploading it means the
         # corpus's state is visible in every run and not only in the
-        # red ones. `if: always()` for the same reason the store is:
-        # the report is wanted most when something failed.
+        # red ones. The gate's verdict document goes with it: the
+        # step that decides whether the change may land leaves its
+        # verdict where an auditor can read it.
+        # `if: always()` for the same reason the store is: the
+        # report is wanted most when something failed.
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: self-check-report
-          path: /tmp/self-check.json
+          path: |
+            /tmp/self-check.json
+            /tmp/gate.json
           if-no-files-found: warn
 
       - name: Failure diagnostics

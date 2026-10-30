@@ -1,0 +1,207 @@
+---
+schema: math-coding/3.3
+id: gate-blocks-in-ci-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:f9ab4ea2dcca3d9e29b8180e60cb7decbd3b410a8983831b032e34c2e1f49389"
+yaml_sha: "sha256:f9ab4ea2dcca3d9e29b8180e60cb7decbd3b410a8983831b032e34c2e1f49389"
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+intent: |
+  The merge gate ran in CI and could not fail anything.
+
+  The step `mathc gate (merge verdict for the pushed diff)` carried
+  `continue-on-error: true` and `|| true` on the command itself. Both
+  say the same thing: the step's status is nobody's problem. It
+  printed a verdict on every push, and the verdict decided nothing.
+
+  That is the central claim of the project inverted: the pitch is
+  that the protocol makes CI refuse a change by a NAMED rule, and the
+  one step that asks the merge gate's question was the one step whose
+  answer was discarded. The reason was written down and it was
+  reasonable: the corpus carried legacy attestations, the whole-corpus
+  question was already asked by the blocking `mathc self-check` step
+  above, and a red gate on every push would train people to ignore
+  red. The reason was reasonable and the conclusion was wrong, because
+  the step was asked to report a question nobody was accountable for.
+
+  WHAT MAKES THE STEP BLOCKING IS NOT THE REMOVAL OF TWO FLAGS. It is
+  the answer to the question the flags were hiding: what does the
+  gate's `unknown` MEAN?
+
+  The gate's exit codes are the kernel's own (constitution.md
+  Invariant 14: a blocking verdict MUST produce a nonzero exit):
+  0 is pass or open-with-waiver, 1 is block, 2 is an input error, and
+  3 is `unknown` - the gate could not conclude. And `unknown` has
+  TWO causes that have nothing to do with each other:
+
+    (a) the change touches a promise the CORPUS does not keep by
+        machine - a `manual-` declaration. The verdict is `unknown`
+        because the promise has no evidence BY DESIGN. That is the
+        corpus's own debt, and the corpus-debt ratchet
+        (tests/fixtures/self-check-debt-ceiling.sh) holds the line:
+        green while the declared debt is under its ceiling, red when
+        it grows. Measured on 2026-10-30: 56 declared promises
+        against a ceiling of 233.
+
+    (b) the change touches an obligation with NO EVIDENCE - missing,
+        stale, or no store at all. That is THIS CHANGE NOT BEING
+        COVERED, and it blocks.
+
+  The two are told apart by the gate's own `gaps_by_kind` histogram,
+  which is why the step writes the verdict document to a file and
+  reads it back: the exit code alone cannot carry both.
+
+  The distinction is not a nicety. Measured over the last 15 commits
+  before this change: 12 of them touch a decision that carries a
+  declaration. A step that turned every `unknown` into a red would
+  have been red on four commits in five, and a step that turned every
+  `unknown` into a green would have let uncovered changes through. A
+  gate that blocks everything is not a wall, it is a wall of paper.
+
+commitment: |
+  1. The step `mathc gate (merge verdict for the pushed diff)` in
+     `.github/workflows/ci.yml` has no `continue-on-error: true` and
+     no `|| true`: the gate's verdict decides the step, and the step
+     decides the merge.
+  2. The step's status is the status of the verdict it is about:
+     exit 0 is green, exit 1 (block) is red, exit 2 (input error) is
+     red - an unresolvable ref is not a verdict, and a step that
+     could not ask its question must not read as an answer.
+  3. Exit 3 is the only case with two answers, and the step reads the
+     gate's own `gaps_by_kind` to tell them apart: gaps that are
+     missing or stale evidence make the step RED (this change is not
+     covered), and gaps that are only the corpus's declarations make
+     the step's status the corpus-debt ratchet's.
+  4. A step that produced no verdict document at all is RED: it
+     could not ask its question.
+  5. The gate's verdict document is uploaded as a CI artefact beside
+     the self-check report, so the answer is readable after the run.
+  6. The rows are CHECKED, not asserted: scripts/ci-step-exit-sim.sh
+     replays this step's body verbatim against a stub mathc and a
+     stub ratchet, over eight rows - and the pre-fix control still
+     has to swallow a non-zero exit.
+
+outcomes:
+  - id: the-merge-gate-blocks
+    statement: |
+      A change the gate blocks does not reach main, and a change the
+      gate cannot judge is red unless the only thing it cannot judge
+      is the corpus's own declared debt.
+  - id: the-gate-step-is-checked
+    statement: |
+      The gate step's contract is replayed by a program in CI, over
+      the eight rows that distinguish a block, an input error, a
+      promise nobody keeps and a change nobody covered.
+
+scope:
+  paths:
+    - ".github/workflows/ci.yml"
+    - "scripts/ci-step-exit-sim.sh"
+    - "decisions/gate-blocks-in-ci-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-gate-step-blocks
+    claim: |
+      The CI step that runs the merge gate reports the gate's verdict:
+      a block is red, an input error is red, and a pass is green.
+      Replayed against a stub mathc by scripts/ci-step-exit-sim.sh.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+  - id: the-two-unknowns-are-told-apart
+    claim: |
+      A gate verdict of `unknown` whose only gaps are the corpus's
+      declarations leaves the step green while the corpus-debt ratchet
+      holds, and the same verdict with a missing or stale evidence gap
+      leaves it red. Both rows are replayed by the same harness.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/gate-blocks-in-ci-2026-10.yaml` returns
+      exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/gate-blocks-in-ci-2026-10.yaml
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the gate step is red on pushes that touch nothing but a declared promise, and somebody relaxes the ratchet or the histogram rule to make the noise stop"
+    - "the gate's `gaps_by_kind` names change, and the step's jq filter keeps matching nothing, so an uncovered change reads as the corpus's debt"
+    - "the corpus's declared debt grows past its ceiling, and the gate's delegated unknown starts carrying a red that looks like a failing check"
+  the-histogram-rule-is-a-copy: |
+    The step reads the gap kinds by NAME (`MissingEvidence`,
+    `StaleEvidence`, `NoAttestationStore`). Those names are the
+    kernel's (bin/Mathc.ml::gap_kind_name), and a step that reads a
+    copy of a name is one rename away from reading nothing: a jq
+    filter that matches no gap counts zero uncovered, and an uncovered
+    change would be delegated to the ratchet and let through. The
+    remedy is to fail LOUD when the histogram is empty and the
+    verdict is unknown - which is the fourth row of the gate step and
+    the eighth row of the simulator.
+  the-corpus-debt-is-not-this-changes-debt: |
+    The delegation is a statement about the CORPUS: the declared debt
+    is under its ceiling. It is not a statement about the change. A
+    change that touches a promise nobody keeps is allowed through
+    while the corpus's debt is under its ceiling, and that is the
+    trade, stated: the corpus's debt is paid by the ratchet, and the
+    change is judged by its evidence.
+
+counterexample: |
+  The strongest objection is that the gate step is now a step that
+  blocks merges on the corpus's own debt, and that the delegation is
+  a loophole with a ratchet attached.
+
+  The objection is right about the shape and wrong about the order
+  of the facts. A step that turned every `unknown` into a red WOULD
+  block the corpus's debt: measured over the last 15 commits, 12 of
+  them touch a decision carrying a declaration, so four commits in
+  five would be red for a reason that has nothing to do with the
+  change. The alternative is not "block everything" - it is "block
+  nothing", which is what the step did before.
+
+  The delegation is therefore not a softening of the gate. It is the
+  distinction the corpus's own doctrine draws: a promise that no
+  program keeps is a DECLARED gap, measured by a ceiling that may
+  only fall, and a check that could not be set up for this change is
+  an UNCOVERED change, which is a different thing and blocks.
+
+  The second objection is about the loophole: the delegation reads
+  the gate's histogram, and the histogram is a copy of the kernel's
+  names. If the names change, the filter matches nothing, and an
+  uncovered change would be delegated to the ratchet and let
+  through. That is a real hole, and it is why the step treats a
+  verdict document that says nothing about the gaps as RED rather
+  than as "no uncovered gaps".
+
+antithesis: |
+  The opposite claim is that the gate step should stay reporting, and
+  that the wall of a repository is the self-check step above, which
+  is already blocking.
+
+  The claim is right that there should be ONE place where the
+  corpus's health decides, and wrong that this is it. The self-check
+  step asks the whole-corpus question - it is an AUDIT, and its
+  contract is a ceiling that may only fall. The merge gate asks a
+  different question: may THIS change land. The two have different
+  answers, different remedies and different owners, and the corpus
+  already says so: the merge gate is `mathc gate`, and the audit is
+  `mathc self-check`. A step that reports the merge gate's verdict
+  and lets the merge proceed anyway is a report, and the merge
+  gate's question is not a question anyone asked.
+
+  There is a cost the opposite claim does not mention: a reporting
+  gate is a gate nobody has to answer for, and a repository whose
+  gate is furniture will eventually find out what that costs.
