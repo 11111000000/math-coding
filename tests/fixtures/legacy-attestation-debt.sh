@@ -59,7 +59,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # ceiling-fall: 16 -> 0, the old ceiling was measured against the committed store; the store is generated now and the sweep writes the digest it measured
 CEILING_LEGACY=0
 # A LIVE RULE that carries no attestation at all: the sweep could not
-# sign it. Three such decisions exist, and they are the CYCLE:
+# sign it. Three decisions are in that class, and they are the CYCLE:
 #
 #   executed-evidence-census-2026-10   verifier: the census fixture
 #   honest-attestation-emission-2026-10 verifier: the census fixture
@@ -67,28 +67,34 @@ CEILING_LEGACY=0
 #
 # A cycle: the verifier of the decision IS a fixture that measures the
 # store, and the store is what the sweep is producing. The fixture
-# cannot conclude while the store is half-written, so the sweep
-# cannot sign the decision that names it.
+# cannot conclude while the store is half-written - so the sweep
+# cannot sign the decision that names it, UNLESS the sweep's second
+# pass runs after the store is installed, and then it can.
 #
-# UNTIL 2026-10-30 THIS WAS HIDDEN, AND IT WAS HIDDEN BY THE VACUOUS
-# CENSUS. The census used to read git's index, find nothing, report
-# 0/0/0 and exit 0 - so the sweep signed those two decisions with a
-# pass that stood for nothing. The census reads the store now, so it
-# says "unknown" mid-sweep, and the sweep leaves the decisions
-# UNSIGNED. Two decisions moved from a green that meant nothing to an
-# honest unknown. That is the trade this change makes: the debt is
-# bigger and it is real.
+# MEASURED TWICE, 2026-10-30. Three, in the sweep that ran against a
+# store signed for the PREVIOUS commit: the census said "the store is
+# signed for another tree", exited 3, and the sweep signed nothing.
+# Zero, in the sweep that followed it: the second pass ran against a
+# current store, the census concluded, and the three decisions were
+# signed. The ceiling is 3 - the worst of the two measurements, the
+# bound, and it may only fall.
 #
-# MEASURED 2026-10-30: three. The MEASUREMENT changed twice and the
-# count moved with it: the walk of decisions/ became recursive and
-# follows the kernel's rule of what a decision is (a decision in a
-# sub-directory used to be invisible here), and a decision with NO
-# OBLIGATIONS is no longer counted - there is nothing to attest, and
-# the sweep signs what it observes.
+# MEASUREMENT CHANGED TWICE under this number, and it is worth
+# naming: the walk of decisions/ became recursive and follows the
+# kernel's rule of what a decision is (a decision in a sub-directory
+# used to be invisible here), and a decision with NO OBLIGATIONS is
+# no longer counted - there is nothing to attest, and the sweep signs
+# what it observes.
 #
-# The ceiling says 3, which is the number the truth is.
+# UNTIL 2026-10-30 THE CYCLE WAS HIDDEN, AND IT WAS HIDDEN BY THE
+# VACUOUS CENSUS. The census used to read git's index, find nothing,
+# report 0/0/0 and exit 0 - so the sweep signed those two decisions
+# with a pass that stood for nothing. The census reads the store now,
+# so it says "unknown" when the store is not there yet, and the sweep
+# leaves the decisions unsigned until its second pass can sign them
+# for real. A green that meant nothing became an honest unknown.
 #
-# ceiling-raise: 1 -> 3, the census reads the store now, so it cannot conclude while the sweep is writing it: two decisions the sweep used to sign with a meaningless green are honestly unsigned
+# ceiling-raise: 1 -> 3, the census reads the store now, so it cannot conclude while the sweep is writing it: two decisions the sweep used to sign with a meaningless green are honestly unsigned until the second pass
 CEILING_UNATTESTED=3
 # The DECLARED inconclusive - a `manual:` obligation, which the
 # kernel does not execute and says so - is not debt. The UNDECLARED

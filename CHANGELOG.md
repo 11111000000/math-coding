@@ -51,17 +51,19 @@ read out of the kernel's `canonical_verifier_schemes` binding, and a
 census that cannot read it reports nothing rather than a number from a
 stale copy.
 
-And the debt got bigger, on purpose. Three live decisions are now
-unsigned where one was: the census's own, the honest-attestation
-decision, and the legacy-debt decision. Their verifier is a fixture
-that measures the store, and the store is what the sweep is producing
-— a cycle. The census used to break it by accident: it read an empty
-list, reported 0/0/0, exited 0, and the sweep signed those two
-decisions with a pass that stood for nothing. The census reads the
-store now, so it cannot conclude while the store is half-written, and
-the sweep leaves the decisions unsigned. Two decisions moved from a
-green that meant nothing to an honest unknown; the ceiling moved 1 ->
-3, with the reason next to the number.
+And the cycle became visible. Three live decisions name a
+store-measuring fixture as their verifier — the census's own, the
+honest-attestation decision, and the legacy-debt decision — and the
+store is what the sweep is producing: the fixture cannot conclude
+while the store is half-written. The census used to break that cycle
+by accident (it read an empty list, reported 0/0/0, exited 0), so the
+sweep signed two of them with a pass that stood for nothing. The
+census reads the store now, so it says "unknown" when the store is not
+there yet, and the sweep signs those decisions in its second pass, or
+leaves them unsigned and the debt fixture says so. Measured twice:
+three unsigned after a sweep that ran against a store signed for the
+previous commit, zero after the next one. The ceiling moved 1 -> 3 —
+the worst of the two — with the reason next to the number.
 
 The decision that removed the ratchet is amended: two of its three
 losses are covered again, and the third — a scope path that names

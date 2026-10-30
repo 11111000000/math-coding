@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:0345ccfcdb6344fd45829087e91ca9199ab9d26cb1ed6fd101e2df046d00b87b"
-yaml_sha: "sha256:0345ccfcdb6344fd45829087e91ca9199ab9d26cb1ed6fd101e2df046d00b87b"
+body_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
+yaml_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
 
 axiom_link:
   - A0
@@ -83,18 +83,24 @@ intent: |
   a red step now means something, and a green one can be trusted to
   have looked.
 
-  AND THE DEBT GOT BIGGER, ON PURPOSE. Three live decisions are now
-  UNSIGNED where one was: `executed-evidence-census-2026-10`,
+  AND THE CYCLE IS NOW VISIBLE. Three live decisions name a
+  store-measuring fixture as their verifier:
+  `executed-evidence-census-2026-10`,
   `honest-attestation-emission-2026-10` and
-  `legacy-attestation-debt-2026-10`. Their verifier is a fixture that
-  measures the store, and the store is what the sweep is producing -
-  a cycle. The census used to break the cycle by accident: it read an
-  empty list, reported 0/0/0 and exited 0, so the sweep signed those
-  two decisions with a pass that stood for nothing. The census reads
-  the store now, so it cannot conclude while the store is half
-  written, and the sweep leaves the decisions unsigned. Two decisions
-  moved from a green that meant nothing to an honest unknown. The
-  ceiling moved 1 -> 3, with the reason next to the number.
+  `legacy-attestation-debt-2026-10`. Their verifier measures the
+  store, and the store is what the sweep is producing: the fixture
+  cannot conclude while the store is half-written, so the sweep
+  cannot sign them in its first pass. The census used to break the
+  cycle by accident - it read an empty list, reported 0/0/0, exited 0,
+  and the sweep signed those decisions with a pass that stood for
+  nothing. The census reads the store now, so it says "unknown" when
+  the store is not there yet, and the sweep signs those decisions in
+  its SECOND pass, after the store is installed - or leaves them
+  unsigned, and the debt fixture says so. Measured twice on
+  2026-10-30: three unsigned after a sweep that ran against a store
+  signed for the previous commit, zero after the next one. The
+  ceiling is 3, the worst of the two, with the reason next to the
+  number.
 
 commitment: |
   1. The census reads the store the way the kernel reads it - the
