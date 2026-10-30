@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: test
-body_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
-yaml_sha: "sha256:5f84df6ea166e3760ad75afc23bd3ec8ce0ca0ac67a316480c277fe03ec68f8b"
+body_sha: "sha256:ce147685334f6e5170e5075f5c9434e1b4683601f0229cfc015bcfdd65e64531"
+yaml_sha: "sha256:ce147685334f6e5170e5075f5c9434e1b4683601f0229cfc015bcfdd65e64531"
 
 axiom_link:
   - A0
@@ -132,7 +132,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: the-inventory-is-pinned-not-frozen
     statement: |
@@ -143,7 +142,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: kernel-holes-are-zero-tolerance
     statement: |
@@ -153,7 +151,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
 obligations:
   - id: corpus-scan-is-reproducible
@@ -174,7 +171,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: offender-set-is-an-exact-set
     outcome: the-inventory-is-pinned-not-frozen
@@ -187,7 +183,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: kernel-holes-are-empty
     outcome: kernel-holes-are-zero-tolerance
@@ -198,7 +193,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: cosmetic-markers-lose-nothing
     outcome: the-inventory-is-pinned-not-frozen
@@ -209,7 +203,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: a-wrong-fold-is-caught-not-just-a-wrong-stop
     outcome: kernel-holes-are-zero-tolerance
@@ -222,7 +215,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
 
   - id: every-pin-is-mutation-checked
     outcome: the-inventory-is-pinned-not-frozen
@@ -246,7 +238,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
 risk:
   declared_triggers:

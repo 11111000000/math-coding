@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-2
 revision: 1
 state: active
-body_sha: "sha256:c809537d3a22e6cf26b6644519c27ebd3c7203dddfb71d76dc4ae94d025a3b9a"
-yaml_sha: "sha256:c809537d3a22e6cf26b6644519c27ebd3c7203dddfb71d76dc4ae94d025a3b9a"
+body_sha: "sha256:921a01b11e636d51c8e846f8741dec274ced80bc457e8403054d6a3e4674af6e"
+yaml_sha: "sha256:921a01b11e636d51c8e846f8741dec274ced80bc457e8403054d6a3e4674af6e"
 axiom_link:
   - A0
   - A1
@@ -244,14 +244,10 @@ obligations:
       pin the contract.
     acceptance:
       all:
-        - verifier: tests/waiver_test.ml::test_covers_strict_obligation_mismatch
-          result: pass
-        - verifier: tests/waiver_test.ml::test_covers_global_covers_every_obligation
-          result: pass
-        - verifier: tests/waiver_test.ml::test_covers_global_still_subject_scoped
-          result: pass
+        - verifier: tests/waiver_test.ml
+        - verifier: tests/waiver_test.ml
+        - verifier: tests/waiver_test.ml
         - verifier: text-scan-lib-waiver-ml-covers-signature-includes-obligation-id
-          result: pass
   - id: evaluate-decision-every-gap-waived
     outcome: waiver-scope-narrow
     statement: |
@@ -270,7 +266,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
   - id: dual-failure-evidence-positive
     outcome: waiver-scope-narrow
     statement: |
@@ -288,7 +283,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
   - id: dual-failure-evidence-negative
     outcome: waiver-scope-narrow
     statement: |
@@ -303,7 +297,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
   - id: legacy-global-back-compat
     outcome: waiver-scope-narrow
     statement: |
@@ -321,7 +314,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
   - id: cross-decision-negative
     outcome: waiver-scope-narrow
     statement: |
@@ -337,7 +329,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
   - id: a3-protected-transition-human-review-marker
     outcome: waiver-scope-narrow
     statement: |
@@ -363,9 +354,7 @@ obligations:
     acceptance:
       all:
         - verifier: text-scan-decisions-t3-2-yaml-dual-failure-obligations
-          result: pass
         - verifier: manual-human-review-marker-t3-2-a3-review-marker
-          result: pass
 
 reversal:
   - signal: regression-to-global-waivers

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:70194b2eb2cee5d4711653bfdce3e3e8f4e46e51eddb76ee1cbc1f7c7f87d2d2"
-yaml_sha: "sha256:70194b2eb2cee5d4711653bfdce3e3e8f4e46e51eddb76ee1cbc1f7c7f87d2d2"
+body_sha: "sha256:e76c537d47ea2ef697908423cba23591c701f16ccfbeaf1b81788592ec98d328"
+yaml_sha: "sha256:e76c537d47ea2ef697908423cba23591c701f16ccfbeaf1b81788592ec98d328"
 axiom_link:
   - A0
   - A1
@@ -137,21 +137,18 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-schemas-decision-antithesis
-          result: pass
   - id: spec-11-updated
     outcome: spec-11-names-antithesis
     claim: spec/algebra-3.2.md §11 mentions antithesis; §11.1 records rationale.
     acceptance:
       all:
         - verifier: manual-text-scan-contains-antithesis-in-section-11
-          result: pass
   - id: kernel-parses
     outcome: kernel-parses-antithesis
     claim: lib/decision.ml accepts the antithesis key from YAML/JSON.
     acceptance:
       all:
         - verifier: tests/cli/validate-considered-antithesis.t
-          result: pass
   - id: counterexample-sweep
     outcome: counterexample-sweep-closed
     claim: decisions/decision.yaml and decisions/obligation-count-reconcile.yaml
@@ -159,9 +156,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/decision.yaml
-          result: pass
         - verifier: mathc validate decisions/obligation-count-reconcile.yaml
-          result: pass
   - id: fixtures
     outcome: fixtures-cover-antithesis
     claim: |
@@ -172,7 +167,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-considered-antithesis.t
-          result: pass
 
 reversal:
   - signal: dialectic-method-reverted

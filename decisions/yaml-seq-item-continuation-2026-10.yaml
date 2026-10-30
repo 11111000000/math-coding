@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:96537834f8a882b2ef699875490e7ef6baae94c74eef644cef7db125b72945bb"
-yaml_sha: "sha256:96537834f8a882b2ef699875490e7ef6baae94c74eef644cef7db125b72945bb"
+body_sha: "sha256:283ffd27a8b4e04d86b6180c461b45840fd45723c49a7cc3794fd6b05157a2e5"
+yaml_sha: "sha256:283ffd27a8b4e04d86b6180c461b45840fd45723c49a7cc3794fd6b05157a2e5"
 
 axiom_link:
   - A0
@@ -139,7 +139,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: invalid-input-still-stops
     statement: |
@@ -149,7 +148,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: the-fix-is-pinned-by-a-mutation
     statement: |
@@ -176,7 +174,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
   - id: following-key-survives
     outcome: valid-multiline-items-are-read
     claim: |
@@ -189,7 +186,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: quoted-item-with-colon-is-followed
     outcome: valid-multiline-items-are-read
@@ -202,7 +198,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: siblings-and-closed-quotes-are-not-swallowed
     outcome: invalid-input-still-stops
@@ -216,7 +211,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: mapping-items-still-parse-as-objects
     outcome: invalid-input-still-stops
@@ -226,7 +220,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: policies-loader-has-no-unparsed-remainder
     outcome: valid-multiline-items-are-read
@@ -238,7 +231,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.exe
-          result: pass
 
   - id: this-decision-validates
     outcome: the-fix-is-pinned-by-a-mutation
@@ -250,7 +242,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/yaml-seq-item-continuation-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

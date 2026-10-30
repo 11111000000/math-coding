@@ -3,11 +3,12 @@ schema: math-coding/3.3
 id: path-probe-anchoring-2026-11
 revision: 2
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:e7387d5699f37f52a819b3c7ffbda2939d310fb6160e34d22a0eac1711fd1af5"
-yaml_sha: "sha256:e7387d5699f37f52a819b3c7ffbda2939d310fb6160e34d22a0eac1711fd1af5"
+body_sha: "sha256:5a533b80a84cdd1007161ff6a02f7059744cbff84c6d2469c58126a13713f017"
+yaml_sha: "sha256:5a533b80a84cdd1007161ff6a02f7059744cbff84c6d2469c58126a13713f017"
 
 axiom_link:
   - A0
@@ -148,15 +149,13 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-cwd-independence.t
-          result: pass
 
   - id: no-layout-literal-in-kernel
     claim: |
       `bin/Mathc.ml` contains no `Filename.concat root "decisions"`.
     acceptance:
       all:
-        - verifier: manual-shell-grep-f-filename-concat-root-decisions-bin-
-          result: pass
+        - verifier: shell-grep bin/Mathc.ml Filename.concat
 
   - id: kernel-builds
     claim: |
@@ -164,7 +163,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build @all
-          result: pass
 
 risk:
   declared_triggers:

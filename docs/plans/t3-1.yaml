@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t3-1-gate-v30-risk-aware
 revision: 1
 state: active
-body_sha: "sha256:7e4c59b7fb73558f87ba1ff9eaddbc493858d5652e547c5c2a9353c0cf6d7271"
-yaml_sha: "sha256:7e4c59b7fb73558f87ba1ff9eaddbc493858d5652e547c5c2a9353c0cf6d7271"
+body_sha: "sha256:16d3bab49174c3e990c77859ed6bc670cf034d15f3fb1ea2a26ba132b75bb96b"
+yaml_sha: "sha256:16d3bab49174c3e990c77859ed6bc670cf034d15f3fb1ea2a26ba132b75bb96b"
 axiom_link:
   - A0
   - A1
@@ -251,7 +251,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-axiom-commit.t
-          result: pass
 
   - id: do-gate-loads-rebuttals
     outcome: gate-v30-risk-aware
@@ -267,7 +266,6 @@ obligations:
     acceptance:
       all:
         - verifier: text-scan-bin-mathc-ml-do-gate-rebuttals-binding
-          result: pass
 
   - id: cram-fixture-axiom-commit
     outcome: cram-fixture-axiom-commit
@@ -288,7 +286,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-axiom-commit.t
-          result: pass
 
 reversal:
   - signal: evaluate-signature-revert

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/failing-verifier-is-named.sh
-body_sha: "sha256:69aa78d59380b048aff425c1817b1ad790348cbc598e337d7b6149d1e284810c"
-yaml_sha: "sha256:69aa78d59380b048aff425c1817b1ad790348cbc598e337d7b6149d1e284810c"
+body_sha: "sha256:9ec5bc3da9565b6e250ab485258d77b03948b747f25aba72976c4159140c9437"
+yaml_sha: "sha256:9ec5bc3da9565b6e250ab485258d77b03948b747f25aba72976c4159140c9437"
 
 intent: { source: "issue:the-refusal-named-a-pair-not-a-verifier-2026-10-25", text: "A refusal must name the verifier that failed, not only the (decision, obligation) pair. `mathc attest-batch --run-per-obligation --skip-failing` refuses to write an attestation for an obligation whose check failed, and says so: `mathc attest-batch: NOT signing <decision>/<obligation> — its verifier failed.` It does not say WHICH verifier failed. An obligation may name several, and the failure may be in any of them, so the message names a pair where the reader needs a name. The corpus had to guess: scripts/sign-store.sh named the obligation's FIRST verifier, and a second tool re-derived the truth by running every verifier of every unsigned obligation on its own in a throwaway decision - a second tool, minutes per obligation, to recover an answer the kernel had already thrown away. That second tool was removed on 2026-10-28 with the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml); what it used to re-derive is what the kernel now reports. Measured on 2026-10-25 over this corpus: 889 obligations, of which 329 name more than one verifier (37%), so the first verifier is not determined by the failure; 45 of them name a `manual:` declaration FIRST while also carrying an executable verifier, and a `manual:` declaration cannot fail - the kernel cannot execute it and records it as a review - so the guess accuses a declaration of breaking a check some other verifier broke. The last committed sweep (sign-store-sweep.log, 2026-10-25) recorded 30 refusals and not one of them named a verifier; 10 of those obligations carry more than one verifier, and 2 were attributed by the guess to a `manual:` declaration." }
 
@@ -107,7 +107,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/failing-verifier-is-named.sh
-          result: pass
 
   - id: a-failure-is-still-a-failure
     statement: |
@@ -117,7 +116,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/failing-verifier-is-named.sh
-          result: pass
 
 scope:
   paths:
@@ -146,7 +144,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/failing-verifier-is-named.sh
-          result: pass
 
   - id: the-failure-is-not-softened
     claim: |
@@ -156,7 +153,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/failing-verifier-is-named.sh
-          result: pass
 
 risk:
   owner: human:maintainer

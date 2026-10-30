@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t5-1-site-ru-en-synced
 revision: 1
 state: active
-body_sha: "sha256:fc7332ae7e574306cef8c30d8ce9cfbcacf64d6fb9e822d4ce00f012885690d8"
-yaml_sha: "sha256:fc7332ae7e574306cef8c30d8ce9cfbcacf64d6fb9e822d4ce00f012885690d8"
+body_sha: "sha256:84d96a43075a70862fa8cb069a2b4a76439a76b434822461bb892547881c5047"
+yaml_sha: "sha256:84d96a43075a70862fa8cb069a2b4a76439a76b434822461bb892547881c5047"
 intent: |
   Reconcile every `site/<name>.ru.md` with its English sibling
   `site/<name>.md` so that the bilingual content surface stays
@@ -196,8 +196,7 @@ obligations:
       structural drift = 0, well below the threshold of 3.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: bilingual-content-faithful
     outcome: site-ru-content-faithful
@@ -219,15 +218,10 @@ obligations:
     acceptance:
       all:
         - verifier: grep -qF '{kind,id,digest,path,body}' site/foundations.ru.md
-          result: pass
         - verifier: grep -qF 'мейнтейнер' site/contributing.ru.md
-          result: pass
         - verifier: grep -qF 'привязан к' site/faq.ru.md
-          result: pass
         - verifier: grep -qF 'Сейчас оба выполнены' site/manifesto.ru.md
-          result: pass
-        - verifier: tests/render_kernel.ml::bilingual_drift_under_threshold
-          result: pass
+        - verifier: tests/render_kernel.ml
 
 reversal:
   - signal: drift-test-loose

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: cli-cram-tests
 revision: 2
 state: active
-body_sha: "sha256:aa5772e3fdcd7ae17449dd166929745c36c3261af18a3d274bcd71c55d0663c6"
-yaml_sha: "sha256:aa5772e3fdcd7ae17449dd166929745c36c3261af18a3d274bcd71c55d0663c6"
+body_sha: "sha256:7d1ab09ac63bce9b34e69c5730026bdffef0aa3bc37cc861ecf606467a8b3b59"
+yaml_sha: "sha256:7d1ab09ac63bce9b34e69c5730026bdffef0aa3bc37cc861ecf606467a8b3b59"
 intent: |
   Replace the per-subcommand shell fixtures under tests/fixtures/
   (ambiguous-acceptance.sh, malformed-acceptance.sh,
@@ -132,7 +132,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build @tests/cli/runtest --root .
-          result: pass
 
 evidence:
   - kind: observed

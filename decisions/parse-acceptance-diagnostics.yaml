@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:e40c0bb0b7dc279701ba378d34185796c622bd6d009f9ee923c8ac803a686a13"
-yaml_sha: "sha256:e40c0bb0b7dc279701ba378d34185796c622bd6d009f9ee923c8ac803a686a13"
+body_sha: "sha256:1f398ed40be1437fbbb77737ca9c3c2f466e0a13a9ba53554e7e3b04860d11ff"
+yaml_sha: "sha256:1f398ed40be1437fbbb77737ca9c3c2f466e0a13a9ba53554e7e3b04860d11ff"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same
@@ -101,9 +101,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/ambiguous-acceptance.t
-          result: pass
         - verifier: tests/cli/malformed-acceptance.t
-          result: pass
   - id: diagnostic-emission-cli
     outcome: diagnostic-emission
     claim: |
@@ -113,9 +111,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/ambiguous-acceptance.t
-          result: pass
         - verifier: tests/cli/malformed-acceptance.t
-          result: pass
 
 reversal:
   - signal: kernel-strict-attestation-store

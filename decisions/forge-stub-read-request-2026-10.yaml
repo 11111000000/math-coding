@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
 revision: 2
 state: active
-body_sha: "sha256:2d7cbe65da73542a9091871d6e48c25d41048366be34cae331201c4a84f2cb3e"
-yaml_sha: "sha256:2d7cbe65da73542a9091871d6e48c25d41048366be34cae331201c4a84f2cb3e"
+body_sha: "sha256:941e3741e1a9992dbcf432aad3faf69041f8ebd68697bba5f41a33095381cabb"
+yaml_sha: "sha256:941e3741e1a9992dbcf432aad3faf69041f8ebd68697bba5f41a33095381cabb"
 axiom_link:
   - A0
 intent: |
@@ -144,9 +144,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/forge-stub-read-request.sh
-          result: pass
         - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-posi
-          result: pass
   - id: stub-serves-every-connection
     claim: |
       The stub answers a second and third connection on the same
@@ -155,11 +153,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/forge-stub-read-request.sh
-          result: pass
         - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-nega
-          result: pass
         - verifier: manual-target-missing-tests-rebuttal-forge-stub-ml-nega
-          result: pass
   - id: fixture-fails-on-the-defect
     claim: |
       `tests/fixtures/forge-stub-read-request.sh` is a verifier and
@@ -171,7 +166,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/forge-stub-read-request.sh
-          result: pass
 counterexample: |
   "You changed the fixture's contract instead of fixing the code
   under test. Making the stub loop over connections is scope creep

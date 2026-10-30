@@ -4,8 +4,8 @@ id: gate-by-diff-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:dd99d16c77874d2c0d8d5d580b53a122105fb357f49c42d61884c562ca22211e"
-yaml_sha: "sha256:dd99d16c77874d2c0d8d5d580b53a122105fb357f49c42d61884c562ca22211e"
+body_sha: "sha256:4261d271e1a8f0f150b8c9da9d18456129da5bc91e8eefe548a028033d374dac"
+yaml_sha: "sha256:4261d271e1a8f0f150b8c9da9d18456129da5bc91e8eefe548a028033d374dac"
 
 intent: |
   The merge gate asks one question: does THIS change break the
@@ -107,7 +107,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build --root .
-          result: pass
   - id: the-suite-is-green
     claim: |
       The conformance suite passes on the tree that carries these
@@ -115,7 +114,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: the-switches-are-reachable
     claim: |
       `mathc gate --help` names both switches, so the gate's
@@ -124,7 +122,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc gate --help
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/gate-by-diff-2026-10.yaml` returns
@@ -132,7 +129,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/gate-by-diff-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

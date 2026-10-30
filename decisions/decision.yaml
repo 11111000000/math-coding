@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: bootstrap-v3
 revision: 3
 state: active
-body_sha: "sha256:f7d071470dc744c3bce3933900e1b95a8318b58eca0333dc1db360c468676d4f"
-yaml_sha: "sha256:f7d071470dc744c3bce3933900e1b95a8318b58eca0333dc1db360c468676d4f"
+body_sha: "sha256:2a80dfbea14e564cb0f0027c842c28adb1c39eb94d4ccc647a8e112668c1329a"
+yaml_sha: "sha256:2a80dfbea14e564cb0f0027c842c28adb1c39eb94d4ccc647a8e112668c1329a"
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
 axiom_link:
@@ -54,7 +54,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-tag-v2-1-final-exists
-          result: pass
 
   - id: conformance-coverage
     outcome: executable-specification
@@ -63,7 +62,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixture_coverage.ml
-          result: pass
 
   - id: bootstrap-honesty
     outcome: honest-bootstrap
@@ -72,7 +70,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-bootstrap-docs-honesty-review
-          result: pass
 
   - id: authoring-benchmark
     outcome: agent-authorable
@@ -81,7 +78,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-authoring-benchmark-run
-          result: pass
 
   - id: context-budget
     outcome: token-disciplined
@@ -89,7 +85,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-budget-bound.t
-          result: pass
 
   - id: developer-practices-binding
     outcome: agent-authorable
@@ -105,7 +100,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-practice-review
-          result: pass
 
   - id: axioms-binding
     outcome: agent-authorable
@@ -115,7 +109,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-axiom-link-review
-          result: pass
 
 reversal:
   - signal: conformance-failure

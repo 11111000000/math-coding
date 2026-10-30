@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:6461f3529c6654b7e7b1668b41a4dbce498021e8e0502ae13252bddac6381699"
-yaml_sha: "sha256:6461f3529c6654b7e7b1668b41a4dbce498021e8e0502ae13252bddac6381699"
+body_sha: "sha256:a0fa7513d3c0ed90da574f178a966e81cf2806c45061ddcf09fdf5df283faa5e"
+yaml_sha: "sha256:a0fa7513d3c0ed90da574f178a966e81cf2806c45061ddcf09fdf5df283faa5e"
 axiom_link:
   - A0
   - A4
@@ -257,7 +257,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/find.t
-          result: pass
 reversal:
   - signal: find-not-needed
     condition: |

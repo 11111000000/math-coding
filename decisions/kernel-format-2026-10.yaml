@@ -6,8 +6,8 @@ state: active
 mode: tiny
 change_kind: editorial
 
-body_sha: "sha256:4f467eb897c0865a3a1ad1262e2c9815939d17594fdb8f2d0d34e667e4529602"
-yaml_sha: "sha256:4f467eb897c0865a3a1ad1262e2c9815939d17594fdb8f2d0d34e667e4529602"
+body_sha: "sha256:8d75a104b6d0340eb6490be125a2c9da832c5776cb0ce02127c8f01f8c683e0d"
+yaml_sha: "sha256:8d75a104b6d0340eb6490be125a2c9da832c5776cb0ce02127c8f01f8c683e0d"
 
 axiom_link:
   - A0
@@ -53,7 +53,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune fmt --preview
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/kernel-format-2026-10.yaml` returns
@@ -61,7 +60,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/kernel-format-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

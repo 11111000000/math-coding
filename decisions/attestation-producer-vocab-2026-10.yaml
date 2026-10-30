@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:249bd2046efc9289c5c2ca134c14cadd877ae2add88dbc3d899bb65953db8e4f"
-yaml_sha: "sha256:249bd2046efc9289c5c2ca134c14cadd877ae2add88dbc3d899bb65953db8e4f"
+body_sha: "sha256:e10ae6b915a5c6217ec3731eb52e8e8dbe0f11232289ab689f636fc3f2a076d9"
+yaml_sha: "sha256:e10ae6b915a5c6217ec3731eb52e8e8dbe0f11232289ab689f636fc3f2a076d9"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -304,7 +304,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/producer_vocab.ml
-          result: pass
 
   - id: positive-and-negative-fixtures
     outcome: human-runtime-claim-must-be-anchored
@@ -319,13 +318,10 @@ obligations:
     acceptance:
       all:
         - verifier: tests/conformance.ml
-          result: pass
         - verifier: manual-file-exists-unqualified
           path: fixtures/conformance/attestation/negative-untagged-producer.json
-          result: pass
         - verifier: manual-file-exists-unqualified
           path: fixtures/conformance/attestation/positive-human-runtime-anchored.json
-          result: pass
 
   - id: corpus-remains-loadable
     outcome: grandfathered-not-rewritten
@@ -336,9 +332,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/producer_vocab.ml
-          result: pass
         - verifier: tests/store_admission.ml
-          result: pass
 
   - id: the-limit-is-recorded
     outcome: the-gap-is-stated-not-papered
@@ -350,11 +344,8 @@ obligations:
     acceptance:
       all:
         - verifier: mathc explain-diagnostic MC-PRODUCER-CLASS-UNDECLARED
-          result: pass
         - verifier: mathc explain-diagnostic MC-PRODUCER-HUMAN-UNANCHORED
-          result: pass
         - verifier: mathc validate decisions/attestation-producer-vocab-2026-10.yaml
-          result: pass
 
   - id: no-verdict-change
     outcome: verdicts-unchanged
@@ -364,7 +355,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-scripts-dev-ready
-          result: pass
 
 reversal:
   - signal: first-signed-attestation-committed

@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-2-counterexample-required
 revision: 1
 state: active
-body_sha: "sha256:cdf31f688d99f1f7d2a8041d561ab517265ad09770978e1d3c27b06643f46ca8"
-yaml_sha: "sha256:cdf31f688d99f1f7d2a8041d561ab517265ad09770978e1d3c27b06643f46ca8"
+body_sha: "sha256:f60f79c3197c426f0641ef7e0ca05ea798772d02680a5cd551b24f3856f6f2ea"
+yaml_sha: "sha256:f60f79c3197c426f0641ef7e0ca05ea798772d02680a5cd551b24f3856f6f2ea"
 intent: |
   Enforce the schema-level required-ness of the `counterexample`
   field for decisions whose `mode` is `>= standard`.
@@ -487,11 +487,8 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/cli/validate-counterexample-required.t (positive: mode=standard + counterexample → accept)
-          result: pass
         - verifier: tests/cli/validate-counterexample-required.t (negative: mode=standard + no counterexample → reject MC-COUNTEREXAMPLE-MISSING)
-          result: pass
 
   - id: cli-surfaces-block-counterexample-missing
     outcome: cli-surfaces-block-counterexample-missing
@@ -508,7 +505,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-counterexample-required.t
-          result: pass
 
   - id: explain-registry-includes-dual-mode-counterexample
     outcome: diagnostic-has-actionable-remediation
@@ -527,9 +523,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc explain-diagnostic MC-COUNTEREXAMPLE-MISSING exits 0
-          result: pass
         - verifier: tests/cli/validate-counterexample-required.t
-          result: pass
 
   - id: existing-crams-regression-free
     outcome: existing-conformance-regression-free
@@ -553,15 +547,10 @@ obligations:
     acceptance:
       all:
         - verifier: dune test tests/cli/counterexample-warning.t
-          result: pass
         - verifier: dune test tests/cli/validate-positive.t
-          result: pass
         - verifier: dune test tests/cli/malformed-acceptance.t
-          result: pass
         - verifier: dune test tests/cli/ambiguous-acceptance.t
-          result: pass
         - verifier: dune test tests/decision_addresses_equality.exe
-          result: pass
 
   - id: sub-decision-validates-accept
     outcome: sub-decision-validates-accept
@@ -581,9 +570,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/plan-2026-10-improvements/t6-2.yaml
-          result: pass
         - verifier: mathc self-check on integrated HEAD — verdict for t6-2 is "pass"
-          result: pass
 
 reversal:
   - signal: rule-broadly-rejected

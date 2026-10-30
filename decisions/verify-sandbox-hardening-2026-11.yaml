@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:67236ca8cf8bf2bce8a297297a43b19d498a43b3e7f9c6805dcbe6be7e4f15a7"
-yaml_sha: "sha256:67236ca8cf8bf2bce8a297297a43b19d498a43b3e7f9c6805dcbe6be7e4f15a7"
+body_sha: "sha256:f1689e1724688d3b237fd92ed6a3bed022e2e706447640216aece6c3e4380b19"
+yaml_sha: "sha256:f1689e1724688d3b237fd92ed6a3bed022e2e706447640216aece6c3e4380b19"
 
 intent: |
   Close the F9 finding from
@@ -116,7 +116,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-sandbox-env.t
-          result: pass
 
   - id: a1-strict-os-primitives-deferred
     claim: |
@@ -137,7 +136,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-sandbox-banner.t
-          result: pass
 
   - id: a1-strict-mathc-scheme-deny
     claim: |
@@ -150,7 +148,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-sandbox-mathc-allowlist.t
-          result: pass
 
   - id: a1-no-new-unknowns
     claim: |
@@ -160,7 +157,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-no-new-unknowns
-          result: pass
 
   - id: a1-default-none-doc-help
     claim: |
@@ -170,7 +166,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-mathc-help-text-verifies-sandbox
-          result: pass
 
 risk:
   declared_triggers:

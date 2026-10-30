@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:dbe2c3eabcc32e6e73342a7fec97a4bc20780bc911fe7692b2edb723735dbef1"
-yaml_sha: "sha256:dbe2c3eabcc32e6e73342a7fec97a4bc20780bc911fe7692b2edb723735dbef1"
+body_sha: "sha256:320a9282ec82f551151f5ab76994afeb906e4a0cbee5f3d6ebc32048f7dfb40b"
+yaml_sha: "sha256:320a9282ec82f551151f5ab76994afeb906e4a0cbee5f3d6ebc32048f7dfb40b"
 
 axiom_link:
   - A0
@@ -194,7 +194,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-bash-c-grep-rqe-path-repo-paseo-worktrees-decisi
-          result: pass
 
   - id: rewritten-targets-resolve
     claim: |
@@ -206,11 +205,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists .github/workflows/release-pending.yml
-          result: pass
         - verifier: file-exists bin/Mathc.ml
-          result: pass
         - verifier: file-exists docs/plans/plan-2026-10-adoption-fixes-2026-10.md
-          result: pass
 
   - id: release-gate-needles-match-under-pinned-semantics
     claim: |
@@ -223,19 +219,15 @@ obligations:
         - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'pull_request:'
-          result: pass
         - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: 'release/\*\*'
-          result: pass
         - verifier: manual-shell-grep-unqualified
           path: .github/workflows/release-pending.yml
           needle: bin/Mathc.ml
-          result: pass
         - verifier: manual-shell-grep-unqualified
           path: scripts/install-tooling/install.sh
           needle: MC_VERSION_DEFAULT="3.3.3"
-          result: pass
 
   - id: repaired-needle-matches-exactly-once
     claim: |
@@ -248,9 +240,7 @@ obligations:
         - verifier: manual-shell-grep-unqualified
           path: docs/experiments/adoption-2026-10.md
           needle: '\*\*Total\*\*      | 55    |'
-          result: pass
         - verifier: manual-bash-c-test-grep-c-total-55-docs-experiments-ado
-          result: pass
 
   - id: guard-fails-on-worktree-path
     claim: |
@@ -262,15 +252,12 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixture_coverage.ml
-          result: pass
         - verifier: manual-shell-grep-unqualified
           path: tests/fixture_coverage.ml
           needle: test_verifier_paths_stay_inside_repo
-          result: pass
         - verifier: manual-shell-grep-unqualified
           path: tests/fixture_coverage.ml
           needle: no verifier names its target through an absolute worktree path
-          result: pass
 
   - id: no-new-unknown-subjects
     claim: |
@@ -285,9 +272,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-no-new-unknowns
-          result: pass
         - verifier: manual-bash-c-build-install-default-bin-mathc-rehash-dr
-          result: pass
 
 consequences:
   - what_changed: |

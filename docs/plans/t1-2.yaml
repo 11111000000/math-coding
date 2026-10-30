@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t1-2
 revision: 1
 state: active
-body_sha: "sha256:bbd06ddff79d13604f3299711cf60ef9d72f1be5838f1e0edd84a6c90ad21092"
-yaml_sha: "sha256:bbd06ddff79d13604f3299711cf60ef9d72f1be5838f1e0edd84a6c90ad21092"
+body_sha: "sha256:3485ae68ed4e720148b89ce087b8f4a99ed6a6f57739ec9a6e0e59a488f38f0b"
+yaml_sha: "sha256:3485ae68ed4e720148b89ce087b8f4a99ed6a6f57739ec9a6e0e59a488f38f0b"
 intent: |
   Close the A1 honesty gap in `lib/re_evaluation.ml::re_evaluate`:
   the previous 3-valued status silently returned `Compatible` for
@@ -229,10 +229,8 @@ obligations:
       forbidden-pattern match.
     acceptance:
       all:
-        - verifier: tests/re_evaluation_test.ml::re_evaluate
-          result: pass
-        - verifier: tests/re_evaluation_test.ml::re_evaluate_after_run
-          result: pass
+        - verifier: tests/re_evaluation_test.ml
+        - verifier: tests/re_evaluation_test.ml
 
   - id: gate-blocks-on-incompatible
     outcome: gate-blocks-on-incompatible
@@ -246,8 +244,7 @@ obligations:
       `gate_release_v32`.
     acceptance:
       all:
-        - verifier: tests/re_evaluation_test.ml::gate_verdict
-          result: pass
+        - verifier: tests/re_evaluation_test.ml
 
   - id: re-evaluate-decisions-subcommand
     outcome: re-evaluation-4-valued
@@ -265,9 +262,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate-decisions.t
-          result: pass
         - verifier: text-scan-bin-mathc-ml-re-evaluate-decisions-dispatch
-          result: pass
 
   - id: dual-failure-evidence-existing-fixture
     outcome: re-evaluation-4-valued
@@ -287,7 +282,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate.t
-          result: pass
 
   - id: dual-failure-evidence-new-fixture
     outcome: re-evaluation-4-valued
@@ -305,7 +299,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate-decisions.t
-          result: pass
 
   - id: a3-protected-transition-human-review-marker
     outcome: re-evaluation-4-valued
@@ -329,7 +322,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-a3-protected-transition-review
-          result: pass
 
 reversal:
   - signal: regression-to-3-valued

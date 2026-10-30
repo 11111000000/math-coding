@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-2-explain-diagnostic
 revision: 1
 state: active
-body_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
-yaml_sha: "sha256:cac211db60c3bfdf056ae875bf88367f253b6bf80c08f5c8933e8fd6c4b33d7b"
+body_sha: "sha256:b1c8fc37d95be1ca9a7480a4300c8a106e4127cb5e96172f1364b4c93d602cb7"
+yaml_sha: "sha256:b1c8fc37d95be1ca9a7480a4300c8a106e4127cb5e96172f1364b4c93d602cb7"
 intent: |
   Authorise and bound the `mathc explain-diagnostic <CODE>` subcommand
   under meta-decision `plan-2026-10-improvements` (Tier 4, t4-2). The
@@ -119,8 +119,7 @@ obligations:
       no exceptions).
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::explain_registry_covers_required_codes
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
 
   - id: explain-diagnostic-cli-shipped
     statement: |
@@ -133,11 +132,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/explain-diagnostic.t
-          result: pass
         - verifier: tests/cli/explain-positive.t (unchanged)
-          result: pass
         - verifier: tests/cli/explain-negative.t (unchanged)
-          result: pass
 
 reversal:
   - signal: registry-async-with-codes

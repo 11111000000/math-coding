@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-default-tag-edge
 revision: 1
 state: active
-body_sha: "sha256:412be89e3392a68e0cbf179db110b73dc6f6c2323da5086a22a691f1f83d3d00"
-yaml_sha: "sha256:412be89e3392a68e0cbf179db110b73dc6f6c2323da5086a22a691f1f83d3d00"
+body_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
+yaml_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
 
 intent: |
   Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
@@ -191,9 +191,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
         - verifier: scripts/check-adoption-doc-freshen.sh
-          result: pass
   - id: cram-snapshot-matches-edge
     outcome: cram-snapshot-matches
     claim: |
@@ -203,7 +201,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
 
 reversal:
   - signal: install-tooling-default-tag-bumped

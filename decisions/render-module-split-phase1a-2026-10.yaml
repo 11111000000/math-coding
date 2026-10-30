@@ -5,8 +5,8 @@ revision: 1
 state: superseded
 mode: light
 change_kind: implementation
-body_sha: "sha256:9e1ee7e1dba1803803db6dcceb09c4a37a1c864d2d60ad785d90c6d4a29dd6ab"
-yaml_sha: "sha256:9e1ee7e1dba1803803db6dcceb09c4a37a1c864d2d60ad785d90c6d4a29dd6ab"
+body_sha: "sha256:f2280142cd7580ee325b5132f81072f900563ba3f3376452f09dc9dd99cdce8d"
+yaml_sha: "sha256:f2280142cd7580ee325b5132f81072f900563ba3f3376452f09dc9dd99cdce8d"
 
 intent: |
   Реализовать Phase 1A из
@@ -72,9 +72,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/render_kernel.exe
-          result: pass
   - id: public-api-stable
     claim: |
       Сигнатуры `Render.html_escape`, `Render.html_of_fragments`,
@@ -84,9 +82,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-tests-render-kernel-exe-cases-md-
-          result: pass
         - verifier: manual-target-missing-tests-cli-render-t-cram-snapshot
-          result: pass
   - id: golden-identical
     claim: |
       Cram-снапшоты `tests/cli/render.t` для всех
@@ -96,9 +92,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune promote (или ручная проверка diff)
-          result: pass
         - verifier: manual-target-missing-tests-cli-render-t-cram-snapshot
-          result: pass
 counterexample: |
   The strongest objection to this Phase 1A split is that edits
   in `lib/render/render_md.ml` can change the behaviour of

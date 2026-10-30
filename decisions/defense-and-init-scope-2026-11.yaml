@@ -74,9 +74,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-scope-language-agnostic.t
-          result: pass
         - verifier: manual-self-check-verdict
-          result: pass
   - id: kernel-side-docs-have-disambiguation-banner
     claim: |
       README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
@@ -86,7 +84,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-scope-language-agnostic.t
-          result: pass
 
 risk:
   declared_triggers:

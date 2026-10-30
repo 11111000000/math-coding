@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:d154709e842db20250f47bba95d07a85cc0772983518cd1f7e5bd39cebeda800"
-yaml_sha: "sha256:d154709e842db20250f47bba95d07a85cc0772983518cd1f7e5bd39cebeda800"
+body_sha: "sha256:32b617dbe479c08579e6ad792284911ebe65b6dc52d98035aa5fbe07b8bfeb69"
+yaml_sha: "sha256:32b617dbe479c08579e6ad792284911ebe65b6dc52d98035aa5fbe07b8bfeb69"
 
 axiom_link:
   - A0
@@ -77,7 +77,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/waiver-missing-expiry-rejected.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/waiver-missing-expiry-rejected-2026-10.yaml`
@@ -85,7 +84,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/waiver-missing-expiry-rejected-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

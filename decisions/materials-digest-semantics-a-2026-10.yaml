@@ -4,8 +4,8 @@ id: materials-digest-semantics-a-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:4ee55ad7245932aa3e64ee8c97a398390cb26511a5b34c25400cf7a6393eba4e"
-yaml_sha: "sha256:4ee55ad7245932aa3e64ee8c97a398390cb26511a5b34c25400cf7a6393eba4e"
+body_sha: "sha256:f78956600bf7db2e96d6675f3b503be5a78505e53aa45640c715fc4835ce2909"
+yaml_sha: "sha256:f78956600bf7db2e96d6675f3b503be5a78505e53aa45640c715fc4835ce2909"
 
 intent: { source: "issue:materials-digest-has-no-reference-2026-10-23", text: "The freshness mechanism had no reference value. The gate compared an attestation's subject.materials_digest against sha256 of the changed PATH NAMES; the producers wrote sha256 of a command's OUTPUT, or the empty string. The two sides computed different functions of different inputs, so they could never be equal. The empty string was treated as a wildcard, so the only attestation the freshness check ever accepted was the one carrying no evidence at all. Measured: 765 tracked attestations, 765 with an empty digest, 5 with a non-empty one, and 0 of the 765 equal to the value the gate computes. The mechanism that constitution.md Invariant 9 describes as freshness was, in operation, a reward for dishonesty." }
 
@@ -127,7 +127,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/attest-batch-run-digest.sh
-          result: pass
 
   - id: evidence-digest-is-separate
     claim: |
@@ -137,7 +136,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/attest-batch-run-digest.sh
-          result: pass
 
   - id: scope-is-read-once
     claim: |
@@ -147,7 +145,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-single-scope-reader
-          result: pass
 
 risk:
   owner: human:maintainer

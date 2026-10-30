@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:61f8dc9a657400e15d3c9760ac36e3ece2dcbe53d957fc8479f45fe8756ee4eb"
-yaml_sha: "sha256:61f8dc9a657400e15d3c9760ac36e3ece2dcbe53d957fc8479f45fe8756ee4eb"
+body_sha: "sha256:fcb195d8eaf428cf22ffc1413636fcf301a58f1624fc1b4a450a8617a5d48800"
+yaml_sha: "sha256:fcb195d8eaf428cf22ffc1413636fcf301a58f1624fc1b4a450a8617a5d48800"
 axiom_link:
   - A1
 intent: |
@@ -105,7 +105,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-hero-element
-          result: pass
 
   - id: prose-reflects-live-counts
     outcome: prose-reflects-live-state
@@ -119,7 +118,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-prose-numbers
-          result: pass
 
   - id: spec-in-nav
     outcome: spec-in-nav
@@ -130,7 +128,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-nav-spec-link
-          result: pass
 
   - id: per-decision-narrative-rendered
     outcome: per-decision-narrative
@@ -146,7 +143,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-decision-page-section
-          result: pass
 
   - id: footer-lang-toggle-only-with-ru-sibling
     outcome: footer-lang-toggle-honest
@@ -161,7 +157,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-footer-lang-toggle
-          result: pass
 
 reversal:
   - signal: live-counts-moved-and-prose-not-refreshed

@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: mcp-agent-auto-connect-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f5621330a12129e8f22dbf34ba69ac783c267b72bb5e6d2a868864b97474bcd4"
-yaml_sha: "sha256:f5621330a12129e8f22dbf34ba69ac783c267b72bb5e6d2a868864b97474bcd4"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:b70fcc7d2f75840b0b661f1cb6914aff4dfcc3a37adeb0e105d7178a15b6cf2c"
+yaml_sha: "sha256:b70fcc7d2f75840b0b661f1cb6914aff4dfcc3a37adeb0e105d7178a15b6cf2c"
 
 intent: |
   Document the documented-but-not-yet-wired path that lets
@@ -150,7 +151,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-opencode-skill.sh
-          result: pass
   - id: per-repo-skill-synced
     outcome: per-repo-skill-synced
     claim: |
@@ -159,7 +159,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-opencode-skill.sh
-          result: pass
   - id: usage-md-cross-references
     outcome: usage-md-cross-references
     claim: |
@@ -167,8 +166,7 @@ obligations:
       \u00a7"MCP integration" section.
     acceptance:
       all:
-        - verifier: manual-grep-q-mcp-integration-usage-md
-          result: pass
+        - verifier: shell-grep USAGE.md MCP integration
 
 reversal:
   - signal: mcp-server-retired

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:29c3811da36634d946dbb8fe183d90cf0341cf8992c54e280df06516b338702d"
-yaml_sha: "sha256:29c3811da36634d946dbb8fe183d90cf0341cf8992c54e280df06516b338702d"
+body_sha: "sha256:7bc28d841c503b181328426c92d6a56a8356e6c7f51f40d6d080ee0b3968aa83"
+yaml_sha: "sha256:7bc28d841c503b181328426c92d6a56a8356e6c7f51f40d6d080ee0b3968aa83"
 axiom_link:
   - A0
   - A3
@@ -247,9 +247,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/update.t
-          result: pass
         - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
-          result: pass
 
   - id: version-check-impl
     outcome: version-check-ships
@@ -262,9 +260,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/update.t
-          result: pass
         - verifier: mathc validate decisions/mathc-update-subcommand-2026-10.yaml
-          result: pass
 
 reversal:
   - signal: update-not-needed

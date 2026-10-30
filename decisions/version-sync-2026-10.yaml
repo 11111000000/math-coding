@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:13f0af0ed15fd330d77cc2d4ce618f0c9405d8fff6738cf6373a3e929024a2a3"
-yaml_sha: "sha256:13f0af0ed15fd330d77cc2d4ce618f0c9405d8fff6738cf6373a3e929024a2a3"
+body_sha: "sha256:d9aace9f18fa2734b91286ab20d21875b66d34afe1fd5311094d04d485c9d558"
+yaml_sha: "sha256:d9aace9f18fa2734b91286ab20d21875b66d34afe1fd5311094d04d485c9d558"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:
@@ -192,9 +192,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists scripts/sync-version.sh
-          result: pass
         - verifier: tests/fixtures/sync-version-clean-passes.sh
-          result: pass
   - id: sync-version-stale-detected
     claim: |
         When a maintainer hand-edits `adoption/SKILL.md`
@@ -204,7 +202,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/sync-version-stale-fails.sh
-          result: pass
   - id: sync-version-write-idempotent
     claim: |
         Running `scripts/sync-version.sh --write` on a tree that
@@ -213,7 +210,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-scripts-sync-version-sh-write-git
-          result: pass
   - id: trap-log-entry-present
     claim: |
         `OCAML_BEST_PRACTICES.md` §11.27 records the
@@ -223,7 +219,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-qe-11-27-ocaml-best-practices-md
-          result: pass
 
 reversal:
   - signal: version-sync-reverted

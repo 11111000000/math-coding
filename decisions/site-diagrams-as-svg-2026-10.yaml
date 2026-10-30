@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5530e1b50c1f83f53d07b9ebc78c5d32b5b78e475ae6401cd48fd14ba35234fa"
-yaml_sha: "sha256:5530e1b50c1f83f53d07b9ebc78c5d32b5b78e475ae6401cd48fd14ba35234fa"
+body_sha: "sha256:d0f24fe36f893dfef321f2e5998621715d81ebf1c0057177fa40f4b46b0d3fac"
+yaml_sha: "sha256:d0f24fe36f893dfef321f2e5998621715d81ebf1c0057177fa40f4b46b0d3fac"
 axiom_link:
   - A3
 intent: |
@@ -90,10 +90,8 @@ obligations:
       `assets/style.css`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mermaid_support_removed
-          result: pass
-        - verifier: tests/render_kernel.ml::css_has_inline_figure_rules
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
   - id: inline-figures-render-on-eight-pages
     outcome: inline-figures-render-on-eight-pages
     claim: |
@@ -102,8 +100,7 @@ obligations:
       wrappers and contain no Mermaid `<div class="mermaid">`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::inline_svg_figures_in_seven_pages
-          result: pass
+        - verifier: tests/render_kernel.ml
 
 counterexample: |
   "Removing Mermaid loses the ability to write a quick diagram

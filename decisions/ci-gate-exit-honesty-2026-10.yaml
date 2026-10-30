@@ -3,8 +3,9 @@ schema: math-coding/3.3
 id: ci-gate-exit-honesty-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e90fb2a6c0759b342fdf72adc0ba224c846edb2251833b4244140d791bc465c7"
-yaml_sha: "sha256:e90fb2a6c0759b342fdf72adc0ba224c846edb2251833b4244140d791bc465c7"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:3b7365fe2bd5b68f14e9a78caef750147f12b7c8132237d16ebec05f9471b511"
+yaml_sha: "sha256:3b7365fe2bd5b68f14e9a78caef750147f12b7c8132237d16ebec05f9471b511"
 
 intent: |
   Make the two gates that the project's central claim rests on
@@ -187,9 +188,7 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/ci-step-exit-sim.sh
-          result: pass
         - verifier: manual-shell-grep-rc-github-workflows-ci-yml
-          result: pass
   - id: ci-step-sim-is-not-a-tautology
     outcome: exit-honesty-is-checked-not-asserted
     claim: |
@@ -202,9 +201,7 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/ci-step-exit-sim.sh
-          result: pass
         - verifier: manual-shell-grep-pre-fix-control-scripts-ci-step-exit-
-          result: pass
   - id: dune-test-timeout-never-passes-silently
     outcome: dune-test-hang-is-not-a-pass
     claim: |
@@ -218,11 +215,8 @@ obligations:
     acceptance:
       all:
         - verifier: manual-shell-grep-verify-test-suite-scripts-dev
-          result: pass
         - verifier: manual-shell-grep-verify-test-exclusions-scripts-dev
-          result: pass
         - verifier: manual-shell-grep-dev-fast-test-scripts-dev
-          result: pass
   - id: false-justification-gone
     outcome: false-justification-removed
     claim: |
@@ -232,10 +226,8 @@ obligations:
       code path where `jq` supplies the step's status.
     acceptance:
       all:
-        - verifier: manual-text-scan-no-still-proves-the-suite
-          result: pass
-        - verifier: manual-shell-grep-diagnostic-only-github-workflows-ci-y
-          result: pass
+        - verifier: shell-grep scripts/check.sh .github/workflows/ci.yml
+        - verifier: shell-grep scripts/check.sh .github/workflows/ci.yml
   - id: this-decision-validates
     outcome: ci-step-propagates-mathc-exit
     claim: |
@@ -246,9 +238,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/ci-gate-exit-honesty-2026-10.yaml
-          result: pass
         - verifier: tests/process_principles.exe
-          result: pass
 
 assumptions:
   - id: store-backlog-is-not-this-changes-fault

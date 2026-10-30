@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: algebra-3.2
 revision: 2
 state: active
-body_sha: "sha256:e703fffc617923c37bb0042aae6f54abdf5ee48533af359d4debd53a4c98207c"
-yaml_sha: "sha256:e703fffc617923c37bb0042aae6f54abdf5ee48533af359d4debd53a4c98207c"
+body_sha: "sha256:e266307a473f41f12e679ccac3fab4afeef6c85eb1aea898fcb0bdc06f163778"
+yaml_sha: "sha256:e266307a473f41f12e679ccac3fab4afeef6c85eb1aea898fcb0bdc06f163778"
 intent: |
   Adopt `spec/algebra-3.2.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)
@@ -215,7 +215,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: cross-references-correct
     outcome: formal-spec-adopted
@@ -225,7 +224,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: applicability-documented
     outcome: applicability-envelope-active
@@ -235,7 +233,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: kernel-conformance-baseline
     outcome: kernel-conformance-tracked
@@ -246,7 +243,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/conformance.ml
-          result: pass
 
   - id: adoption-path-documented
     outcome: applicability-envelope-active
@@ -257,7 +253,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: backward-compat-test
     outcome: backward-compatibility-preserved
@@ -268,7 +263,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/conformance.ml
-          result: pass
 
   - id: implementation-roadmap
     outcome: kernel-conformance-tracked
@@ -280,7 +274,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
 reversal:
   - signal: spec-3.2-superseded-by-3.3

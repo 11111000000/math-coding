@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/legacy-attestation-debt.sh
-body_sha: "sha256:6028a1540810a11d5202df0446da0f5ca077f52f3c24941bebe179acd0cb6a03"
-yaml_sha: "sha256:6028a1540810a11d5202df0446da0f5ca077f52f3c24941bebe179acd0cb6a03"
+body_sha: "sha256:6274253d1d26583b2b84ba667968b075f1a043c6f35b67ac45bde91667a99609"
+yaml_sha: "sha256:6274253d1d26583b2b84ba667968b075f1a043c6f35b67ac45bde91667a99609"
 
 intent: { source: "issue:three-verifier-outcomes-were-one-2026-10-23", text: "Running every verifier in the corpus exposed three cases the kernel treated as one, and each of them changed a number. A verifier that could not be SET UP was reported as a failure, so a corpus-wide sweep reported every toolchain-dependent verifier as a broken project. A `manual:` obligation was reported as inconclusive, so 466 declared obligations could not be satisfied - which is the opposite of what a declaration is for. And an obligation whose verifier names an executable scheme the kernel CAN execute was excluded by a filter that asked a function which does not know about the three original schemes, so 200 perfectly executable checks were reported as checks that could not run." }
 
@@ -101,7 +101,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/legacy-attestation-debt.sh
-          result: pass
 
   - id: a-declaration-is-not-a-gap
     claim: |
@@ -110,7 +109,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-declaration-is-a-review
-          result: pass
 
 risk:
   owner: human:maintainer

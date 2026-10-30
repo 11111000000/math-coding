@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:b6929b20ceb205e455ae0cbc851d76da59f9790e6a2cd45e55b2ad2203720985"
-yaml_sha: "sha256:b6929b20ceb205e455ae0cbc851d76da59f9790e6a2cd45e55b2ad2203720985"
+body_sha: "sha256:789cb70213bda5d97501ec3facb7b09c7cd954701ee5921e22002436e75669b4"
+yaml_sha: "sha256:789cb70213bda5d97501ec3facb7b09c7cd954701ee5921e22002436e75669b4"
 
 intent: |
   Route every CLI subcommand that writes or tree-walks the
@@ -217,9 +217,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/env-var-resolver.t
-          result: pass
         - verifier: manual-self-check-verdict
-          result: pass
     evidence: tests-pass
   - id: env-var-attestations-dir-honoured
     statement: |
@@ -233,7 +231,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/env-var-resolver.t
-          result: pass
     evidence: tests-pass
   - id: legacy-attestation-store-env-var-preserved
     statement: |
@@ -244,25 +241,15 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-pass.t
-          result: pass
         - verifier: tests/cli/gate-fail.t
-          result: pass
         - verifier: tests/cli/gate-stale.t
-          result: pass
         - verifier: tests/cli/self-check-pass.t
-          result: pass
         - verifier: tests/cli/self-check-fail.t
-          result: pass
         - verifier: tests/cli/self-check-unknown.t
-          result: pass
         - verifier: tests/cli/gate-empty.t
-          result: pass
         - verifier: tests/cli/gate-unknown-exit-3.t
-          result: pass
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
         - verifier: tests/cli/required-attestation.t
-          result: pass
     evidence: tests-pass
   - id: env-var-resolver-shipped-cram
     statement: |
@@ -277,7 +264,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test tests/cli/env-var-resolver.t
-          result: pass
     evidence: tests-pass
   - id: dune-build-clean-after-fix
     statement: |
@@ -286,7 +272,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
     evidence: tests-pass
 
 risk:

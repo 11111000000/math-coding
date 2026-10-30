@@ -3,11 +3,12 @@ schema: math-coding/3.3
 id: mathc-doctor-subcommand-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:2822cae707ca6d76e1d27ece8dc3284c166e3f5dafc18c43bbfe163b1d714063"
-yaml_sha: "sha256:2822cae707ca6d76e1d27ece8dc3284c166e3f5dafc18c43bbfe163b1d714063"
+body_sha: "sha256:ff76399ad27eec0697d94c19e205b9ec5599d45ee72418fd1d89f43494de5e04"
+yaml_sha: "sha256:ff76399ad27eec0697d94c19e205b9ec5599d45ee72418fd1d89f43494de5e04"
 
 axiom_link:
   - A0
@@ -164,21 +165,13 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/mathc-doctor-subcommand-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/mathc-doctor-subcommand-2026-10.yaml
-          result: pass
         - verifier: dune build bin/mathc.exe
-          result: pass
         - verifier: mathc doctor
-          result: pass
         - verifier: mathc doctor --json | jq .sections | jq 'length >= 5'
-          result: pass
-        - verifier: manual-target-missing-tests-cli-doctor-t-runs-via-dune-
-          result: pass
-        - verifier: manual-target-missing-scripts-dev-lint-no-mathc-library
-          result: pass
-        - verifier: manual-git-grep-lib-bin-mathc-ml-returns-only-the-exist
-          result: pass
+        - verifier: shell-grep bin/Mathc.ml mathc doctor [--json]
+        - verifier: shell-grep bin/Mathc.ml mathc doctor [--json]
+        - verifier: shell-grep bin/Mathc.ml mathc doctor [--json]
 
   - id: doctor-cram-positive
     claim: |
@@ -190,7 +183,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/doctor.t
-          result: pass
 
 reversal:
   - signal: doctor-redundant

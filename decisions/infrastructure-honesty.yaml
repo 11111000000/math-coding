@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: infrastructure-honesty
 revision: 2
 state: active
-body_sha: "sha256:876a1e640ede004ed135743709f951fb854825bece21e1bc50d172c92970361b"
-yaml_sha: "sha256:876a1e640ede004ed135743709f951fb854825bece21e1bc50d172c92970361b"
+body_sha: "sha256:04d95482c17283dff15509078fda71c57d31bb6dba3cf6401424a57e01c03504"
+yaml_sha: "sha256:04d95482c17283dff15509078fda71c57d31bb6dba3cf6401424a57e01c03504"
 intent: |
   Repair four classes of dishonest infrastructure state that the v3-alpha
   bootstrap inherited: CI workflows that reference non-existent paths,
@@ -93,7 +93,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
   - id: pin-nixpkgs-commit
     outcome: nixpkgs-pinned
@@ -104,7 +103,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
   - id: verify-opam-checksum
     outcome: supply-chain-verified
@@ -115,7 +113,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
   - id: wire-conformance-runner
     outcome: conformance-runner-enabled
@@ -126,7 +123,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test
-          result: pass
 
 reversal:
   - signal: any-obligation-fails-without-mitigation

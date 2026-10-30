@@ -3,11 +3,12 @@ schema: math-coding/3.3
 id: p8-hook-deficit-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:aec728466797a84130a39a0beb557749af45f99d8d2ceb9f79036d3d5e7f3190"
-yaml_sha: "sha256:aec728466797a84130a39a0beb557749af45f99d8d2ceb9f79036d3d5e7f3190"
+body_sha: "sha256:0e501b6568fe76db295e1124c2acadb7fdc72f8e08a515b124df13cefbf1c32a"
+yaml_sha: "sha256:0e501b6568fe76db295e1124c2acadb7fdc72f8e08a515b124df13cefbf1c32a"
 
 axiom_link:
   - A0
@@ -121,9 +122,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-git-diff-githooks-pre-commit-grep-c-3-times-in-l
-          result: pass
         - verifier: manual-bash-n-githooks-pre-commit-exits-0
-          result: pass
   - id: trap-log-11-39-present
     outcome: trap-log-records-deficit
     claim: |
@@ -132,8 +131,7 @@ obligations:
       описывающий дефицит и резолюцию.
     acceptance:
       all:
-        - verifier: manual-text-scan-trap-log-1139
-          result: pass
+        - verifier: shell-grep OCAML_KERNEL_CONVENTIONS.md 11. OCaml 5 trap log
 
 risk:
   declared_triggers:

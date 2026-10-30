@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:496b19a13ada1125b5543551931a79ce1ea99e6130f02c6b46a53ce280a88b6d"
-yaml_sha: "sha256:496b19a13ada1125b5543551931a79ce1ea99e6130f02c6b46a53ce280a88b6d"
+body_sha: "sha256:4413e72878f6fe72cf86d99e12b81f760ac69604f6e2cb23a14760262dd4f0c5"
+yaml_sha: "sha256:4413e72878f6fe72cf86d99e12b81f760ac69604f6e2cb23a14760262dd4f0c5"
 
 axiom_link:
   - A0
@@ -94,14 +94,12 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/self-check-debt-ceiling.sh
-          result: pass
   - id: the-fixture-has-teeth
     claim: |
       The ratchet reports an inflated corpus as over the ceiling.
     acceptance:
       all:
         - verifier: tests/fixtures/self-check-debt-ceiling.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/ci-self-check-is-an-audit-2026-10.yaml`
@@ -109,7 +107,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/ci-self-check-is-an-audit-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

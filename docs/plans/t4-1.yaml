@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t4-1-diagnostics-actionable
 revision: 1
 state: active
-body_sha: "sha256:81cdec0222537c9ef9025a119892f335616ff9c555e7c878592427983b944c72"
-yaml_sha: "sha256:81cdec0222537c9ef9025a119892f335616ff9c555e7c878592427983b944c72"
+body_sha: "sha256:06b33eab6f6883a312bb9db3a57fe484bf67ba9eb3411e0f8f4e4b2ed647c2bf"
+yaml_sha: "sha256:06b33eab6f6883a312bb9db3a57fe484bf67ba9eb3411e0f8f4e4b2ed647c2bf"
 axiom_link:
   - A0
   - A1
@@ -137,20 +137,13 @@ obligations:
       supersede}.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::ambiguous_acceptance.has
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::malformed_acceptance.has
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_parse.has
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_decision_invalid.has
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_counterexample_missing.has
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
         - verifier: tests/diagnostic_ux.ml::verb_whitelist.accepts whitelist
-          result: pass
         - verifier: tests/diagnostic_ux.ml::verb_whitelist.rejects unknown
-          result: pass
 
   - id: t4-1-validate-with-counts-emits-actions
     statement: |
@@ -169,12 +162,9 @@ obligations:
       via the corresponding helper.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-PARSE
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-DECISION-INVALID
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts.MC-COUNTEREXAMPLE-MISSING
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
 
   - id: t4-1-obligation-gap-gaps-have-actions
     statement: |
@@ -188,10 +178,8 @@ obligations:
       FailedEvidence, Unknown).
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.missing
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::gate_gap_next_actions.stale
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
+        - verifier: tests/diagnostic_ux.ml
 
   - id: t4-1-ko-explain-registry-unchanged
     statement: |
@@ -204,8 +192,7 @@ obligations:
       MC-PARSE, MC-DECISION-INVALID, MC-COUNTEREXAMPLE-MISSING}.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::registry.covers
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
 
 reversal:
   - signal: verb-creep

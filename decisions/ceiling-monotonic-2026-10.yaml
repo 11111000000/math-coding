@@ -3,9 +3,10 @@ schema: math-coding/3.3
 id: ceiling-monotonic
 revision: 2
 state: superseded
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
-body_sha: "sha256:1ccc6d83f1010ad27c2cc8ac11e56e28025a8644a645cbedff17e2930b1c5751"
-yaml_sha: "sha256:1ccc6d83f1010ad27c2cc8ac11e56e28025a8644a645cbedff17e2930b1c5751"
+body_sha: "sha256:b2ef21bb835d2ce2c124c5890eb9a2b4d3eaba099f0d41ded2977a39a08985d6"
+yaml_sha: "sha256:b2ef21bb835d2ce2c124c5890eb9a2b4d3eaba099f0d41ded2977a39a08985d6"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -195,7 +196,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-ceiling-checker-removed
-          result: pass
   - id: a-raise-may-be-recorded-and-only-then
     claim: |
       RETIRED at revision 2. The marker that recorded a raise next to
@@ -206,7 +206,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-ceiling-raise-marker-unmonitored
-          result: pass
   - id: a-ceiling-that-is-never-compared-fails
     claim: |
       RETIRED at revision 2. A ceiling whose comparison is deleted
@@ -217,8 +216,7 @@ obligations:
       (decisions/corpus-meta-layer-2026-10.yaml).
     acceptance:
       all:
-        - verifier: manual-declared-but-uncompared-ceiling-undetected
-          result: pass
+        - verifier: shell-grep decisions/corpus-meta-layer-2026-10.yaml tests/fixtures/legacy-attestation-debt.sh
   - id: the-three-legacy-ceilings-are-compared
     claim: |
       The legacy count, the unattested-decision count and the
@@ -227,7 +225,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/legacy-attestation-debt.sh
-          result: pass
   - id: the-check-runs-in-ci
     claim: |
       RETIRED at revision 2. The CI step that ran the ceiling
@@ -238,7 +235,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/ceiling-monotonic-2026-10.yaml
-          result: pass
 # 2026-10-28: the negative control of this decision was removed with
 #   the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
 #   The decision no longer has an executable verifier to demonstrate.

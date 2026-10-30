@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:9c776461642155a56d1e2e412d55d05cd00aa5f279d98a73fee3f739dc49a71a"
-yaml_sha: "sha256:9c776461642155a56d1e2e412d55d05cd00aa5f279d98a73fee3f739dc49a71a"
+body_sha: "sha256:7265eab0898bd6610fdaa249831dc1647bf0c305ae61b5f312e9320e34a9d4ba"
+yaml_sha: "sha256:7265eab0898bd6610fdaa249831dc1647bf0c305ae61b5f312e9320e34a9d4ba"
 axiom_link:
   - A0
   - A1
@@ -196,13 +196,9 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-unknown-exit-3.t
-          result: pass
         - verifier: tests/cli/gate-fail.t
-          result: pass
         - verifier: tests/cli/self-check-pass.t
-          result: pass
         - verifier: tests/cli/self-check-unknown.t
-          result: pass
 
   - id: constitution-14b-added
     outcome: constitution-invariants-14b-14c
@@ -213,9 +209,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-unknown-exit-3.t
-          result: pass
         - verifier: scripts/check.sh
-          result: pass
 
   - id: gate-unknown-exit-test-positive
     outcome: gate-exit-unknown-is-3
@@ -227,7 +221,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-unknown-exit-3.t
-          result: pass
 
   - id: gate-unknown-exit-test-negative
     outcome: unknown-not-laundered-as-pass
@@ -238,7 +231,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-unknown-exit-3.t
-          result: pass
 
   - id: self-check-still-pass
     outcome: gate-exit-unknown-is-3
@@ -251,9 +243,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
-          result: pass
         - verifier: mathc-self-check-verdict-pass
-          result: pass
 
 reversal:
   - signal: gate-was-not-scaffold

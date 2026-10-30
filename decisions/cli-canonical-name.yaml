@@ -4,9 +4,9 @@ id: cli-canonical-name
 revision: 4
 state: active
 
-body_sha: "sha256:b6f36e07a7b3c07074bb9faa26ab4c11903f58b3d2eaa182e0191c5b36035101"
+body_sha: "sha256:1fc18e32085e5b9a015c765656446e2316db76e6c42cd610f840db9ed08e6436"
 
-yaml_sha: "sha256:b6f36e07a7b3c07074bb9faa26ab4c11903f58b3d2eaa182e0191c5b36035101"
+yaml_sha: "sha256:1fc18e32085e5b9a015c765656446e2316db76e6c42cd610f840db9ed08e6436"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -164,8 +164,7 @@ obligations:
       `compatible` without a separate run.
     acceptance:
       all:
-        - verifier: tests/re_evaluation_test.ml::re_evaluate
-          result: pass
+        - verifier: tests/re_evaluation_test.ml
   - id: docs-no-mathc-cli
     outcome: single-cli-name
     claim: |
@@ -174,7 +173,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-tracked-no-mathc-cli
-          result: pass
   - id: decisions-renamed
     outcome: decision-ids-renamed
     claim: |
@@ -186,9 +184,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-decisions-no-mc-id
-          result: pass
         - verifier: manual-text-scan-decisions-no-mc-verifier
-          result: pass
   - id: site-classes-renamed
     outcome: site-classes-renamed
     claim: |
@@ -198,11 +194,8 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-assets-style-css-no-mathc
-          result: pass
         - verifier: manual-text-scan-lib-render-no-mathc-class
-          result: pass
         - verifier: manual-text-scan-lib-packages-no-mathc-class
-          result: pass
   - id: skill-url-points-at-real-asset
     outcome: skill-url-correct
     claim: |
@@ -214,7 +207,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/sync-version.sh --check
-          result: pass
 
 
 reversal:

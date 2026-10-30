@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-delimiter-hardening-2026-10
 revision: 1
 state: active
-body_sha: "sha256:c99ccc31a39aa53e17bc9d3446375bed1208cba9cc5209a81d977a0a57a676fb"
-yaml_sha: "sha256:c99ccc31a39aa53e17bc9d3446375bed1208cba9cc5209a81d977a0a57a676fb"
+body_sha: "sha256:3c346beb30c153823e5120e21571aa3250b2505b401885ceccd4cb908ddb2509"
+yaml_sha: "sha256:3c346beb30c153823e5120e21571aa3250b2505b401885ceccd4cb908ddb2509"
 intent: |
   Harden the MathJax 3 wiring in `lib/render.ml` so that
   the dollar sign is no longer an active math delimiter.
@@ -225,8 +225,7 @@ obligations:
       present.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_no_dollar_delimiters
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: math-and-mermaid-css-declared
     outcome: math-and-mermaid-css-shipped
@@ -239,8 +238,7 @@ obligations:
       the render pipeline).
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::css_has_math_rules
-          result: pass
+        - verifier: tests/render_kernel.ml
 
 reversal:
   - signal: dollar-math-needed

@@ -3,11 +3,12 @@ schema: math-coding/3.3
 id: self-check-waiver-verdict-coherence-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:60c6caf480f07baefc99915e716cb4ca594847b1dcffe7a6b55f223407dceda1"
-yaml_sha: "sha256:60c6caf480f07baefc99915e716cb4ca594847b1dcffe7a6b55f223407dceda1"
+body_sha: "sha256:8fbdb1e04f4526a1451ec073d8fcda7cdee9a3b60ee655656d082ef1cd966ffe"
+yaml_sha: "sha256:8fbdb1e04f4526a1451ec073d8fcda7cdee9a3b60ee655656d082ef1cd966ffe"
 
 axiom_link:
   - A0
@@ -326,7 +327,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-waiver-verdict.t
-          result: pass
 
   - id: waiver-is-named-in-output
     outcome: waiver-is-named-in-output
@@ -340,7 +340,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-waiver-verdict.t
-          result: pass
 
   - id: pure-aggregation-decision-table
     outcome: pure-aggregation-is-testable
@@ -355,7 +354,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/gate/waiver_aggregation.ml
-          result: pass
 
   - id: scope-fixtures-speak-the-new-vocabulary
     outcome: waived-verdict-is-not-pass
@@ -367,7 +365,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-waiver-scope.t
-          result: pass
 
   - id: counters-reference-no-false-positives
     outcome: counters-drift-is-real
@@ -383,9 +380,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/counters_reference.ml
-          result: pass
-        - verifier: manual-text-scan-packages-module-table-subcommand-count
-          result: pass
+        - verifier: shell-grep tests/counters_reference.ml 34 subcommands total
 
   - id: counters-reference-detects-injected-drift
     outcome: counters-drift-is-real
@@ -400,7 +395,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-review-of-test-rule
-          result: pass
 
   - id: stale-attestation-is-inconclusive
     outcome: stale-attestation-retired
@@ -414,7 +408,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-attestation-inconclusive
-          result: pass
 
 reversal:
   - signal: consumer-requires-the-old-string

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:c7df29cbf5aee40c2c550d6770cd04eb973cb963bf8314cc6fa683b838fa8e0f"
-yaml_sha: "sha256:c7df29cbf5aee40c2c550d6770cd04eb973cb963bf8314cc6fa683b838fa8e0f"
+body_sha: "sha256:4a237dae43123d1fa066cbcc193462b8a67ff8b1bbc7037481d7a43d0ad0094d"
+yaml_sha: "sha256:4a237dae43123d1fa066cbcc193462b8a67ff8b1bbc7037481d7a43d0ad0094d"
 
 intent:
   source: "issue:the-store-claims-passes-nobody-checked-2026-10-25"
@@ -123,7 +123,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
   - id: the-ceilings-have-teeth
     claim: |
@@ -132,7 +131,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
   - id: the-orphans-are-counted
     claim: |
@@ -141,7 +139,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
 risk:
   owner: human:maintainer

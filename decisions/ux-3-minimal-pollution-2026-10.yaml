@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:0c5ca102e6ef6cfbbb3362fe75cbe331c72daba0a57611c3ce0e82a7a9ab88f9"
-yaml_sha: "sha256:0c5ca102e6ef6cfbbb3362fe75cbe331c72daba0a57611c3ce0e82a7a9ab88f9"
+body_sha: "sha256:2705fe37196dc7446c1e22b3ecee710f448d05734f1a341792caaf57219d0ee7"
+yaml_sha: "sha256:2705fe37196dc7446c1e22b3ecee710f448d05734f1a341792caaf57219d0ee7"
 intent: |
   Adopt a `.math-coding/` directory layout as the default for new
   `mathc init` runs and add three env-var overrides
@@ -204,10 +204,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/path_config_test.ml
-          result: pass
 
         - verifier: tests/cli/env-var-resolver.t
-          result: pass
 
   - id: seven-hardcodes-rerouted-through-resolver
     statement: |
@@ -225,7 +223,6 @@ obligations:
       all:
         - verifier: manual-rg-no-hardcoded-decisions-paths-in-lib
 
-          result: pass
   - id: install-ci-workflow-uses-embedded-template
     statement: |
       `lib/init/init.ml::install_ci_workflow` writes
@@ -241,10 +238,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init.t
-          result: pass
 
         - verifier: file-exists templates/ci.yml
-          result: pass
 
   - id: backward-compat-untouched-existing-projects-at-head
     statement: |
@@ -259,10 +254,8 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/decision.yaml
-          result: pass
 
         - verifier: tests/cli/validate-positive.t
-          result: pass
 
 relations:
   addresses:

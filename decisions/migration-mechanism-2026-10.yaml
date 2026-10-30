@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:863413167c6ecb7d44cf77ba98d65d7f87badb961ddcb1691c2d9ba7c3bbec42"
-yaml_sha: "sha256:863413167c6ecb7d44cf77ba98d65d7f87badb961ddcb1691c2d9ba7c3bbec42"
+body_sha: "sha256:3184e1caf60b9c345f88b9f18ceb05d10afc08ab6a2091194afc62537ff8d7b5"
+yaml_sha: "sha256:3184e1caf60b9c345f88b9f18ceb05d10afc08ab6a2091194afc62537ff8d7b5"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -198,7 +198,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-dry-run.t
-          result: pass
 
   - id: manifest-format-parsed
     statement: |
@@ -210,9 +209,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-dry-run.t
-          result: pass
         - verifier: tests/cli/migrate-malformed.t
-          result: pass
 
   - id: noop-on-up-to-date-tree
     statement: |
@@ -224,7 +221,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-no-changes.t
-          result: pass
 
   - id: first-manifest-declared
     statement: |
@@ -236,7 +232,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-no-changes.t
-          result: pass
 
   - id: write-mode-ships-sibling-files-not-overwrites
     statement: |
@@ -250,7 +245,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-write.t
-          result: pass
 
 risk:
   declared_triggers:

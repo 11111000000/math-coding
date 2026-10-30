@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:2a24c839ff745d8bf03e1df70327f6a4356f1628e4e24c64fcfdcabfa296dcf2"
-yaml_sha: "sha256:2a24c839ff745d8bf03e1df70327f6a4356f1628e4e24c64fcfdcabfa296dcf2"
+body_sha: "sha256:12a953df24b71f81be587661f686db5e111aec346e0708be78690ff3b0f628b9"
+yaml_sha: "sha256:12a953df24b71f81be587661f686db5e111aec346e0708be78690ff3b0f628b9"
 
 axiom_link:
   - A0
@@ -215,7 +215,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc rehash
-          result: pass
 
   - id: stale-digest-code-is-documented
     claim: |
@@ -226,7 +225,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc explain-diagnostic MC-SHA-DIGEST-STALE
-          result: pass
 
   - id: this-decision-validates
     claim: |
@@ -236,7 +234,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/enforce-body-sha-digest-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

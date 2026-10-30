@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: candidate-tree-resolves-to-a-commit
 revision: 1
 state: active
-body_sha: "sha256:a6e9d69c7b815185155a0fe06cd7428adbe0cd18bf72daa9d8400c0074370111"
-yaml_sha: "sha256:a6e9d69c7b815185155a0fe06cd7428adbe0cd18bf72daa9d8400c0074370111"
+body_sha: "sha256:1bbaabbec4d19d03147ece19680e7a27ba09e398c0d87fc82ae3018247143c7b"
+yaml_sha: "sha256:1bbaabbec4d19d03147ece19680e7a27ba09e398c0d87fc82ae3018247143c7b"
 axiom_link:
   - A1
   - A2
@@ -173,7 +173,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/candidate-tree.t
-          result: pass
 
   - id: missing-git-refuses-rather-than-falls-back
     outcome: unresolvable-tree-is-a-refusal
@@ -188,7 +187,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/candidate-tree.t
-          result: pass
 
   - id: gate-comment-describes-implemented-filter
     outcome: gate-comment-matches-code
@@ -202,9 +200,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/candidate-tree.t
-          result: pass
         - verifier: dune build
-          result: pass
 
 assumptions:
   - id: write-paths-are-the-only-producers

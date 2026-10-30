@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: obligation-count-reconcile
 revision: 3
 state: active
-body_sha: "sha256:312d671cc61f695ce0344b3f280ea2294c551b8bc22c7beb84f8c315c3bc4110"
-yaml_sha: "sha256:312d671cc61f695ce0344b3f280ea2294c551b8bc22c7beb84f8c315c3bc4110"
+body_sha: "sha256:d1cfe1a25ac5510bdef8139bed7d372e7f2c13c03e64eba6aad24d7a6be01087"
+yaml_sha: "sha256:d1cfe1a25ac5510bdef8139bed7d372e7f2c13c03e64eba6aad24d7a6be01087"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:
@@ -87,11 +87,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/obligation-count-reconcile.yaml
-          result: pass
         - verifier: manual-text-scan-decisions-obligations-yaml-rev-2
-          result: pass
         - verifier: manual-text-scan-decisions-obligations-yaml-7-ids
-          result: pass
 
   - id: corrected-spelling-contract
     outcome: assumption-ids-spelled-correctly
@@ -105,11 +102,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/obligation-count-reconcile.yaml
-          result: pass
         - verifier: manual-text-scan-no-packges-misspelling
-          result: pass
         - verifier: manual-text-scan-contains-packages-spelling
-          result: pass
 
 reversal:
   - signal: aggregator-id-drift

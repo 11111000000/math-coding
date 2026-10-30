@@ -4,8 +4,8 @@ id: fix-yaml-parser-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:191e951ec528f79819ea510cd7ef32b195bc73972a111bde6d9b15242af5f1c0"
-yaml_sha: "sha256:191e951ec528f79819ea510cd7ef32b195bc73972a111bde6d9b15242af5f1c0"
+body_sha: "sha256:75c3c29e21f58be13e9886b0348e8bcb181e385258ed61f4da92e50a38659cc4"
+yaml_sha: "sha256:75c3c29e21f58be13e9886b0348e8bcb181e385258ed61f4da92e50a38659cc4"
 
 intent: |
   The hand-rolled YAML parser in `lib/codec.ml` consumed the
@@ -92,9 +92,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/yaml_block_scalars.exe
-          result: pass
 
   - id: inline-seq-fixture-top-level
     claim: |
@@ -105,7 +103,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/yaml_block_scalars.exe
-          result: pass
 
   - id: cram-test-yaml-parser-accept
     claim: |
@@ -117,7 +114,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test tests/cli/yaml-parser.t
-          result: pass
 
 
 axiom_link:

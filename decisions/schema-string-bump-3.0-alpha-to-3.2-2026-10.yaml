@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.2
 revision: 1
 state: active
-body_sha: "sha256:ed8d931152d57026f29d85f52e38db72e09986b3ff906d89040f37df917990da"
-yaml_sha: "sha256:ed8d931152d57026f29d85f52e38db72e09986b3ff906d89040f37df917990da"
+body_sha: "sha256:3d986c091e41b93d4fbe0d6c4ab935d0df6d5ecd031a8fd079c66ae8dc4dfcc5"
+yaml_sha: "sha256:3d986c091e41b93d4fbe0d6c4ab935d0df6d5ecd031a8fd079c66ae8dc4dfcc5"
 intent: |
   Close the schema-string drift between `decisions/*.yaml`
   (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
@@ -199,7 +199,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/decision.yaml
-          result: pass
 
   - id: migration-manifest-non-empty
     statement: |
@@ -211,7 +210,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/migrations/3.0-alpha-to-3.2.yaml
-          result: pass
 
   - id: bulk-bump-replayable
     statement: |
@@ -226,7 +224,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-bump-replay.t
-          result: pass
 
 risk:
   declared_triggers:

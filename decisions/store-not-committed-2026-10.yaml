@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:3993377843c48325bbac1d454b80cd30273bb7460453445253466415717d39c7"
-yaml_sha: "sha256:3993377843c48325bbac1d454b80cd30273bb7460453445253466415717d39c7"
+body_sha: "sha256:0c2a07c780eb732ce42ae68a4aaf0dfdb9e68f6f95cba9a243a719688549bca6"
+yaml_sha: "sha256:0c2a07c780eb732ce42ae68a4aaf0dfdb9e68f6f95cba9a243a719688549bca6"
 
 intent: |
   The attestation store was a COMMITTED artefact. It was generated
@@ -110,9 +110,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists .gitignore
-          result: pass
         - verifier: bash -c "git check-ignore -q attestations/probe.json"
-          result: pass
 
   - id: ci-generates-and-publishes-the-store
     claim: |
@@ -122,15 +120,10 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-q-generate-attestation-store-github-workflows-ci-yml
-          result: pass
         - verifier: manual-grep-q-upload-artifact-github-workflows-ci-yml
-          result: pass
         - verifier: manual-grep-q-no-ceiling-monotonicity-github-workflows-ci-yml
-          result: pass
         - verifier: manual-store-generation-precedes-first-consumer-github-workflows-ci-yml
-          result: pass
         - verifier: tests/fixtures/ci-prereqs-precede-consumers.sh
-          result: pass
 
   - id: one-generation-path
     claim: |
@@ -140,9 +133,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-q-sign-store-sh-scripts-resign-changed-sh
-          result: pass
         - verifier: file-exists scripts/sign-store.sh
-          result: pass
 
   - id: the-store-is-a-function-of-the-run
     claim: |
@@ -154,9 +145,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists scripts/sign-store.sh
-          result: pass
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
 counterexample: |
   The strongest objection is that the committed store was a RECORD.

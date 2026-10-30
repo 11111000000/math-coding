@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:6f70bac65d2cc10702cf2ec323b58259f6f11e78db2579f17ca51f40f63584f2"
-yaml_sha: "sha256:6f70bac65d2cc10702cf2ec323b58259f6f11e78db2579f17ca51f40f63584f2"
+body_sha: "sha256:dad733ce41b3ef41897f7917790acd0d157f7c13dd0d6815794a2c7636db714e"
+yaml_sha: "sha256:dad733ce41b3ef41897f7917790acd0d157f7c13dd0d6815794a2c7636db714e"
 
 axiom_link:
   - A0
@@ -104,7 +104,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/decision-level-census-2026-10.yaml`
@@ -112,7 +111,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/decision-level-census-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

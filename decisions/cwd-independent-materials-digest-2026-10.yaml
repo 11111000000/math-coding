@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/cwd-independent-self-check.sh
-body_sha: "sha256:41afe7bb4b6a773d858e96b216ed2434b20747214e83b56293859f1469228e35"
-yaml_sha: "sha256:41afe7bb4b6a773d858e96b216ed2434b20747214e83b56293859f1469228e35"
+body_sha: "sha256:9d3ddd23ce2f5cce7673ee8fc55e738fb81312157cca8487a3f88a8292bc55ce"
+yaml_sha: "sha256:9d3ddd23ce2f5cce7673ee8fc55e738fb81312157cca8487a3f88a8292bc55ce"
 
 intent: { source: "issue:self-check-depended-on-the-callers-working-directory-2026-10-25", text: "mathc self-check answered differently depending on the directory it was run from. The same binary, the same store and the same tree gave 198 passing subjects and 0 open-with-waiver subjects when run from the repository root, and 10 passing subjects and 7 open-with-waiver subjects when run from a dune cram sandbox. Two separate causes, both of them the same shape as the defects this corpus has been cataloguing: a check that looks at something other than what it claims to check." }
 
@@ -77,7 +77,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/cwd-independent-self-check.sh
-          result: pass
 
   - id: the-fixture-has-teeth
     claim: |
@@ -87,7 +86,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/cwd-independent-self-check.sh
-          result: pass
 
 scope:
   paths:
@@ -109,7 +107,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/cwd-independent-self-check.sh
-          result: pass
 
 risk:
   owner: human:maintainer

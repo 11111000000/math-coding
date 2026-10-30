@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.3-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f9b7390afa214c28ab9aed561b2d9b76e719e4558a9e3acdb05a798b065db357"
-yaml_sha: "sha256:f9b7390afa214c28ab9aed561b2d9b76e719e4558a9e3acdb05a798b065db357"
+body_sha: "sha256:a8069b70f5db39a1d5ba4dbab8f529c3c135e40ea3454d529e5ac0976754b027"
+yaml_sha: "sha256:a8069b70f5db39a1d5ba4dbab8f529c3c135e40ea3454d529e5ac0976754b027"
 intent: |
   Bring the JSON-schema `$id` family from `3.0-alpha` to `3.3`,
   matching the published brand that this release cycle adopts.
@@ -157,7 +157,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-schema-id
-          result: pass
   - id: schema-enum-accepts-3-3
     statement: |
       `schemas/decision.json`'s `schema` property enum carries
@@ -170,7 +169,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counters-schema-introspection.t
-          result: pass
   - id: migration-manifest-ships
     statement: |
       `decisions/migrations/3.0-alpha-to-3.3.yaml` exists and
@@ -178,7 +176,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/migrate-bump-replay.t
-          result: pass
   - id: live-decisions-still-validate
     statement: |
       `tests/cli/validate-positive.t` passes; the
@@ -188,9 +185,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
         - verifier: manual-target-missing-tests-t2-1-mathc-validate-regress
-          result: pass
 
 reversal:
   - signal: a-live-decision-rejects-after-the-bump

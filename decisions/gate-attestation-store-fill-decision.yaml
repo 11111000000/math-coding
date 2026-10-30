@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: gate-attestation-store-fill
 revision: 2
 state: active
-body_sha: "sha256:429c671dc7069daee882015c5e8a99bd948124bc8f81c4c9aab7a8aa06edd327"
-yaml_sha: "sha256:429c671dc7069daee882015c5e8a99bd948124bc8f81c4c9aab7a8aa06edd327"
+body_sha: "sha256:cd65900536236b1cc83e2add1fa65894da3c5122da00853699d24e02322d5ae4"
+yaml_sha: "sha256:cd65900536236b1cc83e2add1fa65894da3c5122da00853699d24e02322d5ae4"
 intent: |
   Close ROADMAP Tier-1 #1 (`gate-attestation-store-fill`). The
   v3-alpha-0.0.19 `mathc gate` is a SCAFFOLD: lib/gate.ml:84-87
@@ -178,9 +178,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-empty.t
-          result: pass
         - verifier: tests/cli/gate-pass.t
-          result: pass
   - id: gate-real-verdict
     outcome: gate-consumes-store
     claim: |
@@ -191,11 +189,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-pass.t
-          result: pass
         - verifier: tests/cli/gate-fail.t
-          result: pass
         - verifier: tests/cli/gate-stale.t
-          result: pass
   - id: gate-exit-honest
     outcome: exit-code-honest
     claim: |
@@ -205,13 +200,9 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-pass.t
-          result: pass
         - verifier: tests/cli/gate-fail.t
-          result: pass
         - verifier: tests/cli/gate-stale.t
-          result: pass
         - verifier: tests/cli/gate-empty.t
-          result: pass
   - id: gate-fixtures-coverage
     outcome: gate-fixtures-pass
     claim: |
@@ -222,13 +213,9 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-pass.t
-          result: pass
         - verifier: tests/cli/gate-fail.t
-          result: pass
         - verifier: tests/cli/gate-stale.t
-          result: pass
         - verifier: tests/cli/gate-empty.t
-          result: pass
 
 reversal:
   - signal: store-protocol-changes

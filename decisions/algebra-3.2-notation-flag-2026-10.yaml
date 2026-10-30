@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: algebra-3.2-notation-flag-2026-10
 revision: 2
 state: active
-body_sha: "sha256:fdecefce0ef031bd82c88e8d98de77f1a6871a2f6c5fc96cf28dd44fb8f884fe"
-yaml_sha: "sha256:fdecefce0ef031bd82c88e8d98de77f1a6871a2f6c5fc96cf28dd44fb8f884fe"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:83e882a748f33a53b0162c24eb18c8682ffe9cfc96dab07da97e13d16238256a"
+yaml_sha: "sha256:83e882a748f33a53b0162c24eb18c8682ffe9cfc96dab07da97e13d16238256a"
 intent: |
   Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent
@@ -126,8 +127,7 @@ obligations:
       summarising the ambiguity.
     acceptance:
       all:
-        - verifier: manual-rg-n-algebra-3-2-notation-flag-2026-10-spec-alge
-          result: pass
+        - verifier: shell-grep spec/algebra-3.2.md Notation note
 
 
 reversal:

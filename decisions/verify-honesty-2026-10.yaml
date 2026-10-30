@@ -4,8 +4,8 @@ id: verify-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:144e71909146acd51450c800df4ea3db00b8e6b84d35a9f3aedaa508aaadde67"
-yaml_sha: "sha256:144e71909146acd51450c800df4ea3db00b8e6b84d35a9f3aedaa508aaadde67"
+body_sha: "sha256:54c30dbccc2c0a62ee0c16a548fbde119b4fdf4de1c14c4ad6f8065f123fee74"
+yaml_sha: "sha256:54c30dbccc2c0a62ee0c16a548fbde119b4fdf4de1c14c4ad6f8065f123fee74"
 
 intent: |
   Make the verifier path honest about the difference between a check
@@ -111,7 +111,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-exit.t
-          result: pass
   - id: the-exit-code-separates-verified-from-unverified
     claim: |
       `mathc verify` exits 3 when an obligation was not verified,
@@ -119,7 +118,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-exit.t
-          result: pass
   - id: the-stamp-flips-exactly-when-the-code-changes
     claim: |
       The kernel stamp reports "changed" when a file under lib/
@@ -129,7 +127,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/the-kernel-stamp-flips-when-the-code-changes.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/verify-honesty-2026-10.yaml`
@@ -137,7 +134,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/verify-honesty-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

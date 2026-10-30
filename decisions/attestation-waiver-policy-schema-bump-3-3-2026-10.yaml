@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: attestation-waiver-policy-schema-bump-3-3-2026-10
 revision: 2
 state: active
-body_sha: "sha256:50d278dfed69623540f2234a78644747c947391ecfa4ef465b17656067a9be09"
-yaml_sha: "sha256:50d278dfed69623540f2234a78644747c947391ecfa4ef465b17656067a9be09"
+body_sha: "sha256:753344d16ac3b0ec21e15d1ff1870212c0b4064955942ce2bc477b281eedf030"
+yaml_sha: "sha256:753344d16ac3b0ec21e15d1ff1870212c0b4064955942ce2bc477b281eedf030"
 mode: standard
 change_kind: implementation
 axiom_link:
@@ -105,21 +105,18 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-attestation-enum
-          result: pass
   - id: waiver-enum-accepts-3-3
     claim: |
       `mathc validate decisions/waivers/<existing>.yaml` exits 0.
     acceptance:
       all:
         - verifier: mathc validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
-          result: pass
   - id: policy-enum-accepts-3-3
     claim: |
       `mathc validate decisions/<policy>.yaml` exits 0.
     acceptance:
       all:
         - verifier: manual-text-scan-policy-enum
-          result: pass
   - id: existing-attestations-still-validate
     claim: |
       `mathc validate` accepts a TRACKED attestation sample written
@@ -151,7 +148,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate tests/fixtures/attestation-3.3-sample.json
-          result: pass
   - id: self-check-verdict-unchanged
     claim: |
       `mathc self-check` exit code is unchanged after the
@@ -159,7 +155,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-verdict
-          result: pass
 
 reversal:
   - signal: strict-deprecation-3-4-trigger

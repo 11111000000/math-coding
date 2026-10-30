@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-broken-links-2026-10
 revision: 2
 state: active
-body_sha: "sha256:c6d01ea3523d87d3d0c5046568c480a5e6e7e1ee62da3312d8a9da02444aec5c"
-yaml_sha: "sha256:c6d01ea3523d87d3d0c5046568c480a5e6e7e1ee62da3312d8a9da02444aec5c"
+body_sha: "sha256:4efc3651d5a44d8a550eb110ea6001f3ac1f7d9997e2908c7e0a4450229e61dc"
+yaml_sha: "sha256:4efc3651d5a44d8a550eb110ea6001f3ac1f7d9997e2908c7e0a4450229e61dc"
 axiom_link:
   - A1
 intent: |
@@ -357,8 +357,7 @@ obligations:
       (no `home.html` anywhere on the page).
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ru_home_sibling_is_index_html
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: footer-meta-docs-link-github
     outcome: site-footer-meta-doc-origin
@@ -371,8 +370,7 @@ obligations:
       `../PACKAGES.html`, or `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::footer_links_github_origin
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: nav-has-github-link
     outcome: site-nav-github-presence
@@ -383,10 +381,8 @@ obligations:
       …>…</a>`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::nav_has_github_link
-          result: pass
+        - verifier: tests/render_kernel.ml
         - verifier: tests/cli/render.t
-          result: pass
 
   - id: axiom-pages-link-rendered-spec
     outcome: site-link-integrity
@@ -399,8 +395,7 @@ obligations:
       raw-markdown link `../spec/algebra-3.2.md`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::axioms_link_html_not_md
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: non-home-lang-toggle-omits-en-suffix
     outcome: site-link-integrity
@@ -412,10 +407,8 @@ obligations:
       `<page_key>.en.html`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::lang_toggle_en_no_suffix
-          result: pass
+        - verifier: tests/render_kernel.ml
         - verifier: tests/cli/render.t
-          result: pass
 
 reversal:
   - signal: github-link-becomes-noise

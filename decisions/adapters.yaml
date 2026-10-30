@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: adapters
 revision: 3
 state: active
-body_sha: "sha256:a95bc8bf815a0a29f4495090532091fb3420aa84f6b5812c339fcbf7a9588765"
-yaml_sha: "sha256:a95bc8bf815a0a29f4495090532091fb3420aa84f6b5812c339fcbf7a9588765"
+body_sha: "sha256:baa7c6063e327382656623a9803bf60800c95f174e3f734d6a7f0b2d7886dc97"
+yaml_sha: "sha256:baa7c6063e327382656623a9803bf60800c95f174e3f734d6a7f0b2d7886dc97"
 intent: |
   Add the first non-CLI adapters to the math-coding 3.0-alpha
   protocol: a JUnit XML importer and a Git changed-files
@@ -283,7 +283,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/junit-adapter.t
-          result: pass
 
   - id: git-changed-files-adapter
     outcome: git-changed-files-adapter
@@ -320,7 +319,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/git-adapter.t
-          result: pass
 
 reversal:
   - signal: kernel-attestation-store-arrives

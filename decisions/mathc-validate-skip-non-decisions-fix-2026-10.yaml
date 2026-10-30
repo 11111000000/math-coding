@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: mathc-validate-skip-non-decisions-fix-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3b981a524ad32b13c02fdd60f430d6a97e012dc9bae863e390c6809d00f82f27"
-yaml_sha: "sha256:3b981a524ad32b13c02fdd60f430d6a97e012dc9bae863e390c6809d00f82f27"
+body_sha: "sha256:902661e216dc91303c7e112e3e08c0237ed07e7d56437e442e8e9970ff9cfdb3"
+yaml_sha: "sha256:902661e216dc91303c7e112e3e08c0237ed07e7d56437e442e8e9970ff9cfdb3"
 intent: |
   Reverts the deferral recorded at
   `decisions/mathc-validate-skip-non-decisions-deferral-2026-10.yaml@1`
@@ -174,7 +174,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-peek-schema-family
-          result: pass
   - id: dispatcher-consults-peek
     statement: |
       `grep -nE 'peek_schema_family' bin/Mathc.ml` returns at
@@ -182,7 +181,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-dispatcher-peek
-          result: pass
   - id: emit-handles-aggregate
     statement: |
       `grep -nE 'Accept_aggregate' bin/Mathc.ml` returns at
@@ -190,7 +188,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-emit-aggregate
-          result: pass
   - id: cram-fixture-pass
     statement: |
       `tests/cli/validate-non-decisions.t` exits 0 (the cram
@@ -199,7 +196,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-non-decisions.t
-          result: pass
   - id: live-decisions-still-validate
     statement: |
       `mathc validate decisions/decision.yaml` exits 0 with
@@ -208,7 +204,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
   - id: dune-build-and-tests-green
     statement: |
       `dune build --root . && dune test --root .` exits 0
@@ -216,9 +211,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: dune test
-          result: pass
 
 reversal:
   - signal: dune-build-broken-by-this-commit

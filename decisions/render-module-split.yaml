@@ -4,8 +4,8 @@ id: render-module-split
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:d29b90974a5d63a51a58e846c0eab4ce63970143fb936e02f9211f6aaed400a0"
-yaml_sha: "sha256:d29b90974a5d63a51a58e846c0eab4ce63970143fb936e02f9211f6aaed400a0"
+body_sha: "sha256:40eb484eff7a92f7c3fb59b287af202bce2ca948dc805c89b47aae8228c0e7cf"
+yaml_sha: "sha256:40eb484eff7a92f7c3fb59b287af202bce2ca948dc805c89b47aae8228c0e7cf"
 
 intent: |
   `lib/render.ml` is 3040 lines and is the single largest
@@ -57,9 +57,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/render_kernel.exe
-          result: pass
 
 axiom_link:
   - A0

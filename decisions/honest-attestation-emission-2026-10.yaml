@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/executed-evidence-census.sh
-body_sha: "sha256:9e1813b0320ffbb79ca765c0219c40c811703261287660d0d34765f48dd43e11"
-yaml_sha: "sha256:9e1813b0320ffbb79ca765c0219c40c811703261287660d0d34765f48dd43e11"
+body_sha: "sha256:533bcc098af833e14c40c119e4126e44ca61bc4c413909e454bc1de8346d7a8e"
+yaml_sha: "sha256:533bcc098af833e14c40c119e4126e44ca61bc4c413909e454bc1de8346d7a8e"
 
 intent: { source: "issue:census-caught-dishonest-re-sign-2026-10-25", text: "The re-signing of the store wrote three kinds of attestation the corpus's own census had already declared dishonest. Measured after a re-sign over a corpus that had moved: 366 passes for non-executable verifiers (a manual- declaration recorded as a pass), 1216 runtime attestations that name no run (kind test/build with no producer.run anchor), and 333 orphan attestations (evidence about subjects the corpus no longer has). The census, tests/fixtures/executed-evidence-census.sh, had pinned ceilings of 364, 886 and 6 respectively, and it went red. The system worked: the guard caught the liar, and the liar was the tool the guard was supposed to certify." }
 
@@ -76,7 +76,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
   - id: the-census-is-green
     claim: |
@@ -84,7 +83,6 @@ outcomes:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
 scope:
   paths:
@@ -107,7 +105,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
   - id: runtime-attestations-name-their-run
     claim: |
@@ -116,7 +113,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
   - id: the-re-sign-prunes-orphans
     claim: |
@@ -124,7 +120,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/executed-evidence-census.sh
-          result: pass
 
 risk:
   owner: human:maintainer

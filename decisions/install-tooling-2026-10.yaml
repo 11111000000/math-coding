@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:4e3376df656c5c50742668eb47f6e505153f9f7855c1dcf7d0d61d4850a425c1"
-yaml_sha: "sha256:4e3376df656c5c50742668eb47f6e505153f9f7855c1dcf7d0d61d4850a425c1"
+body_sha: "sha256:3ad2ff38ea54f3fc669bcdcbf746c9f2c2dcfe146d483aa37b6c1c15df90ce9b"
+yaml_sha: "sha256:3ad2ff38ea54f3fc669bcdcbf746c9f2c2dcfe146d483aa37b6c1c15df90ce9b"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -395,9 +395,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-sh-verifies-sha256
     outcome: install-sh-verifies-sha256
     claim: |
@@ -407,7 +405,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-sh-success-path
     outcome: install-sh-success-path
     claim: |
@@ -416,7 +413,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-sh-user-skill
     outcome: install-sh-user-skill
     claim: |
@@ -425,9 +421,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-sh-prints-docker-command
     outcome: install-sh-prints-docker-command
     claim: |
@@ -436,7 +430,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-sh-prints-nix-command
     outcome: install-sh-prints-nix-command
     claim: |
@@ -445,7 +438,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: docker-image-publishes-ghcr
     outcome: docker-image-publishes-ghcr
     claim: |
@@ -455,9 +447,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
         - verifier: manual-nix-flake-check
-          result: pass
   - id: nix-run-derivation-exists
     outcome: nix-run-derivation-exists
     claim: |
@@ -466,7 +456,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: adoption-bundle-in-release
     outcome: adoption-bundle-in-release
     claim: |
@@ -475,7 +464,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
   - id: install-template-validates
     outcome: install-template-validates
     claim: |
@@ -484,9 +472,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install.t
-          result: pass
         - verifier: tests/cli/install.t
-          result: pass
 
 reversal:
   - signal: install-tooling-bumped

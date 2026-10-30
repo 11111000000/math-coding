@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-packages-subcommand
 revision: 3
 state: active
-body_sha: "sha256:42b53002f9bea4016b846cf6f2162b99eec9df822e2c551ef9e0e298bdd0a533"
-yaml_sha: "sha256:42b53002f9bea4016b846cf6f2162b99eec9df822e2c551ef9e0e298bdd0a533"
+body_sha: "sha256:be4f2305871f15af6ea1d5466ca62f6de51bb6a1ecc4ebda4af9b4bf721d4488"
+yaml_sha: "sha256:be4f2305871f15af6ea1d5466ca62f6de51bb6a1ecc4ebda4af9b4bf721d4488"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
@@ -107,7 +107,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc packages --format=json
-          result: pass
 
   - id: packages-cli-dispatcher
     statement: |
@@ -117,7 +116,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/packages.t
-          result: pass
 
   - id: packages-site-bridge
     statement: |
@@ -129,7 +127,6 @@ obligations:
       all:
         - verifier: manual-rendered-asset-index
           matching the kernel's count
-          result: pass
 
 evidence:
   - kind: declared

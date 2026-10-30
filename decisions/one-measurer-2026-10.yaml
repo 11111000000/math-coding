@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:fe1ee9c7b14728e836d10b631e3a9ef89e26b2cf68f0e6587c9cc0c864e97fad"
-yaml_sha: "sha256:fe1ee9c7b14728e836d10b631e3a9ef89e26b2cf68f0e6587c9cc0c864e97fad"
+body_sha: "sha256:bd7caa6750bfb2a40416c98f873963efd63d6ae29c205cf9c1275e4aeea0fad6"
+yaml_sha: "sha256:bd7caa6750bfb2a40416c98f873963efd63d6ae29c205cf9c1275e4aeea0fad6"
 
 axiom_link:
   - A0
@@ -73,7 +73,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/one-measurer-2026-10.yaml` returns
@@ -81,7 +80,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/one-measurer-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

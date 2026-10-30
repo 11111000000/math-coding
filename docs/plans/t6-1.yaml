@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t6-1-no-stub-without-tracking
 revision: 1
 state: active
-body_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
-yaml_sha: "sha256:df6373bdcd21bc0188ea552b0927ce42543b59cdd973abaa9cf69901379ec385"
+body_sha: "sha256:92355098aa9883dc904ffac54e2f742e06b07d2f7a833807a858de4302ac5ea5"
+yaml_sha: "sha256:92355098aa9883dc904ffac54e2f742e06b07d2f7a833807a858de4302ac5ea5"
 intent: |
   Sub-decision under `decisions/plan-2026-10-improvements.yaml`
   obligation `t6-1-no-stub-without-tracking`. Bans stub markers
@@ -175,9 +175,7 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check.sh
-          result: pass
         - verifier: scripts/check-stub-lint.sh
-          result: pass
 
   - id: p8-no-stub-untracked-test
     outcome: p8-no-stub-untracked-alcotest
@@ -194,8 +192,7 @@ obligations:
       `p8_no_stub_untracked` as `pass` on a clean tree.
     acceptance:
       all:
-        - verifier: tests/process_principles.ml::p8_no_stub_untracked
-          result: pass
+        - verifier: tests/process_principles.ml
 
   - id: sub-decision-validate-accept
     outcome: sub-decision-accepted
@@ -211,9 +208,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/plan-2026-10-improvements/t6-1.yaml
-          result: pass
         - verifier: mathc-self-check-verdict-pass
-          result: pass
 
 reversal:
   - signal: stub-lint-breaks-clean-tree

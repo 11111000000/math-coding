@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-path-resolution.sh
-body_sha: "sha256:f74c51a5490e29e790a2c084a05a7f9aaa41e510fa360bd3cd9da7d53829ce77"
-yaml_sha: "sha256:f74c51a5490e29e790a2c084a05a7f9aaa41e510fa360bd3cd9da7d53829ce77"
+body_sha: "sha256:2cbfbe211f5fc989c6159cd3c1e86ae4689828047c112565c2d9aa55c2b82973"
+yaml_sha: "sha256:2cbfbe211f5fc989c6159cd3c1e86ae4689828047c112565c2d9aa55c2b82973"
 
 intent: { source: "issue:verifier-path-dropped-silently-2026-10-23", text: "The kernel has no representation of a verifier's evidence path. Domain.Verifier carries two fields, id and result; Decision.parse_verifier reads two keys, verifier and result. A sibling path: (or needle:) key on an acceptance item was therefore dropped at parse time with no diagnostic. schemas/common.json already forbids it - additionalProperties false, properties verifier/result/review - but nothing enforced that schema, so additionalProperties false was documentation rather than a check. Measured on this corpus on 2026-10-22: 83 acceptance items named an absolute path, 28 of them into .paseo/worktrees/math-coding/<deleted-branch>/..., and every one of them validated clean." }
 
@@ -135,7 +135,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verifier-path-resolution.sh
-          result: pass
 
   - id: missing-relative-path-is-a-warning
     claim: |
@@ -145,7 +144,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verifier-path-resolution.sh
-          result: pass
 
   - id: the-diagnostic-is-explainable
     claim: |
@@ -154,7 +152,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verifier-path-resolution.sh
-          result: pass
 
 risk:
   owner: human:maintainer

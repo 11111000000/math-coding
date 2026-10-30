@@ -3,10 +3,11 @@ schema: math-coding/3.3
 id: path-resolver-audit-2026-11
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: implementation
-body_sha: "sha256:812d084eae0722fc1cd0c050c5e9bb5399a5dc7e18f00d6b4cd9ac1ee0967cad"
-yaml_sha: "sha256:812d084eae0722fc1cd0c050c5e9bb5399a5dc7e18f00d6b4cd9ac1ee0967cad"
+body_sha: "sha256:1d617f7e6f67b712f4e5c2cebc202e9761870bd270338d62378ee0fe3b7d824a"
+yaml_sha: "sha256:1d617f7e6f67b712f4e5c2cebc202e9761870bd270338d62378ee0fe3b7d824a"
 
 intent: |
   Close the F10 finding from
@@ -87,7 +88,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/explain-env-var.t
-          result: pass
 
   - id: a2-execution-logs-fixed
     claim: |
@@ -98,7 +98,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/execution-logs-env-var.t
-          result: pass
 
   - id: a2-re-evaluate-decisions-fixed
     claim: |
@@ -111,7 +110,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate-decisions-env-var.t
-          result: pass
 
   - id: a2-render-fixed
     claim: |
@@ -121,7 +119,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/render-env-var.t
-          result: pass
 
   - id: a2-decision-state-fixed
     claim: |
@@ -131,7 +128,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/decision-state-env-var.t
-          result: pass
 
   - id: a2-doctor-fixed
     claim: |
@@ -142,7 +138,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/doctor-env-var.t
-          result: pass
 
   - id: a2-policy-fixed
     claim: |
@@ -153,7 +148,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/policy-env-var.t
-          result: pass
 
 
   - id: a2-no-literal-paths
@@ -165,9 +159,8 @@ obligations:
       sufficient).
     acceptance:
       all:
-        - verifier: manual-shell-grep-unqualified
+        - verifier: shell-grep bin/Mathc.ml Filename.concat
           needle: "decisions/|attestations/|policies\\.yaml"
-          result: pass
 
 risk:
   declared_triggers:

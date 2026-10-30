@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:51f16c2dd24df04e56b8dd43874e3ba7a003663309c213986422eb2d4f068eaa"
-yaml_sha: "sha256:51f16c2dd24df04e56b8dd43874e3ba7a003663309c213986422eb2d4f068eaa"
+body_sha: "sha256:467cec085d9291c991b0242a8feb6f770c96bb21fc5b1cb80b9f754391a78b17"
+yaml_sha: "sha256:467cec085d9291c991b0242a8feb6f770c96bb21fc5b1cb80b9f754391a78b17"
 axiom_link:
   - A0
   - A3
@@ -239,7 +239,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/mcp-read-write-env-gate.t
-          result: pass
 reversal:
   - signal: default-flip-requested
     condition: |

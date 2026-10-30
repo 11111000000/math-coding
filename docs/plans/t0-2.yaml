@@ -3,8 +3,8 @@ schema: math-coding/3.0-alpha
 id: t0-2-sha-match-enforced
 revision: 1
 state: active
-body_sha: "sha256:2e610bf8182a3970e0992e4b143871b7878db0e214022a073c58834b3541ca0e"
-yaml_sha: "sha256:2e610bf8182a3970e0992e4b143871b7878db0e214022a073c58834b3541ca0e"
+body_sha: "sha256:8dfa57c454b51a903ee3305dbcacb20815d967881f8dcaef9e4ba353ebbed87d"
+yaml_sha: "sha256:8dfa57c454b51a903ee3305dbcacb20815d967881f8dcaef9e4ba353ebbed87d"
 intent: |
   Enforce the schema-level sha-match rule at parser level:
   `mathc validate` MUST reject any Decision that records both
@@ -262,11 +262,8 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/cli/validate-sha-match.t (positive: equal → accept)
-          result: pass
         - verifier: tests/cli/validate-sha-match.t (negative: mismatch → reject MC-SHA-MISMATCH)
-          result: pass
 
   - id: explain-registry-includes-sha-mismatch
     statement: |
@@ -280,9 +277,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc explain-diagnostic MC-SHA-MISMATCH exits 0
-          result: pass
         - verifier: tests/cli/validate-sha-match.t (explain dispatch)
-          result: pass
 
   - id: sub-decisions-rehashed
     statement: |
@@ -303,7 +298,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate on each sub-decision file
-          result: pass
 
 reversal:
   - signal: sha-match-rule-broadly-rejected
