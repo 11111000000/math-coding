@@ -7,8 +7,8 @@ negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:0b813ecd77da006e22c8fbe91f62a48078dafee0f9e837667a64df00e654c2e4"
-yaml_sha: "sha256:0b813ecd77da006e22c8fbe91f62a48078dafee0f9e837667a64df00e654c2e4"
+body_sha: "sha256:7af37c64d0731aae1f47915dcb5f57f635148f4850e6d1667cd0fe20eedcafbb"
+yaml_sha: "sha256:7af37c64d0731aae1f47915dcb5f57f635148f4850e6d1667cd0fe20eedcafbb"
 
 axiom_link:
   - A0
@@ -492,7 +492,7 @@ relations:
   addresses:
     - path-probe-anchoring-2026-11@2
     - waiver-infrastructure-2026-10@1
-    - enable-counters-drift-test-2026-10@1
+    - archive/decisions/enable-counters-drift-test-2026-10.yaml
   depends_on:
     - waiver-infrastructure-2026-10@1
   supersedes: []

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:dbc87dacea64296ad1c70197b6108abe714fd7a61499f3835b9e8078528df484"
-yaml_sha: "sha256:dbc87dacea64296ad1c70197b6108abe714fd7a61499f3835b9e8078528df484"
+body_sha: "sha256:42ee32b8a4c9e1e184b0216f903506b86cf04abd11bcb37b4ee3bdd753dbe9ce"
+yaml_sha: "sha256:42ee32b8a4c9e1e184b0216f903506b86cf04abd11bcb37b4ee3bdd753dbe9ce"
 
 intent: |
   Реализовать Phase 1+ из решения `render-module-split@1`: разбить
@@ -113,7 +113,7 @@ risk:
 relations:
   addresses:
     - render-module-split@1
-    - render-html-templates-2026-10@1
+    - archive/decisions/render-html-templates-2026-10.yaml
 
 links:
   - docs/plans/render-html-templates-2026-10.md
