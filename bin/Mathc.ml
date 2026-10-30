@@ -4385,7 +4385,7 @@ let[@warning "-32"] plan_verifier ~project_root scheme args =
         let pattern = String.concat " " rest in
         if pattern = "" then Plan_fail "shell-grep: needs a pattern"
         else
-          match repo_file ~project_root file with
+          match repo_path ~project_root file with
           | Error why -> Plan_fail why
           | Ok (abs, _) -> Plan_ok (Plan_grep (abs, pattern, true)))
   else if scheme = "shell-grep-absent" then

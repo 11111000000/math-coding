@@ -4,9 +4,9 @@ id: cli-canonical-name
 revision: 4
 state: active
 
-body_sha: "sha256:1fc18e32085e5b9a015c765656446e2316db76e6c42cd610f840db9ed08e6436"
+body_sha: "sha256:dfafb8eea3d692a5e344884e0a6493f266a9c7f72ddfd699c576a4aeaf0cfe5a"
 
-yaml_sha: "sha256:1fc18e32085e5b9a015c765656446e2316db76e6c42cd610f840db9ed08e6436"
+yaml_sha: "sha256:dfafb8eea3d692a5e344884e0a6493f266a9c7f72ddfd699c576a4aeaf0cfe5a"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -183,8 +183,8 @@ obligations:
       together. Each renamed decision's revision is bumped by 1.
     acceptance:
       all:
-        - verifier: manual-text-scan-decisions-no-mc-id
-        - verifier: manual-text-scan-decisions-no-mc-verifier
+        - verifier: 'shell-grep-absent decisions "- verifier: mc-"'
+        - verifier: 'shell-grep-absent decisions "id: mc-"'
   - id: site-classes-renamed
     outcome: site-classes-renamed
     claim: |
@@ -193,9 +193,9 @@ obligations:
       preserved (the renames are 1-to-1 on selectors).
     acceptance:
       all:
-        - verifier: manual-text-scan-assets-style-css-no-mathc
-        - verifier: manual-text-scan-lib-render-no-mathc-class
-        - verifier: manual-text-scan-lib-packages-no-mathc-class
+        - verifier: shell-grep assets/style.css mathc-
+        - verifier: shell-grep lib/render mathc-
+        - verifier: shell-grep lib/packages.ml mathc-
   - id: skill-url-points-at-real-asset
     outcome: skill-url-correct
     claim: |

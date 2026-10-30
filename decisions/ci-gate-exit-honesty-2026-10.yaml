@@ -4,8 +4,8 @@ id: ci-gate-exit-honesty-2026-10
 revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:c07e825720faa9151637c8c0d7568d3f550d8473809970f4aad033986ea4625e"
-yaml_sha: "sha256:c07e825720faa9151637c8c0d7568d3f550d8473809970f4aad033986ea4625e"
+body_sha: "sha256:14c38ba0748b563ace08dbea49f4157bec3101410009790fa56900c44e2f9d43"
+yaml_sha: "sha256:14c38ba0748b563ace08dbea49f4157bec3101410009790fa56900c44e2f9d43"
 
 intent: |
   Make the two gates that the project's central claim rests on
@@ -212,9 +212,9 @@ obligations:
       old soft-pass comment is gone.
     acceptance:
       all:
-        - verifier: manual-shell-grep-verify-test-suite-scripts-dev
-        - verifier: manual-shell-grep-verify-test-exclusions-scripts-dev
-        - verifier: manual-shell-grep-dev-fast-test-scripts-dev
+        - verifier: shell-grep scripts/dev verify_test_suite
+        - verifier: shell-grep scripts/dev verify_test_exclusions
+        - verifier: shell-grep scripts/dev scripts/dev-fast-test
   - id: false-justification-gone
     outcome: false-justification-removed
     claim: |
