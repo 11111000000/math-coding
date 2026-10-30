@@ -1,0 +1,84 @@
+---
+schema: math-coding/3.3
+id: grep-schemes-are-executable-2026-10
+revision: 1
+state: active
+body_sha: "sha256:0146bca9a84c0720f641c67d157b9b37bdb52cce928da03bd1644f2aae6a3957"
+yaml_sha: "sha256:0146bca9a84c0720f641c67d157b9b37bdb52cce928da03bd1644f2aae6a3957"
+intent: |
+  The corpus had 114 promises that no program kept, and the reason was
+  in the kernel rather than in the corpus: the two schemes a promise
+  would naturally be written in were not executable. `shell-grep` sat
+  in the canonical allowlist from the day the allowlist was written and
+  `plan_verifier` did not know it, so every `shell-grep` verifier
+  reported `skipped` and the obligation it belonged to had no verdict.
+  The corpus answered a dead scheme with a `manual-...` declaration,
+  and a declaration is a human's word about a check nobody could run.
+commitment: |
+  1. `shell-grep <path> <pattern>` is executable: the path must
+     contain the pattern, as a fixed string. The path may be a file
+     or a directory, and a directory is searched recursively.
+  2. `shell-grep-absent <path> <pattern>` is executable and is its
+     own scheme: the path must NOT contain the pattern. A promise
+     about a tree ("nothing under decisions/ carries the old prefix")
+     is a fact about a tree, and a check that can read one file
+     cannot state it.
+  3. A double-quoted argument keeps the spaces it was written with.
+     Without that, a pattern naming a markdown table row could not be
+     written down at all: the split collapsed every run of spaces and
+     the check looked for a string the file does not contain.
+  4. `repo_path` admits a directory where `repo_file` admits only a
+     regular file, with the same containment rule.
+  5. `counters`, `stats` and `session-start` join the read-only
+     allowlist of the `mathc` scheme.
+axiom_link:
+  - A0
+counterexample: |
+  "A check that cannot fail is not a check, so the scheme is fine as
+  long as it exists." The counterargument fails on the corpus's own
+  numbers: 253 promises could not be set up, and every one of them was
+  a promise the corpus could write down but the kernel could not run.
+  A scheme that exists but is not executable is the same defect as a
+  scheme that does not exist, with one extra layer of confusion: the
+  corpus believes the promise is machine-checked.
+scope:
+  paths:
+    - "bin/Mathc.ml"
+    - "tests/fixtures/shell-grep-negative-control.sh"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+outcomes:
+  - id: schemes-are-executable
+    statement: |
+      A promise the corpus can write down is a promise the kernel can
+      run, in both directions: that the thing is there, and that it is
+      not.
+obligations:
+  - id: the-schemes-are-executable
+    outcome: schemes-are-executable
+    claim: |
+      The grep schemes run, and they can fail: the fixture pins the
+      positive form, the negative form and the negative form over a
+      tree, each on a case where the check must report a non-pass
+      verdict.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/shell-grep-negative-control.sh
+  - id: the-read-only-commands-are-allowed
+    outcome: schemes-are-executable
+    claim: |
+      `counters`, `stats` and `session-start` are on the read-only
+      allowlist of the `mathc` scheme, so a corpus promise may be
+      checked by running them.
+    acceptance:
+      all:
+        - verifier: shell-grep bin/Mathc.ml session-start
+risk:
+  declared_triggers:
+    - a corpus promise that names a scheme the kernel cannot run
+  owner: human:maintainer
+relations:
+  addresses:
+    - verifier-outcome-taxonomy-2026-10@1
+    - verifier-scheme-convention-2026-11@1
