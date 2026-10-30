@@ -444,9 +444,9 @@ exactly once per process.
 
 ## Environment variables
 
-The kernel reads four environment variables at startup. Three are
+The kernel reads five environment variables at startup. Four are
 implemented in `lib/path_config.ml` and consulted by every site that
-needs to find a decisions / attestations / policy path; the fourth
+needs to find a decisions / attestations / policies path; the fifth
 documents the planned location for system-wide templates and
 schemas.
 
@@ -454,8 +454,16 @@ schemas.
 |---|---|---|
 | `MATH_CODING_DECISIONS_DIR` | `.math-coding/decisions` | Where the kernel reads and writes `*.yaml` decisions. Set explicitly to override (e.g. `=decisions` for the legacy layout). |
 | `MATH_CODING_ATTESTATIONS_DIR` | `.math-coding/attestations` | Where the kernel reads and writes `*.json` attestations. |
-| `MATH_CODING_POLICY` | `.math-coding/policy.yaml` | Master policy path consulted by `mathc validate` and `mathc self-check`. |
+| `MATH_CODING_POLICIES` | `policies.yaml` | The per-path risk floors (algebra §9): a YAML *sequence* of policy records, each with `scope_paths` and a `mode_floor`. This is the file that decides how much friction a path costs — `mathc mode PATH` reports the effective mode. An absent file means "no floors declared", and every path is then `tiny` (the silent baseline). |
+| `MATH_CODING_POLICY` | — | The older name for the same file. It is kept working because it is what the code has always controlled; set either one, not both. |
 | `MATH_CODING_HOME` | `$XDG_DATA_HOME/math-coding/<version>` | System-wide templates and schema directory (planned for v3.5; not yet consulted at runtime). |
+
+The two files this repository used to confuse are now separate:
+the **master policy** is the active protocol *decision*
+(`bootstrap-v3@3`, located by id), and the **policies file** is the
+risk-floor sequence above. Until 2026-10-30 one resolver answered for
+both and named a decision document for the second, so the floors a
+project declared were never read.
 
 Precedence in the resolver (`lib/path_config.ml::resolve_with`):
 

@@ -1,0 +1,238 @@
+---
+schema: math-coding/3.3
+id: record-proportionality-2026-10
+revision: 1
+state: active
+mode: standard
+
+body_sha: "sha256:c10d5ce67cf5772a31e31204da89ea8498901caef5794859b0289c8076043397"
+yaml_sha: "sha256:c10d5ce67cf5772a31e31204da89ea8498901caef5794859b0289c8076043397"
+
+axiom_link:
+  - A0
+  - A2
+
+intent: |
+  THE RECORD GREW FASTER THAN THE KERNEL, AND THE THREE MECHANISMS
+  THAT SHOULD HAVE STOPPED IT WERE NOT WIRED.
+
+  The measurement, on the tree this decision was written on: 157
+  decisions and 556 obligations for a kernel of 7 900 lines, plus 97
+  decisions already in the archive. The record was 1.8 times the size
+  of the whole codebase and 7 times the size of the assurance core.
+  The corpus's own target state says where it should be: about fifty
+  rules and about two hundred obligations
+  (`decisions/corpus-final-state-2026-10`). It was not there, and it
+  had not been getting closer: the census of 2026-10-29 took the
+  corpus from 195 decisions to 151, and the day after there were 157
+  again.
+
+  THREE MECHANISMS, and what each was doing.
+
+  1. THE FLOORS WERE DEAD. `policies.yaml` declares, per path, the
+     lowest friction a change may be made at. The resolver that
+     answered "where are the policies" named `.math-coding/policy.yaml`
+     and `decisions/decision.yaml` -- and BOTH are decision
+     documents, not sequences of policy records. Parsing either as a
+     policy sequence yields an empty list, so the kernel's policy
+     cache stayed empty, every path classified as `tiny`, and the
+     floor a project declared was never read by the kernel that
+     documents it. The symptom was one command: `mathc mode
+     lib/gate.ml` answered `tiny` for a path whose policy said
+     `standard`. The friction ladder had exactly one rung, and the
+     rung was the silent one.
+
+  2. THE PROTECTED-PATH RULE WAS STRICTER THAN THE SPEC. Algebra §5
+     and §20 give a change to `lib/**`, `bin/Mathc.ml`, `spec/**`,
+     `schemas/**` or `axioms/**` TWO ways to name the commitment it
+     implements: a decision committed with the change, OR a trailer
+     that cites a decision the corpus holds. The implementation had
+     only the first way. So a change that implemented an existing
+     commitment had to write a SECOND decision saying so -- and
+     KERNEL_AGENTS.md §Decisions says, in as many words: "Do not
+     create a decision for ... implementation of an existing
+     decision". Twenty-three decisions in the corpus broke that rule
+     and marked themselves: they carried `change_kind: implementation`.
+     The rule was written; the kernel did not offer the way to keep
+     it.
+
+  3. THE CORPUS HELD RECORDS AS IF THEY WERE RULES. A record that
+     sits in the corpus is a commitment the gate holds the project to,
+     forever. The twenty-three decisions above were records by their
+     own text.
+
+  The three are one defect seen from three sides, and the fix is one
+  change seen from three sides: the kernel reads the floors, the
+  kernel accepts a citation, and the corpus stops holding the records
+  of the citations.
+
+commitment: |
+  1. The kernel READS the floors a project declares. The file the
+     resolver names is `policies.yaml` at the project root -- the
+     file the name has always meant -- and not a decision document.
+     `MATH_CODING_POLICIES` overrides it; `MATH_CODING_POLICY` keeps
+     working, because it is what the code has always controlled.
+  2. A change that implements an existing commitment NAMES it with a
+     trailer (`Refs: decision:<id>@<rev>`) and does not write a
+     second decision. The citation must RESOLVE -- a trailer naming
+     a decision the corpus does not hold is a string, not a citation
+     -- and the decision it names is EVALUATED with the change, so
+     the citation is not a way to skip the evidence.
+  3. The corpus holds rules, not records. The twenty-three decisions
+     that recorded an implementation of another decision have left the
+     corpus; git keeps their bytes. The three that a live contract
+     test names (`p8-hook-deficit-2026-10`,
+     `render-module-split-phase1-2026-10`,
+     `render-module-split-phase1a-2026-10`) stay, because a file a
+     live test depends on does not leave until the dependency does.
+  4. This repository's floors are `standard` on the paths the kernel
+     protects and `light` everywhere else. NO floor above `standard`
+     is declared: algebra §10 makes `strict` and `exhaustive` require
+     a rebuttal artifact, this repository keeps no `rebuttals/`
+     directory, and a floor nothing can satisfy is a floor that
+     blocks everything it covers.
+  5. The written rules say what the kernel now does: a change is
+     measured by the commitment it touches, and a decision is written
+     for a commitment -- not for every change.
+
+outcomes:
+  - id: the-floors-are-read
+    statement: |
+      The `mode_floor` a project declares in `policies.yaml` is the
+      floor the kernel applies, and `mathc mode` reports it.
+  - id: the-citation-is-checked
+    statement: |
+      A commit that cites the decision it implements needs no decision
+      file of its own, and the decision it cites is evaluated with the
+      change.
+  - id: the-corpus-holds-rules
+    statement: |
+      The corpus holds rules the project keeps; the records of
+      implementations are in the history.
+
+scope:
+  paths:
+    - "policies.yaml"
+    - "lib/**"
+    - "bin/**"
+    - "tests/**"
+    - "decisions/**"
+    - "archive/decisions/**"
+    - "KERNEL_AGENTS.md"
+    - "ROADMAP.md"
+    - "adoption/SKILL.md"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-floor-is-read
+    claim: |
+      The kernel reads `policies.yaml`, and the mode it answers with
+      is the declared floor.
+    acceptance:
+      all:
+        - verifier: tests/cli/mode-floor-from-policies.t
+  - id: the-citation-is-enough
+    claim: |
+      A change that cites the decision it implements is not blocked
+      for having no decision file of its own, a change that cites
+      nothing is blocked, and a citation that names no decision in
+      the corpus is blocked.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-trailer-decision.t
+  - id: the-floors-are-meetable
+    claim: |
+      No policy the repository declares asks for a floor the
+      repository cannot meet.
+    acceptance:
+      all:
+        - verifier: dune test --root . --test tests/risk_kernel.exe
+  - id: the-corpus-is-consistent
+    claim: |
+      Every decision left in the corpus validates, and the suite
+      passes.
+    acceptance:
+      all:
+        - verifier: dune test --root .
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/record-proportionality-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/record-proportionality-2026-10.yaml
+
+risk:
+  declared_triggers:
+    - "a floor the repository cannot meet, and every change it covers
+      is blocked, and a block that cannot be lifted is not a gate"
+    - "a citation that resolves to nothing, and the rule accepts a
+      string as a commitment"
+    - "a citation that resolves to a decision whose scope does not
+      cover the change, and the commitment is named but never checked"
+    - "a record that leaves the corpus and takes a promise with it,
+      and git keeps the bytes but nobody reads the bytes"
+  owner: human:maintainer
+
+counterexample: |
+  "This makes the gate easier to pass, and the gate was the only
+  thing standing between this repository and a corpus that says
+  whatever is convenient."
+
+  The claim is the right one to suspect of any change that loosens a
+  rule, and the answer is in what did NOT change. The evidence rules
+  are untouched: an obligation without fresh evidence is still
+  MissingEvidence, and the CI step still reads the verdict's exit
+  code. What changed is WHICH COMMITMENTS a change has to carry, and
+  the change that carries fewer of them carries a NAMED one: the
+  trailer names a decision, the kernel resolves it, and that
+  decision's obligations are evaluated with the change. A commit
+  that implements `bootstrap-v3@3` and says so is measured against
+  `bootstrap-v3@3`. A commit that names nothing, or names something
+  that does not exist, is blocked -- and the fixture pins both.
+
+  The stronger version of the objection is about the floors
+  themselves: `standard` on `lib/**` is the same floor the policy
+  declared before this change, so the change cannot have made the
+  kernel's answer to a kernel change smaller. It could not: the
+  protected-path rule, not the floor, was the binding constraint, and
+  it is the protected-path rule that this change aligns with the
+  spec. The floors were dead, so aligning them changed nothing about
+  the gate and everything about the HONESTY of `mathc mode`: the
+  command now answers what the policy says.
+
+  And the third part -- the corpus losing twenty-three decisions --
+  is the part that should worry a reader most, because a smaller
+  corpus is a corpus that asks fewer questions. The answer is what
+  those twenty-three were: records, by their own `change_kind`, of
+  implementations of commitments that are still in the corpus. Their
+  obligations were obligations about work that shipped; the rule they
+  implemented is still there, still scoped, still checked. The
+  promise did not leave with the record; the RECORD left with the
+  promise, which is the wrong way round.
+
+antithesis: |
+  The opposite claim is that the corpus should keep everything and
+  let the WORKLIST mark what is stale: the records are harmless, the
+  list is the instrument, and nothing is lost.
+
+  The claim is right about the instrument -- `mathc gaps` names every
+  open promise with its class, and that list is what makes the debt
+  actionable -- and wrong about harmlessness. A record that sits in
+  the corpus is a commitment the gate holds the project to: its
+  obligations are obligations, its scope is a scope the gate reads
+  when a change touches a matching path, and its unkept promises are
+  unknown subjects for ever. The twenty-three records that left
+  carried ninety obligations, and none of them was a promise anyone
+  intended to keep. The list and the corpus answer different
+  questions, and the corpus is the one a machine reads at every
+  commit.
+
+relations:
+  addresses:
+    - corpus-final-state-2026-10@1
+    - decision-level-census-2026-10@1
+    - risk-policy-driven-floor-2026-10@1
+    - verifier-scheme-convention-2026-11@1
