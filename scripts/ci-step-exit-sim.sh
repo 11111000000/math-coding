@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scripts/ci-step-exit-sim.sh — prove that the CI self-check step
-# reports the verdict it is supposed to report.
+# scripts/ci-step-exit-sim.sh — prove that the CI steps that report a
+# verdict report the verdict they are supposed to report.
 #
 # WHY THIS EXISTS
 # ---------------
@@ -14,13 +14,12 @@
 # A comment asserting "PRs that produce verdict=fail or
 # verdict=unknown block the merge" is not evidence. This script is
 # the evidence: it extracts the step body from ci.yml, replays it
-# VERBATIM against a stub `mathc` that exits 0 / 1 / 3, and asserts
-# the status the step MUST report in each case.
+# VERBATIM against a stub `mathc`, and asserts the status the step
+# MUST report in each case.
 #
-# THE CONTRACT, WHICH IS NOT "THE STEP'S STATUS IS MATHC'S STATUS".
+# TWO STEPS, TWO CONTRACTS.
 #
-# The step is an AUDIT, and the audit has a shape
-# (decisions/ci-self-check-is-an-audit-2026-10.yaml):
+# THE SELF-CHECK STEP IS AN AUDIT.
 #
 #   mathc exit 0 (verdict pass)    -> the step is GREEN.
 #   mathc exit 1 (verdict fail)    -> the step is RED. A decisive
@@ -42,19 +41,34 @@
 #                                     become the step's status. The
 #                                     status is still the ratchet's.
 #
-# So the rows below are FIVE, not three: the exit-3 row is replayed
-# twice, once with the ratchet green and once with it red, because
-# "unknown is green" and "the pin can still bite" are different
-# claims and a check that only proves the first proves nothing about
-# the second.
+# THE GATE STEP IS THE WALL.
 #
-# THE STEP'S COMMENT USED TO CONTRADICT ITS CODE. ci.yml said "exit 3
-# -> step red" while the body delegated exit 3 to the ratchet and
-# exited with the ratchet's status. The comment was the false half
-# and is now aligned with the code; this script is what keeps them
-# aligned.
+#   gate exit 0 (pass / open-with-waiver) -> the step is GREEN.
+#   gate exit 1 (block)                   -> the step is RED.
+#   gate exit 2 (input error)             -> the step is RED. A
+#     ref that does not resolve is not a verdict, and a step that
+#     cannot ask its question must not read as an answer.
+#   gate exit 3 (unknown)                 -> the gate could not
+#     conclude, and there are TWO reasons for that, told apart by the
+#     gate's own `gaps_by_kind` histogram:
+#       (a) the only gaps are `Unknown` -- the change touches a
+#           promise the CORPUS does not keep by machine. That is the
+#           corpus's own debt, and the RATCHET holds the line: the
+#           step's status is the ratchet's.
+#       (b) some gap is MissingEvidence, StaleEvidence or
+#           NoAttestationStore -- THIS CHANGE IS NOT COVERED, and
+#           the step is RED. It does not go to the ratchet: the
+#           ratchet measures the corpus's debt, not this change's
+#           evidence.
+#   the gate produced no verdict document -> the step is RED: it
+#     could not ask its question.
 #
-# Two properties make the replay trustworthy:
+# So the rows below are FIVE for the self-check and EIGHT for the
+# gate, and the gate's rows differ in the HISTOGRAM, not only in the
+# exit code. A step that only knows "exit 3 means unknown" cannot
+# tell a promise nobody keeps from a change nobody covered.
+#
+# TWO PROPERTIES MAKE THE REPLAY TRUSTWORTHY:
 #   1. the body is read from ci.yml, never copied here, so the
 #      simulation cannot drift away from the workflow it checks;
 #   2. it runs under the same shell GitHub Actions uses for a `run:`
@@ -84,13 +98,14 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
-# The step this script replays. It was renamed from
+# The steps this script replays. The self-check step was renamed from
 # "mathc self-check (bootstrap-gate block)" to
 # "mathc self-check (corpus audit)" on 2026-10-29, and this script
 # kept the old name until 2026-10-30 -- so it failed on every run
 # with "could not extract the run: block", and nothing ran it. A
 # check that cannot find its subject is not a check.
-STEP_NAME='mathc self-check (corpus audit)'
+STEP_SELF_CHECK='mathc self-check (corpus audit)'
+STEP_GATE='mathc gate (merge verdict for the pushed diff)'
 # $CI_YML overrides the workflow under test (a bare filename is resolved
 # under .github/workflows/, an absolute or repo-relative path is used as
 # given). Used to replay the check against a historical revision:
@@ -111,7 +126,7 @@ fail=0
 # indented deeper than the `run:` key itself. Stop at the first
 # non-blank line that is not.
 extract_step_body() {
-  awk -v want="$STEP_NAME" '
+  awk -v want="$1" '
     $0 == "      - name: " want { found = 1; next }
     found && /^[[:space:]]*run: \|[[:space:]]*$/ {
       inrun = 1
@@ -134,16 +149,26 @@ extract_step_body() {
   ' "$CI_YML"
 }
 
-step_body=$(extract_step_body)
-if [ -z "$step_body" ]; then
-  echo "FAIL: could not extract the run: block of step '$STEP_NAME' from $CI_YML" >&2
+self_check_body=$(extract_step_body "$STEP_SELF_CHECK")
+if [ -z "$self_check_body" ]; then
+  echo "FAIL: could not extract the run: block of step '$STEP_SELF_CHECK' from $CI_YML" >&2
   exit 1
 fi
-if ! grep -q 'mathc self-check' <<<"$step_body"; then
+if ! grep -q 'mathc self-check' <<<"$self_check_body"; then
   echo "FAIL: extracted block does not mention 'mathc self-check'; wrong step matched" >&2
   exit 1
 fi
-[ "$verbose" = 1 ] && printf '%s\n' "$step_body"
+
+gate_body=$(extract_step_body "$STEP_GATE")
+if [ -z "$gate_body" ]; then
+  echo "FAIL: could not extract the run: block of step '$STEP_GATE' from $CI_YML" >&2
+  exit 1
+fi
+if ! grep -q 'mathc gate' <<<"$gate_body"; then
+  echo "FAIL: extracted block does not mention 'mathc gate'; wrong step matched" >&2
+  exit 1
+fi
+[ "$verbose" = 1 ] && { printf '%s\n' "$self_check_body"; printf '%s\n' "$gate_body"; }
 
 # --- 2. build the sandbox ---------------------------------------------
 sandbox=$(mktemp -d -t ci-step-exit-sim.XXXXXX)
@@ -152,11 +177,11 @@ trap 'rm -rf "$sandbox"' EXIT
 mkdir -p "$sandbox/bin" "$sandbox/_build/install/default/bin" "$sandbox/tmp" \
          "$sandbox/tests/fixtures"
 
-# Stub of the corpus-debt ratchet. The step runs it when mathc's
-# verdict is `unknown`, and the step's status IS the ratchet's status
-# -- that is the audit shape. The stub answers with
-# STUB_RATCHET_EXIT, so the replay can ask what the step does when
-# the pin HOLDS and when it BITES.
+# Stub of the corpus-debt ratchet. The step runs it when the verdict
+# is `unknown` and the only gaps are the corpus's declared promises,
+# and the step's status IS the ratchet's status -- that is the audit
+# shape. The stub answers with STUB_RATCHET_EXIT, so the replay can
+# ask what the step does when the pin HOLDS and when it BITES.
 cat > "$sandbox/tests/fixtures/self-check-debt-ceiling.sh" <<'STUB'
 #!/usr/bin/env bash
 # Stub: the corpus-debt ratchet. The real one measures the corpus;
@@ -165,26 +190,33 @@ exit "${STUB_RATCHET_EXIT:-0}"
 STUB
 chmod +x "$sandbox/tests/fixtures/self-check-debt-ceiling.sh"
 
-# Stub mathc: writes a verdict document, exits $STUB_MATHC_EXIT.
+# Stub mathc: writes a verdict document, exits $STUB_EXIT.
 cat > "$sandbox/_build/install/default/bin/mathc" <<'STUB'
 #!/usr/bin/env bash
-[ "${1:-}" = self-check ] || { echo "stub mathc: unexpected argv: $*" >&2; exit 64; }
-case "${STUB_MATHC_EXIT:-0}" in
+case "${1:-}" in
+  self-check|gate) : ;;
+  *) echo "stub mathc: unexpected argv: $*" >&2; exit 64 ;;
+esac
+case "${STUB_EXIT:-0}" in
   0) verdict=pass ;;
   1) verdict=fail ;;
+  2) verdict=input-error ;;
   3) verdict=unknown ;;
   *) verdict=pass ;;
 esac
-if [ "${STUB_MATHC_JSON:-yes}" = no ]; then
+if [ "${STUB_JSON:-yes}" = no ]; then
   # Crash-before-JSON case: nothing on stdout, a message on stderr. The
-  # step must still report mathc's status, not the status of the
-  # `cat` that prints the message.
+  # step must still report the verdict it must report, not the status
+  # of the `cat` that prints the message.
   echo "stub mathc: fatal before emitting a verdict document" >&2
+elif [ "${1:-}" = "gate" ]; then
+  printf '{"verdict":"%s","obligations":4,"gaps_total":1,"gaps_by_kind":%s}\n' \
+    "$verdict" "${STUB_GATE_KINDS:-{\}}"
 else
   printf '{"verdict":"%s","kernel_digest":"stub","repository_digest":"stub","subjects":[]}\n' \
     "$verdict"
 fi
-exit "${STUB_MATHC_EXIT:-0}"
+exit "${STUB_EXIT:-0}"
 STUB
 chmod +x "$sandbox/_build/install/default/bin/mathc"
 
@@ -199,13 +231,13 @@ while [ $# -gt 0 ] && [ "$1" != "--command" ]; do shift; done
 shift
 [ "${1:-}" = bash ] || exec "$@"
 shift
-[ "${1:-}" = -c ] || exec "$@"
+[ "$1" = "-c" ] || exec "$@"
 shift
 exec bash -c "${1:-}"
 STUB
 chmod +x "$sandbox/bin/nix"
 
-# The step writes its scratch files to absolute paths under /tmp; keep
+# The steps write their scratch files to absolute paths under /tmp; keep
 # them inside the sandbox so repeated runs cannot read each other's
 # leftovers and so a real /tmp is not trashed. replay_block() does the
 # rewrite per block.
@@ -213,56 +245,56 @@ chmod +x "$sandbox/bin/nix"
 #
 #   $1 = row label        $2 = path to the block file
 #   $3 = expect: agree | mismatch
+#   $4 = the case list
 #
 # Each case is
-#   "label|mathc exit|emit JSON?|ratchet exit|expected step exit"
+#   "label|exit|emit JSON?|ratchet exit|expected step exit|gate kinds"
 #
-# The EXPECTED step exit is not always mathc's exit: an `unknown`
-# verdict is delegated to the corpus-debt ratchet, and the step's
-# status is the ratchet's. Two rows differ only in the ratchet's
-# answer, because "unknown is green while the debt is under its
-# ceiling" and "the pin can still make it red" are different claims.
+# The EXPECTED step exit is not always the kernel's exit: an `unknown`
+# verdict with no missing evidence is delegated to the corpus-debt
+# ratchet, and the step's status is the ratchet's. Two rows differ
+# only in the ratchet's answer, because "unknown is green while the
+# debt is under its ceiling" and "the pin can still make it red" are
+# different claims.
 #
 # `agree`    — the step's status must be the expected one in every
 #              row.
-# `mismatch` — the block must swallow at least one non-zero mathc
-#              status; that is what a broken step looks like, and the
+# `mismatch` — the block must swallow at least one non-zero exit;
+#              that is what a broken step looks like, and the
 #              negative control depends on observing it.
 replay_block() {
-  local label=$1 block_file=$2 expect=$3
-  local scratch="$sandbox/tmp/self-check."
+  local label=$1 block_file=$2 expect=$3 cases=$4
+  local scratch="$sandbox/tmp/scratch."
   local body
   body="$sandbox/block-$(printf '%s' "$label" | tr -c 'a-zA-Z0-9' '_').sh"
   local repl
   repl="$(cat "$block_file")"
   repl=${repl//\/tmp\/self-check\./$scratch}
+  repl=${repl//\/tmp\/gate\./$scratch}
   printf '%s\n' "$repl" > "$body"
 
   printf '\n%s (expect: %s)\n' "$label" "$expect"
-  printf '%-24s %-12s %-12s %-12s %s\n' 'mathc verdict' 'mathc exit' 'ratchet' 'step exit' 'verdict'
-  printf '%-24s %-12s %-12s %-12s %s\n' '------------------------' '-----------' '-----------' '-----------' '-------'
+  printf '%-26s %-10s %-12s %-12s %s\n' 'case' 'exit' 'ratchet' 'step exit' 'verdict'
+  printf '%-26s %-10s %-12s %-12s %s\n' '--------------------------' '----------' '------------' '------------' '-------'
 
-  # label|mathc exit|emit JSON?|ratchet exit|expected step exit
-  local case_spec verdict mathc_exit emit_json ratchet_exit expected step_exit agree
-  for case_spec in 'verdict=pass|0|yes|0|0' \
-                   'verdict=fail|1|yes|0|1' \
-                   'verdict=unknown|3|yes|0|0' \
-                   'verdict=unknown, pin bites|3|yes|1|1' \
-                   'no-json-document|3|no|0|0'; do
-    # shellcheck disable=SC2086
-    IFS='|' read -r verdict mathc_exit emit_json ratchet_exit expected <<<"$case_spec"
+  # label|exit|emit JSON?|ratchet exit|expected step exit|gate kinds
+  local case_spec name exit_code emit_json ratchet_exit expected kinds step_exit agree
+  while IFS= read -r case_spec; do
+    [ -z "${case_spec:-}" ] && continue
+    IFS='|' read -r name exit_code emit_json ratchet_exit expected kinds <<<"$case_spec"
 
     step_exit=0
     (
       cd "$sandbox" || exit 1
       PATH="$sandbox/bin:$PATH" \
-        STUB_MATHC_EXIT="$mathc_exit" \
-        STUB_MATHC_JSON="$emit_json" \
+        STUB_EXIT="$exit_code" \
+        STUB_JSON="$emit_json" \
+        STUB_GATE_KINDS="$kinds" \
         STUB_RATCHET_EXIT="$ratchet_exit" \
         bash --noprofile --norc -e -o pipefail "$body"
-    ) >"$sandbox/out.$mathc_exit.$emit_json.$ratchet_exit" 2>&1 || step_exit=$?
+    ) >"$sandbox/out.$name" 2>&1 || step_exit=$?
 
-    [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$mathc_exit.$emit_json.$ratchet_exit"
+    [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$name"
 
     if [ "$step_exit" = "$expected" ]; then agree='ok'; else agree='MISMATCH'; fi
     case "$expect" in
@@ -271,17 +303,39 @@ replay_block() {
         ;;
       mismatch)
         # The control must swallow the non-zero exits; a green row on
-        # mathc exit 0 is fine either way.
-        if [ "$mathc_exit" -ne 0 ] && [ "$step_exit" = "$mathc_exit" ]; then fail=1; fi
+        # exit 0 is fine either way.
+        if [ "$exit_code" -ne 0 ] && [ "$step_exit" = "$exit_code" ]; then fail=1; fi
         ;;
     esac
-    printf '%-24s %-12s %-12s %-12s %s\n' "$verdict" "$mathc_exit" "exit $ratchet_exit" "$step_exit" "$agree"
-  done
+    printf '%-26s %-10s %-12s %-12s %s\n' "$name" "$exit_code" "exit $ratchet_exit" "$step_exit" "$agree"
+  done <<<"$cases"
 }
 
-# --- 4. the two blocks -----------------------------------------------
-printf '%s\n' "$step_body" > "$sandbox/current.sh"
-replay_block "current $CI_YML" "$sandbox/current.sh" agree
+# --- 4. the blocks -----------------------------------------------
+printf '%s\n' "$self_check_body" > "$sandbox/self-check.sh"
+printf '%s\n' "$gate_body" > "$sandbox/gate.sh"
+
+# THE SELF-CHECK STEP: five rows, and the exit-3 row twice.
+replay_block "self-check: current $CI_YML" "$sandbox/self-check.sh" agree "
+verdict=pass|0|yes|0|0|
+verdict=fail|1|yes|0|1|
+verdict=unknown|3|yes|0|0|
+verdict=unknown, pin bites|3|yes|1|1|
+no-json-document|3|no|0|0|"
+
+# THE GATE STEP: eight rows. The exit-3 rows differ in the gate's
+# own histogram, because "the change touches a promise nobody keeps"
+# and "the change is not covered" are different claims and one exit
+# code cannot carry both.
+replay_block "gate: current $CI_YML" "$sandbox/gate.sh" agree "
+pass|0|yes|0|0|{}
+block|1|yes|0|1|{\"FailedEvidence\":1}
+input error|2|no|0|1|{}
+unknown: declarations|3|yes|0|0|{\"Unknown\":3}
+unknown: declarations, pin bites|3|yes|1|1|{\"Unknown\":3}
+unknown: no evidence|3|yes|0|1|{\"MissingEvidence\":2}
+unknown: stale evidence|3|yes|0|1|{\"StaleEvidence\":1}
+no verdict document|3|no|0|1|{}"
 
 # The pre-fix body, copied from ci.yml at commit 817c545^ (the last
 # revision where the step still ended on the jq dump under set +e).
@@ -292,15 +346,21 @@ nix develop .#test --command bash -c \
    echo "self-check exit=$?"; \
    jq -c "{verdict, kernel_digest, repository_digest, subjects_count: (.subjects | length)}" /tmp/self-check.json || cat /tmp/self-check.err'
 PREFIX_EOF
-replay_block "pre-fix control (ci.yml @ 817c545^)" "$sandbox/prefix.sh" mismatch
+replay_block "self-check: pre-fix control (ci.yml @ 817c545^)" "$sandbox/prefix.sh" mismatch "
+verdict=pass|0|yes|0|0|
+verdict=fail|1|yes|0|1|
+verdict=unknown|3|yes|0|0|"
 
 echo
 if [ "$fail" -ne 0 ]; then
   echo "ci-step-exit-sim: FAIL — an expectation above did not hold" >&2
   exit 1
 fi
-echo "ci-step-exit-sim: ok — today's step reports the verdict it must report:"
-echo "                   pass -> green, fail -> red, unknown -> the corpus-debt"
-echo "                   ratchet's status (green while the debt is under its"
-echo "                   ceiling, red when the pin bites);"
+echo "ci-step-exit-sim: ok — today's steps report the verdicts they must report:"
+echo "                   self-check: pass -> green, fail -> red, unknown -> the"
+echo "                   corpus-debt ratchet's status (green while the debt is under"
+echo "                   its ceiling, red when the pin bites);"
+echo "                   gate: pass -> green, block -> red, input error -> red,"
+echo "                   unknown -> the ratchet's status when the only gaps are the"
+echo "                   corpus's declarations, red when the change is not covered;"
 echo "                   pre-fix control demonstrably swallows it"

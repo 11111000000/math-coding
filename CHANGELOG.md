@@ -5,6 +5,39 @@
 
 ## Unreleased
 
+**The merge gate runs in CI and can fail**
+(`decisions/gate-blocks-in-ci-2026-10.yaml`).
+The step `mathc gate (merge verdict for the pushed diff)` carried
+`continue-on-error: true` and `|| true` on the command itself: it
+printed a verdict on every push, and the verdict decided nothing. The
+pitch of the project is that the protocol makes CI refuse a change by
+a named rule, and the one step that asks the merge gate's question was
+the one step whose answer was discarded.
+
+Removing the two flags is the easy half. The hard half is what the
+gate's `unknown` means, because it has two causes that have nothing to
+do with each other. A change that touches a promise the corpus does
+not keep by machine — a `manual-` declaration — is unknown because
+that promise has no evidence by design; that is the corpus's own debt,
+and the corpus-debt ratchet holds the line (56 declared promises
+against a ceiling of 233). A change that touches an obligation with
+missing or stale evidence is unknown because the change is not
+covered, and that blocks. The step tells them apart by the gate's own
+`gaps_by_kind` histogram, which is why the verdict document is written
+to a file and read back.
+
+The distinction is not a nicety: measured over the fifteen commits
+before this change, twelve of them touch a decision that carries a
+declaration. A step that turned every `unknown` red would have been
+red on four commits in five; a step that turned every `unknown` green
+would have let uncovered changes through.
+
+Also in this change: the CI step simulator now replays the gate step
+as well as the self-check step — eight rows instead of five, with the
+exit-3 rows differing in the histogram rather than only in the exit
+code — and the gate's verdict document is uploaded beside the
+self-check report, so the answer is readable after the run.
+
 **The instruments that measured the corpus were measuring nothing**
 (`decisions/honest-instruments-2026-10.yaml`).
 Four checks, four false readings, and one of them had been the
