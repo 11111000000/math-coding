@@ -1,0 +1,9 @@
+{
+  "id": "math-coding-console",
+  "name": "math-coding console",
+  "$comment": "Add \"icon\": \"assets/icon.png\" for a PNG inside the package. Add image or video paths (relative to this manifest) or HTTPS URLs to media. Include local assets in package.json files.",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.13.2"
+  }
+}

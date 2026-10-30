@@ -1,0 +1,44 @@
+{
+  "name": "paseo-math-coding-console",
+  "private": true,
+  "version": "0.1.0",
+  "description": "A control panel for the math-coding assurance protocol: the kernel's verdict, the open promises, the decisions, the evidence, and the human reviews",
+  "keywords": [
+    "paseo",
+    "paseo-plugin",
+    "math-coding",
+    "attestation",
+    "decision",
+    "assurance"
+  ],
+  "files": [
+    "paseo-plugin.json",
+    "OVERVIEW.md",
+    "OVERVIEW.*.md",
+    "index.client.ts",
+    "index.client.tsx",
+    "index.server.ts",
+    "index.server.tsx",
+    "client/",
+    "server/",
+    "shared/"
+  ],
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "dev": "./dev.sh"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@getpaseo/plugin": "0.13.2",
+    "@tanstack/react-query": "^5.90.11",
+    "@types/node": "^22.10.2",
+    "@types/react": "~19.2.0",
+    "react": "19.1.0",
+    "react-native": "0.81.5",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "zod": "^4.4.3"
+  }
+}
