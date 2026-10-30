@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:c10d5ce67cf5772a31e31204da89ea8498901caef5794859b0289c8076043397"
-yaml_sha: "sha256:c10d5ce67cf5772a31e31204da89ea8498901caef5794859b0289c8076043397"
+body_sha: "sha256:01eea996747b3f13c82e044f909f7ce34d5ddd563849c7fe251b8e6c863c6d02"
+yaml_sha: "sha256:01eea996747b3f13c82e044f909f7ce34d5ddd563849c7fe251b8e6c863c6d02"
 
 axiom_link:
   - A0
@@ -148,7 +148,7 @@ obligations:
       repository cannot meet.
     acceptance:
       all:
-        - verifier: dune test --root . --test tests/risk_kernel.exe
+        - verifier: dune test --root . tests/risk_kernel.exe
   - id: the-corpus-is-consistent
     claim: |
       Every decision left in the corpus validates, and the suite
