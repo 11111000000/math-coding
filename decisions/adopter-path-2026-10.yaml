@@ -2,11 +2,11 @@
 schema: math-coding/3.2
 id: adopter-path-2026-10
 revision: 1
-state: active
+state: superseded
 mode: light
 negative_control: tests/cli/init-defaults.t
-body_sha: "sha256:2e685c8d891aaaa2e16f85544a3ddb5ee8acec39fcbc847e3cf38318b0cd4d85"
-yaml_sha: "sha256:2e685c8d891aaaa2e16f85544a3ddb5ee8acec39fcbc847e3cf38318b0cd4d85"
+body_sha: "sha256:afcb1aa0573504ccfd09485cdde624b12386cec81fca8546d632660bf7eb0b0a"
+yaml_sha: "sha256:afcb1aa0573504ccfd09485cdde624b12386cec81fca8546d632660bf7eb0b0a"
 
 intent: |
   The first ten minutes of an adoption should cost what the protocol is
@@ -200,3 +200,7 @@ risk:
     - "the corpus of applying projects stops growing because the rule to apply became a question"
     - "the applicability envelope printed by mathc init still carries the default-on wording while the skill says opt-in"
     - "the new scaffold obligation is edited into a tautology that always passes"
+
+relations:
+  superseded_by:
+    - skill-single-source-2026-10@1
