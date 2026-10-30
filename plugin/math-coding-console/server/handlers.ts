@@ -15,23 +15,26 @@ import {
 import {
   readCounters,
   readDoctor,
+  readGate,
   readGaps,
   readKernelVersion,
   promisesFromPackages,
   readPackages,
   readSelfCheck,
+  type KernelGaps,
   type KernelObligation,
   type KernelPackages,
   type KernelPromise,
 } from "./kernel";
 import { resolveLayout, resolveRoot, type ProjectLayout } from "./layout";
 import { runGit, runMathc } from "./mathc";
-import { isOpen, worstVerdict } from "../shared/verdict";
+import { cellFor, isOpen, worstVerdict } from "../shared/verdict";
 import type {
   AttestationSection,
   AttestationSummary,
   Coverage,
   DecisionSummary,
+  MosaicCell,
   Obligation,
   ReviewItem,
 } from "../shared/contracts";
@@ -488,6 +491,248 @@ function readVersionFile(root: string): string | null {
   } catch {
     return null;
   }
+}
+
+/* --------------------------------------------------------------- mosaic */
+
+/**
+ * The mosaic: one cell per obligation, coloured by the epistemic status the
+ * promise is actually in.
+ *
+ * A cell is a JOIN of three readings, and the console contributes none of
+ * them:
+ *
+ *   - the kernel's OBLIGATION INDEX (`mathc packages`) says whether the
+ *     promise is discharged, and by which attestation;
+ *   - the PROMISE CENSUS (`mathc gaps`) says whether there is any check
+ *     for it at all;
+ *   - the STORE says what kind of evidence covers it, how old it is and
+ *     what digest it is bound to.
+ *
+ * Where the first two disagree about the same promise, the cell carries
+ * both and says so. The kernel does not always agree with itself, and a
+ * console that silently picked a side would be a console that laundered.
+ */
+export async function buildMosaic(explicitRoot?: string | null) {
+  const { root, error } = resolveRoot(explicitRoot);
+  const empty = {
+    root,
+    error,
+    generatedAt: new Date().toISOString(),
+    cells: [],
+    counts: {
+      total: 0,
+      observed: 0,
+      declared: 0,
+      open: 0,
+      uncheckable: 0,
+      failed: 0,
+      waived: 0,
+    },
+    store: { total: 0, namingLivePromise: 0, discharging: 0 },
+    readings: { packages: "unknown", census: "unknown", disagreeing: 0 },
+  };
+  if (!root) return empty;
+
+  const layout = resolveLayout(root);
+  const packages = await readPackages(root);
+  const gaps = await readGaps(root);
+  const attestations = readAttestations(layout);
+
+  // The store, indexed by the promise it names.
+  const byPromise = new Map<string, CorpusAttestation[]>();
+  for (const attestation of attestations) {
+    const key = `${attestation.decision} ${attestation.obligation}`;
+    const list = byPromise.get(key) ?? [];
+    list.push(attestation);
+    byPromise.set(key, list);
+  }
+
+  // The census, indexed by the promise it describes.
+  const census = new Map<string, { state: string; class: string }>();
+  for (const promise of gaps.value?.open ?? []) {
+    census.set(`${promise.decision} ${promise.obligation}`, {
+      state: promise.state,
+      class: promise.class,
+    });
+  }
+
+  const cells: MosaicCell[] = [];
+  const counts = {
+    observed: 0,
+    declared: 0,
+    open: 0,
+    uncheckable: 0,
+    failed: 0,
+    waived: 0,
+  };
+  let discharging = 0;
+  let disagreeing = 0;
+
+  for (const decision of packages.value?.decisions ?? []) {
+    for (const obligation of decision.obligations) {
+      const key = `${decision.id} ${obligation.id}`;
+      const covering = byPromise.get(key) ?? [];
+      const latest = covering
+        .slice()
+        .sort((a, b) => b.issuedAt.localeCompare(a.issuedAt))[0];
+      const counted = census.get(key);
+      const state = cellFor({
+        verdict: obligation.verdict,
+        attestationKind: latest?.kind ?? null,
+        censusClass: counted?.class ?? null,
+      });
+      counts[state] += 1;
+
+      // The two kernel readings, compared rather than reconciled.
+      const censusState = counted?.state ?? null;
+      const disagreement =
+        censusState !== null &&
+        obligation.verdict !== "pass" &&
+        censusState !== obligation.verdict;
+
+      if (state === "observed" || state === "declared") discharging += 1;
+      if (disagreement) disagreeing += 1;
+
+      cells.push({
+        decision: decision.id,
+        obligation: obligation.id,
+        state,
+        verdict: obligation.verdict,
+        censusState,
+        censusClass: counted?.class ?? null,
+        disagreement,
+        verifier: obligation.verifier,
+        attestationId: latest?.id ?? obligation.attestationId,
+        attestationKind: latest?.kind ?? null,
+        attestationProducer: latest?.producer ?? null,
+        issuedAt: latest?.issuedAt ?? null,
+        expiresAt: latest?.expiresAt ?? obligation.attestationExpiresAt,
+        materialsDigest: latest?.materialsDigest ?? null,
+      });
+    }
+  }
+
+  // How much of the store reaches a promise the corpus still has.
+  const live = new Set(cells.map((cell) => `${cell.decision} ${cell.obligation}`));
+  let namingLive = 0;
+  for (const attestation of attestations) {
+    if (live.has(`${attestation.decision} ${attestation.obligation}`)) namingLive += 1;
+  }
+
+  return {
+    root,
+    error: null,
+    generatedAt: new Date().toISOString(),
+    cells,
+    counts: { total: cells.length, ...counts },
+    store: {
+      total: attestations.length,
+      namingLivePromise: namingLive,
+      discharging,
+    },
+    readings: {
+      packages: packages.value ? summariseVerdicts(packages.value) : "unknown",
+      census: gaps.value ? summariseCensus(gaps.value) : "unknown",
+      disagreeing,
+    },
+  };
+}
+
+function summariseVerdicts(packages: KernelPackages): string {
+  const counts: Record<string, number> = {};
+  for (const decision of packages.decisions) {
+    for (const obligation of decision.obligations) {
+      counts[obligation.verdict] = (counts[obligation.verdict] ?? 0) + 1;
+    }
+  }
+  return Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .map(([verdict, count]) => `${verdict} ${count}`)
+    .join(" · ");
+}
+
+function summariseCensus(gaps: KernelGaps): string {
+  const parts = Object.entries(gaps.counts.byState).map(([state, count]) => `${state} ${count}`);
+  return parts.length > 0 ? parts.join(" · ") : "none";
+}
+
+/* --------------------------------------------------------------- change */
+
+/**
+ * The change view: the merge gate's own reading, and nothing else.
+ *
+ * The console does NOT re-derive which obligations a diff touches. The
+ * kernel knows and does not expose it, so a console that guessed would
+ * be a second measurer. The gap is named instead.
+ */
+export async function buildChange(
+  explicitRoot: string | undefined,
+  base: string,
+  head: string,
+) {
+  const { root, error } = resolveRoot(explicitRoot);
+  if (!root) {
+    return {
+      ok: false,
+      error,
+      exitCode: 2,
+      verdict: null,
+      base,
+      head,
+      obligations: 0,
+      gaps: [],
+      changedFiles: [],
+      limit: null,
+    };
+  }
+
+  const gate = await readGate(root, base, head);
+  const layout = resolveLayout(root);
+  const prose = readProse(layout);
+
+  // The gate names an obligation, not a decision. The corpus's obligation
+  // ids are mostly unique, so the decision is found by looking it up; when
+  // two decisions promise the same thing, the console says nothing rather
+  // than guess.
+  const decisionsByObligation = new Map<string, string[]>();
+  for (const decision of prose.decisions.values()) {
+    for (const obligation of decision.obligations) {
+      const list = decisionsByObligation.get(obligation.id) ?? [];
+      list.push(decision.id);
+      decisionsByObligation.set(obligation.id, list);
+    }
+  }
+
+  const diff = runGit(root, ["diff", "--name-only", base, head]);
+  const changedFiles = diff.stdout
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line !== "");
+
+  return {
+    ok: gate.value !== null,
+    error: gate.error,
+    exitCode: gate.value === null ? 3 : 0,
+    verdict: gate.value?.verdict ?? null,
+    base: gate.value?.base ?? base,
+    head: gate.value?.head ?? head,
+    obligations: gate.value?.obligations ?? 0,
+    gaps: (gate.value?.gaps ?? []).map((gap) => {
+      const candidates = decisionsByObligation.get(gap.obligationId) ?? [];
+      return {
+        kind: gap.kind,
+        obligationId: gap.obligationId,
+        decision: candidates.length === 1 ? (candidates[0] ?? null) : null,
+        causes: gap.causes,
+        remedies: gap.remedies,
+      };
+    }),
+    changedFiles,
+    limit:
+      "The gate reports every gap it found; it does not say which of them your diff " +
+      "touched. The kernel knows and does not expose it, so the console does not guess.",
+  };
 }
 
 /* ------------------------------------------------------------- promises */

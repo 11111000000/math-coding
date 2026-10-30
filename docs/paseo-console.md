@@ -8,6 +8,56 @@ The kernel is the authority. The console asks `mathc` questions and shows the an
 no verdict of its own, because a second measurer is a second opinion nobody asked for and the two
 would drift.
 
+## The shape of it
+
+The console is a frame and four views. The frame is the instrument's reading and is always visible:
+the corpus verdict, the counts, and THE JOIN.
+
+The join is the fact the console's earlier shape hid. The store's size and the corpus's size sat in
+two panels and invited the reader to add them; the sum reads like a healthy corpus with a large
+store, and the sum is not the truth. The join says how much of the store discharges a promise that
+is still live, and on this repository that is a small number against a large one.
+
+The four views answer the methodology's questions:
+
+| View | The question | What it shows |
+|---|---|---|
+| **Corpus** | Where is the chain broken? | The mosaic: one cell per promise, coloured by its epistemic status, banded by the decision that promised it. |
+| **This change** | May I merge? | The merge gate's own verdict, its gap kinds and the kernel's remedy for each, and the files that changed. |
+| **Commitments** | What did we decide, and what still stands? | The decisions with their obligations, their axiom links, their counterexamples, and their relations. |
+| **Reviews** | What must a person stand behind? | The kernel's required reviews and the manual promises, each saying what a signature means. |
+
+The kernel's subcommands are not a view. They are verbs, and a navigation of verbs says the kernel
+is a bag of commands; they live behind the Actions button.
+
+### The mosaic
+
+One cell per obligation. The cell's colour is the promise's EPISTEMIC STATUS, and the vocabulary is
+the constitution's own:
+
+| Cell | Meaning |
+|---|---|
+| observed | closed by a machine run (test / build / analysis / observation), current |
+| declared | closed by a person's word (a review attestation), current |
+| open | no current evidence |
+| uncheckable | the corpus names no check for it at all: the paper layer |
+| failed | a decisive failure |
+| waived | accepted by a named, in-force, expiring waiver |
+
+The gap kind — missing, stale, unknown — is NOT a colour. It is a debugging detail and it belongs
+to the drill-down, where the chain is drawn once, vertically: decision, obligation, check, evidence,
+and the gap hanging off the end that is broken.
+
+A cell is a JOIN of three readings and the console contributes none of them: the kernel's obligation
+index (`mathc packages`), the promise census (`mathc gaps`), and the store. Where the first two
+disagree about the same promise, the cell carries both and the console says so; the kernel does not
+always agree with itself, and a console that silently picked a side would launder.
+
+### What the console does not do
+
+It does not re-derive which obligations a diff touches. The kernel knows and does not expose it, so
+the change view says so instead of guessing.
+
 ## What it is for
 
 The protocol's cost is not paid in writing a decision. It is paid in looking at the corpus: to learn
@@ -67,11 +117,12 @@ prove how the console looks: that is checked by opening it in Paseo.
 ```bash
 bash tests/fixtures/paseo-console-contract.sh            # what the plugin registers
 bash tests/fixtures/paseo-console-kernel-authority.sh     # where its verdicts come from
+bash tests/fixtures/paseo-console-mosaic.sh               # what a cell is, and where its vocabulary lives
 bash tests/fixtures/paseo-console-renders.sh             # that every view renders
-bash tests/fixtures/paseo-console-negative-control.sh     # that the three above can fail
+bash tests/fixtures/paseo-console-negative-control.sh     # that the four above can fail
 ```
 
-The negative control breaks a copy of the plugin seven ways and requires the other three fixtures to
+The negative control breaks a copy of the plugin eleven ways and requires the other four fixtures to
 notice each one. A check that cannot fail is not a check.
 
 ## Where the verdicts come from

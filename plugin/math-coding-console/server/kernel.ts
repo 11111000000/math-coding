@@ -156,6 +156,59 @@ export function promisesFromPackages(packages: KernelPackages): KernelPromise[] 
   return promises;
 }
 
+/* ------------------------------------------------------------------- gate */
+
+export interface KernelGateGap {
+  kind: string;
+  obligationId: string;
+  causes: string[];
+  remedies: string[];
+}
+
+export interface KernelGate {
+  verdict: string;
+  base: string;
+  head: string;
+  obligations: number;
+  gaps: KernelGateGap[];
+}
+
+export async function readGate(
+  root: string,
+  base: string,
+  head: string,
+): Promise<{ value: KernelGate | null; error: string | null }> {
+  const result = await runMathc(root, ["gate", base, head], { timeoutMs: 300_000 });
+  try {
+    const parsed = JSON.parse(result.stdout) as Record<string, unknown>;
+    const gaps: KernelGateGap[] = [];
+    for (const entry of asArray(parsed.gaps)) {
+      const record = asObject(entry);
+      gaps.push({
+        kind: asString(record.kind),
+        obligationId: asString(record.obligation_id),
+        causes: asArray(record.causes).map(asString).filter((item) => item !== ""),
+        remedies: asArray(record.remedies).map(asString).filter((item) => item !== ""),
+      });
+    }
+    return {
+      value: {
+        verdict: asString(parsed.verdict),
+        base: asString(parsed.base),
+        head: asString(parsed.head),
+        obligations: asNumber(parsed.obligations),
+        gaps,
+      },
+      error: null,
+    };
+  } catch (error) {
+    return {
+      value: null,
+      error: `the gate did not answer with JSON: ${String(error)}`,
+    };
+  }
+}
+
 /* --------------------------------------------------------------- packages */
 
 export interface KernelObligation {

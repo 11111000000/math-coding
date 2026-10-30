@@ -1,0 +1,202 @@
+---
+schema: math-coding/3.3
+id: paseo-console-mosaic-2026-10
+revision: 1
+state: active
+body_sha: "sha256:6d1e0eb4aec724d6dee52182f73a233f926691fdb6a6a8d69e13ab56ff865c88"
+yaml_sha: "sha256:6d1e0eb4aec724d6dee52182f73a233f926691fdb6a6a8d69e13ab56ff865c88"
+intent: |
+  The console shows the corpus and it reads as a pile. Six views, each a
+  table of numbers the kernel printed, and a reader who opens the panel
+  learns that there are 155 decisions and 547 obligations and then has
+  to decide what to do with that.
+
+  The reason it reads as a pile is not that the numbers are wrong. It is
+  that the numbers are in the wrong SHAPE for the thing they describe.
+  The corpus is a population of promises, each in one epistemic state, and
+  a population with a state per member is a picture, not a list. Six
+  hundred rows of `id + cause + action` cannot show a reader that the
+  corpus is one colour and not another; a field of cells can.
+
+  There is a second thing the tables cannot do, and it is the more
+  important one. The console shows the SIZE of the store and the SIZE of
+  the corpus in two panels, and invites the reader to add them: 525
+  attestations, 547 obligations, which reads like a healthy corpus with a
+  large store. The truth is the JOIN between them, and the join is not
+  shown anywhere: 516 of those 525 attestations name a promise that is
+  still live, and NONE of them discharges it, because an attestation is
+  bound to the content of the scope it was made against, and the corpus
+  has been rewritten underneath them. A corpus with no evidence and a
+  corpus with a great deal of evidence look the same on a dashboard, and
+  they are opposites.
+
+  So the console draws the corpus: one cell per obligation, coloured by
+  the epistemic state the promise is actually in, arranged in bands by the
+  decision that promised it. And it draws the join, because the join is
+  the corpus's honesty.
+commitment: |
+  1. ONE CELL PER OBLIGATION. The cell's colour is the promise's
+     EPISTEMIC STATUS, and the status vocabulary has exactly six words:
+     observed (closed by a machine run that is current), declared (closed
+     by a person's word that is current), open (no current evidence),
+     uncheckable (the corpus names no check for it at all), failed (a
+     decisive failure), waived (accepted by a named, in-force, expiring
+     waiver). The gap kind — missing, stale, unknown — is NOT a colour:
+     it is a debugging detail and it belongs to the drill-down. The
+     six words live in one place and the server and the client both take
+     them from it.
+
+  2. THREE READINGS, JOINED. A cell is the join of what the kernel's
+     obligation index says (is this promise discharged, and by what),
+     what the promise census says (is there any check for it at all) and
+     what the store says (what kind of evidence covers it, and how
+     old). The console computes no state of its own; it colours the
+     kernel's answers.
+
+  3. BOTH READINGS, WHEN THEY DISAGREE. `mathc packages` and
+     `mathc gaps` do not say the same thing about the same promise —
+     on this repository, one says 547 missing and the other says 452
+     stale and 32 unknown. The console does not pick one and does not
+     average them. It shows both readings side by side on the cell and
+     marks the disagreement, because a console that silently chooses is
+     a console that laundered.
+
+  4. THE JOIN IS SHOWN. The console reports how many attestations the
+     store holds, how many of them name a promise that is still live,
+     and how many of those actually discharge it. The corpus's honesty
+     is not the two numbers; it is the third.
+
+  5. THE CHAIN IS DRAWN ONCE. For one promise, the chain is drawn
+     vertically — decision, obligation, check, evidence, and the gap
+     hanging off the end that is broken — with the evidence's kind, its
+     age and its materials digest on it. The mosaic is the overview; the
+     chain is the proof.
+
+  6. THE CHANGE IS THE GATE'S OWN READING. The change view shows the
+     merge gate's verdict, its exit code, its gaps grouped by kind and
+     the kernel's remedy for each, and the files that changed. The
+     console does NOT re-derive which obligations a diff touches: the
+     kernel does not expose that, and a console that guessed would be a
+     second measurer. The console says so instead of guessing.
+
+  7. THE NAVIGATION IS FOUR VIEWS AND A FRAME. The frame carries the
+     instrument's reading and is always visible. The four views answer
+     the methodology's questions: the corpus at a glance, this change,
+     the commitments and what still stands of them, and what a person
+     must stand behind. The kernel's subcommands leave the navigation:
+     they are verbs, and a navigation of verbs says the kernel is a bag
+     of commands.
+axiom_link:
+  - A0
+  - A1
+  - A4
+counterexample: |
+  The strongest objection is that a mosaic is a decoration. The six
+  states are a partition of what `mathc packages` already prints as one
+  column, so the picture carries no information the table did not, and
+  a table is cheaper to read for anyone who has seen a table.
+
+  The objection is right about the information and wrong about the
+  reading, and it is wrong in the direction that matters: it assumes
+  the reader adds the numbers. The reader does not. `525 attestations`
+  and `547 obligations` sit in two panels and the mind does the sum,
+  and the sum it does is "a big store for a big corpus" — which is
+  what the numbers are and is not what is true. The measured truth of
+  this corpus at the time of writing is that 516 of the 525
+  attestations name a live promise and none of them discharges one.
+  A field of 503 empty cells and 44 hatched ones cannot be read as
+  "mostly fine", because there is no number in it to add to anything
+  else; the eye has nothing to do but see the emptiness. The mosaic's
+  whole work is to remove the arithmetic the reader would otherwise
+  perform, and the arithmetic is what flatters the corpus.
+
+  The residue of the objection is admitted rather than answered away.
+  A mosaic is less familiar than a table, and the reader who wants the
+  table must be able to have it: the mosaic's bands open the same data
+  as a list, and the legend is on the picture. What the picture buys is
+  the shape; what the list buys is the address; both are needed, and
+  the promise that the picture alone is enough is the promise this
+  decision refuses to make.
+scope:
+  paths:
+    - "plugin/**"
+    - "tests/fixtures/paseo-console-mosaic.sh"
+    - "tests/fixtures/paseo-console-contract.sh"
+    - "tests/fixtures/paseo-console-negative-control.sh"
+    - "tests/fixtures/paseo-console-renders.sh"
+    - "docs/paseo-console.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "schemas/**"
+    - "axioms/**"
+outcomes:
+  - id: the-corpus-is-one-picture
+    statement: |
+      The corpus's honesty is legible in one glance, without reading a
+      number and without adding two numbers together.
+  - id: the-join-is-visible
+    statement: |
+      A reader can see how much of the attestation store discharges the
+      corpus, which is a different fact from how much store there is.
+obligations:
+  - id: the-cell-grammar-is-one-place
+    outcome: the-corpus-is-one-picture
+    claim: |
+      The six cell states are defined exactly once, in the shared verdict
+      module, and both halves of the console take them from there. Two
+      places that name them are two vocabularies, and two vocabularies
+      drift: one of them will call a promise observed while the kernel
+      calls it open.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-mosaic.sh
+  - id: the-cells-join-three-readings
+    outcome: the-corpus-is-one-picture
+    claim: |
+      A cell is the join of the kernel's obligation index, the promise
+      census and the attestation store. A promise closed by a machine run
+      is a different cell from one closed by a person's word, and the
+      difference is visible.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-mosaic.sh
+  - id: the-join-is-computed
+    outcome: the-join-is-visible
+    claim: |
+      The console reports the join: how many attestations the store
+      holds, how many name a live promise, and how many discharge one.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-mosaic.sh
+  - id: the-mosaic-renders
+    outcome: the-corpus-is-one-picture
+    claim: |
+      The mosaic renders: one cell per obligation, coloured by its
+      epistemic status, banded by the decision that promised it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-renders.sh
+  - id: the-checks-can-fail
+    outcome: the-corpus-is-one-picture
+    claim: |
+      The checks report a broken mosaic. A check that cannot fail is not
+      a check, so the negative control breaks a copy of the plugin and
+      requires the checks to notice.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/paseo-console-negative-control.sh
+negative_control: tests/fixtures/paseo-console-negative-control.sh
+risk:
+  declared_triggers:
+    - the kernel grows a state the six words do not cover and the
+      mosaic colours a promise by a rule that is not the kernel's
+    - the two kernel readings drift further apart and the console's
+      agreement marker becomes noise
+    - the mosaic grows a legend nobody reads and the picture stops
+      explaining itself
+  owner: human:maintainer
+relations:
+  addresses:
+    - paseo-console-plugin-2026-10@1

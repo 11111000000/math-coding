@@ -1,5 +1,6 @@
 import { defineRpc } from "@getpaseo/plugin";
 import { z } from "zod";
+import { CELL_STATES } from "./verdict";
 
 /**
  * The console is a view and a control surface over the math-coding kernel.
@@ -421,6 +422,108 @@ export const reviewTimelineDataSchema = z.object({
 
 export type ReviewTimelineData = z.infer<typeof reviewTimelineDataSchema>;
 
+/* ----------------------------------------------------------------- mosaic */
+
+/**
+ * The cell states, taken from the one place they are named.
+ *
+ * The list is derived, not written out again: a second list is a second
+ * vocabulary, and two vocabularies drift.
+ */
+export const cellStateSchema = z.enum(CELL_STATES);
+
+export const mosaicCellSchema = z.object({
+  decision: z.string(),
+  obligation: z.string(),
+  /** The epistemic status the cell is coloured by. */
+  state: cellStateSchema,
+  /** What the kernel's obligation index says. */
+  verdict: z.string(),
+  /** What the promise census says about the same promise, when it says anything. */
+  censusState: z.string().nullable(),
+  censusClass: z.string().nullable(),
+  /** True when the two kernel readings disagree about this promise. */
+  disagreement: z.boolean(),
+  verifier: z.string().nullable(),
+  attestationId: z.string().nullable(),
+  attestationKind: z.string().nullable(),
+  attestationProducer: z.string().nullable(),
+  issuedAt: z.string().nullable(),
+  expiresAt: z.string().nullable(),
+  materialsDigest: z.string().nullable(),
+});
+
+export const mosaicRpc = defineRpc({
+  name: "mathcoding.mosaic",
+  input: z.object({ root: z.string().optional() }),
+  output: z.object({
+    root: z.string().nullable(),
+    error: z.string().nullable(),
+    generatedAt: z.string(),
+    cells: z.array(mosaicCellSchema),
+    counts: z.object({
+      total: z.number(),
+      observed: z.number(),
+      declared: z.number(),
+      open: z.number(),
+      uncheckable: z.number(),
+      failed: z.number(),
+      waived: z.number(),
+    }),
+    /**
+     * The join. The store's size is a number; what of it reaches the corpus
+     * is a different number, and the difference is the corpus's honesty.
+     */
+    store: z.object({
+      total: z.number(),
+      namingLivePromise: z.number(),
+      discharging: z.number(),
+    }),
+    /**
+     * The two kernel readings about the same promises. The kernel does not
+     * always agree with itself, and the console does not pick a side.
+     */
+    readings: z.object({
+      packages: z.string(),
+      census: z.string(),
+      disagreeing: z.number(),
+    }),
+  }),
+});
+
+/* ----------------------------------------------------------------- change */
+
+export const changeRpc = defineRpc({
+  name: "mathcoding.change",
+  input: z.object({
+    root: z.string().optional(),
+    base: z.string(),
+    head: z.string(),
+  }),
+  output: z.object({
+    ok: z.boolean(),
+    error: z.string().nullable(),
+    exitCode: z.number(),
+    verdict: z.string().nullable(),
+    base: z.string(),
+    head: z.string(),
+    obligations: z.number(),
+    gaps: z.array(
+      z.object({
+        kind: z.string(),
+        obligationId: z.string(),
+        /** The decision that promised it, when the obligation id is unique. */
+        decision: z.string().nullable(),
+        causes: z.array(z.string()),
+        remedies: z.array(z.string()),
+      }),
+    ),
+    changedFiles: z.array(z.string()),
+    /** What the console could NOT do, stated rather than guessed. */
+    limit: z.string().nullable(),
+  }),
+});
+
 /* ----------------------------------------------------------------- types */
 
 export type VerdictSection = z.output<typeof verdictSectionSchema>;
@@ -434,6 +537,9 @@ export type ReviewItem = z.output<typeof reviewItemSchema>;
 export type DoctorSchema = z.output<typeof doctorSchema>;
 export type GitState = z.output<typeof gitStateSchema>;
 export type Policy = z.output<typeof policySchema>;
+export type MosaicCell = z.output<typeof mosaicCellSchema>;
+export type Mosaic = z.output<typeof mosaicRpc.output>;
+export type Change = z.output<typeof changeRpc.output>;
 export type MathCodingState = z.output<typeof stateRpc.output>;
 export type MathCodingDecision = z.output<typeof decisionRpc.output>;
 export type ActionResult = z.output<typeof actionRpc.output>;
