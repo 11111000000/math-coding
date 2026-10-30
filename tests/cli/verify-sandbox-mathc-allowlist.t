@@ -40,13 +40,11 @@ tree.
   >     acceptance:
   >       all:
   >         - verifier: mathc version
-  >           result: pass
   >   - id: denied-init
   >     claim: mathc init is denied in strict mode.
   >     acceptance:
   >       all:
   >         - verifier: mathc init
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

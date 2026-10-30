@@ -4,8 +4,8 @@ id: enable-counters-drift-test-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:60ffe89d9f538f54e897eef4554fbb0447694e7ee0901178b6b701b8e6934b3b"
-yaml_sha: "sha256:60ffe89d9f538f54e897eef4554fbb0447694e7ee0901178b6b701b8e6934b3b"
+body_sha: "sha256:47ef0ebd579eae794a575e2b2c93081d204dde4821ddaa7f09e0c3c938ae7d3d"
+yaml_sha: "sha256:47ef0ebd579eae794a575e2b2c93081d204dde4821ddaa7f09e0c3c938ae7d3d"
 axiom_link:
   - A0
 intent: |
@@ -198,7 +198,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/counters_drift.ml
-          result: pass
   - id: test-finds-no-drift
     statement: |
       On a tree whose PACKAGES.md and ROADMAP.md are in sync
@@ -207,7 +206,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test
-          result: pass
   - id: disable-counters-drift-decision-superseded
     statement: |
       `decisions/disable-counters-drift-test-2026-10.yaml`
@@ -217,7 +215,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/disable-counters-drift-test-2026-10.yaml
-          result: pass
 
 reversal:
   - signal: dune-test-hangs-on-this-commit

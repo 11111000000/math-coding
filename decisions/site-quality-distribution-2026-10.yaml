@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-distribution-2026-10
 revision: 1
 state: active
-body_sha: "sha256:d5666406855c4fff09a884d94866896913e0e3421a1fa3def7fab1518fd67caa"
-yaml_sha: "sha256:d5666406855c4fff09a884d94866896913e0e3421a1fa3def7fab1518fd67caa"
+body_sha: "sha256:8663f3956f59d1bb922bda51f3e995ff3c5c322d6a8ce51d7fd5e3eb5b7a3fea"
+yaml_sha: "sha256:8663f3956f59d1bb922bda51f3e995ff3c5c322d6a8ce51d7fd5e3eb5b7a3fea"
 axiom_link:
   - A1
 intent: |
@@ -103,7 +103,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-feed-xml-is-valid
-          result: pass
 
   - id: onboarding-cta-on-home-page
     outcome: onboarding-cta-on-home
@@ -119,7 +118,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-cta-block-emits
-          result: pass
 
 reversal:
   - signal: feed-fails-validator

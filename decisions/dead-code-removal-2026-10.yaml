@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 
-body_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
-yaml_sha: "sha256:36f38645a792efd56ffa95f13d9c228ee5fda4bbf74e4775363bbc73ab2a147e"
+body_sha: "sha256:5168ee60c59eb76aff238937df78a517e05fcabcfdcf663fa15c9eac2dd3f1b8"
+yaml_sha: "sha256:5168ee60c59eb76aff238937df78a517e05fcabcfdcf663fa15c9eac2dd3f1b8"
 
 axiom_link:
   - A0
@@ -111,7 +111,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: no-reader-remains
     claim: |
       Nothing in the repository references the removed module or the
@@ -119,7 +118,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/no-dead-references.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/dead-code-removal-2026-10.yaml`
@@ -127,7 +125,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/dead-code-removal-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

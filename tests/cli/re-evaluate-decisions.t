@@ -54,8 +54,31 @@ in the post-run summary is one of the four T1.2 values
 end-to-end) and the shape of the summary matches the
 documented JSON keys (`axiom`, `now`, `ran`, `decisions`).
 
-  $ jq -r '.decisions[].verdict' < /tmp/re-eval.out | sort -u | tr '\n' ',' | sed 's/,$//'
-  compatible,compatible_after_run,inconclusive
+WHAT THIS ASSERTS, AND WHY IT IS NOT A SNAPSHOT OF THE CORPUS.
+The first assertion is the CONTRACT: every verdict the summary
+reports is one of the five values the type admits. The second is
+the LIVENESS of the post-run oracle: at least one decision
+actually reaches `compatible_after_run`, so the oracle is proven
+to work end-to-end and not merely to have a vocabulary.
+
+The earlier form of this test asserted the SET of verdicts the
+corpus happened to produce (`compatible,compatible_after_run,inconclusive`).
+That is a property of WHICH obligations the corpus currently
+carries, not of the oracle: the census moved four decisions off
+their phantom builtin verifiers onto dated human acceptances, and
+the corpus stopped producing `compatible`. The test then failed
+for a reason that had nothing to do with the thing it exists to
+protect, and the only way to make it pass was to edit the
+expected string -- which is exactly how a test stops testing.
+Whether any decision still carries a builtin-style verifier is a
+question for the corpus (`mathc gaps`), not for this file. What
+must hold here, and must keep holding, is that the verdicts are
+drawn from the type and that the post-run path produces one.
+
+  $ jq -r '[.decisions[].verdict] | map(select(. as $v | ["compatible","compatible_after_run","inconclusive","incompatible","stale_claim"] | index($v) | not)) | length' < /tmp/re-eval.out
+  0
+  $ jq -r '[.decisions[].verdict] | map(select(. == "compatible_after_run")) | length > 0' < /tmp/re-eval.out
+  true
   $ jq -r 'keys | sort | join(",")' < /tmp/re-eval.out
   axiom,decisions,now,ran
   $ rm -rf "$tmp"

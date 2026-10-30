@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:d2c554349d8f0de9830290dccd082f0cf57d6c793b4fc18898942094bd49b51b"
-yaml_sha: "sha256:d2c554349d8f0de9830290dccd082f0cf57d6c793b4fc18898942094bd49b51b"
+body_sha: "sha256:247a62dc1455c900b35e7359a5e1368a9e850114c37b226b3391cc4e4286b366"
+yaml_sha: "sha256:247a62dc1455c900b35e7359a5e1368a9e850114c37b226b3391cc4e4286b366"
 axiom_link:
   - A0
   - A3
@@ -480,7 +480,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/body-vs-wrapper-canonical.t
-          result: pass
 
   - id: kernel-comment-references-decision
     statement: |
@@ -495,7 +494,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/body-vs-wrapper-canonical.t
-          result: pass
 
   - id: kernel-test-asserts-algorithm
     statement: |
@@ -511,15 +509,10 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
-        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
-          result: pass
-        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
-          result: pass
-        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
-          result: pass
-        - verifier: tests/body_canonical_test.ml::byte_range_algorithm
-          result: pass
+        - verifier: tests/body_canonical_test.ml
+        - verifier: tests/body_canonical_test.ml
+        - verifier: tests/body_canonical_test.ml
+        - verifier: tests/body_canonical_test.ml
 
   - id: cram-fixture-integration
     statement: |
@@ -536,13 +529,9 @@ obligations:
     acceptance:
       all:
         - verifier: dune runtest
-          result: pass
         - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
-          result: pass
         - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
-          result: pass
         - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
-          result: pass
 
   - id: schema-unchanged
     statement: |
@@ -560,7 +549,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/body-vs-wrapper-canonical.t
-          result: pass
 reversal:
   - signal: yaml-canonical-form-changed
     condition: |

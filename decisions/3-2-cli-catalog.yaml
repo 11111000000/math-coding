@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: 3-2-cli-catalog
 revision: 2
 state: active
-body_sha: "sha256:4343f86cc072f1fd22fc7ba641764955636774c86618fd022465f4d20f346348"
-yaml_sha: "sha256:4343f86cc072f1fd22fc7ba641764955636774c86618fd022465f4d20f346348"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:2ae928248f98a943f0d3fab36dd678fe93c97d31db86c325ac984202f4e42e14"
+yaml_sha: "sha256:2ae928248f98a943f0d3fab36dd678fe93c97d31db86c325ac984202f4e42e14"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
@@ -114,9 +115,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/mode.t
-          result: pass
-        - verifier: manual-text-scan-spec-semantics-md-mode-row
-          result: pass
+        - verifier: shell-grep spec/semantics.md `mode [PATH ...] [--format=json|text]`
 
   - id: rebuttals-subcommand-spec-row
     outcome: spec-catalog-complete
@@ -126,9 +125,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/rebuttals.t
-          result: pass
-        - verifier: manual-text-scan-spec-semantics-md-rebuttals-row
-          result: pass
+        - verifier: shell-grep spec/semantics.md `rebuttals COMMIT_SHA`
 
   - id: re-evaluate-subcommand-spec-row
     outcome: spec-catalog-complete
@@ -138,9 +135,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate.t
-          result: pass
-        - verifier: manual-text-scan-spec-semantics-md-re-evaluate-row
-          result: pass
+        - verifier: shell-grep spec/semantics.md `re-evaluate DECISION_ID AXIOM_ID`
 
   - id: readme-cli-table-grows-by-three
     outcome: readme-catalog-complete
@@ -151,7 +146,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/3-2-cli-catalog-rows-present.sh
-          result: pass
 
   - id: mode-fixture-pair
     outcome: fixtures-positive-and-negative
@@ -162,7 +156,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/mode.t
-          result: pass
 
   - id: rebuttals-fixture-pair
     outcome: fixtures-positive-and-negative
@@ -173,7 +166,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/rebuttals.t
-          result: pass
 
   - id: re-evaluate-fixture-pair
     outcome: fixtures-positive-and-negative
@@ -184,7 +176,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate.t
-          result: pass
 
 risk:
   declared_triggers:

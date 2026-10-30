@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:bb9d6ab3d1fb793dabdd28070ec301b906c1bee19fc911e39136df41c0d6d416"
-yaml_sha: "sha256:bb9d6ab3d1fb793dabdd28070ec301b906c1bee19fc911e39136df41c0d6d416"
+body_sha: "sha256:efb29030903aaa4e0b0e0887976715e7e7c0ae43ce32d1355b988f3741f72abd"
+yaml_sha: "sha256:efb29030903aaa4e0b0e0887976715e7e7c0ae43ce32d1355b988f3741f72abd"
 axiom_link:
   - A0
   - A1
@@ -121,7 +121,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-visual-diff
-          result: pass
   - id: logo-crisp-at-favicon-size
     statement: |
       assets/logo.svg renders at 16 px with all three
@@ -131,7 +130,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-render-and-compare
-          result: pass
   - id: homepage-first-viewport-shows-only-hero
     statement: |
       The first viewport on `/` on a 1440 x 900 window shows
@@ -140,7 +138,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-visual-diff
-          result: pass
   - id: moderation-section-renders-terminal
     statement: |
       The Moderation section contains a `<pre class="mathc-terminal">`
@@ -150,7 +147,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-file-grep
-          result: pass
   - id: russian-page-mirrors-english-structure
     statement: |
       `dist/index.ru.html` carries the same five sections and
@@ -159,7 +155,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-file-grep
-          result: pass
   - id: hero-width-uses-prose-column
     statement: |
       On viewports ≥ 1280 px the hero uses the full main
@@ -168,7 +163,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-browser-eval
-          result: pass
 
 antithesis: |
   The flat 12-link nav was a defensible default: every page

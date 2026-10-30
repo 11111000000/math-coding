@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:dba525198a040bc775ca7daa5cc5e9853058f5315fe7e6394401bfd395726192"
-yaml_sha: "sha256:dba525198a040bc775ca7daa5cc5e9853058f5315fe7e6394401bfd395726192"
+body_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
+yaml_sha: "sha256:6fdf715710855ec95e25bb451b5a3bce30621d8b81d548c0ce8b2dadb249c497"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -142,9 +142,7 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/render.sh
-          result: pass
         - verifier: tests/cli/render.t
-          result: pass
 
   - id: site-content-self-referential
     statement: |
@@ -155,7 +153,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-l-mathc-packages-dist-html-wc-l-3
-          result: pass
 
   - id: site-deploy-pipeline
     statement: |
@@ -165,7 +162,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-gh-run-list-workflow-site-yml-limit-1-json-statu
-          result: pass
 
   - id: site-pinned-ubuntu
     statement: |
@@ -175,7 +171,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-runs-on-ubuntu-22-04-github-workflows-site-
-          result: pass
 
   - id: tufte-stylesheet
     statement: |
@@ -188,9 +183,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-qf-charter-assets-style-css
-          result: pass
         - verifier: manual-grep-qf-fbfaf6-assets-style-css
-          result: pass
 
   - id: sidenote-syntax
     statement: |
@@ -203,10 +196,8 @@ obligations:
     outcome: sidenote-rendering
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::sidenote_renders
-          result: pass
+        - verifier: tests/render_kernel.ml
         - verifier: file-exists assets/style.css
-          result: pass
 
   - id: mathjax-wiring
     statement: |
@@ -218,10 +209,8 @@ obligations:
     outcome: mathjax-loads
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_in_head_when_enabled
-          result: pass
-        - verifier: tests/render_kernel.ml::mathjax_default_on
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: bilingual-pairs
     statement: |
@@ -233,8 +222,7 @@ obligations:
     outcome: bilingual-content
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::bilingual_pairs_complete
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: base-href-subpath
     statement: |
@@ -246,10 +234,8 @@ obligations:
     outcome: subpath-deployment
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::base_href_default
-          result: pass
-        - verifier: tests/render_kernel.ml::base_href_empty
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: site-pages-extended
     statement: |
@@ -263,19 +249,12 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/render.t
-          result: pass
         - verifier: manual-rendered-asset-manifesto
-          result: pass
         - verifier: manual-rendered-asset-foundations
-          result: pass
         - verifier: manual-rendered-asset-workflow
-          result: pass
         - verifier: manual-rendered-asset-faq
-          result: pass
         - verifier: manual-rendered-asset-contributing
-          result: pass
         - verifier: manual-rendered-asset-readme
-          result: pass
 
   - id: extended-markdown-subset
     statement: |
@@ -289,18 +268,12 @@ obligations:
     outcome: site-content-markup
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::table_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::bold_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::italic_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::blockquote_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::link_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::hr_renders
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
 evidence:
   - kind: declared

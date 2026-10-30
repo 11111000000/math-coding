@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: solo-default-on-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5d57e65845cfdb8a1b2860355baa505f557b09d65153477b855ee09dc386ad73"
-yaml_sha: "sha256:5d57e65845cfdb8a1b2860355baa505f557b09d65153477b855ee09dc386ad73"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:208a58d675e27bb31bbfb04dd56a811b70ca0513b76b38222f4b6ebecdcfa52b"
+yaml_sha: "sha256:208a58d675e27bb31bbfb04dd56a811b70ca0513b76b38222f4b6ebecdcfa52b"
 intent: |
   The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
   maintainer that the protocol was not for them. The normative text
@@ -222,7 +223,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-applicability-envelope.t
-          result: pass
   - id: skill-copies-identical
     claim: |
       `adoption/SKILL.md` and `.opencode/skills/math-coding/SKILL.md`
@@ -232,7 +232,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-opencode-skill.sh
-          result: pass
   - id: adoption-doc-fresh
     claim: |
       The adoption docs keep the schema-string and install-URL pins
@@ -242,7 +241,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-adoption-doc-freshen.sh
-          result: pass
   - id: spec-envelope-single-source
     claim: |
       `spec/algebra-3.2.md` §28 states `default_path(P) = Path A`
@@ -251,10 +249,9 @@ obligations:
     outcome: acceptance
     acceptance:
       all:
-        - verifier: manual-shell-grep-unqualified
+        - verifier: shell-grep spec/algebra-3.2.md P ∈ prototype_or_throwaway(P)
           path: spec/algebra-3.2.md
           needle: "default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)"
-          result: pass
 
 reversal:
   - signal: solo-adoption-ceremony-only

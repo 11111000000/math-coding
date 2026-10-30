@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: formal-verifier-conventions
 revision: 2
 state: active
-body_sha: "sha256:3b0805d6ca2bfedb7f66268d95d1b5213194914eda3760c0b37646c4f2795905"
-yaml_sha: "sha256:3b0805d6ca2bfedb7f66268d95d1b5213194914eda3760c0b37646c4f2795905"
+body_sha: "sha256:1f8137b85fbd06dbf27b1a37b7a47cd8371153afe88aef3cbf795afc6a82b27d"
+yaml_sha: "sha256:1f8137b85fbd06dbf27b1a37b7a47cd8371153afe88aef3cbf795afc6a82b27d"
 intent: |
   Codify the convention for formal-verifier artefacts (TLA+, Coq,
   Alloy) without adding any runtime dependency. The project's
@@ -136,7 +136,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
   - id: convention-locked-as-decision
     outcome: convention-locked-as-obligation
     claim: |
@@ -146,7 +145,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
 reversal:
   - signal: convention-changed-or-abandoned

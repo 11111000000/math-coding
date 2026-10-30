@@ -225,35 +225,30 @@ and this case would assert nothing at all.
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   '  - id: obl-2' \
   >   '    outcome: o1' \
   >   '    claim: Second obligation.' \
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   '  - id: obl-3' \
   >   '    outcome: o1' \
   >   '    claim: Third obligation.' \
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   '  - id: obl-4' \
   >   '    outcome: o1' \
   >   '    claim: Fourth obligation.' \
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   '  - id: obl-5' \
   >   '    outcome: o1' \
   >   '    claim: Fifth obligation.' \
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   'risk:' \
   >   '  declared_triggers: []' \
   >   '  owner: human:tester' \

@@ -202,7 +202,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
   - id: spec-catalog-fixture-implemented
     outcome: cli-subcommands-listed-in-spec
@@ -217,7 +216,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
 reversal:
   - signal: cli-surface-becomes-templated

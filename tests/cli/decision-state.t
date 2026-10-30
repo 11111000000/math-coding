@@ -60,7 +60,6 @@ validate` run after the user adopts the file).
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state.t
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:
@@ -155,7 +154,6 @@ Case (b) — re-mint the fixture at `state: active` then
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state.t
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

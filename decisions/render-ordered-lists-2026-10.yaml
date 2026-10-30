@@ -6,8 +6,8 @@ state: active
 mode: light
 axiom_link:
   - A4
-body_sha: "sha256:b2281b90c93226d7712c75339129c0dbf171b5aec558dfa351269e6991528d61"
-yaml_sha: "sha256:b2281b90c93226d7712c75339129c0dbf171b5aec558dfa351269e6991528d61"
+body_sha: "sha256:9d28369138f1b246e88a6aa1561ec3d6dccd56b1083beee9aea23557148c3a0e"
+yaml_sha: "sha256:9d28369138f1b246e88a6aa1561ec3d6dccd56b1083beee9aea23557148c3a0e"
 intent: |
   The hand-rolled Markdown subset in `lib/render.ml::md_parse`
   previously recognised only `- ` unordered lists. Lines
@@ -129,20 +129,16 @@ obligations:
       input renders as `<ol><li>...</li><li>...</li><li>...</li></ol>`.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ordered_list_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_multi_digit_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::ordered_list_continuation_joins_into_one_li
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
   - id: ordered-list-negative
     statement: |
       A `1.5 ` / `1.foo` / bare `1.` line is NOT wrapped in
       `<ol>`; it stays in the paragraph accumulator.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ordered_list_invalid_marker_stays_paragraph
-          result: pass
+        - verifier: tests/render_kernel.ml
 reversal:
   - signal: ordered-list-regressed
     condition: |

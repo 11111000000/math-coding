@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: agent-onboarding
 revision: 2
 state: active
-body_sha: "sha256:eeb59600343d55ede7625d37b5221a3e46a23af4aa5f4082bcc7e3b01c1fcd08"
-yaml_sha: "sha256:eeb59600343d55ede7625d37b5221a3e46a23af4aa5f4082bcc7e3b01c1fcd08"
+body_sha: "sha256:f30f74cc6f8dd36ef6af7ebd082271fd735121ddf827abf2752b4667f1f3ccda"
+yaml_sha: "sha256:f30f74cc6f8dd36ef6af7ebd082271fd735121ddf827abf2752b4667f1f3ccda"
 intent: |
   Codify the conventions a new agent needs to be productive in
   math-coding 3.0-alpha. The conventions are not new — the
@@ -156,7 +156,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
   - id: conventions-discoverable-in-packages-md
     outcome: conventions-discoverable-in-packages
     claim: |
@@ -167,7 +166,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
   - id: adr-location-codified
     outcome: conventions-locked-as-obligations
     claim: |
@@ -180,7 +178,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
   - id: first-file-codified
     outcome: conventions-locked-as-obligations
     claim: |
@@ -192,7 +189,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
 reversal:
   - signal: conventions-changed-without-decision

@@ -4,8 +4,8 @@ id: re-evaluation-is-not-a-check
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:9c57e544e4f68ea95dd5516e394a70cb7991bcb469a7967b09119981cb4c57df"
-yaml_sha: "sha256:9c57e544e4f68ea95dd5516e394a70cb7991bcb469a7967b09119981cb4c57df"
+body_sha: "sha256:783cb65f1c1a14d95ea039024d6bccf655d92deee709036e5cd26cc55966948a"
+yaml_sha: "sha256:783cb65f1c1a14d95ea039024d6bccf655d92deee709036e5cd26cc55966948a"
 intent: |
   Stop the re-evaluation oracle from writing evidence it never
   gathered.
@@ -69,9 +69,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/cli/evidence-class.t
-          result: pass
         - verifier: file-exists tests/cli/re-evaluate-decisions.t
-          result: pass
 negative_control: tests/cli/evidence-class.t
 risk:
   declared_triggers:

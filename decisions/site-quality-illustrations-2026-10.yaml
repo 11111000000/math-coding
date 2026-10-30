@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
 revision: 1
 state: active
-body_sha: "sha256:a94335c2c99040fd6d20d3b943d4474893e80aebb164f588861108e79d2ff671"
-yaml_sha: "sha256:a94335c2c99040fd6d20d3b943d4474893e80aebb164f588861108e79d2ff671"
+body_sha: "sha256:e526e09667f9f46a53558c4316a33443c3610116b700bc4062c1dca9183a527d"
+yaml_sha: "sha256:e526e09667f9f46a53558c4316a33443c3610116b700bc4062c1dca9183a527d"
 axiom_link:
   - A2
 intent: |
@@ -109,7 +109,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists assets/chain.svg
-          result: pass
 
   - id: axiom-icons-shipped
     outcome: axiom-icons-on-overview-and-per-axiom
@@ -123,15 +122,10 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists assets/axiom-separation.svg
-          result: pass
         - verifier: file-exists assets/axiom-feedback.svg
-          result: pass
         - verifier: file-exists assets/axiom-invariants.svg
-          result: pass
         - verifier: file-exists assets/axiom-self-application.svg
-          result: pass
         - verifier: file-exists assets/axiom-care.svg
-          result: pass
 
   - id: kernel-architecture-svg-shipped
     outcome: kernel-pipeline-diagram-on-methodology
@@ -143,7 +137,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists assets/kernel-architecture.svg
-          result: pass
 
 reversal:
   - signal: svg-render-fails-in-chrome-or-firefox

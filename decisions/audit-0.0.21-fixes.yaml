@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes
 revision: 3
 state: active
-body_sha: "sha256:65f64b195b77e2d68fd75d875ce5a297cfc1a64a3dae3df4b815f0adae69e7b5"
-yaml_sha: "sha256:65f64b195b77e2d68fd75d875ce5a297cfc1a64a3dae3df4b815f0adae69e7b5"
+body_sha: "sha256:c3c54104eadea4036a1828d63ac85a10bec39820f44303822364640347e32b0c"
+yaml_sha: "sha256:c3c54104eadea4036a1828d63ac85a10bec39820f44303822364640347e32b0c"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`
@@ -207,9 +207,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.ml
-          result: pass
         - verifier: tests/conformance.ml
-          result: pass
 
   - id: parser-accepts-yaml-form
     outcome: validate-accepts-own-decisions
@@ -220,7 +218,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/decision_parser_yaml.ml
-          result: pass
 
   - id: re-evaluate-loads-decisions
     outcome: re-evaluate-loads-decisions
@@ -231,9 +228,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/re-evaluate.t
-          result: pass
         - verifier: tests/re_evaluation_test.ml
-          result: pass
 
   - id: self-check-verdict-is-pass
     outcome: kernel-self-check-passes
@@ -258,9 +253,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
-          result: pass
         - verifier: mathc-self-check-verdict-pass
-          result: pass
 
   - id: counters-single-source
     outcome: doc-counters-match-kernel
@@ -272,7 +265,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/counters_drift.ml
-          result: pass
 
   - id: no-doc-drift-across-read-first-set
     outcome: doc-counters-match-kernel
@@ -285,7 +277,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/counters_drift.ml
-          result: pass
 
   - id: pre-commit-hook-registered
     outcome: pre-commit-hook-enforceable
@@ -298,7 +289,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
 
   - id: constitution-typo-corrected
     outcome: kernel-self-check-passes
@@ -308,7 +298,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
 reversal:
   - signal: cycle-diverges

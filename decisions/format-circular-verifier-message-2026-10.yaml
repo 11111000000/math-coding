@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:2901b7a9fb3701e8baac4518701109d0c325e6b85b8e8505cafc6a0a8979cfef"
-yaml_sha: "sha256:2901b7a9fb3701e8baac4518701109d0c325e6b85b8e8505cafc6a0a8979cfef"
+body_sha: "sha256:af251116ca881255720e8cb8e8b15690e3e37e72fd91d0fc565e7a738522bbb4"
+yaml_sha: "sha256:af251116ca881255720e8cb8e8b15690e3e37e72fd91d0fc565e7a738522bbb4"
 
 axiom_link:
   - A1
@@ -85,7 +85,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune fmt --preview
-          result: pass
 
 outcomes:
   - id: the-tree-is-formatted

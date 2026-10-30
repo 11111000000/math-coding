@@ -108,6 +108,10 @@ let[@warning "-32"] collect_ambiguous_acceptance_diagnostics v =
                                 (Diagnostic.malformed_acceptance
                                    ~obligation_id:id ~item_position:pos
                                    "verifier or review present but unparseable")
+                          | Decision.ShapeDeclaredResult ->
+                              Some
+                                (Diagnostic.declared_result_acceptance
+                                   ~obligation_id:id ~item_position:pos ())
                           | Decision.ShapeVerifier | Decision.ShapeReview
                           | Decision.ShapeEmpty ->
                               None)
@@ -4063,7 +4067,9 @@ type verifier_plan =
   | Plan_cram of string
   (* repository-relative cram file, run via `dune runtest` *)
   | Plan_binary of string * string list
-(* dune exec target, argv handed to the binary *)
+  (* dune exec target, argv handed to the binary *)
+  | Plan_grep of string * string
+(* absolute file path, the fixed string that must appear in it *)
 
 type verifier_plan_result =
   | Plan_skip
@@ -4147,31 +4153,51 @@ let[@warning "-32"] plan_binary_form ~project_root ~args ~token ~rel ~selector =
       String.sub rel 0 (String.length rel - 3) ^ ".exe"
     else rel
   in
-  (* Alcotest's NAME_REGEX is a partial match: `base_href` runs both
-     base_href_default and base_href_empty. Anchoring is what makes
-     `::case` mean THAT case. Alcotest exits non-zero when the
-     pattern matches nothing, so an unknown case is a `fail` and
-     never a silent `pass`. *)
-  let argv =
-    match selector with
-    | None -> []
-    | Some c -> [ "test"; "^" ^ String.escaped c ^ "$" ]
-  in
+  (* A verifier names a FILE, and the file is the unit of execution.
+
+     The corpus used to name a CASE too -- `tests/foo.ml::case` -- and
+     the kernel turned it into an Alcotest filter anchored at both
+     ends: `["test"; "^" ^ String.escaped c ^ "$"]`. Two things were
+     wrong with it. `String.escaped` escapes a string for an OCaml
+     LITERAL, not for a regular expression, so a case whose name
+     contains a bracket came out as a character class. And Alcotest
+     matches its filter against the test PATH ("group.name"), so an
+     anchored pattern can never match a path that carries a group
+     prefix -- the pattern was unreachable in the general case.
+
+     The corpus answered the resulting false reds with waivers, and
+     the waivers answered with paper. So the form is refused here,
+     loudly, instead of being half-supported: the file is what runs,
+     and what runs is what the verdict is about.
+
+     The corpus's own precedent is the whole file: `t6-1` names
+     `tests/process_principles.ml`, not a case inside it. *)
+  let argv = [] in
   match lexical with
   | Some why -> Plan_fail why
   | None -> (
-      match
-        if ends_with ~suffix:".ml" rel then
-          match repo_file ~project_root rel with
-          | Error why -> Plan_fail why
-          | Ok _ -> Plan_skip
-        else Plan_skip
-      with
-      | Plan_skip -> (
-          match reject_metachars ~what:rel args with
-          | Plan_skip -> Plan_ok (Plan_binary (dune_exec_target target, argv))
-          | other -> other)
-      | other -> other)
+      match selector with
+      | Some c ->
+          Plan_fail
+            (Printf.sprintf
+               "%s: a verifier names a FILE; the file is the unit of \
+                execution. The case selector %S is refused: it was anchored \
+                against the test path and could not match it. Name the file."
+               token c)
+      | None -> (
+          match
+            if ends_with ~suffix:".ml" rel then
+              match repo_file ~project_root rel with
+              | Error why -> Plan_fail why
+              | Ok _ -> Plan_skip
+            else Plan_skip
+          with
+          | Plan_skip -> (
+              match reject_metachars ~what:rel args with
+              | Plan_skip ->
+                  Plan_ok (Plan_binary (dune_exec_target target, argv))
+              | other -> other)
+          | other -> other))
 
 let[@warning "-32"] plan_script_form ~project_root ~args ~token =
   match repo_file ~project_root token with
@@ -4209,16 +4235,17 @@ let[@warning "-32"] plan_script_form ~project_root ~args ~token =
 let[@warning "-32"] plan_cram_form ~project_root ~rel ~selector =
   match repo_file ~project_root rel with
   | Error why -> Plan_fail why
-  | Ok (abs, _) ->
-      (match selector with
+  | Ok (abs, _) -> (
+      match selector with
       | Some c ->
-          Printf.eprintf
-            "mathc verify: %s::%s — `dune runtest` selects cram files, not \
-             single cases; running the whole file\n\
-             %!"
-            rel c
-      | None -> ());
-      Plan_ok (Plan_cram rel)
+          Plan_fail
+            (Printf.sprintf
+               "%s::%s — a verifier names a FILE, and `dune runtest` selects \
+                cram FILES, not cases. Running the whole file for a \
+                case-selector would have reported a verdict about something \
+                else. Name the file."
+               rel c)
+      | None -> Plan_ok (Plan_cram rel))
 
 let[@warning "-32"] plan_tests_form ~project_root ~args ~token ~rel ~selector =
   if ends_with ~suffix:".t" rel then plan_cram_form ~project_root ~rel ~selector
@@ -4239,6 +4266,32 @@ let[@warning "-32"] plan_tests_form ~project_root ~args ~token ~rel ~selector =
    containment check only; execution happens in the sandbox. *)
 let[@warning "-32"] plan_verifier ~project_root scheme args =
   if scheme = "dune" then plan_dune_form args
+  else if scheme = "shell-grep" then
+    (* `shell-grep <file> <pattern...>`: the file must CONTAIN the
+       pattern, as a fixed string.
+
+       This scheme has been in the canonical allowlist since the
+       allowlist was written (bin/Mathc.ml:223) and has never been
+       executable: `plan_verifier` did not know it, so every
+       `shell-grep` verifier in the corpus reported `Skipped` and the
+       obligation it belonged to had no verdict. The corpus answered
+       the same question with a `manual-shell-grep-...` declaration
+       instead, and a declaration is a human's word about a check
+       nobody could run.
+
+       The pattern is the rest of the line, joined by single spaces:
+       the verifier string is split on spaces, so a pattern with
+       spaces in it cannot survive as one token. The file is the
+       first argument and must be inside the repository. *)
+    match args with
+    | [] -> Plan_fail "shell-grep: needs a file and a pattern"
+    | file :: rest -> (
+        let pattern = String.concat " " rest in
+        if pattern = "" then Plan_fail "shell-grep: needs a pattern"
+        else
+          match repo_file ~project_root file with
+          | Error why -> Plan_fail why
+          | Ok (abs, _) -> Plan_ok (Plan_grep (abs, pattern)))
   else if starts_with "tests/" scheme then
     let rel, selector = split_case_selector scheme in
     if args <> [] then
@@ -4333,6 +4386,35 @@ let[@warning "-32"] run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog
             ~max_lines:20 captured);
       verdict
 
+(* Read a file as text, or None when it cannot be read. Used by the
+   `shell-grep` verifier, which reads the file itself rather than
+   spawning `grep`: the kernel takes no runtime dependency, and a
+   fixed-string search does not need one. *)
+let[@warning "-32"] read_file_text path =
+  try
+    let ic = open_in_bin path in
+    let len = in_channel_length ic in
+    let text = really_input_string ic len in
+    close_in_noerr ic;
+    Some text
+  with _ -> None
+
+(* Is `needle` a substring of `haystack`? A fixed-string search: the
+   pattern is a literal, not a regular expression, so a `.` in it is
+   a dot and not "any character". *)
+let[@warning "-32"] string_contains haystack needle =
+  let n = String.length needle in
+  let h = String.length haystack in
+  if n = 0 then true
+  else if n > h then false
+  else
+    let rec loop i =
+      if i + n > h then false
+      else if String.sub haystack i n = needle then true
+      else loop (i + 1)
+    in
+    loop 0
+
 let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
   function
   | Plan_dune args ->
@@ -4342,6 +4424,17 @@ let[@warning "-32"] run_verifier_plan ~project_root ~sandbox_mode ~timeout_s =
   | Plan_cram rel ->
       run_plan_argv ~project_root ~sandbox_mode ~timeout_s ~prog:"dune"
         ~args:[ "runtest"; rel ]
+  | Plan_grep (abs, pattern) -> (
+      if
+        (* No process is spawned: the file is read and the pattern
+         searched for. A file that cannot be read is a check that
+         could not be set up (`Setup_fail`), not a check that failed. *)
+        not (Sys.file_exists abs)
+      then Setup_fail
+      else
+        match read_file_text abs with
+        | None -> Setup_fail
+        | Some text -> if string_contains text pattern then Pass else Fail)
   | Plan_binary (target, argv) ->
       let args = [ "exec"; target ] in
       let args = if argv = [] then args else args @ [ "--" ] @ argv in
@@ -4521,18 +4614,28 @@ let[@warning "-32"] run_one_verifier ~project_root ~sandbox_mode ~timeout_s
    The order below is: a FAIL is decisive (a check that ran and
    failed is a fact); a Setup_fail is next (a check that could
    not run means the outcome is not known, and unknown is not
-   pass); only then may a Pass stand. `Manual_decl` is below
-   Pass because a manual declaration is not a check that failed
-   to run -- it is a human's word, and it neither establishes nor
-   refutes the obligation. *)
+   pass); a Manual_decl is next (a human's word is not a check,
+   and an obligation that carries one is not settled by its
+   machine half); only then may a Pass stand.
+
+   `Manual_decl` used to sit BELOW Pass, and that was the laundering
+   path: an obligation whose acceptance list held both a real check
+   and a `manual-` declaration was reported `pass` as soon as the
+   real check passed, and the declaration -- the half of the promise
+   only a person can settle -- was never asked about. The `all` rule
+   says every item must hold; a declaration cannot hold by running,
+   so its presence means the obligation is not machine-satisfied. It
+   is satisfied by a review-class attestation instead, which is what
+   `decisions/verifier-outcome-taxonomy-2026-10.yaml` says a
+   declaration is for. *)
 let[@warning "-32"] aggregate_verifier_outcomes outcomes =
   match outcomes with
   | [] -> Skipped
   | _ ->
       if List.exists (fun o -> o = Fail) outcomes then Fail
       else if List.exists (fun o -> o = Setup_fail) outcomes then Setup_fail
-      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else if List.exists (fun o -> o = Manual_decl) outcomes then Manual_decl
+      else if List.exists (fun o -> o = Pass) outcomes then Pass
       else Skipped
 
 (* Walk a single obligation's `acceptance.all[*].verifier` strings
@@ -7789,35 +7892,47 @@ let[@warning "-32"] subject_to_json name verdict causes remedies waived =
  *)
 let[@warning "-32"] do_negative_control () =
   let dir = Path_config.decisions_dir_at () in
+  let reader path =
+    try In_channel.with_open_bin path In_channel.input_all with _ -> ""
+  in
   (* ONE corpus walk: the kernel's own walker
      (`Memory.decision_document_paths`). The count this command
      produces is pinned by a ceiling, and a ceiling measured over
      ONE directory is a ceiling over the wrong corpus. *)
   let files = Memory.decision_document_paths dir in
-  let missing =
+  (* The denominator is the CORPUS's decisions, counted by the
+     corpus's own rule (`Memory.decision_document_id`: a document with
+     a top-level id that does not belong to a non-decision schema
+     family). The walk alone admits the waiver family, the
+     obligations aggregator and the migration manifests, and counting
+     those as decisions made the audit's denominator a different
+     number from the corpus's -- a fixture that compares the two
+     measures two different things. *)
+  let decisions =
     List.filter_map
       (fun path ->
-        match parse_file path with
-        | Error _ -> None
-        | Ok v ->
-            let id =
-              match v with
-              | Jsonl.Object ps -> (
-                  match Schema.take_string ps "id" with
-                  | Some s -> s
-                  | None -> "")
-              | _ -> ""
-            in
-            if declares_negative_control v then None
-            else if has_executable_verifier v then Some id
-            else None)
+        let raw = reader path in
+        if raw = "" then None
+        else
+          match Memory.decision_document_id ~raw with
+          | None -> None
+          | Some id -> (
+              match parse_file path with Error _ -> None | Ok v -> Some (id, v)))
       files
+  in
+  let missing =
+    List.filter_map
+      (fun (id, v) ->
+        if declares_negative_control v then None
+        else if has_executable_verifier v then Some id
+        else None)
+      decisions
   in
   let label =
     Printf.sprintf
       "negative-control: %d of %d decision(s) declare an executable verifier \
        and name no negative_control"
-      (List.length missing) (List.length files)
+      (List.length missing) (List.length decisions)
   in
   print_endline label;
   List.iter (fun id -> Printf.printf "  %s\n" id) missing;
@@ -8317,14 +8432,22 @@ let[@warning "-32"] gap_state_name
 let[@warning "-32"] gap_class_of_verifiers ~root (vs : string list) =
   if vs = [] then None
   else
-    let vclass = classify_verifier ~root ~refuse_suite:false (List.hd vs) in
-    if
-      vclass = Executable
-      && List.for_all
-           (fun v -> classify_verifier ~root ~refuse_suite:false v = Executable)
-           vs
-    then Some Executable
-    else Some vclass
+    let classes =
+      List.map (fun v -> classify_verifier ~root ~refuse_suite:false v) vs
+    in
+    (* An obligation is CHECKABLE only when EVERY verifier in its
+       acceptance list is executable.
+
+       The rule used to read the FIRST verifier and, when that one
+       was executable, ignore the rest: the `for_all` was computed
+       and then thrown away. So an obligation that asked for a real
+       check AND a `manual-` declaration was reported as checkable,
+       and the declaration -- the half of the promise only a person
+       can settle -- was invisible on the worklist. The corpus
+       carried 40 such obligations and none of them was named by the
+       report that exists to name them. *)
+    if List.for_all (fun c -> c = Executable) classes then Some Executable
+    else Some (List.find (fun c -> c <> Executable) classes)
 
 let[@warning "-32"] gap_class_name = function
   | Some Executable -> "checkable"

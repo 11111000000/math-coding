@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:0f0798695c4c2cb3522bda9d872d4b17c98a96b23904b6df6653bdb83953ccd5"
-yaml_sha: "sha256:0f0798695c4c2cb3522bda9d872d4b17c98a96b23904b6df6653bdb83953ccd5"
+body_sha: "sha256:ccb2ce287499e003ca6c687c4244dec75c76a8c6812f56c1c4c499d058d3808f"
+yaml_sha: "sha256:ccb2ce287499e003ca6c687c4244dec75c76a8c6812f56c1c4c499d058d3808f"
 
 axiom_link:
   - A0
@@ -126,7 +126,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/no-invisible-promises.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/corpus-final-state-2026-10.yaml`
@@ -134,7 +133,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/corpus-final-state-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

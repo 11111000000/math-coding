@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: gate-verifier-cycle-guard-2026-10
 revision: 1
 state: active
-body_sha: "sha256:cdabbef59cc7388c303b6c7fcdfa35abe6f5c87f93bf205db46fea19ef1465ab"
-yaml_sha: "sha256:cdabbef59cc7388c303b6c7fcdfa35abe6f5c87f93bf205db46fea19ef1465ab"
+body_sha: "sha256:b06c2f3e14da57d2a72d645859b264da028584198a898943f3de09089a54b436"
+yaml_sha: "sha256:b06c2f3e14da57d2a72d645859b264da028584198a898943f3de09089a54b436"
 
 axiom_link:
   - A1
@@ -60,7 +60,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-cycle-guard.t
-          result: pass
   - id: the-refusal-is-said-out-loud
     claim: |
       The refusal is reported on stderr with the name of the cycle, so
@@ -69,7 +68,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-cycle-guard.t
-          result: pass
   - id: the-refusal-is-not-a-verdict-about-the-change
     claim: |
       The refused obligation is reported as not runnable, and the gate
@@ -78,7 +76,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-cycle-guard.t
-          result: pass
 
 assumptions:
   - id: verifier-identity-is-the-resolved-path

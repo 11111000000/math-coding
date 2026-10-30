@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-bugs-v3.4
 revision: 1
 state: active
-body_sha: "sha256:a327229018705c233a3aefc5e521cf73fb87909eac13b86f6243f0f2cc4991be"
-yaml_sha: "sha256:a327229018705c233a3aefc5e521cf73fb87909eac13b86f6243f0f2cc4991be"
+body_sha: "sha256:34ed779374808dcada8ab66549a73f9a406b068fb219be00edc3f0ccf4643a92"
+yaml_sha: "sha256:34ed779374808dcada8ab66549a73f9a406b068fb219be00edc3f0ccf4643a92"
 intent: |
   Close six kernel-level defects surfaced by the 2026-10-16 brownfield
   experiment on httpx and cobra (REPORT.md §3, PLAN.md §3). The defects fall
@@ -205,7 +205,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-defaults.t
-          result: pass
 
   - id: counterexample-precedence-direct
     outcome: counterexample-precedence-correct
@@ -216,7 +215,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counterexample-required.t
-          result: pass
 
   - id: sha-pattern-direct
     outcome: sha-pattern-enforced
@@ -227,7 +225,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/body-sha-pattern.t
-          result: pass
 
   - id: verifier-extracted-direct
     outcome: verifier-extracted
@@ -238,7 +235,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/packages-verifier-real.t
-          result: pass
 
   - id: materials-digest-required-direct
     outcome: materials-digest-required-for-runtime-kinds
@@ -250,7 +246,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-materials-digest.t
-          result: pass
 
   - id: revision-int-extractable-direct
     outcome: revision-int-extractable
@@ -261,7 +256,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-revision-int-extraction-review
-          result: pass
 
 reversal:
   - signal: brownfield-repos-cannot-fix-non-pattern-sha

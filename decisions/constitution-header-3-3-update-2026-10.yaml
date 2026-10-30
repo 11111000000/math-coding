@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:26eeb97d328afb9c2cd3510785b86996347803cbc75fb090facc0d4e151c2866"
-yaml_sha: "sha256:26eeb97d328afb9c2cd3510785b86996347803cbc75fb090facc0d4e151c2866"
+body_sha: "sha256:5b6705bc27ed64eaded55e5e4baaa13a6a4383a9e9788ffa26851fa05949dbdb"
+yaml_sha: "sha256:5b6705bc27ed64eaded55e5e4baaa13a6a4383a9e9788ffa26851fa05949dbdb"
 axiom_link:
   - A3
 intent: |
@@ -53,7 +53,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-text-scan-constitution-header
-          result: pass
 risk:
   declared_triggers: [constitution-version-drift]
   owner: human:maintainer

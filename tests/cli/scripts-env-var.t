@@ -49,7 +49,6 @@ legacy `decisions/` path.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/scripts-env-var.t
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

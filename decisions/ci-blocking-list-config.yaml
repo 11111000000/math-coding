@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: ci-blocking-list-config
 revision: 2
 state: active
-body_sha: "sha256:3b4987e845c7017c7911c435995169132784cc164f76c09ab2bad7b1b0b99318"
-yaml_sha: "sha256:3b4987e845c7017c7911c435995169132784cc164f76c09ab2bad7b1b0b99318"
+body_sha: "sha256:8ef0f8adca7af1fa253981786c5eced9b47c04e013eb105e29850055c632274a"
+yaml_sha: "sha256:8ef0f8adca7af1fa253981786c5eced9b47c04e013eb105e29850055c632274a"
 intent: |
   Make the math-coding kernel's hardcoded list of blocking
   CIs (currently `["payments-ci"; "orders-ci";
@@ -118,7 +118,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/ci_blocking_list_test.ml
-          result: pass
 
   - id: blocking-cis-reads-env-var
     outcome: env-var-readable
@@ -133,7 +132,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/ci_blocking_list_test.ml
-          result: pass
 
 reversal:
   - signal: env-var-breaks-aggregate-obligation

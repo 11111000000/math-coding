@@ -31,7 +31,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-load-test
-          result: pass
     phase: pre-release
 assumptions:
   - id: origin-capacity

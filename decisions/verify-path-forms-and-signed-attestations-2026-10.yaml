@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:32a1ca70ae62b3d16c9840c303511b9514f532c22b3547542fee64f264277640"
-yaml_sha: "sha256:32a1ca70ae62b3d16c9840c303511b9514f532c22b3547542fee64f264277640"
+body_sha: "sha256:19ddb9ceb7f66334c0322297e3fa7532b7ed41e9810aa36d3c0e5e76cf8abd27"
+yaml_sha: "sha256:19ddb9ceb7f66334c0322297e3fa7532b7ed41e9810aa36d3c0e5e76cf8abd27"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -167,7 +167,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-stub-lint.sh
-          result: pass
 
   - id: verify-does-not-silently-skip
     claim: |
@@ -177,9 +176,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-path-forms.t
-          result: pass
         - verifier: file-exists bin/Mathc.ml
-          result: pass
 
   - id: path-form-crams-pin-the-behaviour
     claim: |
@@ -190,7 +187,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/verify-path-forms.t
-          result: pass
 
   - id: attest-batch-refuses-without-a-name
     claim: |
@@ -199,9 +195,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists bin/Mathc.ml
-          result: pass
         - verifier: mathc attest-batch --help
-          result: pass
 
   - id: mass-issue-is-announced
     claim: |
@@ -210,9 +204,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/attest-batch-signature.t
-          result: pass
         - verifier: file-exists bin/Mathc.ml
-          result: pass
 
   - id: runtime-kinds-need-a-run
     claim: |
@@ -224,7 +216,6 @@ obligations:
         - verifier: manual-file-exists-unqualified
           path: bin/Mathc.ml
           needle: runtime_attestation_kinds
-          result: pass
 
   - id: review-digest-stays-empty
     claim: |
@@ -237,7 +228,6 @@ obligations:
         - verifier: manual-file-exists-unqualified
           path: tests/cli/attest-batch-signature.t
           needle: "review digest must stay empty"
-          result: pass
 
 counterexample: |
   The counter-position considered and rejected: "an empty

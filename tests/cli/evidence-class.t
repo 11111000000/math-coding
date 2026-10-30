@@ -52,7 +52,6 @@ Setup: a project with one decision and one hand-written attestation.
   >     acceptance:
   >       all:
   >         - verifier: file-exists src
-  >           result: pass
   > axiom_link:
   >   - A0
   > counterexample: |

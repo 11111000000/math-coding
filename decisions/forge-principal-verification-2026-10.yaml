@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-principal-verification
 revision: 1
 state: active
-body_sha: "sha256:7b7f93ea70f3d52945fa5ecf1810f6cc295e1ac0ff6debf01218281aefe3df27"
-yaml_sha: "sha256:7b7f93ea70f3d52945fa5ecf1810f6cc295e1ac0ff6debf01218281aefe3df27"
+body_sha: "sha256:486b61c3ac70a30111c5af7932c655717d04d067416e35d85496753470e6c208"
+yaml_sha: "sha256:486b61c3ac70a30111c5af7932c655717d04d067416e35d85496753470e6c208"
 axiom_link:
   - A1
   - A4
@@ -181,9 +181,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/forge-verify.t
-          result: pass
         - verifier: mathc-validate
-          result: pass
 
   - id: fail-open-default
     outcome: fail-open-default
@@ -195,7 +193,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/forge-verify.t
-          result: pass
 
   - id: 1-hour-cache
     outcome: 1-hour-cache
@@ -207,7 +204,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/forge-verify.t
-          result: pass
 
 reversal:
   - signal: post-flood-of-fail-mode-closed-bugs

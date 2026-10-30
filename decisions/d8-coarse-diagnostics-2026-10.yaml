@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:8d2f2975dc44bf38927b2d5ae710d900976c5f34765fe273017662e91388c341"
-yaml_sha: "sha256:8d2f2975dc44bf38927b2d5ae710d900976c5f34765fe273017662e91388c341"
+body_sha: "sha256:5753da7e83e2ca055a7de1f7cb6f2c6fa04f8511dbcb8a2e6097a1c7bd2b121c"
+yaml_sha: "sha256:5753da7e83e2ca055a7de1f7cb6f2c6fa04f8511dbcb8a2e6097a1c7bd2b121c"
 axiom_link:
   - A0
   - A1
@@ -236,9 +236,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
-        - verifier: tests/diagnostic_ux.ml::mc_parse
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
   - id: cli-surfaces-precision
     outcome: cli-surfaces-stale-precision
     statement: |
@@ -247,10 +245,8 @@ obligations:
       path surfaces a parser-supplied `Diagnostic.t`.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::parity_validate_with_counts
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
         - verifier: mathc validate fixtures/conformance/decision/positive-minimal.json --format=json
-          result: pass
   - id: registry-covers-new-coords
     outcome: registry-covers-new-coords
     statement: |
@@ -259,8 +255,7 @@ obligations:
       decision's `commitment §3`.
     acceptance:
       all:
-        - verifier: tests/diagnostic_ux.ml::registry
-          result: pass
+        - verifier: tests/diagnostic_ux.ml
   - id: fixtures-cover-new-coords
     outcome: fixtures-cover-new-coords
     statement: |
@@ -271,9 +266,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-per-c
-          result: pass
         - verifier: manual-target-missing-tests-conformance-ml-collect-case
-          result: pass
 
 counterexample: |
   "Diagnostic surface precision is a polish item; the existing coarse

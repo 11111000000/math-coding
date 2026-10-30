@@ -4,8 +4,8 @@ id: paren-balance-fix-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:f8e11c5ea7de0c75a405ae45ed8f196aa8493886b7e92a341565ec616a197d3c"
-yaml_sha: "sha256:f8e11c5ea7de0c75a405ae45ed8f196aa8493886b7e92a341565ec616a197d3c"
+body_sha: "sha256:3bf9b8433bf6c944e599e7f6fb54a1b5ecd78e98f67c37d3ef8ebd90071be157"
+yaml_sha: "sha256:3bf9b8433bf6c944e599e7f6fb54a1b5ecd78e98f67c37d3ef8ebd90071be157"
 axiom_link:
   - A3
 intent: |
@@ -68,7 +68,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
   - id: mathc-validate-d8-decision-unchanged
     statement: |
       The D8 fix decision
@@ -78,7 +77,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml
-          result: pass
 
 reversal: |
   If a future fix wants to keep the `| None -> (` wrap

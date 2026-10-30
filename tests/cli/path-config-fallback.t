@@ -54,7 +54,6 @@ through to the legacy path.
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

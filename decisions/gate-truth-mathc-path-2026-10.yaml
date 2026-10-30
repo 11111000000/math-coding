@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: gate-truth-mathc-path-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f61a61eca87c7e5b49f0f4e12e475c2a8c4651058d9e03a0835b427c5152b316"
-yaml_sha: "sha256:f61a61eca87c7e5b49f0f4e12e475c2a8c4651058d9e03a0835b427c5152b316"
+body_sha: "sha256:54c1333c50688cd20199f241dae65a9c4a2cb0d72653e5ae2790a0d383067a67"
+yaml_sha: "sha256:54c1333c50688cd20199f241dae65a9c4a2cb0d72653e5ae2790a0d383067a67"
 intent: |
   Make the `decisions-precommit` gate in scripts/check.sh mean what its
   label says, and make that meaning falsifiable.
@@ -248,7 +248,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/decisions-precommit-gate-rejects.sh
-          result: pass
   - id: precommit-gate-is-path-independent
     outcome: decisions-precommit-gate
     claim: |
@@ -258,7 +257,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/decisions-precommit-path-independent.sh
-          result: pass
   - id: this-decision-validates
     outcome: decisions-precommit-gate
     claim: |
@@ -266,7 +264,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc precommit
-          result: pass
 
 reversal:
   - signal: gate-goes-red-on-clean-corpus

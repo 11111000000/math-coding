@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:0c9e65c54000d6e45961eb138b9245ef27b3e8afec6408cbcb286eb3970dbc58"
-yaml_sha: "sha256:0c9e65c54000d6e45961eb138b9245ef27b3e8afec6408cbcb286eb3970dbc58"
+body_sha: "sha256:f31f70a776090b6ed790b6c5562c73bb768d537a747a983f4053012c1f67aac2"
+yaml_sha: "sha256:f31f70a776090b6ed790b6c5562c73bb768d537a747a983f4053012c1f67aac2"
 
 axiom_link:
   - A0
@@ -91,7 +91,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/no-invisible-promises.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/verifier-strings-the-kernel-can-read-2026-10.yaml`
@@ -99,7 +98,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/verifier-strings-the-kernel-can-read-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

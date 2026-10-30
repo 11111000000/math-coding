@@ -4,9 +4,9 @@ id: waiver-infrastructure-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:a756af7523ce376da96b1b3ebe4e211698970de6006ce2b79905e963ad95475f"
+body_sha: "sha256:b5494f43648f4676012c21fe1dabc4c1cf025dfb12e0bd5606a9cb230896fffc"
 
-yaml_sha: "sha256:a756af7523ce376da96b1b3ebe4e211698970de6006ce2b79905e963ad95475f"
+yaml_sha: "sha256:b5494f43648f4676012c21fe1dabc4c1cf025dfb12e0bd5606a9cb230896fffc"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
@@ -171,11 +171,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists lib/waiver.ml
-          result: pass
         - verifier: file-exists schemas/waiver.json
-          result: pass
         - verifier: file-exists bin/Mathc.ml
-          result: pass
   - id: waiver-loader-tested
     outcome: waiver-loader-works
     claim: |
@@ -186,7 +183,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune exec --root=. tests/waiver_test.exe
-          result: pass
   - id: self-check-emits-pass-with-waiver
     outcome: self-check-uses-waivers
     claim: |
@@ -201,7 +197,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
-          result: pass
 
 reversal:
   - signal: waiver-format-changes

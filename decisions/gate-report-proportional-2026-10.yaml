@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:596955ff5b33045bf1dde8c1144b63dfb6506f1d8dc134709f44ce802238af1c"
-yaml_sha: "sha256:596955ff5b33045bf1dde8c1144b63dfb6506f1d8dc134709f44ce802238af1c"
+body_sha: "sha256:362b06cb9b68b87f38e01999c1fef39801065b0ad0743e87ad50eb34660c50e9"
+yaml_sha: "sha256:362b06cb9b68b87f38e01999c1fef39801065b0ad0743e87ad50eb34660c50e9"
 
 axiom_link:
   - A0
@@ -99,7 +99,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-scaffold.t
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/gate-report-proportional-2026-10.yaml`
@@ -107,7 +106,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/gate-report-proportional-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

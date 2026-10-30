@@ -3,10 +3,11 @@ schema: math-coding/3.3
 id: nix-develop-store-lock-contention-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
-body_sha: "sha256:bbd49ae2c6adf69fd9162b9b79dff1338bf72c8e1053d578b1df54a5996ca03b"
-yaml_sha: "sha256:bbd49ae2c6adf69fd9162b9b79dff1338bf72c8e1053d578b1df54a5996ca03b"
+body_sha: "sha256:e4a1ccd69931573ce456964dff1d7bbf6f4d7a1abb5c63060523bd993b8c29e4"
+yaml_sha: "sha256:e4a1ccd69931573ce456964dff1d7bbf6f4d7a1abb5c63060523bd993b8c29e4"
 
 axiom_link:
   - A0
@@ -163,7 +164,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/dev-cleanup-is-scoped.sh
-          result: pass
 
   - id: cache-invalidation-on-flake-edit
     claim: |
@@ -173,7 +173,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/dev-cleanup-is-scoped.sh
-          result: pass
 
   - id: fallback-preserves-behaviour
     claim: |
@@ -183,7 +182,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-shell-grep-nix-develop-test-command-bash-c-scrip
-          result: pass
 
   - id: upstream-documented
     claim: |
@@ -192,8 +190,7 @@ obligations:
       that §11.41 (`_build/.lock`) is a different failure.
     acceptance:
       all:
-        - verifier: manual-shell-grep-11-42-ocaml-kernel-conventions-md
-          result: pass
+        - verifier: shell-grep OCAML_KERNEL_CONVENTIONS.md _build/.lock
 
 risk:
   declared_triggers:

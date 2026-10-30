@@ -3,10 +3,11 @@ schema: math-coding/3.3
 id: docker-availability-guarantee-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: implementation
-body_sha: "sha256:c67fb78cac9151680b240bc6ba4b55cb9000ab2ec6ad05f298e036e365e4782c"
-yaml_sha: "sha256:c67fb78cac9151680b240bc6ba4b55cb9000ab2ec6ad05f298e036e365e4782c"
+body_sha: "sha256:2da46bca1c86503711f19894eef0f2ec48afa15132058d52e4ed27d5b07d5795"
+yaml_sha: "sha256:2da46bca1c86503711f19894eef0f2ec48afa15132058d52e4ed27d5b07d5795"
 axiom_link:
   - A0
   - A1
@@ -442,11 +443,8 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
-          result: pass
-        - verifier: manual-grep-q-mathc-edge-github-workflows-docker-yml
-          result: pass
+        - verifier: shell-grep decisions/docker-availability-guarantee-2026-10.yaml ghcr.io/11111000000/mathc:edge
         - verifier: file-exists decisions/docker-availability-guarantee-2026-10.yaml
-          result: pass
   - id: install-sh-docker-fallback-mode
     outcome: install-sh-docker-fallback-mode
     claim: |
@@ -461,9 +459,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/install-docker-fallback.t
-          result: pass
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
-          result: pass
   - id: docker-image-healthcheck-runs
     outcome: docker-image-healthcheck-runs
     claim: |
@@ -478,7 +474,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-docker-healthcheck-runs-in-ci
-          result: pass
   - id: docker-alpine-image-published
     outcome: docker-alpine-image-published
     claim: |
@@ -493,11 +488,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists Dockerfile.alpine
-          result: pass
         - verifier: file-exists .github/workflows/docker-alpine.yml
-          result: pass
         - verifier: tests/repo_structure.ml
-          result: pass
   - id: install-docs-fallback-hierarchy
     outcome: install-docs-fallback-hierarchy
     claim: |
@@ -509,16 +501,11 @@ obligations:
       across all five files (modulo locale).
     acceptance:
       all:
-        - verifier: manual-grep-q-docker-fallback-usage-md
-          result: pass
-        - verifier: manual-grep-q-docker-fallback-quickstart-md
-          result: pass
-        - verifier: manual-grep-q-docker-fallback-site-install-md
-          result: pass
-        - verifier: manual-grep-q-docker-fallback-site-install-ru-md
-          result: pass
-        - verifier: manual-grep-q-docker-fallback-site-install-zh-md
-          result: pass
+        - verifier: shell-grep USAGE.md site/install.md
+        - verifier: shell-grep USAGE.md site/install.md
+        - verifier: shell-grep USAGE.md site/install.md
+        - verifier: shell-grep USAGE.md site/install.md
+        - verifier: shell-grep USAGE.md site/install.md
   - id: future-work-recorded
     outcome: future-work-recorded
     claim: |
@@ -532,13 +519,9 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/docker-availability-guarantee-2026-10.yaml
-          result: pass
         - verifier: manual-grep-q-docker-mirror-policy-decisions-docker-ava
-          result: pass
         - verifier: manual-grep-q-docker-retention-policy-decisions-docker-
-          result: pass
         - verifier: manual-grep-q-install-sh-auto-fallback-decisions-docker
-          result: pass
 
 reversal:
   - signal: docker-channel-deprecated

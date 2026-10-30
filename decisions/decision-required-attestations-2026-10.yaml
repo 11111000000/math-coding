@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:921f44adb5c14a259e514b1c8bd160312259178aedb8359184a5423607f1cd5c"
-yaml_sha: "sha256:921f44adb5c14a259e514b1c8bd160312259178aedb8359184a5423607f1cd5c"
+body_sha: "sha256:7688a649241e7669bc371449ea6937e9a697c43a24729c3fb0d83b35a40ac51d"
+yaml_sha: "sha256:7688a649241e7669bc371449ea6937e9a697c43a24729c3fb0d83b35a40ac51d"
 axiom_link:
   - A1
   - A4
@@ -199,9 +199,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/required-attestation.t
-          result: pass
         - verifier: tests/counters_drift.ml
-          result: pass
 
   - id: gate-emits-gap-on-missing-required-attestation
     outcome: gate-emits-gap-on-missing-required-attestation
@@ -215,7 +213,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/required-attestation.t
-          result: pass
 
   - id: kind-projection-known-and-roundtrippable
     outcome: kind-projection-known-and-roundtrippable
@@ -229,9 +226,7 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check.sh
-          result: pass
         - verifier: dune build
-          result: pass
 
 reversal:
   - signal: false-positive-flood

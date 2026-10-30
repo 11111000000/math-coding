@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:0a875d61b60bb73f99a6ea1a75f7807067b12fef0302a1f873f269cd039a2967"
-yaml_sha: "sha256:0a875d61b60bb73f99a6ea1a75f7807067b12fef0302a1f873f269cd039a2967"
+body_sha: "sha256:7fdabfe459a3430f5bc78e96f27862e8511dbb421207601035917282c68d0bd9"
+yaml_sha: "sha256:7fdabfe459a3430f5bc78e96f27862e8511dbb421207601035917282c68d0bd9"
 
 axiom_link:
   - A0
@@ -84,7 +84,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/precommit-covers-subdirectories.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/one-corpus-walk-2026-10.yaml` returns
@@ -92,7 +91,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/one-corpus-walk-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

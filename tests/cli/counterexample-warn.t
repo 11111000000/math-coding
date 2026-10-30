@@ -44,7 +44,6 @@ Scenario 1 — `counterexample:` present, plain accept.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -81,7 +80,6 @@ requirement, at light mode (per spec/algebra-3.2.md §11).
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -124,7 +122,6 @@ surface.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: - foo
   >   - bar
@@ -166,7 +163,6 @@ even in the inline-sequence context.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: - foo
   >   - bar

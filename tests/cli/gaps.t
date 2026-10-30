@@ -35,7 +35,6 @@ classification itself and not a count that moves with the real corpus.
   >     acceptance:
   >       all:
   >         - verifier: manual-text-scan-readme-md
-  >           result: pass
   > YAML
   $ cat > decisions/scheme-probe.yaml <<'YAML'
   > schema: math-coding/3.3
@@ -50,7 +49,6 @@ classification itself and not a count that moves with the real corpus.
   >     acceptance:
   >       all:
   >         - verifier: mathc-not-a-command --now
-  >           result: pass
   > YAML
   $ cat > decisions/checkable-probe.yaml <<'YAML'
   > schema: math-coding/3.3
@@ -65,7 +63,6 @@ classification itself and not a count that moves with the real corpus.
   >     acceptance:
   >       all:
   >         - verifier: file-exists present.txt
-  >           result: pass
   > YAML
   $ cat > decisions/noid-probe.yaml <<'YAML'
   > schema: math-coding/3.3
@@ -79,7 +76,6 @@ classification itself and not a count that moves with the real corpus.
   >     acceptance:
   >       all:
   >         - verifier: file-exists present.txt
-  >           result: pass
   > YAML
   $ cat > decisions/malformed-probe.yaml <<'YAML'
   > schema: math-coding/3.3
@@ -94,7 +90,6 @@ classification itself and not a count that moves with the real corpus.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/does-not-exist.t (positive case)
-  >           result: pass
   > YAML
   $ MATH_CODING_ROOT="$tmpdir" $INSIDE_DUNE/bin/mathc.exe gaps --format=json | jq -c '{open: (.open|length), classes: ([.open[].class]|sort)}'
   {"open":5,"classes":["cannot-be-set-up","checkable","not-a-check","not-a-check","unidentified"]}

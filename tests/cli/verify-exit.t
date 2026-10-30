@@ -67,7 +67,6 @@ Scenario 1 -- every obligation skipped: exit 3 (not 0).
   >     acceptance:
   >       all:
   >         - verifier: manual-review-of-existing-source
-  >           result: pass
   > counterexample: |
   >   None; synthetic fixture.
   > risk:
@@ -118,7 +117,6 @@ Scenario 2 -- an obligation that fails decisively: exit 1.
   >     acceptance:
   >       all:
   >         - verifier: file-exists no-such-file.txt
-  >           result: pass
   > counterexample: |
   >   None; synthetic fixture.
   > risk:
@@ -170,7 +168,6 @@ Scenario 3 -- every obligation fulfilled: exit 0.
   >     acceptance:
   >       all:
   >         - verifier: file-exists probe.txt
-  >           result: pass
   > counterexample: |
   >   None; synthetic fixture.
   > risk:
@@ -239,14 +236,12 @@ run" is.
   >     acceptance:
   >       all:
   >         - verifier: file-exists probe.txt
-  >           result: pass
   >   - id: skipped-obligation
   >     claim: |
   >       A claim no verifier here can check.
   >     acceptance:
   >       all:
   >         - verifier: manual-review-of-existing-source
-  >           result: pass
   > counterexample: |
   >   None; synthetic fixture.
   > risk:
@@ -299,7 +294,6 @@ verdicts, and the exit code is the same.
   >     acceptance:
   >       all:
   >         - verifier: manual-review-of-existing-source
-  >           result: pass
   > counterexample: |
   >   None; synthetic fixture.
   > risk:

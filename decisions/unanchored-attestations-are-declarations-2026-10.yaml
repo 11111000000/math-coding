@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: unanchored-attestations-are-declarations
 revision: 1
 state: active
-body_sha: "sha256:2199e552fb614e9e223b4e3f4c8c462795cd6bade5922e9805c94e1e5eafa94b"
-yaml_sha: "sha256:2199e552fb614e9e223b4e3f4c8c462795cd6bade5922e9805c94e1e5eafa94b"
+body_sha: "sha256:bf36d3791fa8bb30bf9bcf6372326a8cf7725829d571bbfd316b5c9916700295"
+yaml_sha: "sha256:bf36d3791fa8bb30bf9bcf6372326a8cf7725829d571bbfd316b5c9916700295"
 axiom_link:
   - A1
   - A2
@@ -137,7 +137,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/attestation_anchor.ml
-          result: pass
 
   - id: corpus-remains-parseable
     outcome: corpus-remains-loadable
@@ -150,7 +149,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/attestation_anchor.ml
-          result: pass
 
 assumptions:
   - id: attestation-id-is-the-digest-of-the-body

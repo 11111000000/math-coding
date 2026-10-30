@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:3da71e53414b76ea23e3a6042260439c9dd8c5f59eedc5671ad9ccdbecd654c9"
-yaml_sha: "sha256:3da71e53414b76ea23e3a6042260439c9dd8c5f59eedc5671ad9ccdbecd654c9"
+body_sha: "sha256:71fe458c87c876b15f755ae09b56fcca9805beaff1ce6169cd16b6c50f0b3023"
+yaml_sha: "sha256:71fe458c87c876b15f755ae09b56fcca9805beaff1ce6169cd16b6c50f0b3023"
 
 axiom_link:
   - A0
@@ -99,13 +99,9 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/ux-3-install-libc-auto-detect-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/ux-3-install-libc-auto-detect-2026-10.yaml
-          result: pass
         - verifier: manual-bash-n-scripts-install-tooling-install-sh
-          result: pass
         - verifier: manual-shellcheck-scripts-install-tooling-install-sh-ru
-          result: pass
 
   - id: libc-detect-tests
     outcome: alpine-install-works
@@ -116,9 +112,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-tests-scripts-install-libc-auto-d
-          result: pass
         - verifier: manual-target-missing-tests-scripts-install-libc-auto-d
-          result: pass
 
 reversal:
   - signal: libc-detect-misrouted

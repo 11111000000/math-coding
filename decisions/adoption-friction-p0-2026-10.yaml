@@ -4,8 +4,8 @@ id: adoption-friction-p0
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:fab7e42010fb60d23b6e4eeba396edd85c761e82957a5ffcb02239f31f1e8ba6"
-yaml_sha: "sha256:fab7e42010fb60d23b6e4eeba396edd85c761e82957a5ffcb02239f31f1e8ba6"
+body_sha: "sha256:a35bada1b8eb840be1eeed4da301704f1b8bd1268aa6da56baf92814298785dd"
+yaml_sha: "sha256:a35bada1b8eb840be1eeed4da301704f1b8bd1268aa6da56baf92814298785dd"
 intent: |
   Make the protocol usable by a project that adopts it, at the cost of
   the fewest agent turns, with every check fast enough to run on every
@@ -138,11 +138,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/decision_parser_yaml.ml
-          result: pass
         - verifier: file-exists tests/cli/adoption-path-p0.t
-          result: pass
         - verifier: mathc validate decisions/adoption-friction-p0-2026-10.yaml
-          result: pass
   - id: the-adopter-path-ends-green
     claim: |
       The documented path in a scaffolded project ends in
@@ -151,7 +148,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/cli/adoption-path-p0.t
-          result: pass
   - id: the-cycle-cannot-report-success-over-a-failure
     claim: |
       `scripts/verify.sh` fails when the self-check is red, and the
@@ -160,9 +156,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists scripts/verify.sh
-          result: pass
         - verifier: mathc validate decisions/adoption-friction-p0-2026-10.yaml
-          result: pass
   - id: the-corpus-verdict-is-unchanged
     claim: |
       This decision changes no verdict: the subject count and the
@@ -171,9 +165,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/fixtures/failing-subject-backlog.sh
-          result: pass
         - verifier: file-exists tests/fixtures/executed-evidence-census.sh
-          result: pass
 negative_control: tests/cli/adoption-path-p0.t
 risk:
   declared_triggers:

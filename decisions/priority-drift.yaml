@@ -160,7 +160,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
   - id: priority-drift-fixture-implemented
     outcome: priority-tables-locked
@@ -178,7 +177,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
-          result: pass
 
 reversal:
   - signal: spec-and-practices-merge

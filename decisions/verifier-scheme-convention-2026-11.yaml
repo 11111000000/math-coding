@@ -4,8 +4,8 @@ id: verifier-scheme-convention-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:21b7fc6c536c09ff9e0dc2f1703ce4b8a3abd78b672cf699108789a5d2c52572"
-yaml_sha: "sha256:21b7fc6c536c09ff9e0dc2f1703ce4b8a3abd78b672cf699108789a5d2c52572"
+body_sha: "sha256:fa93caf7c6167bd9efe7fe5be515a827838afed8c90018851827a49ae5a2d28d"
+yaml_sha: "sha256:fa93caf7c6167bd9efe7fe5be515a827838afed8c90018851827a49ae5a2d28d"
 
 intent: { source: "issue:plan-c5-verifier-scheme", text: "Surface acceptance.all[*].verifier strings that use a verifier scheme name NOT in the canonical list, as a Warn diagnostic from `mathc validate`. The validator still parses-ok on the file; the warning flags the operator that the scheme string is non-canonical. Plan-decision C5 of plan-2026-11-adoption-fixes." }
 
@@ -109,7 +109,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-verifier-scheme-unknown.t
-          result: pass
 
   - id: c5-no-new-unknowns
     claim: |
@@ -121,7 +120,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-no-new-unknowns
-          result: pass
 
 risk:
   declared_triggers:

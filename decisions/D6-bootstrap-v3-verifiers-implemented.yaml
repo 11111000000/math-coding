@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: D6-bootstrap-v3-verifiers-implemented
 revision: 2
 state: active
-body_sha: "sha256:c2ce6897c3107bd3009d05303e33e42a5340fdca01eed8b8b6f44c90e5dd3701"
-yaml_sha: "sha256:c2ce6897c3107bd3009d05303e33e42a5340fdca01eed8b8b6f44c90e5dd3701"
+body_sha: "sha256:76067c29d844bee4c74817147ad2cdd37e79a0be6ef2b5b7d2f55f4f42ff7fda"
+yaml_sha: "sha256:76067c29d844bee4c74817147ad2cdd37e79a0be6ef2b5b7d2f55f4f42ff7fda"
 intent: |
   Close audit deficit D6 (bootstrap-v3 manual-only verifiers).
   The bootstrap protocol expired at commit `8fa7fcf` (v3.0.0.19);
@@ -60,7 +60,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-verdict-exits-zero
-          result: pass
 
 evidence:
   - kind: observed

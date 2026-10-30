@@ -12,10 +12,33 @@ Per `decisions/mathc-validate-skip-non-decisions-fix-2026-10.yaml@1`.
   $ cd "$DUNE_SOURCEROOT"
 
 A waiver file (schema: math-coding/waiver-*) accepts without
-the decision parser running:
+the decision parser running. The corpus carries no waivers at the
+moment -- the 98 that the census wrote were machine-signed dossiers
+and they are gone -- so the file is planted here: the SCHEMA FAMILY
+is what this test is about, and a family that has no member left in
+the corpus would otherwise go untested.
 
-  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml | jq -c '{verdict, kind, id}'
-  {"verdict":"parse-ok","kind":"waiver","id":"audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10"}
+  $ tmp=$(mktemp -d)
+  $ cd "$tmp"
+  $ cat > waiver-demo.yaml <<'EOF'
+  > ---
+  > schema: math-coding/waiver-3.0-alpha
+  > kind: waiver
+  > id: waiver-family-demo
+  > policy_id: bootstrap-v3
+  > rule: obligation-missing-attestation
+  > subject: audit-0.0.21-fixes
+  > issuer: human:maintainer
+  > issued_at: 2026-10-06T00:00:00Z
+  > expires_at: 2027-04-06T00:00:00Z
+  > reason: |
+  >   A waiver states who accepted which gap, until when.
+  > unverified_obligation: [some-obligation]
+  > compensating_controls: [see revocation]
+  > EOF
+  $ $INSIDE_DUNE/bin/mathc.exe validate --format=json waiver-demo.yaml | jq -c '{verdict, kind, id}'
+  {"verdict":"parse-ok","kind":"waiver","id":"waiver-family-demo"}
+  $ cd "$DUNE_SOURCEROOT"
 
 The obligations aggregator (schema: math-coding/obligations-*)
 also accepts; the id is read from the nested `decision.id:`
@@ -27,8 +50,8 @@ field:
 A waiver file without `kind: waiver` does NOT take the fast
 path (it falls through to the decision parser and rejects):
 
-  $ tmp=$(mktemp -d)
-  $ cd "$tmp"
+  $ tmp2=$(mktemp -d)
+  $ cd "$tmp2"
   $ cat > waiver-without-kind.yaml <<'EOF'
   > ---
   > schema: math-coding/waiver-3.0-alpha
@@ -63,12 +86,13 @@ not part of this projection:
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json decisions/algebra-3.2.yaml 2>/dev/null | jq -c '{verdict, decision, has_obligations: (.obligations > 0)}'
   {"verdict":"parse-ok","decision":"algebra-3.2","has_obligations":true}
 
-Text-format output for a waiver file:
+Text-format output for a waiver file -- the same planted file, read
+the other way:
 
-  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
-  parse-ok: decisions/waivers/audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate "$tmp/waiver-demo.yaml" | sed "s|$tmp|<TMP>|g"
+  parse-ok: <TMP>/waiver-demo.yaml
     kind: waiver
-    id: audit-0.0.21-fixes-self-check-verdict-is-pass-2026-10
+    id: waiver-family-demo
 
 A truncated YAML file still exits non-zero (the parser fails
 before the dispatch):

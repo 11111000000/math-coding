@@ -37,7 +37,6 @@ fixture body):
   >       acceptance:
   >         all:
   >           - verifier: tests/repo_structure.ml
-  >             result: pass
   > risk:
   >     declared_triggers: [schema-break]
   >     owner: human:test

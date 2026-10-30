@@ -25,17 +25,13 @@ let[@warning "-32"] gate_to_string = function
 let[@warning "-32"] make_obligation ?(verifier = "tests/conformance")
     ?(claim = "no claim") () : Domain.obligation =
   let verifier_id = verifier in
-  let result_str = "pass" in
-  let result =
-    match result_str with "pass" -> Domain.Pass | _ -> Domain.Pass
-  in
   {
     Domain.id = "ob-test-" ^ claim;
     decision = "dec-test";
     outcome = None;
     claim;
     subjects = [];
-    acceptance = Domain.All [ Domain.Verifier { id = verifier_id; result } ];
+    acceptance = Domain.All [ Domain.Verifier { id = verifier_id } ];
     kind = `Invariant;
     phase = `PreMerge;
     obligation_domain = None;

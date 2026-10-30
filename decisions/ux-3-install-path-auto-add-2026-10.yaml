@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: implementation
 
-body_sha: "sha256:1e0286ebdedb7ffa8e38ee44f5f8ce2942c3cd971197d3f87fa53356475a0e63"
-yaml_sha: "sha256:1e0286ebdedb7ffa8e38ee44f5f8ce2942c3cd971197d3f87fa53356475a0e63"
+body_sha: "sha256:c4501146ac8a9c39a668fb92f414c52e51314cac072ed1b79a5da00a657c2cd7"
+yaml_sha: "sha256:c4501146ac8a9c39a668fb92f414c52e51314cac072ed1b79a5da00a657c2cd7"
 
 axiom_link:
   - A0
@@ -106,13 +106,9 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/ux-3-install-path-auto-add-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/ux-3-install-path-auto-add-2026-10.yaml
-          result: pass
         - verifier: manual-shellcheck-scripts-install-tooling-install-sh-ru
-          result: pass
         - verifier: manual-bash-n-scripts-install-tooling-install-sh
-          result: pass
 
   - id: path-auto-add-tests
     outcome: first-install-no-manual-edit
@@ -123,9 +119,7 @@ obligations:
     acceptance:
       all:
         - verifier: manual-target-missing-tests-scripts-install-path-auto-a
-          result: pass
         - verifier: manual-target-missing-tests-scripts-install-path-auto-a
-          result: pass
 
 reversal:
   - signal: path-auto-add-broke-shell

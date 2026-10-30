@@ -4,8 +4,8 @@ id: exit-honesty-waivers
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:2e1a682b6eb7223ed7fec7cfad39afd70b11b9bfbdff1a1a5881346f9982698a"
-yaml_sha: "sha256:2e1a682b6eb7223ed7fec7cfad39afd70b11b9bfbdff1a1a5881346f9982698a"
+body_sha: "sha256:b7cdad6160dc6d760f4b51709f9a1bdcd74f99fcf068aed52d45ea36a4aa29e9"
+yaml_sha: "sha256:b7cdad6160dc6d760f4b51709f9a1bdcd74f99fcf068aed52d45ea36a4aa29e9"
 axiom_link:
   - A0
   - A1
@@ -344,11 +344,8 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/cli/waiver-scope.t
-          result: pass
         - verifier: file-exists tests/waiver_test.ml
-          result: pass
         - verifier: file-exists tests/gate/waiver_aggregation.ml
-          result: pass
   - id: verify-exits-nonzero-when-it-verified-nothing
     claim: |
       `mathc verify` exits non-zero when no obligation was actually
@@ -357,9 +354,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/cli/verify-exit.t
-          result: pass
         - verifier: file-exists tests/cli/verify.t
-          result: pass
   - id: re-evaluate-and-forge-verify-stop-lying
     claim: |
       `mathc re-evaluate` exits non-zero for `incompatible` and
@@ -368,7 +363,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists tests/cli/forge-verify.t
-          result: pass
   - id: the-decision-is-valid-and-hashed
     claim: |
       This decision file parses, validates against
@@ -377,7 +371,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/exit-honesty-waivers-2026-10.yaml
-          result: pass
 negative_control: tests/cli/waiver-scope.t
 risk:
   declared_triggers:

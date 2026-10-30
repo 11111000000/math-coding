@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:01ac8004c3395205c0ea853b08f1106be494c7d2b1f0a51d5fb2b050804db755"
-yaml_sha: "sha256:01ac8004c3395205c0ea853b08f1106be494c7d2b1f0a51d5fb2b050804db755"
+body_sha: "sha256:2489e12f8244b9e01142f21a38e2f9d5f8e21ab0e9e4f9392bc91f296162119e"
+yaml_sha: "sha256:2489e12f8244b9e01142f21a38e2f9d5f8e21ab0e9e4f9392bc91f296162119e"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -201,10 +201,8 @@ obligations:
       `>= 3` on the trimmed prefix.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::fenced_code_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::fenced_code_closing_fence_length_3
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: list-continuation-renders
     statement: |
@@ -215,10 +213,8 @@ obligations:
       behaviour.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::list_continuation_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::list_single_item_still_one_li
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: italic-renders
     statement: |
@@ -227,12 +223,9 @@ obligations:
       (underscore) is supported with the same rule.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::italic_renders
-          result: pass
-        - verifier: tests/render_kernel.ml::italic_lone_asterisk_literal
-          result: pass
-        - verifier: tests/render_kernel.ml::italic_underscore_inside_identifier_safe
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: mathjax-script-still-on-code-path
     statement: |
@@ -247,10 +240,8 @@ obligations:
       `true`; the promise here is the code path, not the default.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::mathjax_in_head_when_enabled
-          result: pass
-        - verifier: tests/render_kernel.ml::mathjax_script_on_prose_page_when_enabled
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
   - id: packages-page-shows-grid
     statement: |
@@ -260,10 +251,8 @@ obligations:
       separated by a blank line in the rendered HTML.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::packages_page_has_grid
-          result: pass
+        - verifier: tests/render_kernel.ml
         - verifier: tests/cli/render.t
-          result: pass
 
   - id: ru-nav-points-to-existing-siblings
     statement: |
@@ -274,8 +263,7 @@ obligations:
       sibling).
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::ru_nav_omits_missing_sibling
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: axiom-page-single-h1
     statement: |
@@ -286,8 +274,7 @@ obligations:
       only one emitted.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::axiom_page_single_h1
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: footer-uses-mathc-render
     statement: |
@@ -297,8 +284,7 @@ obligations:
       `mc render` is gone.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::footer_mathc_render
-          result: pass
+        - verifier: tests/render_kernel.ml
 
   - id: base-href-configurable
     statement: |
@@ -310,10 +296,8 @@ obligations:
       and a new `base_href_empty` test cover both branches.
     acceptance:
       all:
-        - verifier: tests/render_kernel.ml::base_href_default
-          result: pass
-        - verifier: tests/render_kernel.ml::base_href_empty
-          result: pass
+        - verifier: tests/render_kernel.ml
+        - verifier: tests/render_kernel.ml
 
 reversal:
   - signal: regression-fences

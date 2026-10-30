@@ -41,7 +41,6 @@ MATH_CODING_DECISIONS_DIR=.math-coding/decisions.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/decision-state-env-var.t
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

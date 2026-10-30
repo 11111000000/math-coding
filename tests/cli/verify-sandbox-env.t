@@ -36,13 +36,11 @@ find_project_root.
   >     acceptance:
   >       all:
   >         - verifier: mathc version
-  >           result: pass
   >   - id: init-denied
   >     claim: mathc init is denied under strict.
   >     acceptance:
   >       all:
   >         - verifier: mathc init
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

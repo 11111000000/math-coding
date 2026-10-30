@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 6
 state: active
-body_sha: "sha256:d9282d1537a5b0026d102eee41e1c5e3c38d562dfb82f32db7a8004c51e6a025"
-yaml_sha: "sha256:d9282d1537a5b0026d102eee41e1c5e3c38d562dfb82f32db7a8004c51e6a025"
+body_sha: "sha256:659c9e3c34e678297aefc890da4afc35f4376e93bd124d8ac15734ed08f02396"
+yaml_sha: "sha256:659c9e3c34e678297aefc890da4afc35f4376e93bd124d8ac15734ed08f02396"
 intent: |
   Close deficit D1 and D2 from docs/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
@@ -238,10 +238,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/yaml_block_scalars.ml
-          result: pass
         - verifier: manual-shell-grep-dune-build-runtest
           needle: dune build @runtest
-          result: pass
   - id: yaml-block-scalars-loader-extended
     outcome: kernel-handles-block-scalars
     claim: |
@@ -262,15 +260,10 @@ obligations:
     acceptance:
       all:
         - verifier: dune build --root . tests/yaml_block_scalars.exe
-          result: pass
         - verifier: dune test --root .
-          result: pass
         - verifier: mathc validate decisions/decision.yaml
-          result: pass
         - verifier: manual-fixtures/conformance/decision/positive-block-scalars.yaml
-          result: pass
         - verifier: manual-fixtures/conformance/decision/negative-block-scalars.yaml
-          result: pass
 
 reversal:
   - signal: kernel-self-check-passes

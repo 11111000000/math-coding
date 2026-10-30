@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-fixes-found-bugs-2026-10
 revision: 1
 state: active
-body_sha: "sha256:cea1e882c30d23be65c960c45837ae08112dee7d553f3bff51b6382ef48185c7"
-yaml_sha: "sha256:cea1e882c30d23be65c960c45837ae08112dee7d553f3bff51b6382ef48185c7"
+body_sha: "sha256:86da662c75fa71881527dfa648c8e784e13ce890fc1c02a2eaf1103c04c82b14"
+yaml_sha: "sha256:86da662c75fa71881527dfa648c8e784e13ce890fc1c02a2eaf1103c04c82b14"
 intent: |
   Six defects found while landing `solo-default-on-2026-10@1`, of
   which three are data-integrity bugs rather than cosmetics, fixed as
@@ -273,7 +273,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/attest-batch-out-dir.t
-          result: pass
   - id: resolver-answers-about-the-target
     claim: |
       `mathc init DIR` scaffolds `DIR` (not the caller's cwd), the
@@ -283,9 +282,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-layout-coherence.t
-          result: pass
         - verifier: tests/path_config_test.exe
-          result: pass
   - id: adopt-stays-inside-the-target
     claim: |
       `mathc adopt DIR` writes the scaffold, the imported ADRs and the
@@ -295,9 +292,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/adopt.t
-          result: pass
         - verifier: tests/cli/import-adr.t
-          result: pass
 
 reversal:
   - signal: adopt-writes-where-it-did-before

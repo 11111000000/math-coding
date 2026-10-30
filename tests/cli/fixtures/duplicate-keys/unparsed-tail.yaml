@@ -26,7 +26,6 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep demo
-          result: pass
 assumptions:
   - id: a1
     state: assumed
@@ -46,7 +45,6 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep demo
-          result: pass
 risk:
   owner: human:maintainer
   level: low

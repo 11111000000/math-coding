@@ -3,10 +3,11 @@ schema: math-coding/3.2
 id: mathc-explain-subcommand
 revision: 4
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 
-body_sha: "sha256:133af1898c7626e2b269badb79d302f147460741bace75661b58ff6c0cbfdbaf"
+body_sha: "sha256:fbff3db10128cf874a8e38689d5f644db8facb62a54bbacf76aad17e654a4f35"
 
-yaml_sha: "sha256:133af1898c7626e2b269badb79d302f147460741bace75661b58ff6c0cbfdbaf"
+yaml_sha: "sha256:fbff3db10128cf874a8e38689d5f644db8facb62a54bbacf76aad17e654a4f35"
 
 intent: |
   Close the broken promise in shipped code: `lib/capsule.ml:88`
@@ -84,9 +85,7 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists decisions/mathc-explain-subcommand.yaml
-          result: pass
-        - verifier: manual-text-scan-spec-semantics-has-explain-row
-          result: pass
+        - verifier: shell-grep spec/semantics.md explain DETAIL_REF
   - id: mathc-explain-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
@@ -109,9 +108,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/explain-positive.t
-          result: pass
         - verifier: tests/cli/explain-negative.t
-          result: pass
 
 
 reversal:

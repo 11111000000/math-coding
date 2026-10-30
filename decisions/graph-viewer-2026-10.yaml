@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:a2c6796770ab1414d481a946cbacf1ffc06e225f48a8246c577fb45b641f0b49"
-yaml_sha: "sha256:a2c6796770ab1414d481a946cbacf1ffc06e225f48a8246c577fb45b641f0b49"
+body_sha: "sha256:a6ba0cea334e6f26f50025463772ab706476b48e7fda3cb4ef5dabc14ef6227e"
+yaml_sha: "sha256:a6ba0cea334e6f26f50025463772ab706476b48e7fda3cb4ef5dabc14ef6227e"
 axiom_link:
   - A0
   - A4
@@ -279,7 +279,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/graph.t
-          result: pass
 reversal:
   - signal: graph-not-needed
     condition: |

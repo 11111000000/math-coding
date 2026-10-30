@@ -5,8 +5,8 @@ revision: 7
 state: active
 mode: standard
 
-body_sha: "sha256:49b152e12adc81e4446827b3d06041e406201c4060a5356ff970782642248bb7"
-yaml_sha: "sha256:49b152e12adc81e4446827b3d06041e406201c4060a5356ff970782642248bb7"
+body_sha: "sha256:4982758ce0c228183454272d9ef0cf04e5dadf4a640b97c048b72b0af842794d"
+yaml_sha: "sha256:4982758ce0c228183454272d9ef0cf04e5dadf4a640b97c048b72b0af842794d"
 
 axiom_link:
   - A0
@@ -132,14 +132,12 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gaps.t
-          result: pass
   - id: the-kernel-builds
     claim: |
       The kernel with the worklist builds and the suite passes.
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/gaps-worklist-2026-10.yaml` returns
@@ -147,7 +145,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/gaps-worklist-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

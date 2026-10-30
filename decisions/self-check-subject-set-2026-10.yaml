@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 
-body_sha: "sha256:973f4d3f5f949766fcd7c48ac31e9bfaf70ec5108465852862388703239470c8"
-yaml_sha: "sha256:973f4d3f5f949766fcd7c48ac31e9bfaf70ec5108465852862388703239470c8"
+body_sha: "sha256:6811e5dde38f2742ae8a8609f6b83b87c2674ba68846e538001ffbf8b595a5cd"
+yaml_sha: "sha256:6811e5dde38f2742ae8a8609f6b83b87c2674ba68846e538001ffbf8b595a5cd"
 
 axiom_link:
   - A0
@@ -113,7 +113,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root .
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/self-check-subject-set-2026-10.yaml`
@@ -121,7 +120,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/self-check-subject-set-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

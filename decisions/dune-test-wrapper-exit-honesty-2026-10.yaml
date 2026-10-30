@@ -4,8 +4,8 @@ id: dune-test-wrapper-exit-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:f98f7a0c85aecd24a2df60fdb08aa8d2c322a1e4bfbb91dd6ca7c9a1f2d95999"
-yaml_sha: "sha256:f98f7a0c85aecd24a2df60fdb08aa8d2c322a1e4bfbb91dd6ca7c9a1f2d95999"
+body_sha: "sha256:ee134eb452f81725a7653c2b791ccdc2d068afa9dd2cae1dfb49a90497f1e732"
+yaml_sha: "sha256:ee134eb452f81725a7653c2b791ccdc2d068afa9dd2cae1dfb49a90497f1e732"
 
 axiom_link:
   - A1
@@ -176,11 +176,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
-          result: pass
         - verifier: manual-bash-n-scripts-dune-test-with-timeout-sh
-          result: pass
         - verifier: manual-shellcheck-dune-test-wrapper
-          result: pass
       command_note: |
         `manual-shellcheck-dune-test-wrapper` is
         `shellcheck -e SC2164 -e SC2016 -S info
@@ -199,9 +196,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/dune-test-wrapper-propagates-failure.sh
-          result: pass
         - verifier: manual-shell-grep-wrapper-propagates-failure-tests-fixt
-          result: pass
 
 assumptions:
   - id: timeout-statuses-are-a-dubious-pair

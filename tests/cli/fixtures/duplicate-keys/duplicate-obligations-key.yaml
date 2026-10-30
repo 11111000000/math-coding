@@ -26,7 +26,6 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep demo
-          result: pass
 obligations:
   - id: second
     outcome: documented-limitation
@@ -35,4 +34,3 @@ obligations:
     acceptance:
       all:
         - verifier: shell-grep demo
-          result: pass

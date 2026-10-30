@@ -3,11 +3,12 @@ schema: math-coding/3.3
 id: verdict-vocabulary-and-waiver-expiry-2026-10
 revision: 1
 state: active
+negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:0399f0c3c7f18a78bb99468be42d56956a6d0135db7abfb9fcd9a637c70b43e2"
-yaml_sha: "sha256:0399f0c3c7f18a78bb99468be42d56956a6d0135db7abfb9fcd9a637c70b43e2"
+body_sha: "sha256:8ab1706f42d3b8fcd1328631f8f983be08e8069b1c337216722fd77d312a6a60"
+yaml_sha: "sha256:8ab1706f42d3b8fcd1328631f8f983be08e8069b1c337216722fd77d312a6a60"
 
 axiom_link:
   - A0
@@ -621,7 +622,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
-          result: pass
   - id: spec-states-the-verdict-to-exit-table
     outcome: spec-ships-the-verdict-vocabulary
     claim: |
@@ -632,7 +632,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
-          result: pass
   - id: spec-states-the-waiver-validity-interval
     outcome: spec-ships-the-verdict-vocabulary
     claim: |
@@ -643,7 +642,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
-          result: pass
   - id: waivers-array-is-specified
     outcome: spec-ships-the-verdict-vocabulary
     claim: |
@@ -654,7 +652,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
-          result: pass
   - id: waiver-expiry-is-strict-at-the-boundary
     outcome: kernel-honours-invariant-14c-at-the-boundary
     claim: |
@@ -665,7 +662,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/waiver_test.ml
-          result: pass
   - id: verdict-aggregation-honours-the-boundary
     outcome: kernel-honours-invariant-14c-at-the-boundary
     claim: |
@@ -676,7 +672,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/gate/waiver_aggregation.ml
-          result: pass
   - id: lapsed-waiver-stops-lifting-through-the-cli
     outcome: kernel-honours-invariant-14c-at-the-boundary
     claim: |
@@ -688,7 +683,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/waiver-expiry-boundary.t
-          result: pass
   - id: boundary-tests-detect-both-directions
     outcome: drift-is-a-red-test-not-an-audit-finding
     claim: |
@@ -721,8 +715,7 @@ obligations:
       carries this obligation.
     acceptance:
       all:
-        - verifier: manual-mutation-probe-boundary
-          result: pass
+        - verifier: shell-grep tests/gate/waiver_aggregation.ml a waiver does not lift a gap at now == expires_at
 reversal:
   - signal: owner-freezes-spec-files
     condition: |

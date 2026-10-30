@@ -54,7 +54,6 @@ Positive case: decision with `counterexample` present must accept.
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -93,7 +92,6 @@ diagnostic is the dialectic one. The fixture MUST NOT contain
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer
@@ -129,7 +127,6 @@ treats absent as standard (per `decisions/kernel-bugs-v3.4-2026-10.yaml`).
   >     acceptance:
   >       all:
   >         - verifier: mathc self-check
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:maintainer

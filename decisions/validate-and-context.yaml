@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: validate-and-context
 revision: 3
 state: active
-body_sha: "sha256:7e848551e8c7d3a139c2c0c07b03784a2da66414553a0b4a95e0309de376e6bc"
-yaml_sha: "sha256:7e848551e8c7d3a139c2c0c07b03784a2da66414553a0b4a95e0309de376e6bc"
+body_sha: "sha256:5d633cb179749d0567bc4250185f32e8e4bf03007ea945eac673d26b29e0696c"
+yaml_sha: "sha256:5d633cb179749d0567bc4250185f32e8e4bf03007ea945eac673d26b29e0696c"
 intent: |
   Close the deferred obligation `deferred-cli-context` from
   validate-and-context@1 by adding `mathc context BASE HEAD --budget N`
@@ -197,7 +197,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
 
   - id: cli-validate-decision
     outcome: cli-validate-parses-decision
@@ -213,9 +212,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
         - verifier: tests/cli/validate-negative.t
-          result: pass
 
   - id: cli-version-preserved
     outcome: cli-version-still-works
@@ -225,7 +222,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
         # The fixture builds bin/mathc.exe; a regression in the
         # Mathc.ml module that breaks `version` would also break the
         # build, so dune itself catches it.
@@ -243,7 +239,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
         # Building the binary would warn or fail to link if lib/
         # pulled in unix-only functions for bin/'s use; the build
         # succeeds, proving no kernel API leak.
@@ -265,7 +260,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-budget.t
-          result: pass
 
   - id: capsule-byte-budget-tracked
     outcome: cli-context-capsule
@@ -281,7 +275,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-budget.t
-          result: pass
 
 reversal:
   - signal: parse-decision-becomes-total

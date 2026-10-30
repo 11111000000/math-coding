@@ -49,8 +49,8 @@ axiom_link:
 #                 Alpine/musl targets. The glibc pipeline and the
 #                 §30 violation history are unchanged.
 state: active
-body_sha: "sha256:efb6953c64a48d1b240069bbf42f9eccf642b6af5866f68d96b8f7f38c988c51"
-yaml_sha: "sha256:efb6953c64a48d1b240069bbf42f9eccf642b6af5866f68d96b8f7f38c988c51"
+body_sha: "sha256:98447f93421b56b8fa09a3af4d8fc6f51b144f09ecdb010657c309aacbe6b26d"
+yaml_sha: "sha256:98447f93421b56b8fa09a3af4d8fc6f51b144f09ecdb010657c309aacbe6b26d"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
@@ -223,7 +223,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: musl-binary-runs-version
     outcome: musl-artifacts-published
@@ -236,7 +235,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-ci-run-musl-artifact-version-banner
-          result: pass
 
   - id: glibc-binary-still-works
     outcome: glibc-compat-preserved
@@ -249,9 +247,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/version.t
-          result: pass
         - verifier: tests/cli/validate-positive.t
-          result: pass
 
   - id: no-fork-in-kernel
     outcome: portability-evidence-criteria
@@ -263,7 +259,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: docs-name-install
     outcome: musl-artifacts-published
@@ -275,7 +270,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: schema-unchanged
     outcome: glibc-compat-preserved
@@ -285,7 +279,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
-          result: pass
 
   - id: ci-evidence-recorded
     outcome: musl-artifacts-published
@@ -298,7 +291,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-ci-run-alpine-build-evidence-recorded
-          result: pass
 
 reversal:
   - signal: alpine-ci-build-fails

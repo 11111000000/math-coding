@@ -4,8 +4,8 @@ id: decision-resolution
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:22d67018bab4b6e9a859d7ba3beef2411e58277ea30541735af930ac1f47007f"
-yaml_sha: "sha256:22d67018bab4b6e9a859d7ba3beef2411e58277ea30541735af930ac1f47007f"
+body_sha: "sha256:ba8d7d3933d5eedb5201ed4abdfebab877de739ba699927ec3e820d4e6f65e2c"
+yaml_sha: "sha256:ba8d7d3933d5eedb5201ed4abdfebab877de739ba699927ec3e820d4e6f65e2c"
 axiom_link:
   - A0
   - A1
@@ -347,9 +347,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/decision-resolution.t
-          result: pass
         - verifier: mathc validate decisions/decision-resolution-2026-10.yaml
-          result: pass
   - id: the-corpus-is-walked-recursively
     claim: |
       A decision filed under a sub-directory of the decisions
@@ -358,7 +356,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/decision-resolution.t
-          result: pass
   - id: a-decision-is-found-by-its-id
     claim: |
       A decision whose file name differs from its id is resolved by
@@ -368,7 +365,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/decision-resolution.t
-          result: pass
   - id: the-corpus-verdict-is-not-worse
     claim: |
       The change adds subjects and obligations to the corpus; it
@@ -378,9 +374,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/failing-subject-backlog.sh
-          result: pass
         - verifier: tests/fixtures/negative-control-debt.sh
-          result: pass
   - id: the-kernel-still-builds-and-its-suite-is-green
     claim: |
       `dune build @install` succeeds and the full test suite —
@@ -389,9 +383,7 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: scripts/check.sh
-          result: pass
 risk:
   declared_triggers:
     - the-cwd-climb-answers-a-different-project-than-the-gate

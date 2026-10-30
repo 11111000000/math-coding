@@ -7,7 +7,7 @@ shift in either side shows up as a cram failure.
 
 Acceptance gate for obligation `t0-1-spec-notation` of the
 meta-decision `decisions/plan-2026-10-improvements@1` and the
-sub-decision `decisions/plan-2026-10-improvements/t0-1.yaml@1`.
+sub-decision `docs/plans/t0-1.yaml@1`.
 
 The spec declares the bucketed function in §2 and the spec uses the
 new notation in `mode(c)`:
@@ -67,5 +67,5 @@ New verifier-scheme warnings emitted under the
 verdict line; the verdict-line first match captures the canonical
 verdict (`accept` was renamed to `parse-ok` in commit a602b361):
 
-  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/plan-2026-10-improvements/t0-1.yaml 2>/dev/null | grep -E '^(parse-ok|accept):'
-  parse-ok: decisions/plan-2026-10-improvements/t0-1.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate docs/plans/t0-1.yaml 2>/dev/null | grep -E '^(parse-ok|accept):'
+  parse-ok: docs/plans/t0-1.yaml

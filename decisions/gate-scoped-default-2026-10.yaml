@@ -4,8 +4,8 @@ id: gate-scoped-default-2026-10
 revision: 3
 state: active
 mode: light
-body_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
-yaml_sha: "sha256:399f6ec2c632c2d5fff8316e2c27a70880785411583abd321a12a9374cb991ef"
+body_sha: "sha256:ca72e5a2b77ebe35004ebfcbaca93e1e51176b5ef72b8c248fb893c54edd3784"
+yaml_sha: "sha256:ca72e5a2b77ebe35004ebfcbaca93e1e51176b5ef72b8c248fb893c54edd3784"
 
 intent: |
   The gate had two switches and no default. This decision says which
@@ -207,7 +207,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build --root .
-          result: pass
   - id: the-scoped-gate-answers-the-change
     claim: |
       On a tree of the fixture's own making, the scoped gate
@@ -218,7 +217,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-scoped.t
-          result: pass
   - id: the-escape-hatch-is-named-and-honoured
     claim: |
       `mathc gate --help` names `--no-execute`, and
@@ -229,9 +227,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-scoped.t
-          result: pass
         - verifier: mathc gate --help
-          result: pass
   - id: a-check-that-could-not-run-is-not-a-pass
     claim: |
       An obligation whose verifier cannot be set up is reported as
@@ -243,7 +239,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/gate-scoped.t
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/gate-scoped-default-2026-10.yaml`
@@ -251,7 +246,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/gate-scoped-default-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

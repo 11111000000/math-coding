@@ -49,7 +49,6 @@ counterexample present.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: - foo
   >   - bar
@@ -99,7 +98,6 @@ Scenario 2 — same shape, WITHOUT the counterexample. The
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers: - foo
   >   - bar
@@ -143,7 +141,6 @@ patch must not change the existing behaviour.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > risk:
   >   declared_triggers:
   >     - foo
@@ -190,7 +187,6 @@ under a mapping key.
   >     acceptance:
   >       all:
   >         - verifier: tests/conformance.exe
-  >           result: pass
   > items: - first
   > - second
   > - third

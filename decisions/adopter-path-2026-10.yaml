@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/cli/init-defaults.t
-body_sha: "sha256:e3a3f5224d8fe9b2981c85c96d0ca3193d4efd00da0a753d4ec3410c2b2b5258"
-yaml_sha: "sha256:e3a3f5224d8fe9b2981c85c96d0ca3193d4efd00da0a753d4ec3410c2b2b5258"
+body_sha: "sha256:2e685c8d891aaaa2e16f85544a3ddb5ee8acec39fcbc847e3cf38318b0cd4d85"
+yaml_sha: "sha256:2e685c8d891aaaa2e16f85544a3ddb5ee8acec39fcbc847e3cf38318b0cd4d85"
 
 intent: |
   The first ten minutes of an adoption should cost what the protocol is
@@ -108,13 +108,9 @@ obligations:
     acceptance:
       all:
         - verifier: bash -c "! grep -q 'verifier: mathc self-check' lib/init/init.ml"
-          result: pass
         - verifier: bash -c "grep -q 'verifier: file-exists src' lib/init/init.ml"
-          result: pass
         - verifier: tests/cli/init-defaults.t
-          result: pass
         - verifier: mathc validate decisions/adopter-path-2026-10.yaml
-          result: pass
 
   - id: the-protocol-is-opt-in
     claim: |
@@ -124,13 +120,9 @@ obligations:
     acceptance:
       all:
         - verifier: bash -c "grep -q 'Opt-in' adoption/SKILL.md"
-          result: pass
         - verifier: bash -c "grep -q 'burden of proof sits on the application' adoption/SKILL.md"
-          result: pass
         - verifier: bash -c "grep -q 'mode_floor: light' adoption/SKILL.md"
-          result: pass
         - verifier: scripts/check-adoption-doc-freshen.sh
-          result: pass
 
   - id: the-first-ten-minutes-are-written-down
     claim: |
@@ -139,7 +131,6 @@ obligations:
     acceptance:
       all:
         - verifier: file-exists docs/adoption-quickstart.md
-          result: pass
 
 counterexample: |
   The strongest objection is that the measurement does not say what this

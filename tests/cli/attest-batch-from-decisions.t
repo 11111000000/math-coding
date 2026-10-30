@@ -61,14 +61,12 @@ heredoc lines that already start with `> ` (RFC: cram lacks an
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   '  - id: obl-noise' \
   >   '    outcome: o1' \
   >   '    claim: Another claim.' \
   >   '    acceptance:' \
   >   '      all:' \
   >   '        - verifier: mathc self-check' \
-  >   '          result: pass' \
   >   'risk:' \
   >   '  declared_triggers: []' \
   >   '  owner: human:tester' \

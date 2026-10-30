@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/no-shadow-corpus.sh
-body_sha: "sha256:3def8d951929f28660b06083dec560ba68d0bebd407125363d15447b68027561"
-yaml_sha: "sha256:3def8d951929f28660b06083dec560ba68d0bebd407125363d15447b68027561"
+body_sha: "sha256:b85ee6aad7ed1e803044b7dd9023b0450a37e2392227e884a0eb920ccc10bb75"
+yaml_sha: "sha256:b85ee6aad7ed1e803044b7dd9023b0450a37e2392227e884a0eb920ccc10bb75"
 
 # The paths this decision removed, 2026-10-28. The fixture that guards
 # the removal reads this list, so the list lives in ONE place and the
@@ -244,7 +244,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/no-shadow-corpus.sh
-          result: pass
   - id: the-positive-control-still-proves-the-property
     claim: |
       `tests/cli/self-check-pass.t` still proves what it proved when
@@ -256,7 +255,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
-          result: pass
   - id: the-negative-controls-remain
     claim: |
       The negative controls of the kernel are still in the tree: the
@@ -266,9 +264,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/self-check-fail.t
-          result: pass
         - verifier: tests/cli/self-check-unknown.t
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/corpus-meta-layer-2026-10.yaml` exits
@@ -279,9 +275,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/corpus-meta-layer-2026-10.yaml
-          result: pass
         - verifier: tests/process_principles.exe
-          result: pass
 
 risk:
   owner: human:maintainer

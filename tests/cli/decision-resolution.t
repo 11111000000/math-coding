@@ -97,7 +97,6 @@ is `probe-alpha`. The second: filed in a sub-directory, file name
   >     acceptance:
   >       all:
   >         - verifier: file-exists src/main.py
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester
@@ -133,7 +132,6 @@ is `probe-alpha`. The second: filed in a sub-directory, file name
   >     acceptance:
   >       all:
   >         - verifier: file-exists src/main.py
-  >           result: pass
   > risk:
   >   declared_triggers: []
   >   owner: human:tester

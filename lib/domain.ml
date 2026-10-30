@@ -76,7 +76,7 @@ type epistemic_marker =
 type acceptance =
   | All of acceptance list
   | Any of acceptance list
-  | Verifier of { id : string; result : result }
+  | Verifier of { id : string }
   | Review of {
       review_authority : string;
       minimum_independence : string option;

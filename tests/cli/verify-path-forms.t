@@ -66,67 +66,56 @@ can reach.
   >     acceptance:
   >       all:
   >         - verifier: scripts/ok.sh
-  >           result: pass
   >   - id: script-fails
   >     claim: a script's exit code is the verdict
   >     acceptance:
   >       all:
   >         - verifier: scripts/fail.sh
-  >           result: pass
   >   - id: script-missing
   >     claim: a script that is not there fails, loudly
   >     acceptance:
   >       all:
   >         - verifier: scripts/missing.sh
-  >           result: pass
   >   - id: script-escapes
   >     claim: a path leaving the repository fails, loudly
   >     acceptance:
   >       all:
   >         - verifier: scripts/../outside.sh
-  >           result: pass
   >   - id: script-not-executable
   >     claim: a non-executable script fails, loudly
   >     acceptance:
   >       all:
   >         - verifier: scripts/ok.sh.bak
-  >           result: pass
   >   - id: script-needs-a-shell
   >     claim: a shell one-liner is refused, not skipped
   >     acceptance:
   >       all:
   >         - verifier: scripts/ok.sh | grep ok
-  >           result: pass
   >   - id: module-missing
   >     claim: a tests/*.ml path is recognised and checked
   >     acceptance:
   >       all:
   >         - verifier: tests/absent_module.ml
-  >           result: pass
   >   - id: module-case-missing
   >     claim: a tests/*.ml::case path is recognised and checked
   >     acceptance:
   >       all:
   >         - verifier: tests/absent_module.ml::some_case
-  >           result: pass
   >   - id: cram-missing
   >     claim: a tests/*.t path is recognised and checked
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/absent.t
-  >           result: pass
   >   - id: dune-needs-a-shell
   >     claim: a dune one-liner with a pipe is refused
   >     acceptance:
   >       all:
   >         - verifier: dune build @install | tail -1
-  >           result: pass
   >   - id: unknown-scheme
   >     claim: an unrecognised scheme is still skipped
   >     acceptance:
   >       all:
   >         - verifier: this-decision-file-present
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:
@@ -162,12 +151,13 @@ The `..` rule and the executable rule each have their own message.
 
 Every `tests/` path form is planned before anything runs, so a
 missing module, a missing case selector and a missing cram file all
-fail the same way. Four hits: scripts/missing.sh, tests/absent_module.ml,
-the same module through its `::case` form, and tests/cli/absent.t.
-Under the old resolver all four were `skipped`.
+fail the same way. Three hits: scripts/missing.sh, tests/absent_module.ml
+and tests/cli/absent.t. The fourth form -- a case selector -- is refused
+before it is resolved, because a verifier names a FILE and the file is
+the unit of execution. Under the old resolver all four were `skipped`.
 
   $ $INSIDE_DUNE/bin/mathc.exe verify scratch.yaml 2>&1 >/dev/null | grep -c 'no such file in the repository'
-  4
+  3
 
 A verifier that needs a shell names the metacharacter that stopped
 it. The kernel never spawns /bin/sh, and an obligation that did not

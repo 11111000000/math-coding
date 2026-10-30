@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles-close-branches
 revision: 3
 state: active
-body_sha: "sha256:177206e960a92cda1b8ea66257f2fe06bda7af2be6780117408f0292baecc7bf"
-yaml_sha: "sha256:177206e960a92cda1b8ea66257f2fe06bda7af2be6780117408f0292baecc7bf"
+body_sha: "sha256:2052fe85e1ab37045e00df36c4783337ef5c1b9237569016dcb18966897e31ec"
+yaml_sha: "sha256:2052fe85e1ab37045e00df36c4783337ef5c1b9237569016dcb18966897e31ec"
 intent: |
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit
@@ -124,9 +124,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/close-branches-runs.sh
-          result: pass
         - verifier: manual-target-missing-tests-process-principles-ml-p6-ca
-          result: pass
 
   - id: pre-commit-hook-impl
     statement: |
@@ -138,9 +136,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/pre-commit-hook-installed.sh
-          result: pass
         - verifier: manual-bash-n-githooks-pre-commit-exits-0
-          result: pass
 
   - id: editorial-exemption-impl
     statement: |
@@ -155,9 +151,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/pre-commit-editorial-exempt.sh
-          result: pass
         - verifier: tests/fixtures/pre-commit-editorial-still-enforced.sh
-          result: pass
 
 evidence:
   - kind: observed

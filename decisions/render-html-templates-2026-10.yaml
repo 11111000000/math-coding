@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: implementation
-body_sha: "sha256:b0169687ca731360cce486548b5fbd45fb5b02d6e7db150e3fda8362dcba1a5d"
-yaml_sha: "sha256:b0169687ca731360cce486548b5fbd45fb5b02d6e7db150e3fda8362dcba1a5d"
+body_sha: "sha256:4c65b01f97a3db995c7d6dff75619349403300318180a469bf829ec37bd0c9a9"
+yaml_sha: "sha256:4c65b01f97a3db995c7d6dff75619349403300318180a469bf829ec37bd0c9a9"
 
 intent: |
   Реализовать дизайн из
@@ -80,7 +80,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
   - id: render-tests-pass
     claim: |
       `tests/render_kernel.exe` проходит; cram `tests/cli/render.t`
@@ -88,9 +87,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/render_kernel.exe
-          result: pass
         - verifier: tests/cli/render.t
-          result: pass
   - id: no-io-in-lib-render
     claim: |
       grep по `lib/render/` не находит вызовов
@@ -99,7 +96,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-grep-no-io-in-lib-render
-          result: pass
 
 counterexample: |
   "Перенос `read_version_file` из `default_config` сломает тест,

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:a96eb3188949d9af8d4aed574bacd07b82f1315aa6b110ce9f8c00716abeb9f2"
-yaml_sha: "sha256:a96eb3188949d9af8d4aed574bacd07b82f1315aa6b110ce9f8c00716abeb9f2"
+body_sha: "sha256:57e766b60aabaef7a2b11180799dd73f6e0eecf58c5b03de957830f6a0afdae2"
+yaml_sha: "sha256:57e766b60aabaef7a2b11180799dd73f6e0eecf58c5b03de957830f6a0afdae2"
 
 axiom_link:
   - A0
@@ -87,7 +87,6 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check.sh
-          result: pass
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml`
@@ -95,7 +94,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml
-          result: pass
 
 risk:
   declared_triggers:

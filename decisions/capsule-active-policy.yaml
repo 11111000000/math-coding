@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: capsule-active-policy
 revision: 2
 state: active
-body_sha: "sha256:199f960d031967acddc286c42b6896421bd6667e863e2adca4182113ae43a2a5"
-yaml_sha: "sha256:199f960d031967acddc286c42b6896421bd6667e863e2adca4182113ae43a2a5"
+body_sha: "sha256:27f23844504c33e6fae279022867a71a354eee2d30ce4e48516da27b4d80c506"
+yaml_sha: "sha256:27f23844504c33e6fae279022867a71a354eee2d30ce4e48516da27b4d80c506"
 intent: |
   Close the spec/compliance gap noted in critical analysis
   2026-09-27: spec/semantics.md "context-prioritisation"
@@ -96,7 +96,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-required-for-gate.t
-          result: pass
   - id: capsule-budget-bounded
     outcome: capsule-budget-invariant
     claim: |
@@ -105,9 +104,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-budget-bound.t
-          result: pass
         - verifier: tests/cli/context-truncated-omitted.t
-          result: pass
   - id: capsule-priority-sorted
     outcome: capsule-priority-ordering
     claim: |
@@ -116,7 +113,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/context-priority-order.t
-          result: pass
 
 reversal:
   - signal: kernel-active-policy-field

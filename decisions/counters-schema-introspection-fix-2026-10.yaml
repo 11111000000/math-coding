@@ -5,8 +5,8 @@ id: counters-schema-introspection-fix-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:b5f7e1652d9928f0d9e1bfbf8f1060a403e4dee07ffc6f046fed824a338f1001"
-yaml_sha: "sha256:b5f7e1652d9928f0d9e1bfbf8f1060a403e4dee07ffc6f046fed824a338f1001"
+body_sha: "sha256:3a043d89c6190d98b7c5cc0b9ecdbd6e296c2e2c23a68afb050ea5eec02bf965"
+yaml_sha: "sha256:3a043d89c6190d98b7c5cc0b9ecdbd6e296c2e2c23a68afb050ea5eec02bf965"
 axiom_link:
   - A0
 intent: |
@@ -340,7 +340,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counters-schema-introspection.t
-          result: pass
   - id: intent-oneof-true-after-rebuild
     statement: |
       After `dune build` and the next `mathc
@@ -349,7 +348,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counters-schema-introspection.t
-          result: pass
   - id: scope-oneof-true-after-rebuild
     statement: |
       After `dune build` and the next `mathc
@@ -358,7 +356,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counters-schema-introspection.t
-          result: pass
   - id: required-fields-still-correct
     statement: |
       `schema.decision_required_fields` remains a
@@ -368,7 +365,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/counters-schema-introspection.t
-          result: pass
   - id: dune-build-clean
     statement: |
       `dune build` exits 0 on the post-fix tree.
@@ -379,7 +375,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
   - id: dune-test-clean
     statement: |
       `dune test` exits 0 on the post-fix tree.
@@ -391,7 +386,6 @@ obligations:
     acceptance:
       all:
         - verifier: dune test
-          result: pass
   - id: mathc-counters-regression-attestation
     statement: |
       The `mathc counters` regression attestation that drives the
@@ -403,7 +397,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate attestations/counters-schema-introspection-fix-2026-10-mathc-counters-regression-attestation.json
-          result: pass
 
 reversal:
   - signal: post-fix-counters-worse-than-pre-fix

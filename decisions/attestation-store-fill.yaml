@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: attestation-store-fill
 revision: 3
 state: active
-body_sha: "sha256:92d061de8544d26a025c1e90b9f472ed697548bff1275047bd8dfbcb094d1dcc"
-yaml_sha: "sha256:92d061de8544d26a025c1e90b9f472ed697548bff1275047bd8dfbcb094d1dcc"
+body_sha: "sha256:2048166dd609d7013fe3b3277205bc15d9101ff17159354a6b8da3b8188db768"
+yaml_sha: "sha256:2048166dd609d7013fe3b3277205bc15d9101ff17159354a6b8da3b8188db768"
 intent: |
   Close the AGENTS.md §Bootstrap-gate expiry condition for
   v3.0.0.19 by populating the filesystem-backed attestation
@@ -77,7 +77,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-self-check-store-populated
-          result: pass
   - id: ci-block-set
     outcome: self-check-returns-pass
     claim: |
@@ -89,7 +88,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-ci-self-check-step-blocks
-          result: pass
 
 counterexample: |
   Self-attestations certify a kernel that cannot yet check itself; this loop is structurally weak.

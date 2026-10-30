@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: time-honesty
 revision: 2
 state: active
-body_sha: "sha256:ce5d285621d93bfadbeabc14f763349dc2ece1c6112a2ede07838d2e95179304"
-yaml_sha: "sha256:ce5d285621d93bfadbeabc14f763349dc2ece1c6112a2ede07838d2e95179304"
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:d8105b53ea132d6da316e12c607145ba93514a08deeb9ced340a91b294fc4781"
+yaml_sha: "sha256:d8105b53ea132d6da316e12c607145ba93514a08deeb9ced340a91b294fc4781"
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable
@@ -115,8 +116,7 @@ obligations:
       bin/data/time-distribution.yaml, and an anti-patterns list.
     acceptance:
       all:
-        - verifier: manual-text-scan-presence
-          result: pass
+        - verifier: shell-grep bin/data/time-distribution.yaml Honest time reporting
   - id: estimator-subcommand-runs
     outcome: estimator-reproducible
     claim: |
@@ -127,7 +127,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc time-estimate --class feature-add --count 10 --percentile p50
-          result: pass
   - id: additive-only-fixtures
     outcome: additive-only
     claim: |
@@ -139,7 +138,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/conformance.ml
-          result: pass
 
 reversal:
   - signal: agent-narratives-still-unanchored

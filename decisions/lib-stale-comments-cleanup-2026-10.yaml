@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: lib-stale-comments-cleanup-2026-10
 revision: 1
 state: active
-body_sha: "sha256:dd4318fc377060c132139ebc2619eadf71952f4a29f6968d1625bbd0836bbf69"
-yaml_sha: "sha256:dd4318fc377060c132139ebc2619eadf71952f4a29f6968d1625bbd0836bbf69"
+body_sha: "sha256:9d2cef0f5b0fbcf7b5983ade623389cfc5d6c3a9aa921d896197fd75184de3c7"
+yaml_sha: "sha256:9d2cef0f5b0fbcf7b5983ade623389cfc5d6c3a9aa921d896197fd75184de3c7"
 intent: |
   Remove dead-code narrative comments from `lib/risk.ml` and
   `lib/packages.ml` that describe work superseded by later
@@ -139,14 +139,12 @@ obligations:
     acceptance:
       all:
         - verifier: scripts/check-stale-narrative.sh
-          result: pass
   - id: no-v3-0-0-30-claim-remains
     statement: |
       `grep -nE "v3.0.0.30" lib/packages.ml` returns 0 matches.
     acceptance:
       all:
         - verifier: scripts/check-stale-narrative.sh
-          result: pass
   - id: dune-build-and-risk-tests-green
     statement: |
       `dune build` exits 0; `dune test tests/risk_kernel.ml`
@@ -155,11 +153,8 @@ obligations:
     acceptance:
       all:
         - verifier: dune build
-          result: pass
         - verifier: tests/risk_kernel.ml
-          result: pass
         - verifier: tests/waiver_test.ml
-          result: pass
 
 reversal:
   - signal: comment-removal-removed-policy-grounding

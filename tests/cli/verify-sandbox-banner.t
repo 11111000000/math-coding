@@ -40,7 +40,6 @@ verify run forks the sandboxed child.
   >     acceptance:
   >       all:
   >         - verifier: mathc version
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

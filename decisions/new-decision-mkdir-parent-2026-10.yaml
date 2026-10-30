@@ -6,8 +6,8 @@ state: active
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:40d5bf95acaa8b01dcac762bc7ff56ee56d6470353114a3e0705c784845265a9"
-yaml_sha: "sha256:40d5bf95acaa8b01dcac762bc7ff56ee56d6470353114a3e0705c784845265a9"
+body_sha: "sha256:53b64e71fd23e1f36052bce1dc5498563ed205c6572ba7f9ccdbae75f5ec0b67"
+yaml_sha: "sha256:53b64e71fd23e1f36052bce1dc5498563ed205c6572ba7f9ccdbae75f5ec0b67"
 
 axiom_link:
   - A0
@@ -121,7 +121,6 @@ antithesis: |
 
 outcomes:
   - id: fresh-project-write-succeeds
-    result: pass
     detail: |
       `new-decision.t` and `new-decision-axiom-warn.t` both go green.
       Neither was green before this revision, at `7a4cabc` or at
@@ -193,7 +192,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/new-decision.t
-          result: pass
   - id: write-mode-keeps-its-soft-warning
     claim: |
       The `--write` path still emits the axiom-link inference warning
@@ -203,7 +201,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/new-decision-axiom-warn.t
-          result: pass
   - id: forward-layout-stays-the-fresh-project-default
     claim: |
       A fresh project root resolves to `.math-coding/`, unchanged by
@@ -212,11 +209,8 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init.t
-          result: pass
         - verifier: tests/cli/init-defaults.t
-          result: pass
         - verifier: tests/cli/init-legacy.t
-          result: pass
 
 reversal: |
   Revert the two-file change. The revert restores a state in which

@@ -46,7 +46,6 @@ the probe tree.
   >     acceptance:
   >       all:
   >         - verifier: tests/cli/doctor-env-var.t
-  >           result: pass
   > axiom_link:
   >   - A0
   > risk:

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles
 revision: 5
 state: active
-body_sha: "sha256:75f5b281ce004789db5ac923ecda33e0be668a30a966942c289a6616f8f642bb"
-yaml_sha: "sha256:75f5b281ce004789db5ac923ecda33e0be668a30a966942c289a6616f8f642bb"
+body_sha: "sha256:c7c18e27da10cc18f817cec5d517ecf2d8b779cabaed13dbd3584bcc20af9f8a"
+yaml_sha: "sha256:c7c18e27da10cc18f817cec5d517ecf2d8b779cabaed13dbd3584bcc20af9f8a"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -266,7 +266,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
   - id: p2-decisions-paired-with-fixtures
     outcome: principles-recorded-as-obligations
     claim: |
@@ -288,7 +287,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
   - id: p3-time-box-on-detailed-work
     outcome: principles-recorded-as-obligations
     claim: |
@@ -305,7 +303,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-agent-conduct-review
-          result: pass
   - id: p4-merge-order-time-budget-kernel
     outcome: principles-recorded-as-obligations
     claim: |
@@ -323,7 +320,6 @@ obligations:
     acceptance:
       all:
         - verifier: manual-agent-conduct-review
-          result: pass
   - id: p5-cram-retired-shell-fixtures-only
     outcome: checkable-principles-asserted-by-fixture
     claim: |
@@ -336,7 +332,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
   - id: p6-pre-commit-verification
     outcome: checkable-principles-asserted-by-fixture
     claim: |
@@ -350,7 +345,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
   - id: p7-honesty-in-fixture-assertions
     outcome: checkable-principles-asserted-by-fixture
     claim: |
@@ -371,7 +365,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/process_principles.ml
-          result: pass
 
 reversal:
   - signal: kernel-can-enforce-p3-p4

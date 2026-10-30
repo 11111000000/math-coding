@@ -432,6 +432,53 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
 let mc_ambiguous_acceptance = ambiguous_acceptance
 let mc_malformed_acceptance = malformed_acceptance
 
+(* MC-ACCEPTANCE-DECLARED-RESULT: emitted by `mathc validate` when an
+   acceptance item carries a `result:` key.
+
+   An acceptance item NAMES a check. The outcome of that check is
+   measured by running it, and it is recorded in the attestation store
+   -- never in the promise's own file. The corpus carried 863 such
+   keys, every one of them `pass`, and nothing read them: the kernel
+   parsed them and no verdict ever consulted them. So they were
+   decoration that reads like evidence -- a reader opening a decision
+   saw "pass" next to a promise and could not tell that no check had
+   run.
+
+   The constitution's separation is `declared != derived != attested !=
+   reviewed != observed`. A `result:` in the corpus is a DECLARED
+   outcome standing where an ATTESTED one belongs, and the block
+   exists to stop it from coming back. *)
+let declared_result_acceptance ?(obligation_id = "") ?(item_position = -1)
+    ?(next_actions = []) () =
+  let pos_str =
+    if item_position >= 0 then Printf.sprintf " (all[%d])" item_position else ""
+  in
+  let msg =
+    Printf.sprintf
+      "obligation %s: acceptance item%s declares a `result:`. The outcome of a \
+       check is measured, not declared: remove the key, and let the check \
+       write its verdict into the attestation store."
+      obligation_id pos_str
+  in
+  let default_actions =
+    [
+      ("edit", "remove the `result:` line: an acceptance item names the check");
+      ( "run",
+        "bash scripts/sign-store.sh   # measure the outcome, do not declare it"
+      );
+    ]
+  in
+  let actions =
+    match next_actions with [] -> default_actions | _ -> next_actions
+  in
+  create ~code:"MC-ACCEPTANCE-DECLARED-RESULT" ~kind:Input ~severity:Block
+    ~path:
+      [ Printf.sprintf "obligations.%s.acceptance.all.result" obligation_id ]
+    ~policy_rule:(Some "spec/constitution.md#epistemic-separation")
+    ~next_actions:actions msg
+
+let mc_declared_result_acceptance = declared_result_acceptance
+
 (* MC-AXIOM-LINK-MISSING: emitted by `mathc validate` (via
    `lib/decision.ml::parse_decision`) when a decision carries
    `state: active` with an empty `axiom_link` list. The
@@ -1222,6 +1269,23 @@ let explain (code : string) : string option =
          ### Remediation\n\
          Remove either the `verifier`/`result` block or the `review`\n\
          block so each acceptance item carries one shape only."
+  | "MC-ACCEPTANCE-DECLARED-RESULT" ->
+      Some
+        "### Definition\n\
+         An acceptance item declares a `result:`. An acceptance item\n\
+         names a check; the outcome of that check is measured by\n\
+         running it and recorded in the attestation store. A declared\n\
+         outcome in the promise's own file is a DECLARED result where\n\
+         an ATTESTED one belongs (spec/constitution.md\n\
+         \"Epistemic Separation\": declared != derived != attested !=\n\
+         reviewed != observed).\n\n\
+         ### Occurs when\n\
+         `mathc validate` walks every acceptance item and finds a\n\
+         `result:` key. The corpus carried 863 of them, all `pass`,\n\
+         and no verdict ever consulted them.\n\n\
+         ### Remediation\n\
+         Remove the `result:` line. The check stays; the outcome moves\n\
+         to the store, where it is measured."
   | "MC-MALFORMED-ACCEPTANCE" ->
       Some
         "### Definition\n\

@@ -6,7 +6,7 @@
   "axiom_link": ["A0"],
   "intent": {
     "source": "test:malformed-acceptance",
-    "text": "Demonstrate MC-MALFORMED-ACCEPTANCE detection: an acceptance item with verifier field but unparseable result value."
+    "text": "Demonstrate MC-MALFORMED-ACCEPTANCE detection: an acceptance item with neither a usable verifier nor a review."
   },
   "commitment": "The parser accepts the decision but emits MC-MALFORMED-ACCEPTANCE for the item whose result field is not in the result enum.",
   "scope": [
@@ -30,11 +30,11 @@
       "id": "malformed-obligation",
       "decision": "malformed-acceptance-demo",
       "outcome": "demonstrate",
-      "claim": "Result field must be one of the four documented values.",
+      "claim": "An acceptance item must name a check: an item with no verifier and no review is malformed.",
       "subjects": [{"kind": "path", "path": "lib/**", "match": "tree"}],
       "acceptance": {
         "all": [
-          {"verifier": "manual-test-runner", "result": "bogus-result-value"}
+          {"verifier": ""}
         ]
       },
       "phase": "pre-merge",

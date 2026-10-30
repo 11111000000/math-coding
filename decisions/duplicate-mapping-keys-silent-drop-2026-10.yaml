@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:aac531aa922dff9e1d6a03b5c1c17facc453ec22d87bd2c1dc1508a418afc513"
-yaml_sha: "sha256:aac531aa922dff9e1d6a03b5c1c17facc453ec22d87bd2c1dc1508a418afc513"
+body_sha: "sha256:9378b5dc5e30d19964d5645fffe4b93e779f23a482c4d3327aac5988325e1bd2"
+yaml_sha: "sha256:9378b5dc5e30d19964d5645fffe4b93e779f23a482c4d3327aac5988325e1bd2"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -244,9 +244,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/duplicate_keys.exe
-          result: pass
         - verifier: mathc validate tests/cli/fixtures/duplicate-keys/duplicate-obligations-key.yaml
-          result: pass
   - id: unparsed-tail-is-reported
     outcome: kernel-names-where-it-stopped
     claim: |
@@ -258,9 +256,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/duplicate_keys.exe
-          result: pass
         - verifier: mathc validate tests/cli/fixtures/duplicate-keys/unparsed-tail.yaml
-          result: pass
   - id: detector-reads-the-same-tree-as-the-readers
     outcome: no-second-yaml-implementation
     claim: |
@@ -272,7 +268,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/duplicate_keys.exe
-          result: pass
   - id: both-codes-are-explained
     outcome: explain-diagnostic-covers-the-new-codes
     claim: |
@@ -282,9 +277,7 @@ obligations:
     acceptance:
       all:
         - verifier: mathc explain-diagnostic MC-DUPLICATE-KEY
-          result: pass
         - verifier: mathc explain-diagnostic MC-UNPARSED-TAIL
-          result: pass
   - id: reported-obligations-are-reachable
     outcome: the-17-promises-are-back-under-the-gate
     claim: |
@@ -303,17 +296,11 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/cli-canonical-name.yaml
-          result: pass
         - verifier: mathc validate decisions/mathc-explain-subcommand.yaml
-          result: pass
         - verifier: mathc validate decisions/mcp-server-impl-2026-10.yaml
-          result: pass
         - verifier: mathc validate archive/decisions/site-version-from-file-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/waiver-infrastructure-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/yaml-block-scalars-impl-pending.yaml
-          result: pass
   - id: secondary-duplicates-gone
     outcome: counterexample-and-nested-duplicates-repaired
     claim: |
@@ -324,13 +311,9 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/disable-hanging-alcotest-tests-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/mathc-counters-subcommand-2026-10.yaml
-          result: pass
         - verifier: mathc validate decisions/parser-risk-owner-default.yaml
-          result: pass
         - verifier: mathc validate decisions/yaml-block-scalars.yaml
-          result: pass
   - id: every-affected-file-is-listed
     outcome: residual-corpus-is-inventoried-not-hidden
     claim: |
@@ -350,7 +333,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
-          result: pass
   - id: scaffolded-policy-parses-to-eof
     outcome: scaffolded-policy-is-valid-yaml
     claim: |
@@ -361,9 +343,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/init-defaults.t
-          result: pass
         - verifier: tests/cli/init-scope-language-agnostic.t
-          result: pass
   - id: no-false-positive-on-json-inputs
     outcome: detector-reads-the-same-tree-as-the-readers
     claim: |
@@ -376,9 +356,7 @@ obligations:
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
-          result: pass
         - verifier: tests/cli/embedded-schemas.t
-          result: pass
   - id: this-decision-validates
     outcome: decision-is-itself-well-formed
     claim: |
@@ -389,7 +367,6 @@ obligations:
     acceptance:
       all:
         - verifier: mathc validate decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml
-          result: pass
 
 assumptions:
   - id: warn-not-block-is-the-right-severity
