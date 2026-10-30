@@ -96,9 +96,18 @@ if [ "${1:-}" != "" ]; then
   name=$(basename "${fixtures[0]}" .sh)
   log=$(mktemp)
   trap 'rm -f "$log"' EXIT
-  if "${fixtures[0]}" >"$log" 2>&1; then
+  rc=0
+  "${fixtures[0]}" >"$log" 2>&1 || rc=$?
+  if [ "$rc" -eq 0 ]; then
     printf "  ok   %s\n" "$name"
     exit 0
+  elif [ "$rc" -eq 3 ]; then
+    # Unknown, not pass: the fixture ran and could not conclude. The
+    # status is passed through unchanged, so the caller sees the same
+    # distinction the aggregator makes.
+    printf "  skip %s\n" "$name"
+    tail -5 "$log" >&2 || true
+    exit 3
   else
     printf "  FAIL %s\n" "$name"
     tail -20 "$log" >&2 || true
@@ -117,6 +126,7 @@ pass=0
 fail=0
 skip=0
 failed_names=()
+skipped_names=()
 # The per-fixture log. A fixture that fails must be able to say WHY,
 # and the log is what carries that reason to the aggregator's output.
 fixture_log=$(mktemp)
@@ -125,9 +135,27 @@ fixture_log=$(mktemp)
 for f in "${fixtures[@]}"; do
   cleanup_dune
   name=$(basename "$f" .sh)
-  if "$f" >"$fixture_log" 2>&1; then
+  rc=0
+  "$f" >"$fixture_log" 2>&1 || rc=$?
+  if [ "$rc" -eq 0 ]; then
     printf "  ok   %s\n" "$name"
     pass=$((pass + 1))
+  elif [ "$rc" -eq 3 ]; then
+    # exit 3 is UNKNOWN: the fixture ran and could not conclude. The
+    # two fixtures that measure the attestation store use it, because
+    # the store is a GENERATED artefact and there is nothing to
+    # measure until the sweep has run.
+    #
+    # It is counted as SKIPPED and not as a pass: a check that
+    # concluded nothing must not be reported as a check that passed.
+    # It is not a failure either - the aggregator runs BEFORE the
+    # sweep, so "no store yet" is the normal state here. The CI step
+    # that runs AFTER the sweep treats the same exit 3 as a failure,
+    # because there the store must exist.
+    printf "  skip %s\n" "$name"
+    tail -5 "$fixture_log" >&2 || true
+    skip=$((skip + 1))
+    skipped_names+=("$name")
   else
     printf "  FAIL %s\n" "$name"
     # The reason, not just the name. A fixture whose output is

@@ -32,7 +32,12 @@
 # the only reader of these three ceilings: the separate ratchet that
 # used to fail a fixture declaring a ceiling it never compared was
 # removed on 2026-10-28 with the rest of the corpus-debt
-# meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
+# meta-layer (decisions/corpus-meta-layer-2026-10.yaml), and it was
+# RESTORED on 2026-10-30
+# (decisions/honest-instruments-2026-10.yaml). A ceiling that is
+# declared and never compared is now caught by
+# scripts/ceiling-monotonic.sh, which is in CI; a ceiling that grows
+# without a recorded reason is caught by the same script.
 
 set -uo pipefail
 cd "$(dirname "$0")/../.."
@@ -44,110 +49,93 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The ceiling. These are the numbers the debt may fall from and may
 # not rise above.
 #
-# 760 was measured on 2026-10-23 immediately after semantics A
-# landed. It was raised to 765 for ONE reason, recorded here so the
-# raise is visible rather than silent: merging the six branches of
-# the 2026-10-23 session brought five legacy attestations with it.
-# Those branches predate the anchoring work, so their attestations
-# carry the literal HEAD and an empty digest - the same debt as the
-# rest, not new debt of a new kind.
+# MEASURED 2026-10-30 against the store the sweep produced for this
+# tree: ZERO attestations carry an empty materials_digest. The old
+# ceiling of 16 was measured on 2026-10-27 against the COMMITTED
+# store; the store is generated now, and the sweep writes the digest
+# it measured. The debt did not grow - it was never measured - and the
+# ceiling now says what the truth is.
 #
-# ceiling-raise: 760 -> 765, the 2026-10-23 session merge brought five legacy attestations with it
+# ceiling-fall: 16 -> 0, the old ceiling was measured against the committed store; the store is generated now and the sweep writes the digest it measured
+CEILING_LEGACY=0
+# A LIVE RULE that carries no attestation at all: the sweep could not
+# sign it. Three decisions are in that class, and they are the CYCLE:
 #
-# The second ceiling FELL from 23 to 3 in the same commit, which is
-# the shape a ceiling should move in: the debt is being paid.
+#   executed-evidence-census-2026-10   verifier: the census fixture
+#   honest-attestation-emission-2026-10 verifier: the census fixture
+#   legacy-attestation-debt-2026-10     verifier: this fixture
 #
-# MEASURED 2026-10-27, against the store at HEAD: 16 attestations
-# carry an empty materials_digest. The ceiling is pinned at 16 - the
-# number the truth is now - and it may only fall. The store is
-# re-signed from time to time and every re-signing replaces an
-# unanchored attestation with an anchored one, so this number moves
-# down and not up.
-CEILING_LEGACY=16
-# Raised from 23 to 28 on 2026-10-23, for a recorded reason: the
-# per-obligation re-signing re-ran the verifiers of five decisions
-# whose legacy attestation said `pass` without evidence, and their
-# verifiers FAILED. A failed check must not be recorded as a pass,
-# so those five decisions are now UNSIGNED rather than wrongly
-# signed. The count of decisions with no attestation rose; the
-# number of wrongly-signed decisions fell to zero.
+# A cycle: the verifier of the decision IS a fixture that measures the
+# store, and the store is what the sweep is producing. The fixture
+# cannot conclude while the store is half-written - so the sweep
+# cannot sign the decision that names it, UNLESS the sweep's second
+# pass runs after the store is installed, and then it can.
 #
-# ceiling-raise: 23 -> 28, five decisions were left unsigned because their verifiers failed
+# MEASURED TWICE, 2026-10-30. Three, in the sweep that ran against a
+# store signed for the PREVIOUS commit: the census said "the store is
+# signed for another tree", exited 3, and the sweep signed nothing.
+# Zero, in the sweep that followed it: the second pass ran against a
+# current store, the census concluded, and the three decisions were
+# signed. The ceiling is 3 - the worst of the two measurements, the
+# bound, and it may only fall.
 #
-# MEASURED 2026-10-27: one decision carries no attestation at all.
-# It is the file of the decision that pins these ceilings; its
-# attestation is written by the re-signing, which this change does
-# not run. The ceiling is pinned at 1, the number the truth is now.
-# It may only fall - and after the re-signing it must.
+# MEASUREMENT CHANGED TWICE under this number, and it is worth
+# naming: the walk of decisions/ became recursive and follows the
+# kernel's rule of what a decision is (a decision in a sub-directory
+# used to be invisible here), and a decision with NO OBLIGATIONS is
+# no longer counted - there is nothing to attest, and the sweep signs
+# what it observes.
 #
-# MEASURED 2026-10-28, the MEASURE was corrected, not the ceiling.
-# The debt was counting every decision in decisions/ that carries no
-# attestation, INCLUDING the ones that are not in force: a
-# superseded, retired or draft decision is not a rule, the sweep does
-# not sign it (it signs what is in force), and its absence from the
-# store is not a debt -- it is the correct state of a decision that
-# has been replaced. The count now covers the LIVE rules only, with
-# the kernel's own default (a decision with no `state:` is active).
+# UNTIL 2026-10-30 THE CYCLE WAS HIDDEN, AND IT WAS HIDDEN BY THE
+# VACUOUS CENSUS. The census used to read git's index, find nothing,
+# report 0/0/0 and exit 0 - so the sweep signed those two decisions
+# with a pass that stood for nothing. The census reads the store now,
+# so it says "unknown" when the store is not there yet, and the sweep
+# leaves the decisions unsigned until its second pass can sign them
+# for real. A green that meant nothing became an honest unknown.
 #
-# The ceiling STAYS at 1. A narrower measurement would be a cheat if
-# it hid a live decision; here it names a live decision that the
-# census cannot move yet (other decisions still reference it) and
-# that the sweep cannot sign (its verifier is scripts/check.sh, which
-# contains this fixture: a cycle). The cycle is a known debt of its
-# own kind, and the number that is pinned here is still the number
-# the truth is.
-CEILING_UNATTESTED=1
+# ceiling-raise: 1 -> 3, the census reads the store now, so it cannot conclude while the sweep is writing it: two decisions the sweep used to sign with a meaningless green are honestly unsigned until the second pass
+CEILING_UNATTESTED=3
 # The DECLARED inconclusive - a `manual:` obligation, which the
 # kernel does not execute and says so - is not debt. The UNDECLARED
 # kind is: an obligation whose verifier the kernel CAN execute, that
 # nonetheless did not run. That is a check that should have happened
 # and did not, and it is what this ceiling bounds.
 # The ceiling for the INCONCLUSIVE attestations: a declared gap.
-# Measured 2026-10-23 after the per-obligation re-signing: 398.
-# These are obligations whose verifier the kernel could not execute
-# here - a manual declaration, or a fixture that needs a toolchain
-# the stripped sandbox does not carry. The gate reports them as
-# unknown, which is the truth. It may only fall.
 #
-# THE CEILING WAS RAISED ONCE, FROM 30 TO 292, ON 2026-10-26, AND THE
-# REASON IS THE POINT.
+# MEASURED 2026-10-30 against the store the sweep produced for this
+# tree: ONE. The `kind_: review` shape is the honest record of a
+# `manual-` declaration (decisions/honest-attestation-emission-2026-10):
+# the kernel does not execute the verifier and says so by writing
+# review/inconclusive instead of laundering the declaration into a
+# pass. A declaration is not debt; it is a gap that was declared. The
+# undeclared kind - an executable scheme that nonetheless did not run -
+# is what this ceiling bounds, and `kind_` now draws the line cleanly
+# where the verifier-string heuristic could not.
 #
-# The number 30 was measured on 2026-10-25 against a store that said
-# 500 of its 908 attestations were `pass`. The re-signing of
-# 2026-10-26, run with the CURRENT kernel, took 279 of those `pass`
-#es down to `inconclusive`: they sat on obligations that name a
-# manual declaration, and a declaration is not a check. The debt did
-# not GROW - it was there the whole time, signed as green, and the
-# ceiling of 30 was measured against a store that had been counting
-# declarations as passes.
+# The old ceiling of 326 was measured against the COMMITTED store,
+# where every declaration was written as an inconclusive of a RUNTIME
+# kind. The kernel writes review for a declaration now, so the number
+# that is left is the one that means something: a check that should
+# have run and did not.
 #
-# So the ceiling moves up once, to the number the truth is now, and
-# from here it may only fall. What this ceiling is NOT: a licence to
-# re-sign the store with declarations in it. The census measures that
-# separately, and the census's own rule was corrected on the same day:
-# it counted an obligation as CHECKED when ONE of its `acceptance.all`
-# verifiers was executable, while the kernel requires ALL of them.
-# That difference hid 279 machine-grade passes the kernel had already
-# downgraded.
-#
-# The raise is recorded here so it is visible rather than silent, which
-# is the same discipline the other raises in this file follow.
-#
-# ceiling-raise: 30 -> 292, the re-signing of 2026-10-26 took 279 passes down to inconclusive
-# ceiling-raise: 292 -> 326, the corpus grew: 19 decisions that
-# the walk could not see became visible (16 of them in a
-# sub-directory), and each of them carries declarations, which are
-# INCONCLUSIVE by construction. The debt did not grow: the number of
-# obligations the kernel cannot execute grew, and the ceiling now
-# says so. From here it may only fall.
-CEILING_INCONCLUSIVE=326
+# ceiling-fall: 326 -> 1, the old ceiling counted DECLARATIONS as inconclusive; the kernel writes kind_: review for a declaration now, and the count is the UNDECLARED kind
+CEILING_INCONCLUSIVE=1
 
-# Measure the debt in a given store directory.
-# $1 = the store directory; prints "<legacy> <unattested>"
+# Measure the debt in a given store directory against a given decisions
+# directory.
+# $1 = the store directory; $2 = the decisions directory;
+# prints "<legacy> <unattested>"
+#
+# ONE implementation, TWO inputs: the negative control below measures a
+# synthetic store against a synthetic corpus by calling THIS function,
+# not by carrying a second copy of the rule. Two copies of one
+# measurement is how a corpus ends up with two answers to one
+# question.
 measure() {
-  python3 - "$1" <<'PY'
+  python3 - "$1" "$2" <<'PY'
 import json, os, re, sys, glob
-store = sys.argv[1]
+store, decisions_dir = sys.argv[1], sys.argv[2]
 legacy = 0
 have = set()
 # The store is a GENERATED artefact now
@@ -161,7 +149,7 @@ for f in sorted(glob.glob(os.path.join(store, '*.json'))):
     if not f.endswith('.json'):
         continue
     try:
-        d = json.load(open(f))
+        d = json.load(open(f, encoding='utf-8'))
     except Exception:
         continue
     md = (d.get('subject') or {}).get('materials_digest') or ''
@@ -171,11 +159,43 @@ for f in sorted(glob.glob(os.path.join(store, '*.json'))):
     if dec:
         have.add(dec)
 unattested = 0
-for f in sorted(glob.glob('decisions/*.yaml')):
-    if '/waivers/' in f:
+# The corpus is walked the way the kernel walks it: RECURSIVELY, and
+# by the kernel's own rule of what a decision IS
+# (lib/memory.ml::decision_document_id -- a document with a top-level
+# `id:` whose `schema:` is not one of the non-decision schemas). The
+# walk used to read decisions/*.yaml only, so a decision filed in a
+# sub-directory was invisible to this measurement; the kernel's walk
+# is recursive and this instrument must not read a different corpus
+# than the one it measures.
+NON_DECISION_SCHEMA_PREFIXES = ('math-coding/waiver-', 'math-coding/obligations-',
+                                 'math-coding/attestation-', 'math-coding/migration-manifest')
+for f in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'), recursive=True)):
+    rel = os.path.relpath(f, decisions_dir)
+    if any(part.startswith('.') for part in rel.split(os.sep)):
         continue
-    text = open(f).read()
+    try:
+        text = open(f, encoding='utf-8', errors='replace').read()
+    except OSError:
+        continue
+    sch = re.search(r'^schema:\s*(\S+)', text, re.M)
+    if sch and sch.group(1).startswith(NON_DECISION_SCHEMA_PREFIXES):
+        continue
     m = re.search(r'^id:\s*(\S+)', text, re.M)
+    if not m:
+        continue
+    # A decision with NO OBLIGATIONS is not unattested: there is
+    # nothing to attest, and the sweep signs what it observes. A
+    # decision whose obligations were emptied (a work record that
+    # stopped being a rule) used to be counted as a debt it could not
+    # pay.
+    m_obl = re.search(r'^obligations:[ \t]*(\[\])?[ \t]*\r?\n(.*?)(?=^\S|\Z)',
+                      text, re.M | re.S)
+    if not m_obl:
+        continue
+    obligations = [x for x in re.split(r'^[ \t]*- id:[ \t]*', m_obl.group(2), flags=re.M)[1:]
+                   if x.strip()]
+    if not obligations:
+        continue
     # THE DEBT IS ABOUT LIVE RULES. A decision that is not in force
     # is not a rule: the sweep does not sign it, and its absence from
     # the store is the correct state of a decision that has been
@@ -183,28 +203,36 @@ for f in sorted(glob.glob('decisions/*.yaml')):
     # default (lib/codec.ml::parse_decision_state).
     st = re.search(r'^state:\s*(\S+)', text, re.M)
     state = st.group(1) if st else 'active'
-    if m and state == 'active' and m.group(1) not in have:
+    if state == 'active' and m.group(1) not in have:
         unattested += 1
 print(legacy, unattested)
 PY
 }
 
-# The store directory. `MATH_CODING_ATTESTATION_STORE` is the kernel's
-# own precedence; the default is the repository's own store.
-STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-attestations}"
+# The store directory. The kernel's own precedence: the legacy name
+# wins over the canonical one, and the canonical one wins over the
+# default (bin/Mathc.ml::resolve_store_root). A fixture that reads a
+# DIFFERENT directory from the one the kernel reads measures a
+# different thing.
+STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-${MATH_CODING_ATTESTATIONS_DIR:-attestations}}"
 shopt -s nullglob
 store_files=("$STORE_DIR"/*.json)
 shopt -u nullglob
 if [ ${#store_files[@]} -eq 0 ]; then
-  # No store: nothing to measure. The store is generated, and an
-  # artefact that has not been generated is not debt -- it is a tree
-  # on which the sweep has not run yet. The fixture says so and exits
-  # green; when a store exists, the three ceilings below are measured
-  # against it.
-  ok "no attestation store in $STORE_DIR: nothing to measure"
+  # NOTHING MEASURED IS UNKNOWN, NOT PASS. The store is generated: a
+  # tree on which the sweep has not run has nothing to measure, and a
+  # fixture that reports "PASS" over an empty directory is a check
+  # that cannot fail. The exit code carries the difference:
+  #   0  the debt was measured and every ceiling held
+  #   1  the debt was measured and a ceiling did not hold
+  #   3  nothing was measured (no store, or a store for another tree)
+  # scripts/check.sh counts 3 as SKIPPED (not verified); the CI step
+  # that runs AFTER the sweep counts it as a failure, because there
+  # the store must exist.
+  ok "no attestation store in $STORE_DIR: there is nothing to measure, and a measurement of nothing is not a measurement"
   echo
-  echo "legacy-attestation-debt: PASS"
-  exit 0
+  echo "legacy-attestation-debt: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
 fi
 
 # THE STORE IS GENERATED FOR A TREE, AND A STORE FROM ANOTHER TREE IS
@@ -236,11 +264,11 @@ PYT
 if [ "$store_trees" != "$head_sha" ]; then
   ok "the store in $STORE_DIR is signed for [$store_trees], not for HEAD ($head_sha): regenerate it before measuring the debt"
   echo
-  echo "legacy-attestation-debt: PASS"
-  exit 0
+  echo "legacy-attestation-debt: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
 fi
 
-read -r legacy unattested <<< "$(measure "$STORE_DIR")"
+read -r legacy unattested <<< "$(measure "$STORE_DIR" decisions)"
 
 # --- 1. the legacy count must not exceed the ceiling --------------------
 # THIS COMPARISON WAS DELETED on 2026-10-23 by commit 4004012e, and
@@ -336,34 +364,16 @@ for i in $(seq 1 $((CEILING_LEGACY + 5))); do
     > "$work/store/legacy-$i.json"
 done
 # Decisions that NO attestation names: the synthetic form of the
-# second debt.
+# second debt. They carry an obligation, because a decision with
+# nothing to attest is not a debt (the measurement says so, and the
+# control has to measure the same thing the measurement measures).
 for i in $(seq 1 $((CEILING_UNATTESTED + 5))); do
-  printf -- '---\nschema: math-coding/3.3\nid: synthetic-unattested-%s\nrevision: 1\nstate: active\nmode: light\n' "$i" \
+  printf -- '---\nschema: math-coding/3.3\nid: synthetic-unattested-%s\nrevision: 1\nstate: active\nmode: light\nobligations:\n  - id: synthetic\n    claim: |\n      A synthetic obligation nobody attested.\n    acceptance:\n      all:\n        - verifier: manual-synthetic-declaration\n' "$i" \
     > "$work/decisions/synthetic-unattested-$i.yaml"
 done
-# The control measures a synthetic store directly, not through git.
-read -r fake_legacy fake_unattested <<< "$(python3 - "$work/store" "$work/decisions" <<'PYCTRL'
-import glob, json, os, re, sys
-n = 0
-have = set()
-for f in sorted(glob.glob(os.path.join(sys.argv[1], '*.json'))):
-    try:
-        d = json.load(open(f))
-    except Exception:
-        continue
-    if not ((d.get('subject') or {}).get('materials_digest') or ''):
-        n += 1
-    dec = (d.get('subject') or {}).get('decision')
-    if dec:
-        have.add(dec)
-u = 0
-for f in sorted(glob.glob(os.path.join(sys.argv[2], '*.yaml'))):
-    m = re.search(r'^id:\s*(\S+)', open(f).read(), re.M)
-    if m and m.group(1) not in have:
-        u += 1
-print(n, u)
-PYCTRL
-)"
+# The control measures a synthetic store with the SAME measurement the
+# real comparison uses -- one implementation, two inputs.
+read -r fake_legacy fake_unattested <<< "$(measure "$work/store" "$work/decisions")"
 if [ "$fake_legacy" -gt "$CEILING_LEGACY" ]; then
   ok "negative control: an inflated corpus measures $fake_legacy, above the ceiling $CEILING_LEGACY"
 else

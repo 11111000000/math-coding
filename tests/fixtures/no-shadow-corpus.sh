@@ -13,8 +13,10 @@
 #      coverage check reported 91 required pairs with no fixture file
 #      on 2026-10-27, and the gap grew with the corpus.
 #
-#   2. The nine corpus-debt meta-layer scripts are gone. Between them
-#      they were 3377 lines whose job was to REPORT how tidy the
+#   2. The corpus-debt meta-layer scripts are gone - eleven of the
+#      thirteen, since the ceiling ratchet came back on 2026-10-30
+#      (decisions/honest-instruments-2026-10.yaml). Between them they
+#      were 3377 lines whose job was to REPORT how tidy the
 #      corpus is; not one line of them could find a bug in the kernel.
 #
 #   3. No tracked file names any of them. A script that is referred to
@@ -160,8 +162,8 @@ done
 scratch="$work/repo"
 mkdir -p "$scratch/scripts" "$scratch/tests/fixtures/self-check-pass/attestations" \
          "$scratch/.github/workflows"
-: > "$scratch/scripts/ceiling-monotonic.sh"
-printf 'run: bash scripts/ceiling-monotonic.sh\n' > "$scratch/.github/workflows/ci.yml"
+: > "$scratch/scripts/audit-scopes.py"
+printf 'run: bash scripts/audit-scopes.py\n' > "$scratch/.github/workflows/ci.yml"
 (
   cd "$scratch" || exit 1
   git init -q .
@@ -169,8 +171,8 @@ printf 'run: bash scripts/ceiling-monotonic.sh\n' > "$scratch/.github/workflows/
   git -c user.email=fixture@math-coding -c user.name=fixture commit -qm scratch
 ) >/dev/null 2>&1
 
-if [ -e "$scratch/scripts/ceiling-monotonic.sh" ] &&
-   git -C "$scratch" grep -q -F -e "scripts/ceiling-monotonic.sh" -- . 2>/dev/null; then
+if [ -e "$scratch/scripts/audit-scopes.py" ] &&
+   git -C "$scratch" grep -q -F -e "scripts/audit-scopes.py" -- . 2>/dev/null; then
   ok "the scratch tree holds a removed path and a reference to it"
 else
   bad "the scratch tree was not built; the negative control did not run"

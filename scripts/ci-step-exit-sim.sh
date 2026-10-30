@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# scripts/ci-step-exit-sim.sh — prove that the CI self-check step's
-# exit status is mathc's exit status.
+# scripts/ci-step-exit-sim.sh — prove that the CI self-check step
+# reports the verdict it is supposed to report.
 #
 # WHY THIS EXISTS
 # ---------------
@@ -15,7 +15,44 @@
 # verdict=unknown block the merge" is not evidence. This script is
 # the evidence: it extracts the step body from ci.yml, replays it
 # VERBATIM against a stub `mathc` that exits 0 / 1 / 3, and asserts
-# that the step's status equals mathc's status in every case.
+# the status the step MUST report in each case.
+#
+# THE CONTRACT, WHICH IS NOT "THE STEP'S STATUS IS MATHC'S STATUS".
+#
+# The step is an AUDIT, and the audit has a shape
+# (decisions/ci-self-check-is-an-audit-2026-10.yaml):
+#
+#   mathc exit 0 (verdict pass)    -> the step is GREEN.
+#   mathc exit 1 (verdict fail)    -> the step is RED. A decisive
+#                                     failure blocks, and nothing
+#                                     else may stand in for it.
+#   mathc exit 3 (verdict unknown) -> the step asks the CORPUS-DEBT
+#                                     RATCHET
+#                                     (tests/fixtures/self-check-debt-ceiling.sh)
+#                                     and the step's status is the
+#                                     RATCHET's: green while the
+#                                     declared debt is under its
+#                                     ceiling, red when it is over.
+#                                     The verdict is `unknown`, not
+#                                     `fail`, and the corpus's debt is
+#                                     measured by a ceiling that may
+#                                     only fall.
+#   mathc crashes before emitting a verdict document
+#                                  -> the diagnostic dump must not
+#                                     become the step's status. The
+#                                     status is still the ratchet's.
+#
+# So the rows below are FIVE, not three: the exit-3 row is replayed
+# twice, once with the ratchet green and once with it red, because
+# "unknown is green" and "the pin can still bite" are different
+# claims and a check that only proves the first proves nothing about
+# the second.
+#
+# THE STEP'S COMMENT USED TO CONTRADICT ITS CODE. ci.yml said "exit 3
+# -> step red" while the body delegated exit 3 to the ratchet and
+# exited with the ratchet's status. The comment was the false half
+# and is now aligned with the code; this script is what keeps them
+# aligned.
 #
 # Two properties make the replay trustworthy:
 #   1. the body is read from ci.yml, never copied here, so the
@@ -25,13 +62,11 @@
 #      because errexit and pipefail are part of the environment a
 #      workflow step actually lives in.
 #
-# A fourth row drives mathc into a crash-before-JSON exit 3, so the
-# diagnostic fallback (`cat ... || true`) is exercised too: it must not
-# become the step's status either.
-#
 # `nix` is stubbed with a shim that reproduces `nix develop .#test
 # --command bash -c '<script>'` semantics (exec the inner bash,
-# propagate its status). No nix store lock, no build, <2 s.
+# propagate its status). The corpus-debt ratchet is stubbed too: the
+# real one measures the corpus, and the question here is what the step
+# does with its answer. No nix store lock, no build, <2 s.
 #
 # NEGATIVE CONTROL
 # ----------------
@@ -39,7 +74,7 @@
 # replays the PRE-FIX step body — embedded verbatim below, taken from
 # ci.yml at commit 817c545^ — and requires it to MISMATCH on mathc
 # exits 1 and 3. A `pass` from this script therefore means two
-# things at once: today's workflow carries the code out, and the
+# things at once: today's workflow carries the decision out, and the
 # check is sharp enough to have caught the version that did not.
 #
 # Usage:  scripts/ci-step-exit-sim.sh [--verbose]
@@ -49,7 +84,13 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
-STEP_NAME='mathc self-check (bootstrap-gate block)'
+# The step this script replays. It was renamed from
+# "mathc self-check (bootstrap-gate block)" to
+# "mathc self-check (corpus audit)" on 2026-10-29, and this script
+# kept the old name until 2026-10-30 -- so it failed on every run
+# with "could not extract the run: block", and nothing ran it. A
+# check that cannot find its subject is not a check.
+STEP_NAME='mathc self-check (corpus audit)'
 # $CI_YML overrides the workflow under test (a bare filename is resolved
 # under .github/workflows/, an absolute or repo-relative path is used as
 # given). Used to replay the check against a historical revision:
@@ -108,7 +149,21 @@ fi
 sandbox=$(mktemp -d -t ci-step-exit-sim.XXXXXX)
 trap 'rm -rf "$sandbox"' EXIT
 
-mkdir -p "$sandbox/bin" "$sandbox/_build/install/default/bin" "$sandbox/tmp"
+mkdir -p "$sandbox/bin" "$sandbox/_build/install/default/bin" "$sandbox/tmp" \
+         "$sandbox/tests/fixtures"
+
+# Stub of the corpus-debt ratchet. The step runs it when mathc's
+# verdict is `unknown`, and the step's status IS the ratchet's status
+# -- that is the audit shape. The stub answers with
+# STUB_RATCHET_EXIT, so the replay can ask what the step does when
+# the pin HOLDS and when it BITES.
+cat > "$sandbox/tests/fixtures/self-check-debt-ceiling.sh" <<'STUB'
+#!/usr/bin/env bash
+# Stub: the corpus-debt ratchet. The real one measures the corpus;
+# the question here is what the CI step does with its answer.
+exit "${STUB_RATCHET_EXIT:-0}"
+STUB
+chmod +x "$sandbox/tests/fixtures/self-check-debt-ceiling.sh"
 
 # Stub mathc: writes a verdict document, exits $STUB_MATHC_EXIT.
 cat > "$sandbox/_build/install/default/bin/mathc" <<'STUB'
@@ -159,7 +214,17 @@ chmod +x "$sandbox/bin/nix"
 #   $1 = row label        $2 = path to the block file
 #   $3 = expect: agree | mismatch
 #
-# `agree`    — every row's step status must equal mathc's status.
+# Each case is
+#   "label|mathc exit|emit JSON?|ratchet exit|expected step exit"
+#
+# The EXPECTED step exit is not always mathc's exit: an `unknown`
+# verdict is delegated to the corpus-debt ratchet, and the step's
+# status is the ratchet's. Two rows differ only in the ratchet's
+# answer, because "unknown is green while the debt is under its
+# ceiling" and "the pin can still make it red" are different claims.
+#
+# `agree`    — the step's status must be the expected one in every
+#              row.
 # `mismatch` — the block must swallow at least one non-zero mathc
 #              status; that is what a broken step looks like, and the
 #              negative control depends on observing it.
@@ -174,20 +239,18 @@ replay_block() {
   printf '%s\n' "$repl" > "$body"
 
   printf '\n%s (expect: %s)\n' "$label" "$expect"
-  printf '%-18s %-12s %-12s %s\n' 'mathc verdict' 'mathc exit' 'step exit' 'verdict'
-  printf '%-18s %-12s %-12s %s\n' '-----------------' '-----------' '-----------' '-------'
+  printf '%-24s %-12s %-12s %-12s %s\n' 'mathc verdict' 'mathc exit' 'ratchet' 'step exit' 'verdict'
+  printf '%-24s %-12s %-12s %-12s %s\n' '------------------------' '-----------' '-----------' '-----------' '-------'
 
-  # label|mathc exit|emit JSON?
-  local case_spec verdict mathc_exit emit_json step_exit agree
-  for case_spec in 'verdict=pass 0 yes' \
-                   'verdict=fail 1 yes' \
-                   'verdict=unknown 3 yes' \
-                   'no-json-document 3 no'; do
+  # label|mathc exit|emit JSON?|ratchet exit|expected step exit
+  local case_spec verdict mathc_exit emit_json ratchet_exit expected step_exit agree
+  for case_spec in 'verdict=pass|0|yes|0|0' \
+                   'verdict=fail|1|yes|0|1' \
+                   'verdict=unknown|3|yes|0|0' \
+                   'verdict=unknown, pin bites|3|yes|1|1' \
+                   'no-json-document|3|no|0|0'; do
     # shellcheck disable=SC2086
-    set -- $case_spec
-    verdict=$1
-    mathc_exit=$2
-    emit_json=$3
+    IFS='|' read -r verdict mathc_exit emit_json ratchet_exit expected <<<"$case_spec"
 
     step_exit=0
     (
@@ -195,12 +258,13 @@ replay_block() {
       PATH="$sandbox/bin:$PATH" \
         STUB_MATHC_EXIT="$mathc_exit" \
         STUB_MATHC_JSON="$emit_json" \
+        STUB_RATCHET_EXIT="$ratchet_exit" \
         bash --noprofile --norc -e -o pipefail "$body"
-    ) >"$sandbox/out.$mathc_exit.$emit_json" 2>&1 || step_exit=$?
+    ) >"$sandbox/out.$mathc_exit.$emit_json.$ratchet_exit" 2>&1 || step_exit=$?
 
-    [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$mathc_exit.$emit_json"
+    [ "$verbose" = 1 ] && sed 's/^/    | /' "$sandbox/out.$mathc_exit.$emit_json.$ratchet_exit"
 
-    if [ "$step_exit" = "$mathc_exit" ]; then agree='ok'; else agree='MISMATCH'; fi
+    if [ "$step_exit" = "$expected" ]; then agree='ok'; else agree='MISMATCH'; fi
     case "$expect" in
       agree)
         [ "$agree" = ok ] || fail=1
@@ -208,10 +272,10 @@ replay_block() {
       mismatch)
         # The control must swallow the non-zero exits; a green row on
         # mathc exit 0 is fine either way.
-        if [ "$mathc_exit" -ne 0 ] && [ "$agree" = ok ]; then fail=1; fi
+        if [ "$mathc_exit" -ne 0 ] && [ "$step_exit" = "$mathc_exit" ]; then fail=1; fi
         ;;
     esac
-    printf '%-18s %-12s %-12s %s\n' "$verdict" "$mathc_exit" "$step_exit" "$agree"
+    printf '%-24s %-12s %-12s %-12s %s\n' "$verdict" "$mathc_exit" "exit $ratchet_exit" "$step_exit" "$agree"
   done
 }
 
@@ -235,5 +299,8 @@ if [ "$fail" -ne 0 ]; then
   echo "ci-step-exit-sim: FAIL — an expectation above did not hold" >&2
   exit 1
 fi
-echo "ci-step-exit-sim: ok — current step carries mathc's exit out (0/1/3);"
+echo "ci-step-exit-sim: ok — today's step reports the verdict it must report:"
+echo "                   pass -> green, fail -> red, unknown -> the corpus-debt"
+echo "                   ratchet's status (green while the debt is under its"
+echo "                   ceiling, red when the pin bites);"
 echo "                   pre-fix control demonstrably swallows it"

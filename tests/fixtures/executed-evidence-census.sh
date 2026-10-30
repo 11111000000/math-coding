@@ -68,50 +68,48 @@ fail=0
 ok() { printf "ok: %s\n" "$1"; }
 bad() { printf "FAIL: %s\n" "$1"; fail=1; }
 
-# The ceilings. Measured on 2026-10-25 against v3.7.2.
+# The ceilings. MEASURED on 2026-10-30 against the store the sweep
+# produced for this tree - 527 attestations - which is the FIRST time
+# this instrument measured a store at all. It read `git ls-files
+# attestations`, and the store stopped being committed on 2026-10-28,
+# so every number it reported was a number over an EMPTY list: 0
+# unanchored, 0 unexecuted, 0 orphans, against ceilings of 886, 364
+# and 6.
 #
-#   UNANCHORED 886 - runtime attestations with no `producer.run`. Only
-#     11 of 894 attestations name a run at all; 880 of the runtime
-#     ones do not, and the re-signing of the verifier-path tree added
-#     three more. The store is signed by `scripts/sign-store.sh`,
-#     which drives `mathc attest-batch --run-per-obligation`; the
-#     kernel executes the verifier and then writes the attestation
-#     WITHOUT recording what it executed. The information exists at
-#     the moment of writing and is dropped at the JSON boundary.
-#     Three slots of the ceiling are this decision's own three
-#     attestations, which the same signing path wrote.
+#   UNANCHORED 0 - no runtime attestation in the store names no run.
+#     The sweep records the command it ran, so a machine-grade claim
+#     can be re-run and compared
+#     (decisions/attestation-producer-vocab-2026-10).
 #
-# ceiling-raise: 881 -> 883, this decision's own three attestations are written by the same signing path
-# ceiling-raise: 883 -> 886, the re-signing of the verifier-path tree added three more unanchored attestations
+#   UNEXECUTED 10 - passes claimed for obligations that name a
+#     verifier the kernel CANNOT execute beside one it can. The
+#     kernel downgrades such an obligation to inconclusive; the
+#     number is what is left of that disagreement in the store.
 #
-#   UNEXECUTED 364 - passes claimed for obligations whose verifier the
-#     kernel cannot execute. The families are `manual-*` declarations
-#     (a declaration that a named file exists, or that a human read a
-#     source) and bare slugs (`mathc-self-check`,
-#     `mathc-render-nav-spec-link`, ...), which name no command at
-#     all.
-#
-#   ORPHANS 6 - attestations naming an obligation the corpus does not
-#     have: three for `t1-2`, one for `t3-2`, one for
-#     `update-check-notify-2026-10` and one for
-#     `ux-3-init-copies-ci-workflow-2026-10`. The decisions `t1-2` and
-#     `t3-2` are not in the corpus at all; the other two name an
-#     obligation id that belongs to a different section of the file.
+#   ORPHANS 0 - the sweep prunes the store to what it observed, so
+#     every attestation in it names an obligation the corpus has.
 #
 # All three may only fall. See the header for why they are measured
 # and what they mean.
-CEILING_UNANCHORED=886
-CEILING_UNEXECUTED=364
-CEILING_ORPHANS=6
+#
+# ceiling-fall: 886 -> 0, the old ceiling was measured over an EMPTY store: the instrument read git's index, and the store stopped being committed on 2026-10-28
+# ceiling-fall: 364 -> 10, the same measurement, now against the store the sweep produced for this tree; and five of the fifteen were the census's own stale copy of the kernel's scheme list, which no longer exists
+# ceiling-fall: 6 -> 0, the same measurement, and the sweep prunes the store to what it observed
+CEILING_UNANCHORED=0
+CEILING_UNEXECUTED=10
+CEILING_ORPHANS=0
 
-# measure <store-file-list-file> <decisions-dir>
+# measure <store-file-list-file> <decisions-dir> [kernel-file]
 # prints "<unanchored> <unexecuted_pass> <orphans>"; the family
-# breakdown of the unexecuted passes goes to stderr.
+# breakdown of the unexecuted passes goes to stderr. It prints "none"
+# when the kernel's own list of executable schemes cannot be read: a
+# census that cannot tell a check from a declaration must not report
+# a number.
 measure() {
-  python3 - "$1" "$2" <<'PY'
+  python3 - "$1" "$2" "${3:-bin/Mathc.ml}" <<'PY'
 import glob, json, os, re, sys, collections
 
-store_list, decisions_dir = sys.argv[1], sys.argv[2]
+store_list, decisions_dir, kernel_path = sys.argv[1], sys.argv[2], sys.argv[3]
 
 # --- the decision corpus: obligation id -> verifier strings -------------
 # The corpus is YAML and the kernel is the authority on it, but this
@@ -139,10 +137,16 @@ for path in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'),
     if not m_id:
         continue
     decision = m_id.group(1)
-    m_obl = re.search(r'^obligations:[ \t]*\r?\n(.*?)(?=^\S|\Z)', text, re.M | re.S)
+    # The block may be an empty list (`obligations: []`), which is the
+    # shape a decision takes when its obligations are gone, and the
+    # items may be indented with any number of spaces. A parse that
+    # misses an obligation makes its attestations ORPHANS, and an
+    # orphan is a number the ceiling is measured against.
+    m_obl = re.search(r'^obligations:[ \t]*(\[\])?[ \t]*\r?\n(.*?)(?=^\S|\Z)',
+                      text, re.M | re.S)
     if not m_obl:
         continue
-    items = re.split(r'^  - id:[ \t]*', m_obl.group(1), flags=re.M)
+    items = re.split(r'^[ \t]*- id:[ \t]*', m_obl.group(2), flags=re.M)
     for item in items[1:]:
         head, _, rest = item.partition('\n')
         obl = head.strip()
@@ -156,8 +160,32 @@ for path in sorted(glob.glob(os.path.join(decisions_dir, '**', '*.yaml'),
 # --- what the kernel can execute ---------------------------------------
 # bin/Mathc.ml: the command schemes `run_one_verifier` executes, and
 # the path forms `plan_verifier` resolves.
-COMMAND_SCHEMES = {'file-exists', 'dir-exists', 'mathc', 'bash',
-                   'shell-grep', 'dune'}
+#
+# THE LIST IS READ OUT OF THE KERNEL, NOT COPIED. The census used to
+# carry its own set of the schemes the kernel can execute, and a copy
+# drifts: the kernel learned `shell-grep-absent` on 2026-10-29, and
+# the census went on calling it a declaration - four obligations were
+# counted as unexecuted that the kernel could execute. The list is
+# now read from the kernel's own `canonical_verifier_schemes`
+# binding, so a scheme the kernel learns is a scheme the census
+# knows. If the binding cannot be read, the census reports NOTHING
+# rather than a number from a stale copy.
+def kernel_schemes(path):
+    try:
+        text = open(path, encoding='utf-8', errors='replace').read()
+    except OSError:
+        return None
+    m = re.search(r'canonical_verifier_schemes\s*=\s*\[(.*?)\]', text, re.S)
+    if not m:
+        return None
+    schemes = set(re.findall(r'"([^"]+)"', m.group(1)))
+    return schemes or None
+
+
+COMMAND_SCHEMES = kernel_schemes(kernel_path)
+if COMMAND_SCHEMES is None:
+    print("none")
+    sys.exit(0)
 RUNTIME_KINDS = {'test', 'build', 'analysis', 'observation'}
 
 def runnable(verifier):
@@ -229,20 +257,80 @@ for family, count in families.most_common(12):
 PY
 }
 
-# The store the GATE sees: git-tracked files only
-# (lib/gate.ml::store_keep_for admits nothing else). The disk also
-# holds gitignored scratch attestations the gate never reads, and
-# counting those would measure a different thing.
+# --- the store the gate reads ----------------------------------------------
+#
+# THE STORE IS THE DIRECTORY, NOT GIT'S INDEX.
+#
+# `bin/Mathc.ml::store_keep_for` admits every file under the store root
+# (lib/attestations/attestations.ml::any_file): the store is a
+# GENERATED artefact and is no longer in git's index
+# (decisions/store-not-committed-2026-10.yaml). This fixture used to
+# read `git ls-files attestations`, and that list has been EMPTY on
+# every tree since the store stopped being committed -- so the census
+# measured NOTHING, reported 0/0/0, and passed against ceilings of
+# 886/364/6. A measurement of nothing is not a measurement. The
+# instrument reads the directory the kernel reads now, and when there
+# is nothing there it says so with exit 3 (unknown), never with a
+# green "0 of 0".
+#
+# The store must also be CURRENT: an attestation names the tree it was
+# produced against, and a store signed for an older commit says
+# nothing about this one. Same rule, same reason, as
+# tests/fixtures/legacy-attestation-debt.sh.
+STORE_DIR="${MATH_CODING_ATTESTATION_STORE:-${MATH_CODING_ATTESTATIONS_DIR:-attestations}}"
 store_list="$(mktemp)"
 trap 'rm -f "$store_list"' EXIT
-git ls-files attestations > "$store_list"
+: > "$store_list"
+if [ -d "$STORE_DIR" ]; then
+  find "$STORE_DIR" -maxdepth 1 -type f -name '*.json' | LC_ALL=C sort > "$store_list"
+fi
 
+# Nothing measured is UNKNOWN, not pass. The exit code says which:
+#   0  the store was measured and every ceiling held
+#   1  the store was measured and a ceiling did not hold
+#   3  nothing was measured (no store, or a store for another tree)
+# The caller decides what 3 means: scripts/check.sh counts it as
+# SKIPPED (not verified), and the CI step that runs AFTER the sweep
+# counts it as a failure, because there the store must exist.
+measure_possible=1
+if [ ! -s "$store_list" ]; then
+  ok "no attestation store in $STORE_DIR: there is nothing to measure, and a measurement of nothing is not a measurement"
+  measure_possible=0
+else
+  head_sha="$(git rev-parse HEAD 2>/dev/null || echo unknown)"
+  store_trees="$(python3 - "$STORE_DIR" <<'PYT'
+import glob, json, os, sys
+trees = set()
+for f in glob.glob(os.path.join(sys.argv[1], '*.json')):
+    try:
+        d = json.load(open(f, encoding='utf-8'))
+    except Exception:
+        continue
+    t = (d.get('subject') or {}).get('candidate_tree')
+    if t:
+        trees.add(t)
+print(' '.join(sorted(trees)))
+PYT
+)"
+  if [ "$store_trees" != "$head_sha" ]; then
+    ok "the store in $STORE_DIR is signed for [$store_trees], not for HEAD ($head_sha): regenerate it before measuring the store"
+    measure_possible=0
+  fi
+fi
+
+if [ "$measure_possible" = "1" ]; then
 read -r unanchored unexecuted orphans <<<"$(measure "$store_list" decisions 2>/dev/null)"
-if [ -z "${unanchored:-}" ] || [ -z "${unexecuted:-}" ] || [ -z "${orphans:-}" ]; then
+if [ "${unanchored:-}" = "none" ]; then
+  ok "the kernel's list of executable schemes could not be read from bin/Mathc.ml: a census that cannot tell a check from a declaration must not report a number"
+  measure_possible=0
+elif [ -z "${unanchored:-}" ] || [ -z "${unexecuted:-}" ] || [ -z "${orphans:-}" ]; then
   bad "the census measurement produced no numbers - the corpus parse or the store read failed"
   echo "executed-evidence-census: FAIL"
   exit 1
 fi
+fi
+
+if [ "$measure_possible" = "1" ]; then
 
 # --- 1. unanchored runtime attestations --------------------------------
 if [ "$unanchored" -le "$CEILING_UNANCHORED" ]; then
@@ -268,6 +356,7 @@ fi
 # --- 4. the families, so a reader can see WHAT is not executed ---------
 printf 'ok: unexecuted-pass families (top):\n'
 measure "$store_list" decisions 2>&1 >/dev/null | sed 's/^/     /'
+fi
 
 # --- 5. NEGATIVE CONTROL: the bound must have teeth ---------------------
 # A store with more unexecuted passes than the ceiling must be
@@ -307,9 +396,15 @@ else
   bad "negative control: the measurement did not detect an inflated store - the ceiling cannot bind"
 fi
 
-if [ "$fail" -eq 0 ]; then
-  echo "executed-evidence-census: PASS"
-  exit 0
+if [ "$fail" -ne 0 ]; then
+  echo "executed-evidence-census: FAIL"
+  exit 1
 fi
-echo "executed-evidence-census: FAIL"
-exit 1
+if [ "$measure_possible" -ne 1 ]; then
+  # The negative control above still ran and still bites, so the
+  # instrument is not broken - there was simply nothing to measure.
+  echo "executed-evidence-census: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
+fi
+echo "executed-evidence-census: PASS"
+exit 0

@@ -1,0 +1,282 @@
+---
+schema: math-coding/3.3
+id: honest-instruments-2026-10
+revision: 1
+state: active
+mode: light
+
+body_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
+yaml_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
+
+axiom_link:
+  - A0
+  - A1
+
+intent: |
+  Four instruments were measuring the corpus's BOOKKEEPING, and three
+  of them were measuring nothing at all. This decision fixes them, and
+  it fixes them by making the difference between "the debt is small"
+  and "we did not look" visible in the exit code.
+
+  THE CENSUS READ GIT'S INDEX. `tests/fixtures/executed-evidence-census.sh`
+  enumerated the store with `git ls-files attestations`. The store
+  stopped being committed on 2026-10-28
+  (decisions/store-not-committed-2026-10.yaml), so that list has been
+  EMPTY on every tree since. The census measured nothing, reported
+  0 / 0 / 0, and passed against ceilings of 886 unanchored, 364
+  unexecuted passes and 6 orphans. It was the instrument that said
+  the store was clean, and it had not looked at the store since the
+  day the store stopped being in git. It now reads the store the way
+  the kernel reads it - the DIRECTORY
+  (`bin/Mathc.ml::store_keep_for` admits every file under the store
+  root) - and it refuses to measure a store that is not signed for
+  this commit.
+
+  THE LEGACY-DEBT FIXTURE REPORTED PASS OVER AN ABSENT STORE. The same
+  shape: "no attestation store in attestations: nothing to measure",
+  and then `legacy-attestation-debt: PASS`. A check that cannot fail
+  is not a check. It now exits 3 - unknown - when there is nothing to
+  measure, and it reads the corpus the way the kernel walks it
+  (recursively, by `lib/memory.ml::decision_document_id`'s rule), not
+  the top level of `decisions/`.
+
+  THE STEP SIMULATOR LOOKED FOR A STEP THAT NO LONGER EXISTS. The CI
+  step was renamed from `mathc self-check (bootstrap-gate block)` to
+  `mathc self-check (corpus audit)` on 2026-10-29. The simulator kept
+  the old name, so it failed with "could not extract the run: block" -
+  and NOTHING RAN IT. The comment in ci.yml that said the three rows
+  were "checked, not asserted" was false for a week. The simulator now
+  finds the step and checks the contract the step actually has: a
+  decisive failure is red, and an unknown verdict is delegated to the
+  corpus-debt ratchet, whose status the step adopts. The comment in
+  ci.yml said "exit 3 -> step red" while the body has always done
+  something else; the comment is now the code's own shape.
+
+  THE CEILING RATCHET WAS REMOVED WITH THE META-LAYER. On 2026-10-28
+  `decisions/corpus-meta-layer-2026-10.yaml` removed the corpus-debt
+  meta-layer and named three losses it accepted. Two of them were
+  about the ceiling ratchet: a ceiling could GROW without a recorded
+  reason, and a ceiling could stop BEING a ceiling while its number
+  stood still. The ratchet is back
+  (`scripts/ceiling-monotonic.sh`, `tests/fixtures/ceiling-monotonic-check.sh`,
+  a CI step), because the argument that removed the meta-layer does
+  not reach it: a census of the corpus's tidiness is a COPY of the
+  corpus and goes stale, and a comparison of a number with its own
+  past is a property of the DIFF and does not. The third loss - a
+  scope path that names nothing - stands, and this decision does not
+  pretend otherwise.
+
+  The census's OWN COPY of the kernel's scheme list was stale. The
+  census has to know which verifiers the kernel can execute, and it
+  carried its own set: `file-exists`, `dir-exists`, `mathc`, `bash`,
+  `shell-grep`, `dune`. The kernel learned `shell-grep-absent` on
+  2026-10-29, and the census went on calling it a declaration - five
+  obligations were counted as "passes for checks that were never
+  executed" that the kernel could execute. A copy of the kernel's
+  dispatch is how a corpus ends up with two answers to one question,
+  and the census's own header said so. The list is now READ OUT of
+  the kernel's `canonical_verifier_schemes` binding, and a census
+  that cannot read it reports nothing rather than a number from a
+  stale copy.
+
+  The measure of all this is not the number of instruments. It is that
+  a red step now means something, and a green one can be trusted to
+  have looked.
+
+  AND THE CYCLE IS NOW VISIBLE. Three live decisions name a
+  store-measuring fixture as their verifier:
+  `executed-evidence-census-2026-10`,
+  `honest-attestation-emission-2026-10` and
+  `legacy-attestation-debt-2026-10`. Their verifier measures the
+  store, and the store is what the sweep is producing: the fixture
+  cannot conclude while the store is half-written, so the sweep
+  cannot sign them in its first pass. The census used to break the
+  cycle by accident - it read an empty list, reported 0/0/0, exited 0,
+  and the sweep signed those decisions with a pass that stood for
+  nothing. The census reads the store now, so it says "unknown" when
+  the store is not there yet, and the sweep signs those decisions in
+  its SECOND pass, after the store is installed - or leaves them
+  unsigned, and the debt fixture says so. Measured twice on
+  2026-10-30: three unsigned after a sweep that ran against a store
+  signed for the previous commit, zero after the next one. The
+  ceiling is 3, the worst of the two, with the reason next to the
+  number.
+
+commitment: |
+  1. The census reads the store the way the kernel reads it - the
+     directory, not git's index - and it measures only a store that
+     is signed for this commit.
+  2. The legacy-debt fixture measures the same store under the same
+     rule of freshness, and it walks the corpus the way the kernel
+     walks it.
+  3. The census reads the kernel's list of executable schemes out of
+     the kernel, so a scheme the kernel learns is a scheme the census
+     knows, and a census that cannot read the list reports nothing.
+  4. NOTHING MEASURED IS EXIT 3, NOT EXIT 0. `scripts/check.sh` counts
+     exit 3 as SKIPPED (not verified, and named as such in its
+     summary); the CI step that runs AFTER the sweep counts it as a
+     FAILURE, because there the store must exist.
+  5. Both store-measuring instruments run in CI after the sweep that
+     produced the store, and they run as their own blocking step.
+  6. The step simulator finds the step it checks, and checks the
+     contract the step has: pass is green, a decisive failure is red,
+     and an unknown verdict takes the ratchet's status - green while
+     the debt is under its ceiling, red when the pin bites.
+  7. The ceiling ratchet is back and in CI: a ceiling that grows
+     without a recorded `ceiling-raise:` reason fails, and a ceiling
+     that is declared and never compared fails.
+  8. The comment in ci.yml says what the step does. The comment and
+     the body are checked against each other by the simulator.
+
+outcomes:
+  - id: the-store-measuring-instruments-measure
+    statement: |
+      The census and the legacy-debt fixture read the attestation store
+      that exists, and say "unknown" when there is none.
+  - id: the-ci-step-simulator-runs
+    statement: |
+      The CI self-check step's contract is checked by a program, in
+      CI, against the body in ci.yml.
+  - id: the-ceilings-are-monotone-again
+    statement: |
+      A debt ceiling may fall and may never rise, and the promise is
+      kept by a program rather than by the reader of a diff.
+
+scope:
+  paths:
+    - "scripts/ceiling-monotonic.sh"
+    - "scripts/ci-step-exit-sim.sh"
+    - "scripts/check.sh"
+    - "scripts/verify.sh"
+    - "tests/fixtures/executed-evidence-census.sh"
+    - "tests/fixtures/legacy-attestation-debt.sh"
+    - "tests/fixtures/ceiling-monotonic-check.sh"
+    - "tests/fixtures/no-shadow-corpus.sh"
+    - ".github/workflows/ci.yml"
+    - "decisions/corpus-meta-layer-2026-10.yaml"
+    - "decisions/honest-instruments-2026-10.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-census-reads-the-store
+    claim: |
+      `tests/fixtures/executed-evidence-census.sh` enumerates the
+      store directory, measures the store it finds, and exits 3 when
+      there is nothing to measure.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/executed-evidence-census.sh
+  - id: the-legacy-debt-measures-a-current-store
+    claim: |
+      `tests/fixtures/legacy-attestation-debt.sh` measures the store
+      the kernel reads, walks the corpus the way the kernel walks it,
+      and exits 3 when the store is absent or belongs to another
+      tree.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/legacy-attestation-debt.sh
+  - id: the-step-simulator-finds-the-step
+    claim: |
+      `scripts/ci-step-exit-sim.sh` extracts the body of the CI
+      self-check step from ci.yml and replays it against a stub
+      mathc and a stub ratchet; every row reports the status the
+      audit shape demands, and the pre-fix control swallows a
+      non-zero exit.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+  - id: the-ceilings-are-monotone
+    claim: |
+      `scripts/ceiling-monotonic.sh` finds every `CEILING_*` in the
+      fixtures, compares it with its value at the base commit, and
+      fails a grow that carries no recorded reason and a ceiling that
+      no line compares.
+    acceptance:
+      all:
+        - verifier: scripts/ceiling-monotonic.sh
+  - id: the-ceiling-checker-has-teeth
+    claim: |
+      `tests/fixtures/ceiling-monotonic-check.sh` proves the checker
+      can fail: a synthetic corpus whose ceiling grew without a
+      reason must fail the check, and the failure must name the
+      ceiling and the size of the grow.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+  - id: this-decision-validates
+    claim: |
+      `mathc validate decisions/honest-instruments-2026-10.yaml`
+      returns exit 0.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/honest-instruments-2026-10.yaml
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the store-measuring instruments are read as a verdict on the corpus, and a reader concludes the corpus is clean because the census is short"
+    - "the sweep produces a different store on another host, the numbers move, and the ceilings are raised to meet them instead of the debt being paid"
+    - "the ratchet is treated as a lint: a raise with a recorded reason is accepted because the reason exists, not because the raise was justified"
+    - "the exit-3 convention spreads: a fixture that skips starts reporting exit 0, and the skip becomes a green"
+  a-number-over-a-generated-artefact: |
+    The census and the legacy-debt fixture measure a GENERATED store,
+    so their numbers are a property of the sweep's output for this
+    tree, not of the corpus alone. A ceiling over such a number is a
+    weaker bound than a ceiling over a corpus property, and the sweep
+    is not perfectly reproducible across hosts: a verifier that cannot
+    run here produces a different attestation there. The remedy is
+    not a looser ceiling but a visible one: every raise carries its
+    reason, and the reason is in the diff.
+  the-cycle-decisions-never-get-signed: |
+    Expected, and named. Three live decisions name a store-measuring
+    fixture as their verifier, so the sweep can never sign them: the
+    fixture cannot conclude while the sweep is writing the store it
+    measures. The ceiling says 3 and the names are in the fixture. The
+    remedy, if the corpus wants those decisions attested, is to move
+    their verifier off the store - not to make the census measure
+    less.
+
+counterexample: |
+  The strongest objection to this decision is that it makes a number
+  depend on an artefact that does not exist until a ten-minute sweep
+  has run, and that it therefore trades a check that always ran for a
+  check that runs in one place.
+
+  That is true and it is the reason the exit code changed rather than
+  the check disappearing. A check that measures nothing and reports
+  "ok" is not a check that runs everywhere; it is a check that lies
+  everywhere. The instrument that measures the store now measures it
+  where the store exists, and says "unknown" where it does not - and
+  the caller decides what unknown means, which is the only honest
+  place for that decision to live.
+
+  The second objection is sharper. The corpus has just spent two days
+  removing things that measured the corpus's tidiness, and this
+  decision puts one of them back. The difference is not a matter of
+  taste: the removed scripts answered "how tidy is the corpus", and
+  their answer was a snapshot that went stale - the mirror was 92
+  files behind the corpus it mirrored. The ratchet answers "is this
+  number larger than it was", and its subject is the DIFF, not the
+  corpus: a number cannot be behind, because it is compared with its
+  own past every time. The same argument that removed the mirror does
+  not remove the ratchet, and the decision that removed it has been
+  amended to say so.
+
+antithesis: |
+  The opposite claim is that the ceilings do not need a program. The
+  corpus says in five places that a raise must be recorded next to the
+  number; the recorded reasons are in the diff; a reviewer reads the
+  diff; the promise is kept.
+
+  The measurement says what that is worth. Between 2026-10-23 and
+  2026-10-26 seven ceilings were raised across six ceilings, and one
+  of the seven changed the number and nothing else - visible only to
+  someone who reads history. And the other failure mode is worse
+  than a silent raise: on 2026-10-23 two comparisons were deleted
+  while their numbers stood, the fixture stayed green for four days
+  because the debt happened to be under the ceiling, and nothing in
+  the corpus could tell a ceiling that is bound from a ceiling that is
+  only written down. A promise kept by a reader is kept until the
+  reader is not there.
