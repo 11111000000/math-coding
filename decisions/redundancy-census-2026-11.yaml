@@ -1,0 +1,213 @@
+---
+schema: math-coding/3.3
+id: redundancy-census-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/redundancy-census.sh
+body_sha: "sha256:6a1839089b2d10992f55ddc8b35935669bfb9157fd744d907e19888491b1d3fb"
+yaml_sha: "sha256:6a1839089b2d10992f55ddc8b35935669bfb9157fd744d907e19888491b1d3fb"
+
+intent: |
+  The corpus of this repository is supposed to be a set of RULES:
+  commitments the gate holds the project to. It is also a set of
+  RECORDS: what was done, once, in a past tense that still reads like
+  a rule. Nothing in the tree said how much of which there was.
+
+  Measured on 2026-10-31 at main b9a0decb, by reading the corpus:
+
+    139 live decision files, 137 of them active, against a declared
+    target of about fifty rules (decisions/corpus-final-state-2026-10
+    .yaml:64-70). Eighty-six files live in the corpus as rules and
+    read as records.
+
+    44 relation targets in the live corpus resolve to nothing: the
+    decision they name was deleted, and the claim about it stayed.
+
+    20 scope paths match no tracked file. Five name AGENTS.md
+    (renamed to KERNEL_AGENTS.md), four name decisions/plan-2026-10-
+    improvements/* (moved to docs/plans/), and the rest name files the
+    corpus itself deleted. A scope that names nothing makes the
+    materials digest of that decision a digest of nothing, and an
+    empty digest is the freshness wildcard: the attestation stays
+    fresh for every tree, for ever.
+
+    5 verifier strings carry a YAML quote that broke their scheme
+    ('shell-grep-absent ...' and "shell-grep ..."), so the kernel
+    reads a scheme that is not in the allowlist. Those obligations
+    cannot be executed, and the corpus carries them as promises.
+
+    46 of the corpus's obligations are declarations the kernel cannot
+    execute - its own audit says so (mathc gaps --format=json).
+
+    112 of the 120 archived decisions still say `state: active`: the
+    rule left the corpus and the field says it applies.
+
+    The normative text (spec/algebra-3.2.md, 1 002 lines) has not
+    changed since 2026-10-24 while the code moved 221 commits, and it
+    still says "72 active decisions" where there are 137.
+
+  The repository already owns five instruments, and every one of them
+  measures the STORE: how much of what the attestations claim was
+  checked, how much of the legacy debt is left, how many decisions
+  carry no negative control, how much the self-check debt is, how the
+  corpus is counted. None of them measures the corpus's own shape.
+  So every audit of the corpus began by reading 139 files, and the
+  plan that follows (docs/plans/redundancy-and-portability-2026-11.md)
+  had no number to order itself by.
+
+commitment: |
+  After this decision closes:
+
+  1. The corpus's shape is censused by a fixture, not by prose:
+     `tests/fixtures/redundancy-census.sh` measures the paper layer
+     (by asking the kernel's own audit), the verifier strings a YAML
+     quote broke, the relation targets that resolve to nothing, the
+     scope paths that match no tracked file, the size of the live
+     corpus, and the archived decisions that still say `state: active`.
+
+  2. Each number is a CEILING. It may fall; it may never rise. A
+     number that can be checked but not bounded grows silently, which
+     is how the corpus grew from a target of fifty rules to 139
+     without anything saying so.
+
+  3. The census has a negative control: a synthetic corpus that
+     exceeds every ceiling must be reported as over it, by the paper
+     layer the kernel itself classifies and by the corpus-side
+     parser. A bound that has never been observed to bind is not known
+     to bind.
+
+  4. The census measures the LIVE corpus for the ceilings, and
+     reports the archive beside it. The archive is history: its
+     dangling targets and dead scopes are what archiving without
+     rewriting leaves behind, and they are counted, not judged.
+
+  5. The plan is recorded where a reader will find it:
+     `docs/plans/redundancy-and-portability-2026-11.md`. It is a plan,
+     not a decision: only the changes of policy become decisions.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+outcomes:
+  - id: the-corpus-shape-is-numbered
+    statement: |
+      A fixture reports how many promises the kernel cannot execute,
+      how many relation targets resolve to nothing, how many scope
+      paths match no file, and how many decisions the live corpus
+      holds, and pins each number as a ceiling.
+  - id: the-ceilings-have-teeth
+    statement: |
+      The same measurement against a deliberately inflated corpus is
+      reported as over its ceiling, so the bound is known to bind.
+  - id: the-plan-is-recorded
+    statement: |
+      The plan that follows the measurement is written down where a
+      reader will find it, with the tranches ordered by dependency.
+
+scope:
+  paths:
+    - "tests/fixtures/redundancy-census.sh"
+    - "docs/plans/redundancy-and-portability-2026-11.md"
+    - "decisions/redundancy-census-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-corpus-shape-is-numbered
+    claim: |
+      `tests/fixtures/redundancy-census.sh` measures the six numbers
+      of the corpus's shape and fails when any of them exceeds its
+      ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+  - id: the-ceilings-have-teeth
+    claim: |
+      The same measurement against a synthetic corpus that exceeds
+      every ceiling is reported as over it, so the comparison is known
+      to be able to fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+  - id: the-plan-is-recorded
+    claim: |
+      The plan that follows the measurement is written down, with its
+      tranches, its parallelism and the three choices it does not
+      make.
+    acceptance:
+      all:
+        - verifier: file-exists docs/plans/redundancy-and-portability-2026-11.md
+
+counterexample: |
+  (a) "The corpus's size is not the problem. The gate asks only about
+  the decisions a diff touches, so a large corpus costs nothing."
+  Rejected for the gate, true for the reader. The gate is scoped, so
+  a big corpus does not slow it down; but the corpus is the memory
+  the method claims to preserve, and a memory of records reads as
+  rules. A reader who opens the corpus cannot tell which is which -
+  that is the defect the census makes visible, by counting rather than
+  by judging.
+
+  (b) "A census of shape is a census of taste. Somebody will archive
+  what somebody else wanted to keep."
+  Rejected. The census counts five things that have a definition
+  independent of taste: a verifier the kernel cannot execute, a
+  relation target that resolves to nothing, a scope path that matches
+  no file, a decision file in the corpus, a state field that
+  contradicts the directory the file sits in. Which of those
+  obligations should be rewritten and which should be dropped is a
+  decision, and this decision does not make it - it makes the number
+  available to whoever does.
+
+  (c) "The five instruments are enough; a sixth is overhead."
+  Rejected: all five measure the store, and the question this plan
+  starts from - how much of the corpus is a rule and how much is a
+  record - is not a question any of them asks.
+
+antithesis: |
+  The opposite claim is that the corpus's shape is not a defect at
+  all, and that the six numbers are six more ceilings to maintain:
+  each one is a place where a future change can be blocked by an
+  arbitrary threshold, and arbitrary thresholds are how instruments
+  decay into paperwork.
+
+  The claim is right about the cost, and the answer is the same one
+  the other five instruments already gave: the ceilings here are
+  measured, monotone, and each one names the thing it measures in a
+  line of comment. A ceiling that may only fall is a direction, not a
+  gate; the plans that close the distance are the plans that pay it
+  down. The alternative - leaving the numbers in prose - is what
+  produced 139 decisions against a target of fifty, with nothing
+  anywhere saying so.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a decision is archived to make a number smaller instead of to make the corpus true"
+    - "a ceiling is raised without a decision recording why"
+    - "the census is read as a verdict on the quality of the commitments it counts"
+    - "the corpus shrinks by deleting decisions whose obligations the gate still asks about"
+
+assumptions:
+  - id: the-kernel-classifies-the-paper-layer
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel's own audit (`mathc gaps --format=json`) is the
+      authority on which obligations it cannot execute. The census
+      asks it rather than re-implementing the classification, because
+      a census that classifies differently from the thing it censuses
+      measures the wrong thing.
+    consequence_if_false: |
+      The paper ceiling would measure something other than what the
+      gate sees, and the corpus could grow promises the census calls
+      checks. The census would then be the instrument that says the
+      corpus is clean.
+    review_on:
+      - signal: the-kernel-adds-a-verifier-scheme
