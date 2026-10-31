@@ -7,39 +7,71 @@
 # reads like a rule. Nothing in the tree said how much of which there
 # was, so every audit of the corpus began by reading 139 files.
 #
-# The four numbers this fixture prints are the ones a reader of the
-# corpus cannot get any other way:
+# The six numbers this fixture prints are the ones a reader of the
+# corpus cannot get any other way.
 #
-#   1. PAPER - obligations the kernel cannot execute at all. The
-#      count comes from the KERNEL's own audit (`mathc gaps
-#      --format=json`), not from a re-implementation of it here: a
-#      census that classifies differently from the thing it censuses
-#      measures the wrong thing. A `manual-` declaration is not a
-#      check; `unknown` is not `pass`.
+# WHO ANSWERS. The kernel answers the two questions that are about the
+# kernel's own vocabulary - which obligations it cannot execute, and
+# which verifier schemes it does not recognise - and this fixture only
+# counts and bounds the answers. An earlier version of this fixture
+# MIRRORED the classification in Python, and the mirror disagreed with
+# the kernel: the kernel's classification is context-dependent (a
+# `tests/` verifier is a check in `gaps` and is refused by the gate,
+# which would nest the build system), so a mirror can only ever be
+# approximately right. A census that classifies differently from the
+# thing it censuses measures the wrong thing.
 #
-#   2. QUOTED - verifier strings whose first character is a quote.
-#      The YAML reader strips DOUBLE quotes and leaves SINGLE ones
-#      (lib/codec.ml::yaml_strip), so `verifier: 'shell-grep ...'`
-#      reaches the kernel as a scheme named `'shell-grep` - a scheme
-#      that is not in the allowlist, so the obligation can never be
-#      executed, and the corpus carries it as a promise. The count
-#      is small and each case is a whole obligation that silently
-#      stopped being a check.
+#   1. PAPER - obligations the kernel cannot execute at all: at least
+#      one of their declared verifiers is a DECLARATION (a `manual-`
+#      label, a `text-scan-` label, a bare slug, a scheme the kernel
+#      does not know) rather than a check.
+#
+#      IT IS MEASURED AGAINST AN EMPTY STORE. The kernel's audit
+#      (`mathc gaps`) classifies only the obligations it still lists
+#      as open, so with a signed store the number was 35 and with an
+#      empty one 46 - a number about the EVIDENCE, not about the
+#      corpus. The class of an obligation is a property of its
+#      declaration, so the census asks the kernel with the store
+#      deliberately empty and the number stops moving with the
+#      attestations.
+#
+#   2. BROKEN - obligations whose verifier scheme the KERNEL does not
+#      recognise (MC-VERIFIER-SCHEME-UNKNOWN). The kernel is the
+#      authority on what it can execute, and it says so out loud. The
+#      cause differs from case to case - a single-quoted YAML value
+#      keeps its quote (lib/codec.ml::yaml_strip strips double quotes
+#      only), a `#` inside a quoted value is eaten as a comment, or a
+#      scheme name was never a scheme - so the fixture prints which
+#      obligation and which scheme.
 #
 #   3. DANGLING - relation targets that resolve to nothing. A
-#      `supersedes:` or `addresses:` that names no decision is a
-#      claim about a history the corpus does not have. The kernel
-#      does not check it (lib/lifecycle/lifecycle.ml validates the
-#      SHAPE of `--by`, not the existence of the target), so the
-#      corpus accumulates them silently.
+#      `supersedes:` or `addresses:` that names no decision is a claim
+#      about a history the corpus does not have. The kernel does not
+#      check it (lib/lifecycle/lifecycle.ml validates the SHAPE of
+#      `--by`, not the existence of the target), so the corpus
+#      accumulates them silently. A path-form target resolves as a
+#      file (with any `#fragment` stripped); an id-form target
+#      resolves against the decisions of the live corpus AND the
+#      archive.
 #
 #   4. DEAD - scope paths that match no tracked file. A scope that
 #      names nothing makes the materials digest of that decision a
 #      digest of nothing, and an empty digest is the freshness
-#      wildcard: the attestation stays fresh for every tree, for
-#      ever. The store is excluded from the count, because the store
-#      is generated and is not in git (decisions/store-not-committed
+#      wildcard: the attestation stays fresh for every tree, for ever.
+#      The store is excluded from the count, because the store is
+#      generated and is not in git (decisions/store-not-committed
 #      -2026-10.yaml).
+#
+#   5. CORPUS - decision files in the live corpus. The declared target
+#      is about 50 rules (decisions/corpus-final-state-2026-10.yaml);
+#      the census measures the distance, the plan closes it.
+#
+#   6. ARCHIVE_ACTIVE - archived DECISIONS that still say
+#      `state: active`. The kernel does not walk the archive
+#      (lib/memory.ml::decision_document_paths), so a reader does: a
+#      rule that left the corpus but still says it applies. Waiver
+#      files and migration manifests are not decisions and are not
+#      counted.
 #
 # WHY CEILINGS AND NOT COUNTS. The same reason as the other three
 # instruments in this directory: a number that can be checked but not
@@ -52,10 +84,10 @@
 # WHY A NEGATIVE CONTROL. A bound that has never been observed to
 # bind is not known to bind. Section 5 builds a synthetic corpus -
 # obligations the kernel cannot execute, a relation target that
-# resolves to nothing, a quoted verifier, a scope path that matches
-# no file - and requires this instrument to report each of them as
-# over its ceiling. Without that, a census that always returns zero
-# would satisfy every ceiling here forever.
+# resolves to nothing, a scope path that matches no file - and
+# requires this instrument to report each of them as over its ceiling.
+# Without that, a census that always returns zero would satisfy every
+# ceiling here forever.
 #
 # WHAT THIS FIXTURE DOES NOT DO. It does not judge whether a
 # commitment is wise, whether a record should be archived, or whether
@@ -77,46 +109,52 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 
 # --- the ceilings ------------------------------------------------------
 #
-# MEASURED 2026-10-31 against the corpus at main b9a0decb (139 live
-# decision files, 120 archived). Each number is what the corpus
-# actually holds today; the point of the ceiling is that it may only
-# fall from here.
+# MEASURED 2026-10-31 against the corpus at main ce837609 plus the
+# skill-single-source merge (141 live decision files, 120 archived).
+# Each number is what the corpus actually holds today; the point of
+# the ceiling is that it may only fall from here.
 #
-#   PAPER 46 - obligations the kernel reports as `not-a-check`
-#     (mathc gaps --format=json). The kernel's own audit says 46 of
-#     468; the census does not recompute it.
+#   PAPER 44 - obligations the kernel's audit classifies as
+#     `not-a-check`, measured with the store deliberately empty.
 #
-#   QUOTED 5 - verifier strings whose first character is a quote:
-#     cli-canonical-name (two), constitution-header-3-3-update,
-#     obligation-count-reconcile, parser-risk-owner-default. Each
-#     names a scheme the kernel cannot execute, and each obligation
-#     is therefore a promise the corpus cannot keep.
+#   BROKEN 5 - obligations whose verifier scheme the kernel does not
+#     recognise. The kernel names 6 such verifiers in 5 obligations:
+#     two single-quoted values whose scheme reached the kernel as
+#     `'shell-grep-absent`, two scheme names that were never schemes
+#     (`mathc-self-check-verdict-pass`), and one quoted value with a
+#     `#` comment inside it, which YAML ate.
 #
 #   DANGLING 44 - relation targets in the LIVE corpus that resolve to
-#     neither a decision id nor an existing file.
+#     neither a decision id nor an existing file. All 44 name
+#     decisions that were deleted (commit 9a1e23cbf) or paths that
+#     never existed.
 #
 #   DEAD 20 - scope paths in the LIVE corpus that match no tracked
 #     file. Five name AGENTS.md (renamed to KERNEL_AGENTS.md), four
 #     name decisions/plan-2026-10-improvements/* (moved to
 #     docs/plans/), the rest name files the corpus itself deleted.
 #
-#   CORPUS 140 - decision files in the live corpus. The declared
+#   CORPUS 141 - decision files in the live corpus. The declared
 #     target is about 50 rules (decisions/corpus-final-state-2026-10
 #     .yaml); the census measures the distance, the plan closes it.
 #
-#     ceiling-raise: 139 -> 140, this decision is itself a decision:
-#     the census's own record is in the corpus it counts.
+#     ceiling-raise: 139 -> 140, the census's own decision is a
+#     decision: the record of the census is in the corpus it counts.
+#     ceiling-raise: 140 -> 141, the skill-single-source decision
+#     (the adoption rule gets one owner) is likewise in the corpus.
 #
-#   ARCHIVE_ACTIVE 112 - archived decisions that still say
-#     `state: active`. The kernel does not walk the archive
-#     (lib/memory.ml::decision_document_paths), so a reader does:
-#     a rule that left the corpus but still says it applies.
-CEILING_PAPER=46
-CEILING_QUOTED=5
+#   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
+#     `state: active`.
+#
+#     ceiling-raise: 112 -> 104, the earlier count included eight
+#     archived files that are not decisions (seven waiver files and a
+#     migration manifest); the instrument now counts decisions.
+CEILING_PAPER=44
+CEILING_BROKEN=5
 CEILING_DANGLING=44
 CEILING_DEAD=20
-CEILING_CORPUS=140
-CEILING_ARCHIVE_ACTIVE=112
+CEILING_CORPUS=141
+CEILING_ARCHIVE_ACTIVE=104
 
 # --- the kernel --------------------------------------------------------
 kernel_bin() {
@@ -135,16 +173,53 @@ kernel_bin() {
   return 1
 }
 
+# --- what the kernel says about the paper layer -----------------------
+#
+# `mathc gaps --format=json` classifies every obligation it lists. With
+# an EMPTY store it lists all of them, so the count is a property of
+# the corpus and not of the evidence. The store is redirected into a
+# temporary directory for the measurement and the real store is never
+# touched.
+measure_paper() {
+  local bin="$1"
+  local empty
+  empty="$(mktemp -d)"
+  MATH_CODING_ROOT="$PWD" MATH_CODING_ATTESTATIONS_DIR="$empty" \
+    "$bin" gaps --format=json 2>/dev/null | python3 -c '
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print("none"); raise SystemExit(0)
+c = (d.get("counts") or {}).get("by_class") or {}
+n = c.get("not-a-check")
+print("none" if n is None else n)
+'
+  rm -rf "$empty"
+}
+
+# --- which schemes the kernel does not recognise ------------------------
+measure_broken() {
+  local bin="$1"
+  for f in decisions/*.yaml; do
+    MATH_CODING_ROOT="$PWD" "$bin" validate "$f" 2>&1
+  done | grep 'MC-VERIFIER-SCHEME-UNKNOWN' \
+    | sed -n 's/.*obligation \([^:]*\): verifier scheme "\([^"]*\)".*/\1\t\2/p' \
+    | sort -u
+}
+
 # --- measure the corpus ------------------------------------------------
 #
-# The corpus is YAML and the kernel is the authority on it, but this
+# The corpus is YAML and the kernel is the authority on it, but the
+# three numbers below are not questions the kernel answers, and this
 # fixture must not depend on the shape of a CLI's output format. The
-# parse is deliberately narrow: a top-level `obligations:` block, a
-# `relations:` block, a `scope:` block with a `paths:` list. The
-# PAPER number is NOT parsed here - it is asked of the kernel.
+# parse is deliberately narrow: a top-level `relations:` block and a
+# `scope:` block with a `paths:` list.
 #
 # The walk is RECURSIVE, like the kernel's (lib/memory.ml), and it
 # skips a `waivers/` subtree, like the kernel's.
+#
+# Prints: decisions active dangling dead obligations archive_active
 measure_corpus() {
   python3 - "$1" "$2" <<'PY'
 import glob, os, re, subprocess, sys
@@ -177,6 +252,12 @@ def ids_of(files):
         if m:
             ids.add(m.group(1))
     return ids
+
+def is_decision(path):
+    # A decision carries the schema math-coding/3.x. Waiver files and
+    # migration manifests carry their own schemas and are not rules.
+    m = re.search(r"^schema:[ \t]*(\S+)", read(path), re.M)
+    return bool(m) and m.group(1).startswith("math-coding/3")
 
 live = walk(live_dir)
 archive = walk(archive_dir)
@@ -231,8 +312,6 @@ def scope_paths(text):
 
 dangling = 0
 dead = 0
-quoted = 0
-obligations = 0
 active = 0
 for path in live:
     text = read(path)
@@ -265,42 +344,17 @@ for path in live:
         rx = glob_re(norm)
         if not any(rx.match(f) for f in tracked):
             dead += 1
-    obl = block(text, "obligations")
-    for item in re.split(r"^[ \t]*- id:[ \t]*", obl, flags=re.M)[1:]:
-        obligations += 1
-        for v in re.findall(r"^[ \t]*-?[ \t]*verifier:[ \t]*(.+?)[ \t]*$",
-                            item, re.M):
-            if v.strip()[:1] in ("'", '"'):
-                quoted += 1
 
 archive_active = 0
 for path in archive:
+    if not is_decision(path):
+        continue
     m = re.search(r"^state:[ \t]*(\S+)", read(path), re.M)
     if not m or m.group(1) == "active":
         archive_active += 1
 
-print(len(live), active, dangling, dead, quoted, obligations, archive_active)
+print(len(live), active, dangling, dead, archive_active)
 PY
-}
-
-# --- measure the paper layer -------------------------------------------
-#
-# The kernel's own audit. `mathc gaps --format=json` classifies every
-# obligation of the corpus by what can be executed on it; the count of
-# `not-a-check` is the paper layer.
-measure_paper() {
-  local bin
-  bin="$(kernel_bin)" || { printf 'none'; return 0; }
-  "$bin" gaps --format=json 2>/dev/null | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-except Exception:
-    print("none"); raise SystemExit(0)
-c = (d.get("counts") or {}).get("by_class") or {}
-n = c.get("not-a-check")
-print("none" if n is None else n)
-'
 }
 
 # --- 1. measure --------------------------------------------------------
@@ -311,8 +365,10 @@ if [ -z "$bin" ]; then
   exit 3
 fi
 
-read -r corpus_files corpus_active dangling dead quoted obligations archive_active <<<"$(measure_corpus "${MATH_CODING_DECISIONS_DIR:-decisions}" archive/decisions)"
-paper="$(measure_paper)"
+read -r corpus_files corpus_active dangling dead archive_active <<<"$(measure_corpus "${MATH_CODING_DECISIONS_DIR:-decisions}" archive/decisions)"
+paper="$(measure_paper "$bin")"
+broken_list="$(measure_broken "$bin")"
+broken="$(printf '%s\n' "$broken_list" | grep -c . || true)"
 
 if [ -z "${corpus_files:-}" ] || [ -z "${dangling:-}" ] || [ -z "${dead:-}" ]; then
   bad "the corpus measurement produced no numbers - the parse failed"
@@ -326,8 +382,7 @@ if [ "$paper" = "none" ]; then
 fi
 
 # --- 2. the ceilings ---------------------------------------------------
-printf 'ok: corpus: %s decisions (%s active), %s obligations\n' \
-  "$corpus_files" "$corpus_active" "$obligations"
+printf 'ok: corpus: %s decisions (%s active)\n' "$corpus_files" "$corpus_active"
 
 if [ "$paper" -le "$CEILING_PAPER" ]; then
   ok "paper obligations (the kernel cannot execute them): $paper (ceiling $CEILING_PAPER)"
@@ -335,10 +390,14 @@ else
   bad "paper obligations: $paper EXCEEDS the ceiling $CEILING_PAPER - the corpus grew promises no program can keep"
 fi
 
-if [ "$quoted" -le "$CEILING_QUOTED" ]; then
-  ok "verifier strings a YAML quote broke: $quoted (ceiling $CEILING_QUOTED)"
+if [ "${broken:-0}" -le "$CEILING_BROKEN" ]; then
+  ok "obligations whose verifier scheme the kernel does not recognise: ${broken:-0} (ceiling $CEILING_BROKEN)"
 else
-  bad "verifier strings a YAML quote broke: $quoted EXCEEDS the ceiling $CEILING_QUOTED - the corpus grew checks that cannot run"
+  bad "obligations whose verifier scheme the kernel does not recognise: ${broken:-0} EXCEEDS the ceiling $CEILING_BROKEN - the corpus grew checks that cannot run"
+fi
+if [ -n "$broken_list" ]; then
+  printf 'ok: the broken schemes, as the kernel names them:\n'
+  printf '%s\n' "$broken_list" | sed 's/^/     /'
 fi
 
 if [ "$dangling" -le "$CEILING_DANGLING" ]; then
@@ -369,7 +428,7 @@ fi
 # Reported, not bounded: these are the facts the plan works against.
 printf 'ok: the corpus against its declared target:\n'
 printf '     live decisions %s, declared target about 50 rules\n' "$corpus_files"
-printf '     archive %s files, of which %s still say state: active\n' \
+printf '     archive %s files, of which %s are decisions still saying state: active\n' \
   "$(ls archive/decisions/*.yaml 2>/dev/null | wc -l | tr -d ' ')" "$archive_active"
 printf '     the normative text last changed on %s, %s commits ago\n' \
   "$(git log -1 --format=%cs -- spec/algebra-3.2.md 2>/dev/null || echo unknown)" \
@@ -418,6 +477,8 @@ mkdir -p "$work/.math-coding/decisions"
 } > "$work/.math-coding/policy.yaml"
 
 # (a) PAPER: more obligations the kernel cannot execute than the ceiling.
+#     The kernel is asked, in a project of its own, so the control does
+#     not touch the real corpus.
 i=0
 while [ "$i" -lt $((CEILING_PAPER + 5)) ]; do
   cat > "$work/.math-coding/decisions/census-control-$i.yaml" <<YAML
@@ -446,14 +507,14 @@ except Exception:
 print(((d.get("counts") or {}).get("by_class") or {}).get("not-a-check", 0))
 ')"
 if [ "${control_paper:-0}" -gt "$CEILING_PAPER" ]; then
-  ok "negative control: a synthetic corpus measures $control_paper paper obligations, above the ceiling $CEILING_PAPER"
+  ok "negative control: a synthetic corpus measures ${control_paper:-0} paper obligations, above the ceiling $CEILING_PAPER"
 else
   bad "negative control: the synthetic corpus measured ${control_paper:-0} paper obligations, not above the ceiling $CEILING_PAPER - the ceiling cannot bind"
 fi
 
-# (b) QUOTED, DANGLING, DEAD: one synthetic decision that carries
-#     enough of each defect to exceed its ceiling, measured by the
-#     same parser the live corpus uses.
+# (b) DANGLING, DEAD: one synthetic decision that carries enough of
+#     each defect to exceed its ceiling, measured by the same parser
+#     the live corpus uses.
 {
   printf -- '---\n'
   printf 'schema: math-coding/3.3\n'
@@ -469,16 +530,12 @@ fi
     i=$((i + 1))
   done
   printf 'obligations:\n'
-  i=0
-  while [ "$i" -lt $((CEILING_QUOTED + 1)) ]; do
-    printf '  - id: quoted-verifier-%s\n' "$i"
-    printf '    claim: |\n'
-    printf '      A verifier whose scheme a YAML quote broke.\n'
-    printf '    acceptance:\n'
-    printf '      all:\n'
-    printf "        - verifier: 'shell-grep decisions \"id: mc-%s\"'\n" "$i"
-    i=$((i + 1))
-  done
+  printf '  - id: control-obligation\n'
+  printf '    claim: |\n'
+  printf '      A control obligation.\n'
+  printf '    acceptance:\n'
+  printf '      all:\n'
+  printf '        - verifier: file-exists decisions/census-control-0.yaml\n'
   printf 'relations:\n'
   printf '  addresses:\n'
   i=0
@@ -487,11 +544,11 @@ fi
     i=$((i + 1))
   done
 } > "$work/.math-coding/decisions/census-control-defects.yaml"
-read -r c_files c_active c_dangling c_dead c_quoted c_obl c_arch <<<"$(measure_corpus "$work/.math-coding/decisions" "$work/.math-coding/decisions")"
-if [ "${c_dangling:-0}" -gt "$CEILING_DANGLING" ] && [ "${c_dead:-0}" -gt "$CEILING_DEAD" ] && [ "${c_quoted:-0}" -gt "$CEILING_QUOTED" ]; then
-  ok "negative control: the synthetic corpus carries a dangling target, a dead scope path and a quoted verifier beyond every ceiling, and the census sees all three"
+read -r c_files c_active c_dangling c_dead c_arch <<<"$(measure_corpus "$work/.math-coding/decisions" "$work/.math-coding/decisions")"
+if [ "${c_dangling:-0}" -gt "$CEILING_DANGLING" ] && [ "${c_dead:-0}" -gt "$CEILING_DEAD" ]; then
+  ok "negative control: the synthetic corpus carries a dangling target and a dead scope path beyond every ceiling, and the census sees both"
 else
-  bad "negative control: the synthetic corpus was not detected (dangling ${c_dangling:-0}, dead ${c_dead:-0}, quoted ${c_quoted:-0}) - the census is blind"
+  bad "negative control: the synthetic corpus was not detected (dangling ${c_dangling:-0}, dead ${c_dead:-0}) - the census is blind"
 fi
 
 # --- 5. verdict --------------------------------------------------------

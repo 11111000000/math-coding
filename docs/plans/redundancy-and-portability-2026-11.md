@@ -83,12 +83,12 @@ defect this plan fixes first: the corpus's shape must be a number.
 
 | number | what it is | ceiling at 2026-10-31 |
 |---|---|---|
-| PAPER | obligations the kernel cannot execute (`mathc gaps`) | 46 |
-| QUOTED | verifier strings a YAML quote broke | 5 |
+| PAPER | obligations the kernel cannot execute (`mathc gaps`, against an empty store) | 44 |
+| BROKEN | obligations whose verifier scheme the kernel does not recognise | 5 |
 | DANGLING | relation targets that resolve to nothing | 44 |
 | DEAD | scope paths matching no tracked file | 20 |
-| CORPUS | decisions in the live corpus | 139 |
-| ARCHIVE_ACTIVE | archived decisions still saying `state: active` | 112 |
+| CORPUS | decisions in the live corpus | 141 |
+| ARCHIVE_ACTIVE | archived decisions still saying `state: active` | 104 |
 
 Each ceiling may fall and may never rise; raising one is an explicit,
 reviewable edit of the fixture, with the reason written beside it.

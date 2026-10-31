@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/redundancy-census.sh
-body_sha: "sha256:6a1839089b2d10992f55ddc8b35935669bfb9157fd744d907e19888491b1d3fb"
-yaml_sha: "sha256:6a1839089b2d10992f55ddc8b35935669bfb9157fd744d907e19888491b1d3fb"
+body_sha: "sha256:11c715897b72d3463c57d4be21ae7e7cc6192add8d06a1740f2d6590827dcdc0"
+yaml_sha: "sha256:11c715897b72d3463c57d4be21ae7e7cc6192add8d06a1740f2d6590827dcdc0"
 
 intent: |
   The corpus of this repository is supposed to be a set of RULES:
@@ -16,7 +16,7 @@ intent: |
 
   Measured on 2026-10-31 at main b9a0decb, by reading the corpus:
 
-    139 live decision files, 137 of them active, against a declared
+    141 live decision files, 138 of them active, against a declared
     target of about fifty rules (decisions/corpus-final-state-2026-10
     .yaml:64-70). Eighty-six files live in the corpus as rules and
     read as records.
@@ -32,16 +32,28 @@ intent: |
     empty digest is the freshness wildcard: the attestation stays
     fresh for every tree, for ever.
 
-    5 verifier strings carry a YAML quote that broke their scheme
-    ('shell-grep-absent ...' and "shell-grep ..."), so the kernel
-    reads a scheme that is not in the allowlist. Those obligations
-    cannot be executed, and the corpus carries them as promises.
+    5 obligations name a verifier scheme the kernel does not recognise
+    - 6 verifiers in all. Two single-quoted YAML values keep their
+    quote (lib/codec.ml::yaml_strip strips double quotes only), so the
+    scheme reaches the kernel as `'shell-grep-absent`; two are scheme
+    names that were never schemes (`mathc-self-check-verdict-pass`);
+    one is a quoted value with a `#` inside it, which YAML ate as a
+    comment. The kernel says so out loud
+    (MC-VERIFIER-SCHEME-UNKNOWN). Those obligations cannot be
+    executed, and the corpus carries them as promises.
 
-    46 of the corpus's obligations are declarations the kernel cannot
-    execute - its own audit says so (mathc gaps --format=json).
+    44 of the corpus's obligations are declarations the kernel cannot
+    execute - its own audit says so (mathc gaps --format=json),
+    measured against an EMPTY store so that the number is a property
+    of the declarations and not of the attestations. With a signed
+    store the same command reports 35, because it classifies only the
+    obligations it still lists as open: a number about the evidence,
+    not about the corpus.
 
-    112 of the 120 archived decisions still say `state: active`: the
-    rule left the corpus and the field says it applies.
+    104 of the 120 archived files are decisions and still say
+    `state: active`: the rule left the corpus and the field says it
+    applies. The other eight are waiver files and a migration
+    manifest, which are not decisions and are not counted.
 
     The normative text (spec/algebra-3.2.md, 1 002 lines) has not
     changed since 2026-10-24 while the code moved 221 commits, and it
@@ -61,10 +73,11 @@ commitment: |
 
   1. The corpus's shape is censused by a fixture, not by prose:
      `tests/fixtures/redundancy-census.sh` measures the paper layer
-     (by asking the kernel's own audit), the verifier strings a YAML
-     quote broke, the relation targets that resolve to nothing, the
-     scope paths that match no tracked file, the size of the live
-     corpus, and the archived decisions that still say `state: active`.
+     (by asking the kernel's own audit against an empty store), the
+     obligations whose verifier scheme the kernel does not recognise,
+     the relation targets that resolve to nothing, the scope paths
+     that match no tracked file, the size of the live corpus, and the
+     archived decisions that still say `state: active`.
 
   2. Each number is a CEILING. It may fall; it may never rise. A
      number that can be checked but not bounded grows silently, which
