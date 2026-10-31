@@ -4,8 +4,8 @@ id: verifier-scheme-convention-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:fa93caf7c6167bd9efe7fe5be515a827838afed8c90018851827a49ae5a2d28d"
-yaml_sha: "sha256:fa93caf7c6167bd9efe7fe5be515a827838afed8c90018851827a49ae5a2d28d"
+body_sha: "sha256:324cd6a606b600e26a519c2bb167ffc04db48e16e11fb89ed2702c9b3760f445"
+yaml_sha: "sha256:324cd6a606b600e26a519c2bb167ffc04db48e16e11fb89ed2702c9b3760f445"
 
 intent: { source: "issue:plan-c5-verifier-scheme", text: "Surface acceptance.all[*].verifier strings that use a verifier scheme name NOT in the canonical list, as a Warn diagnostic from `mathc validate`. The validator still parses-ok on the file; the warning flags the operator that the scheme string is non-canonical. Plan-decision C5 of plan-2026-11-adoption-fixes." }
 
@@ -20,8 +20,8 @@ commitment: |
      the obligation id and the scheme string.
   2. `mathc validate` on a decision whose obligations use
      ONLY canonical schemes (file-exists, dir-exists, bash,
-     mathc, shell-grep, dune, text-scan-*, tests/, dune-*,
-     scripts/, manual-*) emits zero scheme-unknown
+     mathc, shell-grep, shell-grep-absent, dune, text-scan-*,
+     tests/, dune-*, scripts/, manual-*) emits zero scheme-unknown
      diagnostics.
   3. `mathc explain-diagnostic MC-VERIFIER-SCHEME-UNKNOWN`
      exits 0 with the documented JSON envelope
@@ -68,9 +68,10 @@ outcomes:
       the obligation id and the scheme token.
   - id: canonical-list-documented
     statement: |
-      The canonical allowlist is: file-exists, dir-exists,
-      bash, mathc, shell-grep, dune (exact), plus prefix
-      tokens text-scan-*, tests/, dune-*, scripts/, manual-*.
+      The canonical allowlist is the kernel's own binding:
+      `file-exists`, `dir-exists`, `bash`, `mathc`, `shell-grep`,
+      `shell-grep-absent`, `dune` (exact), and the prefixes
+      `text-scan-`, `tests/`, `dune-`, `scripts/`, `manual-`.
       Anything else triggers the diagnostic.
 
 scope:

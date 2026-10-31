@@ -652,11 +652,22 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
    when an `obligations[*].acceptance.all[*].verifier` string
    begins with a scheme token that is NOT in the canonical
    allowlist documented in
-   `decisions/verifier-scheme-convention-2026-11.yaml`. The
-   canonical allowlist is:
+   `decisions/verifier-scheme-convention-2026-11.yaml`.
 
-     exact:   file-exists, dir-exists, bash, mathc, shell-grep, dune
-     prefix:  text-scan-, tests/, dune-, scripts/, manual-*
+   THE LIST IS NOT WRITTEN IN THIS FILE. The allowlist is ONE
+   binding — `canonical_verifier_schemes` and
+   `canonical_verifier_prefixes` in bin/Mathc.ml — and this
+   diagnostic RENDERS what the kernel passes in
+   (`render_canonical_schemes` below). It used to keep its own
+   copy, and the copy was wrong: it named six exact schemes and
+   omitted the seventh, `shell-grep-absent`, which the kernel
+   learned on 2026-10-29. So the diagnostic told an author that
+   a scheme the kernel accepts was not canonical, and an author
+   who believed it wrapped the scheme in single quotes to get
+   past the warning — which is how `verifier: 'shell-grep-absent
+   ...'` reached the corpus with the quote still inside the
+   token. The repair is the removal of the copy, not the
+   addition of the seventh name to it.
 
    The split is: scheme = first whitespace-delimited token of
    the verifier string (per `parse_verifier_string` in
@@ -668,18 +679,15 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
    well-typed Domain.acceptance for the item, the decision
    parses-ok, and the verdict is `parse-ok`. The diagnostic
    flags the operator that the scheme is non-canonical so the
-   convention is discoverable. A follow-up plan may migrate
-   existing verifiers; this decision only registers the
-   surface.
+   convention is discoverable.
 
    Author remediation: replace the scheme token with one of
-   the canonical tokens (`file-exists`, `dir-exists`, `bash`,
-   `mathc`, `shell-grep`, `dune`) or use a known prefix
-   (`text-scan-*`, `tests/*`, `dune-*`, `scripts/*`,
-   `manual-*`). For an unknown scheme that is in active use
-   (e.g., a hex-tag identifier like
-   `verifier: mathc-validate-runs-on-fixture`), the
-   convention is to migrate to `mathc` + a subcommand arg,
+   the canonical tokens the kernel names, or with a scheme
+   under one of the canonical prefixes the kernel names — the
+   message names them, and it names the ones the kernel holds.
+   For an unknown scheme that is in active use (e.g., a hex-tag
+   identifier like `verifier: mathc-validate-runs-on-fixture`),
+   the convention is to migrate to `mathc` + a subcommand arg,
    OR open a follow-up decision that extends the allowlist.
 
    The `obligation_id` and `scheme` parameters are
@@ -722,20 +730,46 @@ let mc_verifier_path_unresolved ?(obligation_id = "") ?(path = "")
     ~policy_rule:(Some "decisions/verifier-path-resolution-2026-10.yaml")
     ~next_actions:actions what
 
+(* THE CANONICAL LIST, RENDERED FROM WHAT THE KERNEL OWNS.
+ *
+ * The kernel's two bindings are the only answer to "which schemes
+ * can the kernel execute". This function prints them; it does not
+ * know them. A prefix is printed with a `*` because that is how it
+ * matches: a prefix scheme may carry any suffix. The `mark`
+ * argument wraps each entry (the `explain` body wants backticks,
+ * the one-line message does not) so that the two say the same
+ * thing in the same notation. *)
+let render_canonical_schemes ~mark ~exact ~prefixes =
+  let m s = mark ^ s ^ mark in
+  String.concat ", "
+    (List.map m exact @ List.map (fun p -> m (p ^ "*")) prefixes)
+
 let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
-    ?(verifier = "") ?(next_actions = []) () =
+    ?(verifier = "") ?(exact_schemes = []) ?(prefix_schemes = [])
+    ?(next_actions = []) () =
   let code = "MC-VERIFIER-SCHEME-UNKNOWN" in
   let prefix =
     if obligation_id = "" then ""
     else Printf.sprintf "obligation %s: " obligation_id
   in
+  (* The list is the kernel's, or it is not printed at all: a
+     diagnostic that cannot be told what the kernel accepts says
+     so instead of answering from memory. *)
+  let listed =
+    if exact_schemes = [] && prefix_schemes = [] then
+      "(the kernel's canonical list: bin/Mathc.ml::canonical_verifier_schemes \
+       and ::canonical_verifier_prefixes)"
+    else
+      "("
+      ^ render_canonical_schemes ~mark:"" ~exact:exact_schemes
+          ~prefixes:prefix_schemes
+      ^ ")"
+  in
   let msg =
     Printf.sprintf
-      "%sverifier scheme %S is not in the canonical list (file-exists, \
-       dir-exists, bash, mathc, shell-grep, dune, text-scan-*, tests/, dune-*, \
-       scripts/, manual-*); convention documented in \
-       decisions/verifier-scheme-convention-2026-11.yaml"
-      prefix scheme
+      "%sverifier scheme %S is not in the canonical list %s; convention \
+       documented in decisions/verifier-scheme-convention-2026-11.yaml"
+      prefix scheme listed
   in
   let _ = verifier in
   let default_actions =
@@ -1189,7 +1223,8 @@ let mc_negative_control_missing ?(decision_id = "") ?(next_actions = []) () =
     ~policy_rule:(Some "decisions/negative-control-required-2026-10.yaml")
     ~next_actions:actions msg
 
-let explain (code : string) : string option =
+let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
+    string option =
   match code with
   | "MC-NEGATIVE-CONTROL-MISSING" ->
       Some
@@ -1221,40 +1256,62 @@ let explain (code : string) : string option =
          Make the path project-relative and resolvable, or drop the key\n\
          when the obligation has no in-tree subject.\n"
   | "MC-VERIFIER-SCHEME-UNKNOWN" ->
+      (* The two lists are the kernel's; this body RENDERS them. A
+         body that carried its own copy of the list was a second
+         answer to "what can the kernel execute", and it was wrong
+         for a month: it omitted `shell-grep-absent`, which the
+         kernel learned on 2026-10-29. When the caller does not
+         pass the bindings, the body names where they live instead
+         of guessing what they are. *)
+      let exact_text =
+        match exact_schemes with
+        | [] ->
+            "the kernel's binding `canonical_verifier_schemes` (bin/Mathc.ml)"
+        | xs -> render_canonical_schemes ~mark:"`" ~exact:xs ~prefixes:[]
+      in
+      let prefix_text =
+        match prefix_schemes with
+        | [] ->
+            "the kernel's binding `canonical_verifier_prefixes` (bin/Mathc.ml)"
+        | xs -> render_canonical_schemes ~mark:"`" ~exact:[] ~prefixes:xs
+      in
       Some
-        "### Definition\n\
-         An `obligations[*].acceptance.all[*].verifier` string begins\n\
-         with a scheme token that is NOT in the canonical allowlist\n\
-         documented in `decisions/verifier-scheme-convention-2026-11.yaml`.\n\
-         Canonical exact schemes: `file-exists`, `dir-exists`, `bash`,\n\
-         `mathc`, `shell-grep`, `dune`. Canonical prefixes (the scheme may\n\
-         have any suffix): `text-scan-`, `tests/`, `dune-`,\n\
-         `scripts/`, `manual-`. The verifier string is\n\
-         whitespace-split; the FIRST token is the scheme.\n\n\
-         ### Occurs when\n\
-         `mathc validate` walks every obligation's acceptance list and\n\
-         runs `parse_verifier_string` (bin/Mathc.ml) to split scheme\n\
-         from args. When the scheme is not in the canonical list, the\n\
-         validator emits one Warn-level `MC-VERIFIER-SCHEME-UNKNOWN`\n\
-         diagnostic per non-canonical item, naming the obligation id\n\
-         and the scheme token. The verdict is still `parse-ok`:\n\
-         the kernel produces a typed Domain.acceptance for the item,\n\
-         and the warning is the signal that the convention is not\n\
-         met. Existing decisions in this repo carry non-canonical\n\
-         schemes by historical necessity; the diagnostic is the\n\
-         discoverability surface, not a defect classification.\n\n\
-         ### Remediation\n\
-         Replace the scheme token with a canonical one. For\n\
-         shell-style predicates that need a custom check, prefer\n\
-         `bash` + a sandboxed subcommand or `shell-grep` + needle.\n\
-         For in-process fixtures, use `file-exists` / `dir-exists`.\n\
-         For cross-binary invocations, use `mathc <subcmd>` where\n\
-         `<subcmd>` is in the read-only allowlist (validate, assess,\n\
-         find, self-check, explain, explain-diagnostic, context,\n\
-         packages, version). For a new scheme family, open a\n\
-         follow-up decision that EXTENDS the allowlist rather than\n\
-         inventing a new token. Re-run `mathc validate` to confirm\n\
-         the diagnostic is gone."
+        ("### Definition\n\
+          An `obligations[*].acceptance.all[*].verifier` string begins\n\
+          with a scheme token that is NOT in the canonical allowlist\n\
+          documented in `decisions/verifier-scheme-convention-2026-11.yaml`.\n\
+          Canonical exact schemes: " ^ exact_text
+       ^ ". Canonical prefixes (the scheme may have any suffix): " ^ prefix_text
+       ^ ". The verifier string is\n\
+          whitespace-split; the FIRST token is the scheme.\n\n\
+          ### Occurs when\n\
+          `mathc validate` walks every obligation's acceptance list and\n\
+          runs `parse_verifier_string` (bin/Mathc.ml) to split scheme\n\
+          from args. When the scheme is not in the canonical list, the\n\
+          validator emits one Warn-level `MC-VERIFIER-SCHEME-UNKNOWN`\n\
+          diagnostic per non-canonical item, naming the obligation id\n\
+          and the scheme token. The verdict is still `parse-ok`:\n\
+          the kernel produces a typed Domain.acceptance for the item,\n\
+          and the warning is the signal that the convention is not\n\
+          met. The corpus carried such schemes by historical\n\
+          necessity until 2026-11, and\n\
+          decisions/corpus-tranche-broken-schemes-2026-11.yaml is the\n\
+          decision that repaired them. The diagnostic remains the\n\
+          discoverability surface: it is what tells an author that a\n\
+          scheme the kernel does not know is not a scheme.\n\n\
+          ### Remediation\n\
+          Replace the scheme token with a canonical one. For\n\
+          shell-style predicates that need a custom check, prefer\n\
+          `shell-grep` + needle (the needle is PRESENT) or\n\
+          `shell-grep-absent` + needle (the needle is ABSENT). For\n\
+          in-process fixtures, use `file-exists` / `dir-exists`.\n\
+          For cross-binary invocations, use `mathc <subcmd>` where\n\
+          `<subcmd>` is in the read-only allowlist (validate, assess,\n\
+          find, self-check, explain, explain-diagnostic, context,\n\
+          packages, version). For a new scheme family, open a\n\
+          follow-up decision that EXTENDS the allowlist rather than\n\
+          inventing a new token. Re-run `mathc validate` to confirm\n\
+          the diagnostic is gone.")
   | "MC-AMBIGUOUS-ACCEPTANCE" ->
       Some
         "### Definition\n\

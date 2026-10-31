@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tests/fixtures/decision-packges-spelling.sh
 #
-# Verifier for decisions/obligation-count-reconcile.yaml (rev 2)
-# obligation `corrected-packages-spelling`:
+# Verifier for decisions/obligation-count-reconcile.yaml
+# obligation `corrected-spelling-contract`:
 #   1. The assumption id and review_on signal do NOT use the
 #      old misspelling "packges-" anywhere in this decision file
 #      (we accept the misspelling in code comments that document

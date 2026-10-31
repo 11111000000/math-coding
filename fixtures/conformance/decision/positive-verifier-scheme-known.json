@@ -6,14 +6,14 @@
   "axiom_link": ["A0"],
   "intent": {
     "source": "test:verifier-scheme-known",
-    "text": "Demonstrate that a decision whose obligations use ONLY canonical verifier schemes (file-exists, mathc, shell-grep, plus text-scan-/tests-/dune-/scripts-/manual- prefixes) emits zero MC-VERIFIER-SCHEME-UNKNOWN warnings."
+    "text": "Demonstrate that a decision whose obligations use ONLY canonical verifier schemes (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, plus text-scan-/tests-/dune-/scripts-/manual- prefixes) emits zero MC-VERIFIER-SCHEME-UNKNOWN warnings."
   },
   "commitment": "mathc validate returns parse-ok with no MC-VERIFIER-SCHEME-UNKNOWN diagnostic when every acceptance.all[*].verifier uses a canonical scheme.",
   "scope": [
     {"kind": "path", "path": "lib/**", "match": "tree"}
   ],
   "outcomes": [
-    {"id": "canonical-schemes-pass", "statement": "All five canonical schemes parse-ok without unknown-scheme warnings."}
+    {"id": "canonical-schemes-pass", "statement": "Every canonical scheme the fixture carries parses-ok without unknown-scheme warnings."}
   ],
   "assumptions": [
     {
@@ -37,6 +37,7 @@
           {"verifier": "file-exists /tmp/foo"},
           {"verifier": "mathc validate decisions/foo.yaml"},
           {"verifier": "shell-grep needle"},
+          {"verifier": "shell-grep-absent /tmp/foo needle"},
           {"verifier": "dune build lib/mathcoding_core.cmxa"},
           {"verifier": "text-scan-decision-id"},
           {"verifier": "tests/cli/explain-positive.t"},

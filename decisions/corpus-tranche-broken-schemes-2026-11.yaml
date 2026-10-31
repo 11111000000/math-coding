@@ -1,0 +1,391 @@
+---
+schema: math-coding/3.3
+id: corpus-tranche-broken-schemes-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
+body_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
+yaml_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
+
+intent: |
+  Five obligations in five decisions named a verifier scheme the
+  kernel cannot read, so the kernel could not execute them. The
+  corpus carried them as promises anyway, and the corpus's own
+  instruments counted them as promises: nothing in the tree said
+  that a check was missing.
+
+  Measured on 2026-10-31 at ef2b95b3, by asking the kernel
+  (`mathc validate` over every decision in `decisions/`):
+
+    decisions/cli-canonical-name.yaml          obligation decisions-renamed
+      TWO verifiers, both written with single quotes:
+      'shell-grep-absent decisions "- verifier: mc-"' and
+      'shell-grep-absent decisions "id: mc-"'.
+    decisions/forge-principal-verification-2026-10.yaml
+      obligation forge-team-member-endpoint, verifier `mathc-validate`.
+    decisions/exit-code-symmetry-2026-10.yaml  obligation self-check-still-pass,
+      verifier `mathc-self-check-verdict-pass`.
+    decisions/audit-0.0.21-fixes.yaml         obligation self-check-verdict-is-pass,
+      verifier `mathc-self-check-verdict-pass`.
+    decisions/constitution-header-3-3-update-2026-10.yaml
+      obligation constitution-header-bumped, verifier
+      "shell-grep spec/constitution.md # Math-coding".
+
+  Two mechanisms produce those five, and they are worth separating
+  because only one of them is a typo:
+
+    A QUOTE THE READER DOES NOT TAKE. The YAML reader
+      (lib/codec.ml::yaml_strip) cuts a line at the first `#`,
+      wherever it stands, and it strips DOUBLE quotes only when the
+      value both starts and ends with one. It never strips single
+      quotes. So `verifier: 'shell-grep-absent ...'` reaches the
+      kernel with the scheme `'shell-grep-absent` - a scheme in no
+      allowlist - and `verifier: "shell-grep ... # ..."` loses the
+      closing quote to the comment, so the value no longer ends with
+      a quote, the quote is not stripped, and the scheme reaches the
+      kernel as `"shell-grep`. Three of the five are this.
+
+    A SCHEME THAT NEVER EXISTED. `mathc-validate` and
+      `mathc-self-check-verdict-pass` are not misspellings of a
+      canonical scheme; they are names of checks that were never
+      written. Two of the five are this.
+
+  What the five had in common is what made them invisible. The
+  kernel's `all:` aggregation ranks a FAIL above a SETUP_FAIL, a
+  SETUP_FAIL above a MANUAL declaration, and a MANUAL declaration
+  above a PASS - and a scheme it cannot read is neither: it is
+  `Skipped`, and a `Skipped` sibling is absorbed by a `Pass`
+  sibling. Every one of the five obligations had a second verifier
+  that passed, so every one of them reported `pass` while half of it
+  had never run. The store's word was true about the part that ran
+  and silent about the part that did not.
+
+  Two more obligations were not broken but were LYING: their
+  verifiers ran, and their claims were false.
+
+    decisions/parser-risk-owner-default.yaml, obligation
+    `workaround-line-present`: the claim said the line
+    `owner: human:maintainer` appears in decisions/decision.yaml AT
+    THE RISK BLOCK. The file has no owner in its risk block; the
+    line it has is in the ASSUMPTION block, and the check searched
+    the whole file for a string. Green for the wrong reason. The
+    workaround this decision recorded is gone - the kernel's owner
+    default replaced it - so the claim was false about a line that
+    had already been retired.
+
+    decisions/obligation-count-reconcile.yaml, obligation
+    `aggregator-7-of-7`: the claim said the aggregator lists
+    "exactly the seven obligations of decisions/decision.yaml@2".
+    The parent is at revision 3. It carries SEVEN obligations and
+    their ids DO match the aggregator's, in the same order - the
+    revision pointer in the aggregator is a record of the revision
+    it was reconciled against, not of the parent's current one, and
+    the check asked only whether the aggregator's text still
+    contained `revision: 2`. The claim was false about the
+    revision, and the check was silent about the agreement that the
+    claim was really about. (The "13 obligations" of PACKAGES.md is
+    the stale audit number this decision's own assumption already
+    calls an audit-text error: the parent's count is seven.)
+
+  Two further facts about the corpus's shape, measured the same way:
+
+    The canonical allowlist was stated in THREE places and the
+    diagnostic's copy was wrong. bin/Mathc.ml's
+    `canonical_verifier_schemes` has carried `shell-grep-absent`
+    since 2026-10-29; lib/diagnostic.ml's message, its remediation
+    text and its `explain` body named six exact schemes and omitted
+    the seventh. The corpus therefore recommended a scheme the
+    diagnostic called non-canonical, and told an author that
+    `shell-grep-absent` was a broken verifier - which is why the
+    decision that used it wrapped it in single quotes to begin with.
+    This tranche removes the copy instead of correcting it: the
+    diagnostic now RENDERS the kernel's two bindings, so the list
+    the message prints is the list the kernel holds, and a scheme
+    the kernel learns is in the message the moment it learns it.
+
+    The census's BROKEN counter measured 5 verifier strings whose
+    first character is a quote. After this tranche it measures 0,
+    and the ceiling may fall from 5 to 0.
+
+  The numbers, measured before and after (the census fixture and
+  the kernel's own audit, on the tranche's own branch: ef2b95b3
+  before, 5daf5757 after - the trees between them carry this tranche
+  and nothing else):
+
+    PAPER (obligations the kernel cannot execute)   44 -> 38
+    BROKEN (verifier strings a YAML quote broke)      5 -> 0
+    CORPUS (decision files in the live corpus)       141 -> 142
+
+  The PAPER figure falls by six: the five obligations above became
+  checks, and one obligation that two `manual-` declarations
+  carried now names the fixture that was already written to do the
+  work. The corpus grows by one - this decision - and the census's
+  CORPUS ceiling is the orchestrator's to lower, as are the
+  ceilings this tranche lowers. The CORPUS ceiling was ALREADY
+  exceeded before this tranche (141 against a ceiling of 140), and
+  this tranche is not what made it red; it adds one file to a
+  corpus that was one over the line.
+
+  The branch this work lands on ALSO carries three peer tranches -
+  instruments-repair, protected-paths-and-empty-diff and
+  corpus-growth-lints - which add three decisions of their own. The
+  live corpus at that branch head therefore carries 145 decision
+  files, and the census reports the corpus ceiling exceeded by five
+  rather than by one. Those three decisions are not this tranche's
+  and are not counted in the numbers above, which are this tranche's
+  alone.
+
+commitment: |
+  1. Every obligation whose verifier named a scheme the kernel
+     cannot read now names a scheme the kernel CAN read, or the
+     promise is withdrawn. Five obligations in five decisions; none
+     is left naming a scheme outside the allowlist, and the corpus's
+     BROKEN counter is 0.
+
+  2. The canonical allowlist is stated in ONE place: the kernel's
+     own binding (`canonical_verifier_schemes` and
+     `canonical_verifier_prefixes` in bin/Mathc.ml). The diagnostic
+     that reports membership in it RENDERS that binding - it keeps
+     no copy of its own - and the convention decision names the
+     binding as the authority instead of restating it. The kernel's
+     own behaviour is the authority, and it is asked: the fixture
+     reads the list out of the diagnostic and asks the kernel about
+     every entry, so a list that names a scheme the kernel does not
+     accept is caught.
+
+  3. A claim states what its verifier checks. Two claims that were
+     false - the retired `owner:` workaround and the aggregator's
+     revision pointer - are rewritten as the facts that hold, and
+     the two checks that could not state them are replaced by
+     checks that can: a program that compares two files, and a
+     program that reads a field.
+
+  4. A fixture that measured NOTHING says so. The three fixtures
+     this tranche adds answer "unknown" (exit 3) when the thing
+     they measure is not there - no kernel to ask, no list to read,
+     no corpus to scan, no ids to compare - and never report a
+     green zero over an empty measurement.
+
+  5. The census's BROKEN ceiling may fall from 5 to 0. The
+     orchestrator lowers it at merge; this decision does not touch
+     the instrument that owns it.
+
+axiom_link:
+  - A0
+  - A1
+
+counterexample: |
+  (a) "A scheme outside the allowlist is a typo. Fix the five
+  strings and the tranche is done."
+  Rejected as a description of the work, and the refusal is what
+  makes the tranche worth a decision file. Three of the five were
+  typographical in the sense that a person reading the file would
+  have said "that should be `shell-grep-absent`" - but the reason
+  the quote is there is that the diagnostic told the author
+  `shell-grep-absent` was not canonical. The list lied, the author
+  believed it, and the author quoted the scheme to get past the
+  warning. Fixing the strings without fixing the list would leave
+  the cause in place for the next author.
+
+  (b) "The check can stay a `shell-grep-absent` over the corpus;
+  just unquote it."
+  Rejected because it cannot be done: the pattern the check would
+  search for is the text the check has to write down, so the file
+  that carries the check carries the pattern and the check can never
+  be green. The revision-2 check was unsatisfiable by construction
+  - and it was never even run, so nothing ever said so. A claim
+  about a TOKEN in a FIELD is not a claim about a substring of a
+  file, and only a program can state it. That is why
+  decisions/cli-canonical-name.yaml now names a fixture.
+
+  (c) "The two false claims are T2.4's business: they are the class
+  of obligations whose verifier runs but does not check its claim."
+  Rejected, and this is the one where the counterexample has to
+  admit something. It is true that the class belongs to T2.4, and
+  it is true that this tranche was chartered for the five broken
+  schemes. But the two false claims were found while repairing the
+  five, they sat in the same two files as broken quotes, and
+  leaving them would have meant shipping a tranche whose own
+  report said "the corpus's promises are honest" while two
+  promises in the corpus were not. The tranche's promise is the
+  corpus's promises being honest about the five AND about the two
+  it had to touch to get there.
+
+antithesis: |
+  The opposite position is that this tranche makes the corpus
+  STRICT, and that a stricter corpus is a slower one: every repair
+  here added a fixture, a negative control and a list to keep in
+  step, and the next tranche will add more, and the day the corpus
+  stops being editable by one person has arrived.
+
+  The claim is right about the cost, and it is paid in the same
+  currency the corpus already chose: a promise that cannot be
+  executed is not a promise, and a promise that cannot fail is not a
+  check. The three fixtures this tranche adds are small, they each
+  carry a negative control, and each one replaced a check that was
+  either unrunnable or unable to state its own claim - so the
+  instrument count goes up while the number of unreadable promises
+  goes down by six. The alternative is the one this tranche found:
+  a corpus whose obligations report `pass` while half of them have
+  never run, which is not a cheap corpus, it is an expensive one -
+  every promise it carries has to be re-read by a human, because the
+  machine's word on it means nothing.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - a-fixture-adds-more-cost-than-the-promise-it-carries
+    - the-allowlist-is-stated-in-two-forms-again
+    - a-scheme-is-added-to-the-allowlist-without-a-check-that-runs
+    - the-census-ceiling-is-raised-instead-of-lowered
+    - the-repaired-obligations-are-never-re-signed
+
+assumptions:
+  - id: the-kernel-is-the-authority-on-schemes
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel's `canonical_verifier_schemes` binding and the
+      `known_verifier_scheme` predicate in bin/Mathc.ml are the
+      authority on which verifier schemes exist. The diagnostic
+      reports membership in that list; it does not define it.
+    consequence_if_false: |
+      The list would have two authorities, and the fixture would be
+      asking one of them whether it agrees with itself. The
+      canonical list is stated in three places, and this tranche's
+      job was to make them say the same thing - not to make the
+      kernel's copy the only one that matters, which is a larger
+      change than this tranche is chartered for.
+    review_on:
+      - signal: the-kernel-adds-a-verifier-scheme
+
+  - id: a-skipped-sibling-is-not-a-check
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A verifier whose scheme the kernel cannot read is `Skipped`,
+      and a `Skipped` sibling is absorbed by a `Pass` sibling in an
+      `all:` acceptance list (bin/Mathc.ml::aggregate_verifier_outcomes).
+      A FAIL, a SETUP_FAIL and a MANUAL declaration outrank a PASS;
+      a SKIPPED one does not.
+    consequence_if_false: |
+      The five obligations this tranche repaired would have been
+      reported as `pass` with their checks unrun - which is the
+      state the corpus was in. The repairs would still be correct,
+      but nothing would have shown that the corpus's own verdict
+      had been blind, and the next scheme outside the allowlist
+      would be invisible again.
+    review_on:
+      - signal: the-kernel-changes-the-aggregation-order
+
+scope:
+  paths:
+    - "lib/diagnostic.ml"
+    - "bin/Mathc.ml"
+    - "decisions/verifier-scheme-convention-2026-11.yaml"
+    - "decisions/corpus-tranche-broken-schemes-2026-11.yaml"
+    - "decisions/cli-canonical-name.yaml"
+    - "decisions/forge-principal-verification-2026-10.yaml"
+    - "decisions/exit-code-symmetry-2026-10.yaml"
+    - "decisions/audit-0.0.21-fixes.yaml"
+    - "decisions/constitution-header-3-3-update-2026-10.yaml"
+    - "decisions/parser-risk-owner-default.yaml"
+    - "decisions/obligation-count-reconcile.yaml"
+    - "tests/cli/validate-verifier-scheme-known.t"
+    - "tests/cli/validate-verifier-scheme-unknown.t"
+    - "fixtures/conformance/decision/positive-verifier-scheme-known.json"
+    - "fixtures/conformance/decision/positive-verifier-scheme-unknown.json"
+    - "tests/fixtures/verifier-schemes-are-canonical.sh"
+    - "tests/fixtures/decisions-have-no-mc-prefix.sh"
+    - "tests/fixtures/aggregator-matches-parent.sh"
+    - "tests/fixtures/decision-packges-spelling.sh"
+
+outcomes:
+  - id: every-broken-scheme-is-repaired
+    statement: |
+      No obligation in the live corpus names a verifier scheme the
+      kernel cannot read, and the five obligations this tranche
+      repaired are classified by the kernel as checks rather than as
+      declarations.
+  - id: the-allowlist-is-honest
+    statement: |
+      The diagnostic names the schemes the kernel accepts, because
+      it renders the kernel's own binding instead of keeping a copy
+      of it, and the convention decision names that binding as the
+      authority instead of restating it.
+  - id: the-promises-state-what-their-checks-check
+    statement: |
+      The two claims that were false state the facts that hold, and
+      the checks that carry them can go red.
+
+obligations:
+  - id: the-allowlist-is-canonical
+    outcome: the-allowlist-is-honest
+    claim: |
+      Every scheme the kernel's diagnostic names as canonical is a
+      scheme the kernel accepts, and the list the diagnostic names
+      is the list `decisions/verifier-scheme-convention-2026-11.yaml`
+      documents. The list is read OUT of the kernel's own diagnostic
+      definition and asked about one scheme at a time, so this
+      fixture cannot hold a stale copy of the kernel's answers.
+
+      The diagnostic holds no copy either: it renders the kernel's
+      two bindings, so the list it prints cannot drift from the
+      list the kernel executes. That is what the corpus's own
+      history demands - the copy that used to live there named six
+      exact schemes and omitted the seventh, and the omission is
+      what put a quoted `shell-grep-absent` into the corpus.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-schemes-are-canonical.sh
+  - id: no-obligation-names-a-scheme-outside-the-canon
+    outcome: every-broken-scheme-is-repaired
+    claim: |
+      No decision in `decisions/` names a verifier scheme outside the
+      canonical list. The question is asked of the kernel - the same
+      `mathc validate` an author runs - and not re-implemented here.
+      The five obligations this tranche repaired are among them, and
+      the kernel now classifies them as checks rather than as
+      declarations.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-schemes-are-canonical.sh
+  - id: the-promises-state-what-their-checks-check
+    outcome: the-promises-state-what-their-checks-check
+    claim: |
+      The two claims this tranche found to be false now state facts
+      that hold: the retired `owner:` workaround is gone and the
+      kernel's default replaced it, and the aggregator lists exactly
+      the obligation ids the parent carries, in the same order. Both
+      checks can go red: the aggregator's fixture reports a
+      disagreement when there is one, and the retired-prefix fixture
+      reports a retired prefix when there is one.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/aggregator-matches-parent.sh
+        - verifier: tests/fixtures/decisions-have-no-mc-prefix.sh
+  - id: a-fixture-that-measured-nothing-says-so
+    outcome: the-promises-state-what-their-checks-check
+    claim: |
+      Each of the three fixtures this tranche adds answers
+      "unknown" - exit 3 - when the thing it measures is not there:
+      no kernel to ask the list, no corpus to scan, no obligation id
+      to compare. A fixture that measured nothing and reported a
+      clean result would be a green light for a question nobody
+      asked, and the three fixtures prove their own unknown path by
+      asking themselves in a child process.
+
+      The control is inside the fixture, and it is not decoration:
+      a promise no check can reach is not a promise, and the exit-3
+      path of a fixture is exactly such a promise until something
+      runs it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-schemes-are-canonical.sh
+        - verifier: tests/fixtures/aggregator-matches-parent.sh
+        - verifier: tests/fixtures/decisions-have-no-mc-prefix.sh
+
+relations:
+  addresses:
+    - verifier-scheme-convention-2026-11@1

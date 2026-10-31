@@ -1,6 +1,7 @@
 mathc validate emits zero MC-VERIFIER-SCHEME-UNKNOWN diagnostics
 when every obligation's acceptance carries ONLY canonical scheme
-tokens: file-exists, dir-exists, bash, mathc, shell-grep, dune, plus
+tokens: file-exists, dir-exists, bash, mathc, shell-grep,
+shell-grep-absent, dune, plus
 the documented prefixes text-scan-*, tests/, dune-*, scripts/,
 manual-*. The decision parses-ok cleanly, no extra diagnostic
 noise on stderr.

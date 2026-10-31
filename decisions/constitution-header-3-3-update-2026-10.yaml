@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 change_kind: editorial
-body_sha: "sha256:f26793dc35d119eb1769e06fa3dd85f04aa87d012c9bb79b64115dd0f242c25c"
-yaml_sha: "sha256:f26793dc35d119eb1769e06fa3dd85f04aa87d012c9bb79b64115dd0f242c25c"
+body_sha: "sha256:f854c267586acd57f403e39811ce3b3910e50ddd5f65993d389a279fa01ed3e2"
+yaml_sha: "sha256:f854c267586acd57f403e39811ce3b3910e50ddd5f65993d389a279fa01ed3e2"
 axiom_link:
   - A3
 intent: |
@@ -45,14 +45,30 @@ outcomes:
 obligations:
   - id: constitution-header-bumped
     claim: |
-      `head -1 spec/constitution.md` names the constitution it
-      governs: `# Math-coding <version> constitution`. The literal
-      moves with every release bump; what this obligation holds
-      is the rule, not the spelling this decision was written
-      against.
+      `spec/constitution.md` names the constitution it governs: the
+      document carries the name `Math-coding`, and its first line
+      reads `# Math-coding <version> constitution`. The literal moves
+      with every release bump; what this obligation holds is the
+      rule, not the spelling this decision was written against.
+
+      The check below asks for the NAME, because that is what a
+      fixed-string search can ask for. It cannot ask for a LINE, and
+      the `#` that opens the H1 cannot appear in a verifier value at
+      all: the YAML reader treats it as the start of a comment, so
+      the revision-2 check
+      `shell-grep spec/constitution.md # Math-coding` was cut at the
+      `#` and reached the kernel as the scheme `"shell-grep`, a
+      scheme in no allowlist. The obligation had never run - it was
+      the only obligation of this decision, and it was `skipped`.
+
+      Whether the H1 has the FORM and not only the NAME is a
+      separate debt, and it belongs to the tranche that owns the
+      obligations whose verifier is executable but does not check its
+      own claim (docs/plans/redundancy-and-portability-2026-11.md
+      §4, T2.4).
     acceptance:
       all:
-        - verifier: "shell-grep spec/constitution.md # Math-coding"
+        - verifier: shell-grep spec/constitution.md Math-coding
 risk:
   declared_triggers: [constitution-version-drift]
   owner: human:maintainer

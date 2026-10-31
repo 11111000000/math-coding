@@ -377,7 +377,12 @@ let[@warning "-32"] collect_verifier_scheme_diagnostics v =
                                               (Diagnostic
                                                .mc_verifier_scheme_unknown
                                                  ~obligation_id:id ~scheme
-                                                 ~verifier:s ())
+                                                 ~verifier:s
+                                                 ~exact_schemes:
+                                                   canonical_verifier_schemes
+                                                 ~prefix_schemes:
+                                                   canonical_verifier_prefixes
+                                                 ())
                                       | None -> None)
                                   | None -> None)
                               | _ -> None)
@@ -2500,7 +2505,10 @@ let[@warning "-32"] do_explain_diagnostic () =
           (List.length args);
         exit 2
   in
-  match Diagnostic.explain code with
+  match
+    Diagnostic.explain ~exact_schemes:canonical_verifier_schemes
+      ~prefix_schemes:canonical_verifier_prefixes code
+  with
   | None ->
       let msg =
         Printf.sprintf
