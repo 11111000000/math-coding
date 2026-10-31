@@ -18,6 +18,29 @@
       "default": "pre_merge"
     },
     "kind": {"enum": ["invariant", "acceptance", "recovery", "operational"]},
+    "declared": {
+      "description": "This obligation carries a promise no program can check, and it is declared rather than checked. `owner` is the human accountable for it until `review_on`; `reason` says why nothing can check it. A declared obligation is NOT a checked one: the corpus keeps the two apart so that an uncheckable promise is visible as a number with a name and a date on it, instead of hiding inside the field a checked obligation uses. See decisions/declared-promises-and-three-numbers-2026-11.yaml and tests/fixtures/negative-control-debt.sh.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "review_on"],
+      "properties": {
+        "owner": {
+          "description": "The identity accountable for the promise until it is checked, written or dropped.",
+          "type": "string",
+          "minLength": 1
+        },
+        "review_on": {
+          "description": "The date the promise is looked at again (YYYY-MM-DD). A declared promise is a promise to look at it by a date, and the date passes.",
+          "type": "string",
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+        },
+        "reason": {
+          "description": "One line: why this promise cannot be checked by a program.",
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
     "obligation_domain": {
       "description": "Classifier pair (kind + namespace) used by the auto-inference rule and the gate. See spec/kernel-contract.md §8.",
       "type": "object",

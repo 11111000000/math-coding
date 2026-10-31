@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: kernel-conformance-runner
 revision: 2
 state: active
-body_sha: "sha256:4bbd3927ba8d1d1cd2b71bce5679e993dfc0d91aaff09d607bf2fe31fd663418"
-yaml_sha: "sha256:4bbd3927ba8d1d1cd2b71bce5679e993dfc0d91aaff09d607bf2fe31fd663418"
+negative_control: tests/conformance.ml
+body_sha: "sha256:76511f96cfcb423d08a9e5ec58049fac7b7388af416a8a0c4248dc3d5717b304"
+yaml_sha: "sha256:76511f96cfcb423d08a9e5ec58049fac7b7388af416a8a0c4248dc3d5717b304"
 intent: |
   Replace the ad-hoc `tests/conformance.ml.disabled` with a working
   conformance runner that walks fixtures/conformance/, exercises both

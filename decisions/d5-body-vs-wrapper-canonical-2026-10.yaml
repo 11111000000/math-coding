@@ -4,8 +4,8 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:3e73b7d1abf95e2a2988f2f9e21c67feb0d48c74a83fb989d3a4354b21dcadfc"
-yaml_sha: "sha256:3e73b7d1abf95e2a2988f2f9e21c67feb0d48c74a83fb989d3a4354b21dcadfc"
+body_sha: "sha256:317a015e13add85bcc010de769ba5de399dc7e86becde39cd5780df9915040f6"
+yaml_sha: "sha256:317a015e13add85bcc010de769ba5de399dc7e86becde39cd5780df9915040f6"
 axiom_link:
   - A0
   - A3
@@ -526,6 +526,10 @@ obligations:
       (positive: comment names decision; negative: stale
       phrase absent; spec: §7.1 present; xfail witness
       for `mathc self-check` until the spec change ships).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the cram fixture the claim names was never integrated into the suite
     acceptance:
       all:
         - verifier: dune runtest

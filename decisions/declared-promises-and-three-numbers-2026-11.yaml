@@ -1,0 +1,502 @@
+---
+schema: math-coding/3.3
+id: declared-promises-and-three-numbers-2026-11
+revision: 2
+state: active
+#
+# Rev 1 (2026-11-01): the tranche's decision, written before the
+# corpus changed, as the house rule requires (P1: a decision precedes
+# the change it decides).
+#
+# Rev 2 (2026-11-01): the numbers the tranche ends with, as the
+# instrument measured them: CHECKED 78, DECLARED 21, UNCHECKED 37, one
+# decision with no promise, of 137 decisions. The 137th is this
+# decision itself, and it is CHECKED - it names its own control. The
+# debt (UNCHECKED) went 91 -> 37; the old single number, "decisions
+# that declare an executable verifier and name no negative control",
+# went 88 -> 52.
+mode: standard
+negative_control: tests/fixtures/negative-control-debt.sh
+body_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
+yaml_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
+  text: |
+    Tranche T2.4 of the redundancy-and-portability plan. The promise
+    debt of the corpus was ONE number, and one number was one thing
+    that is three.
+
+    The instrument `tests/fixtures/negative-control-debt.sh` used to
+    answer one question — "how many decisions name no negative
+    control" — and the answer was a single number with a ceiling of
+    123. The kernel's own audit of the same question said 88 of 136
+    on 2026-11-01 (the plan quotes 99 as of 2026-10-31; the number
+    moves because the corpus moves). One number for three different
+    situations, and the three situations have nothing in common:
+
+      - a promise that a program can check, where the corpus simply
+        never wrote the fixture that proves the check can fail;
+      - a promise that no program can check — a visual judgement, a
+        CI run outside this tree, a human reading the bootstrap
+        documents — and which the corpus said so out loud;
+      - a promise that looks checkable, whose check nobody wrote, and
+        which the corpus never admitted is uncheckable.
+
+    The second and the third are opposites, and the instrument could
+    not tell them apart. Worse: a promise that was honestly declared
+    as uncheckable still counted as debt, so the only way to make the
+    number go down was to write a fixture — which is the wrong answer
+    for a promise that cannot have one.
+
+    So the number became three, and the corpus got a field.
+
+      CHECKED   the decision names `negative_control:` — a control
+                that can fail, and the fixture that proves it.
+      DECLARED  the decision carries at least one obligation with
+                `declared:` — a promise nobody can check, with a
+                named owner and a date it is looked at again.
+      UNCHECKED neither: obligations, no control that can fall, and
+                no honest declaration. THIS is the debt.
+
+    A decision with NO obligations is in none of the three: it makes
+    no promise that could be kept or broken. Its number is printed
+    too, and the four classes add up to the corpus — checked as a
+    SUM, not as three counters that could each be wrong.
+
+    THE MEASURED NUMBERS, before and after this tranche.
+
+      before (corpus at b417c63a, 136 decisions):
+        CHECKED 44, DECLARED 0, UNCHECKED 91, no promise 1
+        and, in the old single number: 88 of 136 decisions declare an
+        executable verifier and name no negative control.
+
+      after (this tranche's own decision is the 137th, and it is
+      CHECKED - it names its own control):
+        CHECKED 78, DECLARED 21, UNCHECKED 37, no promise 1
+        and, in the old single number: 52 of 137.
+
+    The debt — the UNCHECKED number, the one whose ceiling may only
+    fall — went 91 -> 37. The declared class appeared at 21 decisions
+    and 39 obligations, each with an owner and a date.
+
+    THE DIFFERENCE WITH THE INVENTORY, AND ITS RESOLUTION.
+
+    `docs/corpus-claims-inventory-2026-11.md` is one pass over the
+    corpus with two classifications: by truth (73 TRUE, 9 FALSIFIED,
+    34 STALE-FORM, 20 RECORD) and by control (78 CHECKED, 24
+    DECLARED, 34 UNCHECKED). The instrument and the inventory must
+    not tell two truths about the same corpus, so every difference
+    was looked at. The inventory's rule for CHECKED was WIDER than
+    the instrument's: "a relevant negative control OR a named
+    verifier/fixture that contains a rejecting/mutation case". The
+    instrument's rule is the field `negative_control:`. The
+    differences, all of them:
+
+      1. NINE decisions the inventory called CHECKED are UNCHECKED
+         here: adapters, capsule-active-policy,
+         ci-blocking-list-config, defense-and-init-scope-2026-11,
+         fix-yaml-parser-2026-10, gaps-worklist-2026-10,
+         new-decision-mkdir-parent-2026-10,
+         risk-policy-driven-floor-2026-10 and
+         the-kernel-speaks-for-itself-2026-10. Each was read: the
+         fixture the decision names asserts the healthy case and
+         nothing else — no case in it breaks the property the
+         promise is about and requires the check to fail. Naming one
+         of them as the `negative_control:` would have been a claim
+         the corpus cannot back, so they were left UNCHECKED and the
+         ceiling carries them. They are the honest remainder of this
+         tranche, not an oversight.
+
+      2. SIX decisions the inventory called UNCHECKED are CHECKED
+         here: corpus-tranche-archive-records-2026-11,
+         honest-attestation-emission-2026-10,
+         paseo-console-mosaic-2026-10,
+         paseo-console-plugin-2026-10, redundancy-census-2026-11 and
+         store-not-committed-2026-10. Each names a `negative_control:`
+         that the inventory read as a control unrelated to the
+         promise (a generic shell-grep control, a census that does
+         not exercise the claim). The instrument measures the field,
+         the inventory measured the substance, and on these six the
+         two differ. They are the next tranche's (T2.2b) to fix —
+         either the control becomes the real one, or the field goes.
+
+      3. ONE decision the inventory called DECLARED carries no
+         obligations at all: attestation-store-fill. It makes no
+         promise that could be kept or broken, so it is in the
+         "no promise" class and not in any of the three.
+
+      4. The inventory's population is 136 FILES, three of which are
+         not decisions: `decisions/obligations.yaml` (the aggregator)
+         and the two migration manifests. The instrument's population
+         is the 136 files whose schema is a decision schema. The
+         inventory also predates three decisions that landed after
+         its snapshot (exportable-core-boundary-2026-11,
+         kernel-contract-rename-2026-11,
+         one-master-policy-and-build-id-2026-11); all three are
+         CHECKED.
+
+      On the population both instruments see, the numbers agree.
+
+commitment: |
+  After this decision closes:
+
+  1. `schemas/obligation.json` declares the field `declared`: an
+     object with `additionalProperties: false`, `owner` and
+     `review_on` required, and `reason` optional. `review_on` is a
+     date (`YYYY-MM-DD`). The field means: this obligation carries a
+     promise no program can check; the owner answers for it until the
+     date, and the reason says why nothing can check it.
+
+  2. `schemas/decision.json`'s INLINE obligations form — the second
+     branch of the `oneOf`, the one that accepts `statement:` in
+     place of `claim:` — refers to the same declaration
+     (`$ref: obligation.json#/properties/declared`) instead of
+     describing a second one. Two shapes of the same field are two
+     truths about it, and the point of this tranche is that the
+     corpus stops having two truths about anything.
+
+  3. `tests/fixtures/negative-control-debt.sh` measures FOUR numbers
+     over DECISIONS with ONE rule (a decision with obligations that
+     carries a `declared:` block is DECLARED; a decision that names
+     `negative_control:` is CHECKED; a decision with obligations and
+     neither is UNCHECKED; a decision without obligations is in the
+     "no promise" class), prints them, and checks that the four
+     classes add up to the corpus as a SUM.
+
+  4. The instrument reads the schema for the field's name and its
+     required keys, so a field the schema does not know cannot be
+     counted by accident, and a `declared:` block the schema does not
+     accept is reported as a defect instead of being counted as a
+     declaration.
+
+  5. The instrument answers "unknown" (exit 3), never zero, when the
+     schema or the corpus cannot be read. Its negative control
+     proves both: a corpus that cannot be read and a schema that
+     cannot be read each have to produce "unknown".
+
+  6. The CEILINGS. UNCHECKED (the debt) has a ceiling of 37 — the
+     number measured after this tranche — and it may only fall.
+     DECLARED has its own ceiling of 21, and it falls slower: a
+     declared promise is a promise to look at it on a date, and the
+     date passes. CHECKED has NO ceiling: it may only grow, and a
+     ceiling on it would be a target the corpus is pushed towards.
+
+  7. THE CORPUS. Thirty-nine obligations in twenty-one decisions
+     carry the `declared:` block, one per obligation that no program
+     can check: owner `human:maintainer`, `review_on: 2026-12-15`,
+     and a reason that names why nothing can check that particular
+     promise. The date is 2026-12-15 because it falls after the
+     corpus tranche that rewrites the decisions whose claims the tree
+     has falsified (T2.2b, ending 2026-11-27) and after the
+     contract tranche (T3.2, ending 2026-12-04): the declared
+     promises are reviewed against a corpus that has already been
+     rewritten, and the date lands inside a wave rather than on its
+     boundary.
+
+  8. Thirty-six decisions that name a fixture which really does catch
+     the failure of their own promise now name it in the field
+     `negative_control:` — the fixture the inventory's pass had
+     already measured, from `tests/cli/attest-batch-signature.t` to
+     `tests/fixtures/sync-version-stale-fails.sh`. The nine decisions
+     whose fixtures do NOT catch their own promise are left alone,
+     and the debt ceiling carries them.
+
+  9. The kernel is NOT changed. It drops the unknown key, as it
+     drops every key it does not read, and `mathc validate` still
+     answers parse-ok on a decision that carries the block: a
+     declaration is not a check, and the kernel has no business
+     executing one. The instrument reads the corpus the way
+     `tests/fixtures/redundancy-census.sh` does — the kernel answers
+     the questions that are about the kernel's own vocabulary, and the
+     corpus's shape is not one of them.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+counterexample: |
+  The strongest objection against this tranche is that a declared
+  promise with a date is exactly the paper layer the corpus decided
+  it did not want, and that declaring it is measuring a deviation
+  from the ideal and calling the measurement progress.
+
+  The objection is right about the shape of the thing. A `declared:`
+  block is not a check, it does not make anybody's promise true, and
+  nothing in this corpus can make it true. It is a promise ABOUT a
+  promise, and the method this repository follows says that a promise
+  is either machine-checked or it is not there
+  (docs/plans/redundancy-and-portability-2026-11.md §6). This
+  tranche contradicts that sentence on purpose, and the contradiction
+  is written down rather than smuggled.
+
+  What keeps the declared class from being the paper layer of
+  2026-10 is four things that a phrase in prose does not have:
+
+    - the number is VISIBLE. Twenty-one decisions and thirty-nine
+      obligations are DECLARED, and the instrument prints them. The
+      paper layer of 2026-10 was invisible: `manual-*` promises sat
+      in the corpus and every instrument reported green. These are a
+      class the census reports separately, with a count of its own.
+
+    - the OWNER is named. `human:maintainer` is a person, not a
+      scheme token. A promise with nobody's name on it is a wish; a
+      promise with a name on it is a debt, and debts have owners.
+
+    - the DATE stands. 2026-12-15 is written down in the file, and
+      the schema does not accept a date in any other shape. A
+      declared promise is a promise to look at it by a date, and the
+      date passes.
+
+    - the CEILING falls. The DECLARED class is bounded and may only
+      fall. When a declared promise is checked, written or archived,
+      the number drops and the pin follows the truth down. Paper
+      does not have a ratchet; it has a shelf.
+
+  And the answer to the sharpest form of the objection — "you paid
+  the debt down by re-labelling it" — is the number that did not
+  move: the UNCHECKED class, which is the debt, went from 91 to 37.
+  Thirty-seven of the ninety-one are still debt, with no control and
+  no declaration; they are the nine the inventory called CHECKED and
+  this tranche could not back up, plus the twenty-eight the
+  inventory called UNCHECKED and this tranche was told not to touch.
+  A tranche that had re-labelled instead of paid would have left the
+  debt at 91 and moved the promises into a new class. It did not:
+  thirty-six decisions got a control that catches their own failure
+  and were measured by it.
+
+  The honest limit of the answer: the corpus cannot force a date to
+  be honoured. A `review_on: 2026-12-15` that nobody reads is a
+  promise that expires into a promise nobody made. The DECLARED
+  ceiling is the only thing that notices, and it notices late — it
+  notices when the number stops falling, which is exactly what the
+  "slower ceiling" means. The risk block below names this as the
+  trigger that would withdraw the class.
+
+antithesis: |
+  The opposite position is that the corpus should have no DECLARED
+  class at all: a promise that cannot be checked must be rewritten as
+  a check or deleted, and the plan's own text says so — "a promise is
+  either machine-checked or it is not there", and "it does not write
+  one negative control per promise ... the line adopted here is: the
+  promise is checked by something that can catch its own lie, or the
+  promise is gone".
+
+  The position is coherent, it is the corpus's own rule, and it has
+  one advantage this tranche cannot match: it leaves no room for a
+  promise nobody checks. Under it, the thirty-nine obligations this
+  tranche declares would have to become checks or would have to go,
+  and the twenty-one decisions that carry them would shrink.
+
+  The position is wrong about what those thirty-nine obligations
+  ARE. They are the visual judgements (does the hero fit on one
+  line, does the Russian page mirror the English structure), the
+  external evidence (does the musl artifact run, did the site
+  workflow publish), and the human reviews (is the bootstrap
+  documentation honest). None of them can have a fixture that breaks
+  the property and requires the check to fail, because the property
+  is not a property of a file. Writing a fixture for them would
+  produce exactly what the audit of 2026-10 called worse than paper:
+  a check the kernel takes for evidence and that checks nothing.
+
+  And the cost of the counter-position is the thing this tranche
+  exists to fix. If the thirty-nine promises are deleted, the
+  decisions that carry them lose the part of themselves that the
+  method still needs — a manual review of the site's layout is not
+  the same promise as "the site is fine", and deleting the first
+  because the second cannot be checked is a decision made by
+  deleting, not by judging. If they are kept without being declared,
+  the corpus is where it was: one number, and no way to tell a
+  promise nobody checks from a promise whose check was never written.
+
+  The counter-position is right about the ceiling that matters: the
+  UNCHECKED number has to reach zero, and this tranche does not
+  pretend otherwise — it went from 91 to 37 and it is still 37. The
+  declared class is not where the debt goes to hide; it is where the
+  debt that cannot be paid says who is holding it and until when.
+
+outcomes:
+  - id: the-debt-is-three-numbers
+    statement: |
+      The promise debt of the corpus is measured as three numbers
+      (CHECKED, DECLARED, UNCHECKED) plus the decisions that make no
+      promise, the four add up to the corpus, and the ceiling that
+      may only fall is the UNCHECKED one.
+
+  - id: a-declared-promise-has-an-owner-and-a-date
+    statement: |
+      Every obligation the corpus cannot check carries a `declared:`
+      block with an owner and a review date, in a field the schema
+      declares and the corpus's instrument reads.
+
+  - id: the-instrument-and-the-inventory-agree
+    statement: |
+      Every difference between the instrument's classification and
+      the claims inventory of 2026-11 is named, with the reason and
+      the decision taken.
+
+scope:
+  paths:
+    - "schemas/obligation.json"
+    - "schemas/decision.json"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "tests/fixtures/declared-obligation-schema.sh"
+    - "decisions/declared-promises-and-three-numbers-2026-11.yaml"
+    - "decisions/attestation-producer-vocab-2026-10.yaml"
+    - "decisions/attest-per-obligation-2026-10.yaml"
+    - "decisions/audit-0.0.21-fixes.yaml"
+    - "decisions/candidate-tree-resolves-to-a-commit-2026-10.yaml"
+    - "decisions/ceiling-monotonic-2026-10.yaml"
+    - "decisions/ci-self-check-is-an-audit-2026-10.yaml"
+    - "decisions/cli-canonical-name.yaml"
+    - "decisions/corpus-silent-drop-inventory-2026-10.yaml"
+    - "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml"
+    - "decisions/d8-coarse-diagnostics-2026-10.yaml"
+    - "decisions/decision-required-attestations-2026-10.yaml"
+    - "decisions/decision-resolution-2026-10.yaml"
+    - "decisions/decision.yaml"
+    - "decisions/dialectic-method-v3-2026-10.yaml"
+    - "decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml"
+    - "decisions/enforce-body-sha-digest-2026-10.yaml"
+    - "decisions/exit-code-symmetry-2026-10.yaml"
+    - "decisions/forge-stub-read-request-2026-10.yaml"
+    - "decisions/gate-attestation-store-fill-decision.yaml"
+    - "decisions/gate-blocks-in-ci-2026-10.yaml"
+    - "decisions/gate-ref-validation-2026-10.yaml"
+    - "decisions/gate-scoped-default-2026-10.yaml"
+    - "decisions/gate-verifier-cycle-guard-2026-10.yaml"
+    - "decisions/honest-instruments-2026-10.yaml"
+    - "decisions/install-tooling-2026-10.yaml"
+    - "decisions/kernel-bugs-v3.4-2026-10.yaml"
+    - "decisions/kernel-conformance-runner.yaml"
+    - "decisions/kernel-fixes-found-bugs-2026-10.yaml"
+    - "decisions/legacy-attestation-debt-2026-10.yaml"
+    - "decisions/materials-digest-semantics-a-2026-10.yaml"
+    - "decisions/mathjax-delimiter-hardening-2026-10.yaml"
+    - "decisions/migration-mechanism-2026-10.yaml"
+    - "decisions/one-corpus-walk-2026-10.yaml"
+    - "decisions/parse-acceptance-diagnostics.yaml"
+    - "decisions/portable-linux-musl.yaml"
+    - "decisions/process-principles-close-branches.yaml"
+    - "decisions/process-principles.yaml"
+    - "decisions/record-proportionality-2026-10.yaml"
+    - "decisions/render-kernel-fixes-2026-10.yaml"
+    - "decisions/render-module-split-phase1a-2026-10.yaml"
+    - "decisions/render-ordered-lists-2026-10.yaml"
+    - "decisions/site-broken-links-2026-10.yaml"
+    - "decisions/site-deploy.yaml"
+    - "decisions/site-quality-2026-10.yaml"
+    - "decisions/site-quality-distribution-2026-10.yaml"
+    - "decisions/site-redesign-2026-10.yaml"
+    - "decisions/stub-lint-real-2026-10.yaml"
+    - "decisions/time-honesty-storage.yaml"
+    - "decisions/validate-and-context.yaml"
+    - "decisions/verifier-outcome-taxonomy-2026-10.yaml"
+    - "decisions/verifier-scheme-convention-2026-11.yaml"
+    - "decisions/verify-honesty-2026-10.yaml"
+    - "decisions/verify-path-forms-and-signed-attestations-2026-10.yaml"
+    - "decisions/version-sync-2026-10.yaml"
+    - "decisions/waiver-missing-expiry-rejected-2026-10.yaml"
+    - "decisions/yaml-block-scalars.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "docs/plans/**"
+
+obligations:
+  - id: the-debt-is-measured-in-three-numbers
+    claim: |
+      `tests/fixtures/negative-control-debt.sh` measures the promise
+      debt of the corpus as CHECKED, DECLARED and UNCHECKED (plus the
+      decisions that make no promise), prints the four numbers, and
+      they add up to the corpus as a sum.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-declared-class-is-bounded-and-well-formed
+    claim: |
+      The DECLARED count is at most its ceiling, no `declared:` block
+      in the corpus misses a key the schema requires or carries a key
+      the schema does not know, and the instrument answers "unknown"
+      rather than zero when the schema or the corpus cannot be read.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-schema-knows-the-field
+    claim: |
+      `schemas/obligation.json` declares `declared` once, with
+      `owner` and `review_on` required and `additionalProperties:
+      false`; the inline obligations form of `schemas/decision.json`
+      refers to that same declaration; the kernel still answers
+      parse-ok on a decision that carries the block; and a block the
+      schema does not accept is reported as a defect instead of
+      buying a decision its DECLARED class.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/declared-obligation-schema.sh
+
+  - id: the-uncheckable-promises-are-declared
+    claim: |
+      Every obligation in the live corpus that no program can check
+      carries a `declared:` block with an owner and a review date, and
+      the decisions that carry them are counted as DECLARED by the
+      instrument — twenty-one decisions and thirty-nine obligations,
+      measured 2026-11-01.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the DECLARED ceiling is raised instead of lowered — the class is growing instead of emptying"
+    - "a `declared:` block is added to an obligation a program can check, so that a checked promise is counted as uncheckable"
+    - "the review date passes and the declaration is not looked at, and the corpus says nothing"
+    - "the instrument's rule and the schema's required keys drift apart, so that a declaration the schema does not accept is counted as one"
+    - "a decision in the DECLARED class is added to the corpus without a `declared:` block, and the two numbers disagree"
+
+assumptions:
+  - id: the-declaration-is-read-by-a-tool-and-not-by-the-kernel
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel drops the `declared:` key the way it drops every key
+      it does not read, and reads no JSON-Schema file at all
+      (bin/Mathc.ml:405-407). The instrument reads the corpus and the
+      schema itself, the way
+      `tests/fixtures/redundancy-census.sh` reads the corpus for the
+      numbers the kernel does not answer. A declaration is not a
+      check, and the kernel has no business executing one.
+    consequence_if_false: |
+      If the kernel ever starts reading (or refusing) the key, the
+      instrument's rule and the kernel's rule would be two rules
+      about one field, and one of them would be measuring something
+      the kernel no longer agrees with. The trigger for that is in the
+      risk block.
+    review_on:
+      - signal: kernel-reads-the-declared-key
+
+  - id: a-declaration-with-a-date-is-a-real-review
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A `review_on:` date in the corpus is honoured by somebody
+      reading the corpus: the DECLARED class is emptied by work
+      (a check is written, the promise is rewritten, the record is
+      archived), not by the dates passing. The DECLARED ceiling is
+      the only thing that notices when it is not.
+    consequence_if_false: |
+      If the dates pass without anything happening, the declared
+      class becomes a shelf: the number stops falling, the ceiling
+      stops meaning anything, and the corpus would be describing its
+      own paperwork instead of its promises. The class would then
+      have to be withdrawn, and the twenty-one decisions would have
+      to be either checked or deleted — which is the position this
+      decision's antithesis argues for.
+    review_on:
+      - signal: declared-ceiling-stops-falling

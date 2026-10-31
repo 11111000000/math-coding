@@ -4,8 +4,9 @@ id: verify-honesty-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:54c30dbccc2c0a62ee0c16a548fbde119b4fdf4de1c14c4ad6f8065f123fee74"
-yaml_sha: "sha256:54c30dbccc2c0a62ee0c16a548fbde119b4fdf4de1c14c4ad6f8065f123fee74"
+negative_control: tests/cli/verify-exit.t
+body_sha: "sha256:0360c3e53ce1a62997d7884c7cecaff4419cc8102bfca642dd7dd60133fe548f"
+yaml_sha: "sha256:0360c3e53ce1a62997d7884c7cecaff4419cc8102bfca642dd7dd60133fe548f"
 
 intent: |
   Make the verifier path honest about the difference between a check

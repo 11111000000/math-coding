@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: bootstrap-v3
 revision: 3
 state: active
-body_sha: "sha256:2a80dfbea14e564cb0f0027c842c28adb1c39eb94d4ccc647a8e112668c1329a"
-yaml_sha: "sha256:2a80dfbea14e564cb0f0027c842c28adb1c39eb94d4ccc647a8e112668c1329a"
+body_sha: "sha256:3d074ef3ea8470e45485cb9d18b446ec9401a0ff0a25d6b31332299206260714"
+yaml_sha: "sha256:3d074ef3ea8470e45485cb9d18b446ec9401a0ff0a25d6b31332299206260714"
 intent: Replace math-coding 2.1 with a self-applying assurance protocol.
 
 axiom_link:
@@ -51,6 +51,10 @@ obligations:
   - id: preserve-v2
     outcome: reversible-transition
     claim: The v2.1-final tag resolves to a reachable commit.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the v2.1 tag is a fact about the repository's history; a tag can be read, not checked
     acceptance:
       all:
         - verifier: manual-tag-v2-1-final-exists
@@ -67,6 +71,10 @@ obligations:
     outcome: honest-bootstrap
     claim: AGENTS.md and bootstrap documents do not claim automated enforcement
       that is not yet implemented.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the bootstrap gate is a human review of the documentation
     acceptance:
       all:
         - verifier: manual-bootstrap-docs-honesty-review
@@ -75,6 +83,10 @@ obligations:
     outcome: agent-authorable
     claim: First-attempt structural validity of decisions produced by an LLM
       reaches the documented threshold.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the benchmark is a run whose numbers belong to a human
     acceptance:
       all:
         - verifier: manual-authoring-benchmark-run
@@ -97,6 +109,10 @@ obligations:
           categories, not used for closed sets;
         - SHA-256 is not used for canonicalization until RFC 6234 vectors
           pass in tests/.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: binding the developer practices to the corpus is a review
     acceptance:
       all:
         - verifier: manual-practice-review
@@ -106,6 +122,10 @@ obligations:
     claim: |
       Every non-trivial change is motivated by at least one axiom in
       axioms/ and is recorded as a relation superseding or addressing it.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the axioms are bound by a human reading, not by a program
     acceptance:
       all:
         - verifier: manual-axiom-link-review

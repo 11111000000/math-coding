@@ -4,8 +4,8 @@ id: verifier-scheme-convention-2026-11
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:41be9bf685139de26ea87f76000de0eded6706bf78700ec5f2cab21636364f9f"
-yaml_sha: "sha256:41be9bf685139de26ea87f76000de0eded6706bf78700ec5f2cab21636364f9f"
+body_sha: "sha256:123b13346aab148656154e02e1bec4bfb6aa9247a69f7de640d6fc8dd51993af"
+yaml_sha: "sha256:123b13346aab148656154e02e1bec4bfb6aa9247a69f7de640d6fc8dd51993af"
 
 intent: { source: "issue:plan-c5-verifier-scheme", text: "Surface acceptance.all[*].verifier strings that use a verifier scheme name NOT in the canonical list, as a Warn diagnostic from `mathc validate`. The validator still parses-ok on the file; the warning flags the operator that the scheme string is non-canonical. Plan-decision C5 of plan-2026-11-adoption-fixes." }
 
@@ -118,6 +118,10 @@ obligations:
       commit. The decision's own obligations are fully
       attested, so the new subject carries verdict `pass`
       and the self-check verdict does not regress.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the self-check delta is read by a person; the store is generated outside the tree
     acceptance:
       all:
         - verifier: manual-self-check-no-new-unknowns

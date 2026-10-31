@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: validate-and-context
 revision: 3
 state: active
-body_sha: "sha256:5d633cb179749d0567bc4250185f32e8e4bf03007ea945eac673d26b29e0696c"
-yaml_sha: "sha256:5d633cb179749d0567bc4250185f32e8e4bf03007ea945eac673d26b29e0696c"
+negative_control: tests/cli/validate-negative.t
+body_sha: "sha256:292f757b6eb68a55abda3fe880b6e941eeebf9e17536491e7f75327856c77b50"
+yaml_sha: "sha256:292f757b6eb68a55abda3fe880b6e941eeebf9e17536491e7f75327856c77b50"
 intent: |
   Close the deferred obligation `deferred-cli-context` from
   validate-and-context@1 by adding `mathc context BASE HEAD --budget N`

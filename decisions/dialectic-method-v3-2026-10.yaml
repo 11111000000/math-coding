@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:d508208c6a337c78f94ecb32e4e52d67a7d673b6b14049b489cf4555cddcc2ec"
-yaml_sha: "sha256:d508208c6a337c78f94ecb32e4e52d67a7d673b6b14049b489cf4555cddcc2ec"
+negative_control: tests/cli/validate-considered-antithesis.t
+body_sha: "sha256:f8649f281a80b90d919c53659b19f8099eee92335a14e1fa4d33e71635bc64f4"
+yaml_sha: "sha256:f8649f281a80b90d919c53659b19f8099eee92335a14e1fa4d33e71635bc64f4"
 axiom_link:
   - A0
   - A1

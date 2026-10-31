@@ -4,8 +4,8 @@ id: verify-path-forms-and-signed-attestations-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:00eec67e37283cc6026341294535ac2c8e8e03fc371bd6aa35e951dd2b7d65a0"
-yaml_sha: "sha256:00eec67e37283cc6026341294535ac2c8e8e03fc371bd6aa35e951dd2b7d65a0"
+body_sha: "sha256:d6b49a3d33e1eee738cbea08f1068e5b18b5a899f6c158f91864bb46bd4389b8"
+yaml_sha: "sha256:d6b49a3d33e1eee738cbea08f1068e5b18b5a899f6c158f91864bb46bd4389b8"
 
 intent: |
   Two obligations in one file, because they are one chain: an
@@ -221,6 +221,10 @@ obligations:
       exempts that one kind -- a human declaration without a
       runtime anchor -- and the schema's own diagnostic text
       says so. This decision does not "fix" it.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the file the check names does not exist, so there is nothing to read
     acceptance:
       all:
         - verifier: manual-file-exists-unqualified

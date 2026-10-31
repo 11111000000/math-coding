@@ -3,8 +3,9 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:be4eed0e59133de3d2524cc2bf641314f1a5b6374cd8b8bee8f9f4a891caca3e"
-yaml_sha: "sha256:be4eed0e59133de3d2524cc2bf641314f1a5b6374cd8b8bee8f9f4a891caca3e"
+negative_control: tests/duplicate_keys.ml
+body_sha: "sha256:f8454b8d1b1ffcc3048f6062e3d9a6e95b5c729d0bf4ff5949ced4b1f2a9b3e4"
+yaml_sha: "sha256:f8454b8d1b1ffcc3048f6062e3d9a6e95b5c729d0bf4ff5949ced4b1f2a9b3e4"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.

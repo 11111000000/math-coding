@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:9a81774c8ed83e9119466d8b931bf9ea30433b30090166d22ffb5e0584563e38"
-yaml_sha: "sha256:9a81774c8ed83e9119466d8b931bf9ea30433b30090166d22ffb5e0584563e38"
+negative_control: tests/cli/gate-unknown-exit-3.t
+body_sha: "sha256:5c51fd90bcd2ee9b530cdf736ba396d2f7dedbfa8adfea0f0ff5def3c1fbb804"
+yaml_sha: "sha256:5c51fd90bcd2ee9b530cdf736ba396d2f7dedbfa8adfea0f0ff5def3c1fbb804"
 axiom_link:
   - A0
   - A1

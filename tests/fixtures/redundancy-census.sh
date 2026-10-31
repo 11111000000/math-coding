@@ -172,7 +172,8 @@ CEILING_DEAD=0
 # ceiling-raise: 136 -> 137, the exportable-core-boundary decision is in
 #   the corpus it counts
 # ceiling-raise: 138 -> 139, the kernel-contract-rename decision is in the corpus it counts
-CEILING_CORPUS=139
+# ceiling-raise: 139 -> 140, the declared-promises decision is in the corpus it counts
+CEILING_CORPUS=140
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.

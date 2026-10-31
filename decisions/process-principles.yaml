@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles
 revision: 5
 state: active
-body_sha: "sha256:26ff6ef762aa2d939e136c98949d61263a06c95bbf8b54d320907a2ba05a2c0c"
-yaml_sha: "sha256:26ff6ef762aa2d939e136c98949d61263a06c95bbf8b54d320907a2ba05a2c0c"
+body_sha: "sha256:ac7245bd1c21497d6c9ef549aea623f0c71344e9b9ef9867ed592f2991f4fb56"
+yaml_sha: "sha256:ac7245bd1c21497d6c9ef549aea623f0c71344e9b9ef9867ed592f2991f4fb56"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -300,6 +300,10 @@ obligations:
       sequence on demand.
     evidence: manual-acceptance
     owner: human:maintainer
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: how long the work took is an observation, not a property of a file
     acceptance:
       all:
         - verifier: manual-agent-conduct-review
@@ -317,6 +321,10 @@ obligations:
       pull-request ordering on demand.
     evidence: manual-acceptance
     owner: human:maintainer
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the merge order and the time budget are decided by a person
     acceptance:
       all:
         - verifier: manual-agent-conduct-review

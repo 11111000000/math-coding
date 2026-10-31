@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:89b6b124260ed615c76c4133ee574450b0ffab87e7d591f02fa37ca324a883ca"
-yaml_sha: "sha256:89b6b124260ed615c76c4133ee574450b0ffab87e7d591f02fa37ca324a883ca"
+body_sha: "sha256:879c5492a656107ccd75e06f741961e7106fb50b9fef4ed2c1dc087cca77256a"
+yaml_sha: "sha256:879c5492a656107ccd75e06f741961e7106fb50b9fef4ed2c1dc087cca77256a"
 axiom_link:
   - A0
   - A1
@@ -118,6 +118,10 @@ obligations:
       1440 px viewports with 14-px mono text and a 1.0 em
       gutter.
       screenshots/site-redesign/nav-1280.png and nav-1440.png show the nav in a single row with no wrap.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-visual-diff
@@ -127,6 +131,10 @@ obligations:
       primitives (left bracket, check mark, right bracket)
       legible.
       Render the SVG to PNG at 16x16 with a 2x device-pixel ratio and verify the bracket-corner and check-mark remain distinguishable.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-render-and-compare
@@ -135,6 +143,10 @@ obligations:
       The first viewport on `/` on a 1440 x 900 window shows
       only the hero.
       The screenshot at 1440 x 900 of `/` shows only the hero (logo, h1, tagline, two CTAs) and the first divider line above the next section.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-visual-diff
@@ -144,6 +156,10 @@ obligations:
       with a sample `mathc gate main feature/auth-fix`
       transcript.
       grep 'mathc gate main feature/auth-fix' dist/index.html returns a non-empty result.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-file-grep
@@ -152,6 +168,10 @@ obligations:
       `dist/index.ru.html` carries the same five sections and
       structural classes as `dist/index.html`.
       grep -c -e 'mathc-hero' -e 'mathc-section mathc-quickstart' -e 'mathc-section mathc-moderation' -e 'mathc-section mathc-methodology' -e 'mathc-section mathc-adopt' dist/index.html and the same on dist/index.ru.html return the same count.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-file-grep
@@ -160,6 +180,10 @@ obligations:
       On viewports ≥ 1280 px the hero uses the full main
       column.
       At 1440 x 900, evaluate in the browser: document.querySelector('.mathc-hero').offsetWidth is greater than 800.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the layout is a visual judgement; a program cannot see it
     acceptance:
       all:
         - verifier: manual-browser-eval

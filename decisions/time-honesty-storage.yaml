@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: time-honesty-storage
 revision: 2
 state: active
-body_sha: "sha256:098aa157d9717d61d936b1b583bd0c0e74ec8b4d9dae3a357e96f13723ed7107"
-yaml_sha: "sha256:098aa157d9717d61d936b1b583bd0c0e74ec8b4d9dae3a357e96f13723ed7107"
+body_sha: "sha256:8624c56767d69c43f6cdd868444e896955f589321bbb11814292ac6a39fdb0b5"
+yaml_sha: "sha256:8624c56767d69c43f6cdd868444e896955f589321bbb11814292ac6a39fdb0b5"
 intent: |
   Close the read side of A1 (Feedback) for time claims. The prior
   decision time-honesty@v1 registered obligations on the forward-
@@ -130,6 +130,10 @@ obligations:
       wall-clock-minutes. The wall-clock value is computed
       internally. step-count MAY accept --value as documented
       in the assumption step-count-supplied.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: whether a record carries a value for the wall clock is a reading of the record
     acceptance:
       all:
         - verifier: manual-cram-fixture-record-no-value-for-wallclock

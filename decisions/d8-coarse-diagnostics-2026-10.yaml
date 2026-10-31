@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: d8-coarse-diagnostics
 revision: 1
 state: active
-body_sha: "sha256:5753da7e83e2ca055a7de1f7cb6f2c6fa04f8511dbcb8a2e6097a1c7bd2b121c"
-yaml_sha: "sha256:5753da7e83e2ca055a7de1f7cb6f2c6fa04f8511dbcb8a2e6097a1c7bd2b121c"
+body_sha: "sha256:82bdd6d26be33ca009847eb1f8148067b4966cfce7ce34443cae5343f60f3748"
+yaml_sha: "sha256:82bdd6d26be33ca009847eb1f8148067b4966cfce7ce34443cae5343f60f3748"
 axiom_link:
   - A0
   - A1
@@ -263,6 +263,10 @@ obligations:
       exists under `fixtures/conformance/decision/`. The negative
       fixture triggers the specific code (verified by inspecting
       the `Diagnostic.code` field on parse_decision's return).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the two test targets the claim names are not in the tree
     acceptance:
       all:
         - verifier: manual-target-missing-tests-diagnostic-ux-ml-test-per-c

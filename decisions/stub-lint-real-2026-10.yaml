@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: stub-lint-real-2026-10
 revision: 1
 state: active
-body_sha: "sha256:142bda9bbb81a00e5c78ef9358ec0b9e607a547338d7bab60c496e6ff419e3c1"
-yaml_sha: "sha256:142bda9bbb81a00e5c78ef9358ec0b9e607a547338d7bab60c496e6ff419e3c1"
+negative_control: tests/process_principles.ml
+body_sha: "sha256:b40b7be6662a3197810df5fe8cf93991aa3b3c5ab62fb45222c073c6b90d434f"
+yaml_sha: "sha256:b40b7be6662a3197810df5fe8cf93991aa3b3c5ab62fb45222c073c6b90d434f"
 intent: |
   Strengthen the P8 stub-lint (docs/plans/t6-1.yaml)
   from "lint-once with a synthetic-fixture proof" to "lint-on-real-diff":

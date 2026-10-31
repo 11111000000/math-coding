@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:f234bc397ec8cd7e2eb3e478589e4701732fdffae4b0465f6b742ea2688b1dde"
-yaml_sha: "sha256:f234bc397ec8cd7e2eb3e478589e4701732fdffae4b0465f6b742ea2688b1dde"
+negative_control: tests/render_kernel.ml
+body_sha: "sha256:9f8983ab24ca9a6bc6de2654954e2863813165cd9cec7451dd474bb074323232"
+yaml_sha: "sha256:9f8983ab24ca9a6bc6de2654954e2863813165cd9cec7451dd474bb074323232"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch

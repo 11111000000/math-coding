@@ -49,8 +49,8 @@ axiom_link:
 #                 Alpine/musl targets. The glibc pipeline and the
 #                 §30 violation history are unchanged.
 state: active
-body_sha: "sha256:ac94821cbdb0b3ac45528a0d4c12b5ad49ecebdd3093ebd236adbc0052d5623a"
-yaml_sha: "sha256:ac94821cbdb0b3ac45528a0d4c12b5ad49ecebdd3093ebd236adbc0052d5623a"
+body_sha: "sha256:79ced8b4e6f2cc91dc9e960a959f8010c2240c91ffe0a4a16317b5b293b6dcc8"
+yaml_sha: "sha256:79ced8b4e6f2cc91dc9e960a959f8010c2240c91ffe0a4a16317b5b293b6dcc8"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
@@ -232,6 +232,10 @@ obligations:
       `./mathc version` prints the documented version banner and
       exits 0. The binary does NOT link against any nix-store path
       or any system glibc.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the artifact is built by an external CI; this tree holds no musl binary
     acceptance:
       all:
         - verifier: manual-ci-run-musl-artifact-version-banner
@@ -288,6 +292,10 @@ obligations:
       the binary satisfies musl-portability; a failing run triggers
       the `alpine-ci-build-fails` reversal signal and marks this
       decision DEFERRED without rolling back the glibc pipeline.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the CI run happens outside this repository
     acceptance:
       all:
         - verifier: manual-ci-run-alpine-build-evidence-recorded

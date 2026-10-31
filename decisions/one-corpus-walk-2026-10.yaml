@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:7fdabfe459a3430f5bc78e96f27862e8511dbb421207601035917282c68d0bd9"
-yaml_sha: "sha256:7fdabfe459a3430f5bc78e96f27862e8511dbb421207601035917282c68d0bd9"
+negative_control: tests/fixtures/precommit-covers-subdirectories.sh
+body_sha: "sha256:2f5f4f689b0061e0ac6bea33ac24a51d0a76009a75eb460ff49f0fc5e5a2b94a"
+yaml_sha: "sha256:2f5f4f689b0061e0ac6bea33ac24a51d0a76009a75eb460ff49f0fc5e5a2b94a"
 
 axiom_link:
   - A0
