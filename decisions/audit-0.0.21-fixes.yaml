@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes
 revision: 3
 state: active
-body_sha: "sha256:732e1a5596384a32b1d47aded2ec507e39102d8cdf60dc3a69d9c952ffe9d2b1"
-yaml_sha: "sha256:732e1a5596384a32b1d47aded2ec507e39102d8cdf60dc3a69d9c952ffe9d2b1"
+body_sha: "sha256:b56389f77def64187fe3c2850edee0a4146f95b24db1a6ed0cd92482e179332b"
+yaml_sha: "sha256:b56389f77def64187fe3c2850edee0a4146f95b24db1a6ed0cd92482e179332b"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`
@@ -69,7 +69,7 @@ scope:
     - "tests/decision_parser_yaml.ml"
     - "tests/counters_drift.ml"
     - "scripts/dev"
-    - "AGENTS.md"
+    - "KERNEL_AGENTS.md"
     - "ROADMAP.md"
     - "PACKAGES.md"
     - "README.md"
@@ -82,6 +82,8 @@ scope:
   #   committed mirror of the live store, and the builder that
   #   regenerated it. Their names are in that decision, which is the
   #   record of the removal.
+  # 2026-11: AGENTS.md was renamed to KERNEL_AGENTS.md; the scope names
+  #   the file that exists.
   exclusions:
     - "axioms/**"
     - "spec/algebra-3.2.md"

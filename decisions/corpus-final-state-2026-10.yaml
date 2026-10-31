@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:ccb2ce287499e003ca6c687c4244dec75c76a8c6812f56c1c4c499d058d3808f"
-yaml_sha: "sha256:ccb2ce287499e003ca6c687c4244dec75c76a8c6812f56c1c4c499d058d3808f"
+body_sha: "sha256:d24d834e8198fa2354a0966f73bcbe0ebbc3b023f30a92fb20e23aba3c22cf6a"
+yaml_sha: "sha256:d24d834e8198fa2354a0966f73bcbe0ebbc3b023f30a92fb20e23aba3c22cf6a"
 
 axiom_link:
   - A0
@@ -76,6 +76,12 @@ intent: |
   obligations; a decision that turns out to be a record leaves with
   all of them at once, because a record has no obligations to keep.
 
+  2026-11: the scope named decisions/waivers/**, where the waiver
+  documents lived. The directory holds no tracked file - the waiver
+  documents were archived - and the path was already covered by
+  decisions/**. It is gone from the scope; the waivers themselves live in
+  archive/decisions/.
+
 commitment: |
   1. The corpus's final state is the one above: rules only, every
      obligation either executable or covered by a dated acceptance,
@@ -110,10 +116,12 @@ outcomes:
 scope:
   paths:
     - "decisions/**"
-    - "decisions/waivers/**"
     - "tests/fixtures/**"
     - ".github/workflows/ci.yml"
     - "decisions/corpus-final-state-2026-10.yaml"
+  # 2026-11: "decisions/waivers/**" is gone. The directory holds no
+  #   tracked file: the waiver documents were archived, and the path was
+  #   already covered by "decisions/**" beside it.
   exclusions:
     - "attestations/**"
     - "_build/**"

@@ -4,8 +4,8 @@ id: time-honesty
 revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:d8105b53ea132d6da316e12c607145ba93514a08deeb9ced340a91b294fc4781"
-yaml_sha: "sha256:d8105b53ea132d6da316e12c607145ba93514a08deeb9ced340a91b294fc4781"
+body_sha: "sha256:c04c891a3d9fec4ee76bf5f733a440d2498ea730722c8ea5c99c709c895f8b87"
+yaml_sha: "sha256:c04c891a3d9fec4ee76bf5f733a440d2498ea730722c8ea5c99c709c895f8b87"
 intent: |
   Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
   agent narratives about the duration of work. Without an observable
@@ -29,7 +29,7 @@ commitment: |
 
 scope:
   paths:
-    - "AGENTS.md"
+    - "KERNEL_AGENTS.md"
     - "bin/Mathc.ml"
     - "bin/dune"
     - "bin/data/**"
@@ -40,6 +40,8 @@ scope:
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   bootstrap/time-honesty.yaml - no tracked file matches it
   #   tests/conformance/** - no tracked file matches it
+  # 2026-11: AGENTS.md was renamed to KERNEL_AGENTS.md; the scope names
+  #   the file that exists.
   exclusions:
     - "spec/constitution.md"
     - "axioms/**"
