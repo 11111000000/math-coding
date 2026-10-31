@@ -569,3 +569,40 @@ the wave:
 Neither expectation was wrong when it was written. Both encoded a
 behaviour that had changed underneath them, and the wave's own
 instrument - the grep - could not see either.
+
+### 9.7 A fix that was checked, and rejected
+
+A side agent in the corpus tranche produced a fix for a real defect
+and it was committed to a branch of its own: `mathc self-check`
+enumerated the attestation DIRECTORY, so any file lying on disk
+counted as evidence, and 64 uncommitted files moved the verdict from
+`unknown` (exit 3) to `pass` (exit 0) on a tree `git status` called
+clean. The proposed fix reads `.gitignore` as text and drops every file
+the repository excludes - `lib/gitignore.ml`, a fixture, a decision,
+a measured proof in the decision's own text. It is careful work, and
+it is wrong here, for a reason no reader of the diff would see.
+
+**The defect it fixes is already closed, by a different mechanism.**
+`bin/Mathc.ml::store_keep_for` used to consult the git index. That
+filter was removed on purpose: the sweep now PRUNES the store to what
+the run observed, a lint forbids the test suite from writing into the
+source tree at all (`tests/fixtures/cram-tests-do-not-write-the-
+source-tree.sh`), and CI sweeps the store immediately before the steps
+that read it. The removed filter's own comment names the trade-off it
+left behind: a window between a stray write and the next sweep.
+
+**And the proposed filter would blind this repository's gate.** The
+store is GENERATED, not committed - `/attestations/` is in
+`.gitignore` on purpose, because committing it puts ~890 generated
+files into every diff (decisions/store-not-committed-2026-10.yaml).
+So "not excluded by `.gitignore`" means "not in the store", and the
+gate would read an empty store: every subject `unknown`, the debt
+ratchet over its ceiling, the CI step red. The fix is correct about
+scratch files and wrong about the repository it lives in.
+
+So the branch is kept, not merged: `feat/gate-reads-only-committed-
+attestations-2026-11`, one commit, with the reasoning in it. The
+lesson is the wave's own: a plausible fix with a measured proof inside
+it still has to be checked against the decisions already in the
+corpus - and the cheapest check is to ask what the repository's own
+`.gitignore` excludes, before merging a filter that reads it.
