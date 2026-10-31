@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.2
 id: d5-body-vs-wrapper-canonical-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
-body_sha: "sha256:317a015e13add85bcc010de769ba5de399dc7e86becde39cd5780df9915040f6"
-yaml_sha: "sha256:317a015e13add85bcc010de769ba5de399dc7e86becde39cd5780df9915040f6"
+body_sha: "sha256:e7e4d75a53f91697de5381936cdbf68de115132fb6f88d2eaa19a9b687033ad5"
+yaml_sha: "sha256:e7e4d75a53f91697de5381936cdbf68de115132fb6f88d2eaa19a9b687033ad5"
 axiom_link:
   - A0
   - A3
@@ -16,16 +16,57 @@ intent: |
   explicitly deferring the dual-authored sibling-YAML case
   (kernel contract §6) to a follow-up decision.
 
-  Today the algorithm is the placeholder-substitution sweep in
-  `scripts/axiom-link-seed.py:105-123`: replace each embedded
-  `body_sha: "sha256:<64 hex>"` and `yaml_sha: "sha256:<64 hex>"`
-  value with the placeholder `"sha256:" + "0" * 64`, then sha256
-  the resulting UTF-8 bytes. The two fields always carry the same
-  digest; the spec invariant `D.body_sha = D.yaml_sha` (when both
-  are present) is a corollary. The algorithm is correct; the spec
-  does not yet NAME it. This decision names it, pins it to a
-  normative location, and freezes the boundary conditions (UTF-8
-  encoding, LF line endings, no trailing newline normalisation).
+  The algorithm is the placeholder-substitution sweep: replace each
+  embedded `body_sha: "sha256:<64 hex>"` and `yaml_sha: "sha256:<64
+  hex>"` value with the placeholder `"sha256:" + "0" * 64`, then
+  sha256 the resulting UTF-8 bytes. The two fields always carry the
+  same digest; the spec invariant `D.body_sha = D.yaml_sha` (when
+  both are present) is a corollary. The algorithm is correct; the
+  spec names it. This decision names it, pins it to a normative
+  location, and freezes the boundary conditions (UTF-8 encoding, LF
+  line endings, no trailing newline normalisation).
+
+  2026-11-01, REVISION 2: THE DECISION HAS LANDED, AND THE TEXT WAS
+  STILL DESCRIBING THE LANDING.
+
+    THE NORMATIVE TEXT IS NO LONGER "NEW". `spec/kernel-contract.md`
+    §7.1 ("Byte-range and canonicalisation") exists and is what the
+    kernel cites. The spec's own §7.1 is the place the algorithm is
+    named; this decision points at the SECTION, not at a line, because
+    the contract's lines move when tranche T3.2 of
+    `docs/plans/redundancy-and-portability-2026-11.md` rewrites it.
+
+    THE HELPER EXISTS. `lib/decision.ml::body_canonical_sha256` is
+    the kernel's implementation of §7.1, and
+    `tests/body_canonical_test.ml` pins four properties of it. The
+    text used to speak of both in the future tense, as things the
+    decision would add.
+
+    THE REFERENCE IMPLEMENTATION MOVED. The Python reference is
+    `scripts/axiom-link-seed.py::recompute_sha` (the placeholder
+    constant is `PLACEHOLDER` in the same file). The old line anchor
+    (`scripts/axiom-link-seed.py:105-123`) pointed at the directory
+    walk, not at the algorithm. This revision cites the function.
+
+    "72 DECISIONS" WAS A SNAPSHOT. The number of decision files that
+    carry the algorithm's output is not repeated here. What is
+    promised is the INVARIANT, and it is checkable today: every
+    decision file in the live corpus carries `body_sha = yaml_sha =
+    sha256(file bytes after placeholder substitution)`, and
+    `mathc rehash --dry-run` over the corpus reports no file whose
+    stored digest is not the algorithm's output.
+
+    THE TAIL OF THIS FILE WAS NOT READ BY THE KERNEL. The blocks
+    below `relations:` -- a `verdict_diff`, a `prior_authorization`
+    and a `recovery_path` -- are not fields of the decision schema
+    (`schemas/decision.json` closes the top level with
+    `additionalProperties: false`) and no kernel module reads them.
+    They were outside the gate: the loader stopped at them and said
+    `parse-ok`. Their substance is not lost. The verdict difference
+    is now an OUTCOME (what is true today is an outcome, not a
+    before-and-after), the authorization is a DECLARED promise on the
+    obligation it belongs to, and the recovery path is a REVERSAL
+    condition. What is gone is the part the kernel could never read.
 
   The dual-authored case (kernel contract §6 sibling YAML) has zero live
   consumers; the spec anticipates it but no decision file in
@@ -39,35 +80,36 @@ intent: |
   relax `sha_match_check` per the discriminator.
 
   History:
-    rev 1 (this commit): initial adoption. Closes audit deficit
-      D5 from the 2026-10-05 audit (per `ROADMAP.md:88`).
+    rev 1: initial adoption. Closes audit deficit D5 from the
+      2026-10-05 audit (per `ROADMAP.md:88`).
       A3-protected transition because the rule changes the
       kernel's interpretive contract for `body_sha` / `yaml_sha`
       (per `spec/constitution.md` §Self-application and axiom
       A3 separation: a contract change cannot authorize its own
       adoption); human review is required before merge.
+    rev 2 (this revision): the normative text, the helper and the
+      reference implementation are named as they are TODAY; the
+      corpus count becomes the invariant it stood for; the unread
+      tail is distributed into the fields the kernel reads (an
+      outcome, a declaration and a reversal condition).
 
   Background:
     The 2026-10-05 audit (`docs/AUDIT-0.0.20.md` D5) recorded
-    that `spec/kernel-contract.md` §7 declares the equality
-    invariant but does not specify the exact byte-range the
-    hash covers. The implementation in
-    `scripts/axiom-link-seed.py:105-123` and the 72 decisions
-    authored under the post-3.0.0.20 schema-tightening all
-    carry `body_sha = yaml_sha = sha256(file bytes after
-    placeholder substitution)`. The kernel's
+    that `spec/kernel-contract.md` §7 declared the equality
+    invariant but did not specify the exact byte-range the
+    hash covers. The kernel's
     `lib/decision.ml::sha_match_check` (T0.2 stream) enforces
     the equality as a string check; it does not compute the
-    digest from the file. A future kernel refactor that
+    digest from the file. A kernel refactor that
     COMPUTES these digests from the file (the natural next
-    step after this decision) would have to either copy the
-    algorithm from `scripts/axiom-link-seed.py` or invent
-    another one. This decision removes the ambiguity by
-    writing the algorithm into the spec.
+    step after this decision) would have had to either copy the
+    algorithm from the Python reference or invent another one. This
+    decision removed the ambiguity by writing the algorithm into the
+    spec, and the kernel then grew the helper that implements it.
 
   Migration:
-    No data migration. The 72 active decision files keep their
-    existing `body_sha` / `yaml_sha` values; the algorithm
+    No data migration. The decision files keep their existing
+    `body_sha` / `yaml_sha` values; the algorithm
     change is normative-only (the algorithm does not change,
     it is just now formally named). The placeholder form
     `sha256:000...000` is a 71-character string used during
@@ -77,10 +119,8 @@ intent: |
 
   Boundaries:
   - `lib/decision.ml`: the `sha_match_check` function is NOT
-    modified; the comment block above it (lines 1-20) gains
-    a reference to this decision and to the new
-    `spec/kernel-contract.md` §7 sub-section that names the
-    algorithm.
+    modified; the comment block above it names this decision and
+    the contract's §7.1 sub-section that names the algorithm.
   - `lib/canonical.ml`: NOT modified. `lib/canonical.ml` is
     RFC 8785 JCS (used for JSON canonicalisation, not for
     YAML files); the body-vs-wrapper algorithm operates on
@@ -91,13 +131,12 @@ intent: |
     no field is added in this decision (the future
     `authoring: single | dual` discriminator is explicitly
     deferred).
-  - `spec/kernel-contract.md` §7: a new sub-section (call it
-    §7.1 "Byte-range and canonicalisation") is appended. The
-    existing §7 Decision entity definition is unchanged; the
-    new section names the algorithm. Section §6 is unchanged
-    (the dual case remains anticipated but not yet formalised
-    here).
-  - The 14 constitution invariants (I1-I14) and the 5 axioms
+  - `spec/kernel-contract.md` §7: the sub-section §7.1
+    "Byte-range and canonicalisation" is the normative home of the
+    algorithm. The existing §7 Decision entity definition is
+    unchanged. Section §6 is unchanged (the dual case remains
+    anticipated but not yet formalised here).
+  - The constitution's invariants and the 5 axioms
     (A0-A4) are preserved verbatim.
   - The A0 separation invariant holds: the algorithm is a
     pure file-bytes → sha256 function; no I/O beyond reading
@@ -106,8 +145,8 @@ intent: |
   - The 5 modes (tiny/light/standard/strict/exhaustive) are
     unchanged.
 commitment: |
-  1. `spec/kernel-contract.md` §7 gains a new sub-section §7.1
-     "Byte-range and canonicalisation" that formally names the
+  1. `spec/kernel-contract.md` §7 carries the sub-section §7.1
+     "Byte-range and canonicalisation", which formally names the
      algorithm:
 
        body_sha(D) = yaml_sha(D) = "sha256:" + sha256_hex(
@@ -142,21 +181,17 @@ commitment: |
      present) is a COROLLARY of the algorithm, not an
      additional rule: both fields name the same digest.
 
-  2. `lib/decision.ml:1-20` (the comment block above
-     `sha_match_check`) is updated to:
-     - reference this decision by id;
-     - reference the new `spec/kernel-contract.md` §7.1;
-     - name the algorithm in one sentence (the placeholder-
-       substitution sweep from
-       `scripts/axiom-link-seed.py:105-123`).
+  2. The comment block above `sha_match_check` in
+     `lib/decision.ml` names this decision by id, names the
+     contract's §7.1, and names the algorithm in one sentence (the
+     placeholder-substitution sweep, whose Python reference
+     implementation is `scripts/axiom-link-seed.py::recompute_sha`).
      No code change.
 
-  3. `tests/body_canonical_test.ml` (NEW) is a small
-     Alcotest executable asserting four properties of the
-     algorithm on synthetic input:
+  3. `tests/body_canonical_test.ml` is an Alcotest executable
+     asserting four properties of the algorithm on synthetic input:
      (a) Stability: hashing the same file twice produces the
-         same digest (the property the existing 72 decisions
-         rely on).
+         same digest.
      (b) Sensitivity: changing one byte in the body (NOT in
          the `body_sha` or `yaml_sha` lines) produces a
          different digest.
@@ -167,26 +202,25 @@ commitment: |
      (d) CRLF-vs-LF: a file with CRLF line endings and an
          otherwise-identical file with LF line endings
          produce the SAME digest (line-ending normalisation).
-     The test exposes the algorithm as a function in
-     `lib/decision.ml` (or a thin wrapper, see commitment
-     5). The test is registered with `dune test` via
-     `tests/dune`.
+     The test calls the kernel's own helper, so it pins the
+     implementation the kernel uses and not a second copy of it.
+     The test is registered with `dune test` via `tests/dune`.
 
-  4. `tests/cli/body-vs-wrapper-canonical.t` (NEW cram
-     fixture) asserts the integration:
-     - the comment block in `lib/decision.ml:1-20` names
+  4. `tests/cli/body-vs-wrapper-canonical.t` (cram fixture)
+     asserts the integration:
+     - the comment block in `lib/decision.ml` names
        this decision by id (positive: present → pass);
      - the comment block does NOT contain the stale
        "no formal definition" phrase (negative: absent →
        pass);
-     - `mathc self-check` returns `verdict: pass` after
-       the spec change lands (the test is a future-pass
-       witness; it is `xfail` until the spec change ships,
-       then promoted to `pass` in the same commit).
+     - the contract's §7.1 sub-section exists and names the
+       placeholder-substitution sweep;
+     - `schemas/decision.json` still has no `authoring` field;
+     - the digest stored in THIS decision file is the algorithm's
+       output for THIS decision file, recomputed live by the
+       fixture.
 
-  5. A small helper is exposed in `lib/decision.ml` (name
-     suggestion: `body_canonical_sha256` or
-     `canonicalize_for_hash`):
+  5. The helper `lib/decision.ml::body_canonical_sha256`:
      - signature: `bytes -> string` (returns the `sha256:`
        + 64 hex digest form);
      - pure: no I/O, no allocation beyond the result string;
@@ -195,13 +229,14 @@ commitment: |
      - the helper is exported from `lib/decision.ml` so
        `tests/body_canonical_test.ml` can call it.
 
-  6. The 72 active decision files (and any new ones written
-     under this decision) continue to carry
+  6. Every decision file in the live corpus continues to carry
      `body_sha = yaml_sha = sha256(file after placeholder
-     substitution)`. The re-computation in
-     `scripts/axiom-link-seed.py:105-123` is unchanged (the
-     script is the existing reference implementation; this
-     decision names it formally).
+     substitution)`. The corpus is larger than it was when this
+     decision was adopted; the property is what is promised, not the
+     count. `mathc rehash --dry-run` over the corpus reports no file
+     whose stored digest is not the algorithm's output, and
+     `mathc validate` reports no `MC-SHA-DIGEST-STALE` for any of
+     them.
 
   7. The dual-authored case (kernel contract §6) is formally
      DEFERRED. A new field on the Decision entity (likely
@@ -229,12 +264,12 @@ commitment: |
     remains anticipated but not yet formalised here).
   - `axioms/`: NOT modified (A0-A4 preserved verbatim).
   - `site/`, `scripts/`, `.github/`: NOT modified.
-  - The 72 active decision files: NOT modified (their
-    stored `body_sha` and `yaml_sha` values are already
-    the algorithm's output).
-  - `scripts/axiom-link-seed.py:105-123`: NOT modified
-    (the script IS the reference implementation; the
-    decision names it).
+  - The decision files in the corpus: NOT modified by this
+    revision (their stored `body_sha` and `yaml_sha` values are
+    already the algorithm's output; this file's own digest is
+    restamped because this file's bytes changed).
+  - `scripts/axiom-link-seed.py`: NOT modified (the script IS
+    the reference implementation; the decision names it).
 scope:
   capabilities:
     - decision-parser-canonicalisation
@@ -257,7 +292,7 @@ scope:
     - "lib/policy.ml"
     - "lib/rebuttal.ml"
     - "lib/re_evaluation.ml"
-    - "lib/render.ml"
+    - "lib/render/**"
     - "lib/attestations/**"
     - "lib/migrate.ml"
     - "lib/canonical.ml"
@@ -272,11 +307,18 @@ scope:
 outcomes:
   - id: spec-formalises-byte-range
     statement: |
-      `spec/kernel-contract.md` §7.1 (NEW) names the
-      placeholder-substitution algorithm in a normative
-      sub-section. The `D.body_sha = D.yaml_sha` invariant
-      (when both are present) is a COROLLARY of the
-      algorithm, not an additional rule.
+      `spec/kernel-contract.md` §7.1 ("Byte-range and
+      canonicalisation") names the placeholder-substitution
+      algorithm in a normative sub-section. The
+      `D.body_sha = D.yaml_sha` invariant (when both are
+      present) is a COROLLARY of the algorithm, not an
+      additional rule. And every decision file in the live
+      corpus carries a stored digest that IS the algorithm's
+      output for that file: `mathc rehash --dry-run` reports no
+      file to change and `mathc validate` reports no
+      `MC-SHA-DIGEST-STALE`. The corpus is larger than it was
+      when this decision was adopted; the invariant is what is
+      promised, not the count.
   - id: kernel-helper-exposes-algorithm
     statement: |
       `lib/decision.ml::body_canonical_sha256` is a pure
@@ -316,11 +358,11 @@ counterexample: |
   that re-derives digests after editing a decision) will
   need an authoritative byte-range definition. Without
   this decision, the refactor would copy the algorithm
-  from `scripts/axiom-link-seed.py:105-123` (a Python
+  from the Python reference
+  (`scripts/axiom-link-seed.py::recompute_sha` -- a Python
   helper in `scripts/`, not a kernel reference) or invent
-  a divergent one. Pinning the algorithm to
-  `spec/kernel-contract.md` §7.1 is cheaper than re-deriving
-  it in code.
+  a divergent one. Pinning the algorithm to the contract's
+  §7.1 is cheaper than re-deriving it in code.
 
   "The dual case (kernel contract §6) is the interesting one; the
   trivial case is just one file. Defer THIS decision until
@@ -356,7 +398,7 @@ counterexample: |
   encoding rules, this decision's reversal signal
   `yaml-canonical-form-changed` fires and a follow-up
   decision updates the algorithm. The pin to YAML 1.2 is
-  explicit in the new §7.1 sub-section.
+  explicit in the §7.1 sub-section.
 antithesis: |
   The coherent counter-position considered and rejected:
   the trivial case (single-file authoring) is the only
@@ -372,13 +414,12 @@ antithesis: |
   algorithm. The author's counter-position is: "wait
   until both cases are ready; define them together".
 
-  Rejected because: the trivial case has 72 live
-  consumers and a working (if undocumented) reference
-  implementation in `scripts/axiom-link-seed.py:105-123`;
-  the dual case has zero live consumers and three open
-  design questions (wrapper-marker line-anchor vs
-  byte-anchor, YAML anchor / merge-key boundary, body
-  front-matter inclusion). The two cases are at
+  Rejected because: the trivial case has live consumers and a
+  working (if undocumented) reference implementation in
+  `scripts/axiom-link-seed.py::recompute_sha`; the dual case has
+  zero live consumers and three open design questions (wrapper-
+  marker line-anchor vs byte-anchor, YAML anchor / merge-key
+  boundary, body front-matter inclusion). The two cases are at
   different levels of maturity; coupling them into one
   decision locks the dual case into a design-by-committee
   algorithm. The honest position is: formalise the
@@ -386,21 +427,32 @@ antithesis: |
   reversal signal that fires when a real consumer
   appears. This is consistent with the v3 dialectic
   method (kernel contract §11): the antithesis is a coherent
-  position (wait) that the author considered and
-  rejected on maturity-coupling grounds, distinct from
+  position (wait) that the author considered
+  and rejected on maturity-coupling grounds, distinct from
   the counterexample which is the strongest objection
   a future reader might raise (the algorithm is
   documentation, not enforcement).
+
+  THE REVISION 2 ADDITION TO THIS POSITION. The same argument now
+  applies to the COUNT. A decision that says "72 files carry the
+  algorithm's output" is a decision about a census, and a census
+  that has to be restated every time the corpus grows is a census
+  that stops being read. The invariant ("every file in the corpus
+  carries the algorithm's output, and the kernel recomputes it on
+  every validate") states the same property in a form that does
+  not expire. This revision took the position's own argument and
+  applied it to the number.
 assumptions:
   - id: utf-8-and-lf-stable
     state: assumed
     statement: |
       Every decision file in `decisions/` is UTF-8 encoded
       and uses LF line endings (possibly with a trailing
-      newline per POSIX convention). The 72 active decision
-      files comply (verified by `file --mime` against the
-      live tree at the 2026-10-12 self-check-recovery
-      cycle).
+      newline per POSIX convention). The live corpus complies,
+      and the kernel recomputes each file's digest from its own
+      bytes on every `mathc validate`, so a file that violated this
+      would be visible as a digest mismatch rather than as a silent
+      difference.
     owner: human:maintainer
     consequence_if_false: |
       If a future decision file is committed with CRLF or
@@ -444,11 +496,10 @@ assumptions:
     state: assumed
     statement: |
       No active decision file uses the sibling-YAML
-      authoring form (kernel contract §6). The 72 active decisions
-      are all single-file. Verified by
-      `ls decisions/ decisions/plan-2026-10-improvements/
-      decisions/waivers/ | grep -E '\.wrapper\.yaml$'`
-      (returns zero results at HEAD `a666bb8`).
+      authoring form (kernel contract §6). Every live decision
+      is single-file. Verified by searching the corpus for
+      `*.wrapper.yaml` (returns zero results at HEAD
+      `117ee570`).
     owner: human:maintainer
     consequence_if_false: |
       If a future decision is dual-authored, the kernel
@@ -460,84 +511,125 @@ assumptions:
       `authoring: single | dual` discriminator and
       relaxes the check. Until that lands, dual-authored
       decisions would silently fail validation with
-      `MC-SHA-MISMATCH` (Block) on every load — a
+      `MC-SHA-MISMATCH` (Block) on every load -- a
       loud failure mode that is preferable to silent
       miscount.
     review_on:
       - signal: first-dual-authored-decision-drafted
+
+  - id: the-protected-transition-was-authorized-by-a-human
+    state: assumed
+    statement: |
+      The transition that put the algorithm into the normative
+      text was authorized by a human review, not by this
+      decision: a maintainer signed a `kind_: review,
+      producer: human:maintainer` attestation before the spec change
+      landed. This is the A3 separation the transition needed -- a
+      contract change cannot authorize its own adoption.
+    owner: human:maintainer
+    consequence_if_false: |
+      If no human review was recorded, the contract changed
+      without the authorization the constitution asks for, and
+      the change has to be re-reviewed (and the attestation
+      re-signed) even though the text it produced is unchanged.
+      The review signal below fires when the evidence for it
+      becomes visible.
+    review_on:
+      - signal: the-review-attestation-for-the-spec-change-is-found
 obligations:
   - id: spec-formalises-byte-range
+    outcome: spec-formalises-byte-range
     statement: |
-      `spec/kernel-contract.md` §7.1 (NEW) names the algorithm:
+      `spec/kernel-contract.md` §7.1 names the algorithm:
       `body_sha(D) = yaml_sha(D) = "sha256:" + sha256_hex(
       canonicalise(file_bytes(D)))` where `canonicalise`
       is the placeholder-substitution sweep.
     claim: |
-      A `git grep -n "canonicalise\|placeholder-substitution"`
-      against `spec/kernel-contract.md` returns at least one
-      hit; the §7.1 sub-section is reachable from the
-      existing §7 Decision entity.
+      The contract's §7.1 sub-section exists and is reachable from
+      the existing §7 Decision entity, and it names the
+      placeholder-substitution sweep. The cram fixture
+      `tests/cli/body-vs-wrapper-canonical.t` asserts both: that the
+      sub-section is present and that the phrase is there.
+
+      AND THE CORPUS FOLLOWS THE NAMED ALGORITHM: every decision
+      file in the live corpus carries the digest the algorithm
+      produces for that file. `mathc rehash --dry-run` over the
+      corpus reports no file to change, and `mathc validate` reports
+      no `MC-SHA-DIGEST-STALE` for any of them. The corpus is larger
+      than it was when this decision was adopted; the property is
+      what is promised, not the count.
+
+      The AUTHORIZATION for putting the algorithm into the normative
+      text is a human act, not a program: a maintainer signed a
+      `kind_: review, producer: human:maintainer` attestation before
+      the spec change landed, and the attestation store is not
+      committed to this tree, so nothing here can check that the
+      sign-off happened.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the review attestation lives in a generated store that is not committed, so no program in this tree can read it
     acceptance:
       all:
         - verifier: tests/cli/body-vs-wrapper-canonical.t
+        - verifier: mathc rehash --dry-run
 
   - id: kernel-comment-references-decision
+    outcome: spec-formalises-byte-range
     statement: |
-      `lib/decision.ml:1-20` (the comment block above
-      `sha_match_check`) names this decision by id and
-      references the new `spec/kernel-contract.md` §7.1.
+      The comment block above `sha_match_check` in
+      `lib/decision.ml` names this decision by id and
+      references the contract's §7.1.
     claim: |
-      `rg -n 'd5-body-vs-wrapper-canonical-2026-10'
-      lib/decision.ml` returns a non-empty hit; the
-      `rg -n '§7\.1' lib/decision.ml` returns a non-empty
-      hit; the existing invariant comment is preserved.
+      `lib/decision.ml` names `d5-body-vs-wrapper-canonical-2026-10`
+      and names `§7.1`; the existing invariant comment is
+      preserved. The cram fixture
+      `tests/cli/body-vs-wrapper-canonical.t` asserts the two hits
+      and the absence of the stale "no formal definition" phrase.
     acceptance:
       all:
         - verifier: tests/cli/body-vs-wrapper-canonical.t
 
   - id: kernel-test-asserts-algorithm
+    outcome: conformance-fixture-pins-algorithm
     statement: |
-      `tests/body_canonical_test.ml` (NEW) registers with
+      `tests/body_canonical_test.ml` registers with
       `dune test` and asserts the four properties named in
       commitment 3 (stability, sensitivity, insensitivity-
       to-placeholder, CRLF-vs-LF equivalence).
     claim: |
-      `dune build` succeeds; `dune test` runs the new
-      executable; all four labelled cases pass; the
+      `dune build` succeeds; `dune test` runs the executable;
+      all four labelled cases pass; the
       `body_canonical_sha256` helper is callable from
-      the test.
+      the test -- the test pins the KERNEL's helper, not a second
+      copy of the algorithm.
     acceptance:
       all:
         - verifier: dune build
         - verifier: tests/body_canonical_test.ml
-        - verifier: tests/body_canonical_test.ml
-        - verifier: tests/body_canonical_test.ml
-        - verifier: tests/body_canonical_test.ml
 
   - id: cram-fixture-integration
+    outcome: conformance-fixture-pins-algorithm
     statement: |
-      `tests/cli/body-vs-wrapper-canonical.t` (NEW cram
-      fixture) asserts the comment-block update in
-      `lib/decision.ml:1-20` and the spec change in
-      `spec/kernel-contract.md` §7.1.
+      `tests/cli/body-vs-wrapper-canonical.t` asserts the
+      comment-block reference in `lib/decision.ml`, the contract's
+      §7.1, the unchanged schema, and that the digest stored in
+      THIS file is the algorithm's output for THIS file.
     claim: |
-      `dune build` succeeds; `dune runtest` runs the cram
-      suite; the four labelled cases pass
-      (positive: comment names decision; negative: stale
-      phrase absent; spec: §7.1 present; xfail witness
-      for `mathc self-check` until the spec change ships).
-    declared:
-      owner: human:maintainer
-      review_on: 2026-12-15
-      reason: the cram fixture the claim names was never integrated into the suite
+      The cram fixture is INTEGRATED in the suite -- it is not a
+      file that nothing runs -- and `dune runtest` runs it. Its five
+      labelled cases pass: the comment names the decision; the stale
+      phrase is absent; the contract's §7.1 is present and names the
+      sweep; the schema still has no `authoring` field; and the
+      digest stored in this file is the algorithm's output for this
+      file, recomputed live by the fixture.
     acceptance:
       all:
         - verifier: dune runtest
-        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
-        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
-        - verifier: manual-target-missing-tests-cli-body-vs-wrapper-canonic
+        - verifier: tests/cli/body-vs-wrapper-canonical.t
 
   - id: schema-unchanged
+    outcome: dual-case-deferred
     statement: |
       `schemas/decision.json` is NOT modified. The
       `body_sha` and `yaml_sha` patterns remain
@@ -545,8 +637,8 @@ obligations:
       this decision (the future `authoring: single |
       dual` discriminator is explicitly deferred).
     claim: |
-      `rg '"authoring"' schemas/decision.json` returns zero hits:
-      the schema is NOT modified by this decision, and the
+      `schemas/decision.json` has no `authoring` field: the schema
+      is NOT modified by this decision, and the
       `authoring: single | dual` discriminator the statement
       defers is still deferred. The cram fixture
       `tests/cli/body-vs-wrapper-canonical.t` asserts the zero-hit.
@@ -561,6 +653,15 @@ reversal:
       spanning the body-wrapper boundary) requires a
       different canonicalisation than the placeholder-
       substitution sweep.
+
+      RECOVERY: revert the §7.1 sub-section, the helper
+      `lib/decision.ml::body_canonical_sha256` and the
+      executable `tests/body_canonical_test.ml`. The kernel
+      falls back to the pre-decision state, in which
+      `body_sha` and `yaml_sha` are read from the YAML and
+      `sha_match_check` (T0.2) remains the runtime invariant.
+      The decision files themselves are unaffected: their
+      stored digests never changed.
     action: rework
   - signal: first-dual-authored-decision-drafted
     condition: |
@@ -570,13 +671,20 @@ reversal:
       added, the `sha_match_check` relaxed per
       discriminator, and a new decision
       `d5-dual-authored-canonical-2026-XX` adopted.
-    action: supersede
+    action: rework
   - signal: algorithm-rejected-by-spec-audit
     condition: |
       A future spec audit concludes the placeholder-
       substitution algorithm is not parser-independent
       (e.g., CRLF normalisation interacts badly with a
       documented YAML edge case).
+
+      RECOVERY: revert the §7.1 sub-section, the helper and
+      the test -- the same three edits as the first reversal
+      entry -- and the kernel reads the two stored fields
+      again. The corpus needs no recompute: reverting the
+      algorithm restores the state in which the stored
+      digests were computed.
     action: rework
 risk:
   declared_triggers:
@@ -587,104 +695,7 @@ risk:
   owner: human:maintainer
 relations:
   addresses:
-    - bootstrap-v3@3
-    - algebra-3.2@2
+    - bootstrap-v3@4
+    - algebra-3.2@3
   supersedes: []
   superseded_by: []
-verdict_diff:
-  pre_decision:
-    - subject: spec/kernel-contract.md::§7-byte-range
-      verdict: unknown
-      reason: |
-        The 2026-10-05 audit (D5) recorded that §7
-        declares the equality invariant but not the
-        byte-range algorithm. The implementation in
-        `scripts/axiom-link-seed.py:105-123` and the
-        72 live decisions carry the algorithm's output
-        but the spec does not name the algorithm; this
-        is structurally inconclusive (unknown).
-  post_decision:
-    - subject: spec/kernel-contract.md::§7-byte-range
-      verdict: pass
-      reason: |
-        The new §7.1 sub-section names the algorithm
-        precisely: placeholder-substitution sweep on
-        UTF-8 bytes after CRLF→LF normalisation, then
-        sha256, prefixed with `sha256:`. The 72 active
-        decision files validate under the named
-        algorithm (each file's stored digest is the
-        algorithm's output, verified by recomputation).
-        The kernel's `lib/decision.ml:1-20` comment
-        references §7.1 by anchor. The dual case
-        remains unknown (explicitly deferred to
-        `d5-dual-authored-canonical-2026-XX`).
-  changed:
-    - spec/kernel-contract.md::§7 — gains §7.1 sub-section
-      (byte-range and canonicalisation).
-    - lib/decision.ml:1-20 — comment block updated
-      (decision-id reference + §7.1 anchor); no code
-      change.
-    - lib/decision.ml — gains a new
-      `body_canonical_sha256 : bytes -> string` helper.
-    - tests/body_canonical_test.ml — NEW Alcotest
-      executable; 4 cases.
-    - tests/cli/body-vs-wrapper-canonical.t — NEW cram
-      fixture; 4 cases.
-    - tests/dune — gains the new test executable
-      registration.
-  unchanged:
-    - The 14 constitution invariants I1-I14.
-    - The 5 axioms A0-A4.
-    - The 5 modes tiny/light/standard/strict/exhaustive.
-    - The 72 active decision files' `body_sha` and
-      `yaml_sha` values.
-    - The schema `schemas/decision.json` (no field
-      added; pattern unchanged).
-    - The kernel's `sha_match_check` (T0.2 enforces
-      equality as a string check; the new helper
-      computes the digest from raw bytes but the
-      check itself is unchanged).
-    - The `lib/canonical.ml` RFC 8785 JCS module
-      (unrelated; operates on JSON, not on raw
-      decision bytes).
-prior_authorization:
-  policy: bootstrap-v3
-  revision: 3
-  rationale: |
-    The active policy is `bootstrap-v3@3`. The
-    change affects `spec/kernel-contract.md` §7, which
-    is normative for the kernel; per
-    `spec/constitution.md` §Self-application, this is
-    a protected policy transition. Authorization is
-    recorded in this decision's
-    `obligations::schema-unchanged` and
-    `obligations::spec-formalises-byte-range`
-    acceptance criteria: a human maintainer signs
-    the `kind_: review, producer: human:maintainer`
-    attestation before the spec change lands. The
-    human review is the authorization.
-recovery_path:
-  forward: |
-    If this decision is rejected by the human
-    review, the spec change is reverted (a single
-    `git revert` against `spec/kernel-contract.md` §7.1
-    insertion + the helper removal in
-    `lib/decision.ml` + the test removal in
-    `tests/body_canonical_test.ml`). The comment
-    block in `lib/decision.ml:1-20` is rolled back
-    to its pre-decision state. The 72 active
-    decision files are unaffected (they never
-    changed). Estimated revert time: under 5
-    minutes wall-clock per `mathc time-estimate
-    --class spec-editorial --count 1 --percentile
-    p50`.
-  backward: |
-    If a future commit breaks the algorithm
-    (e.g., a regression test in
-    `tests/body_canonical_test.ml` fails), the
-    revert path is the same as `forward`: drop the
-    §7.1 sub-section, drop the helper, drop the
-    test. The kernel falls back to the pre-decision
-    state where `body_sha` and `yaml_sha` are read
-    from the YAML (T0.2 string-equality check
-    remains the runtime invariant).

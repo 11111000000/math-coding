@@ -123,11 +123,7 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
    subcommand (a plain scalar opened with a backtick),
    render-html-templates (bad indentation of a sequence entry) and
    render-ordered-lists (expected ':' after a mapping key). *)
-let author_malformed =
-  [
-    "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml";
-    "decisions/mathc-packages-subcommand.yaml";
-  ]
+let author_malformed = [ "decisions/mathc-packages-subcommand.yaml" ]
 
 (* A stray second `---`. These lose NOTHING: in both, the marker is the
    LAST line of the file, so the tail behind it is empty and every
