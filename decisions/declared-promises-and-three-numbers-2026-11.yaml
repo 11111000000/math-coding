@@ -1,12 +1,24 @@
 ---
 schema: math-coding/3.3
 id: declared-promises-and-three-numbers-2026-11
-revision: 1
+revision: 2
 state: active
+#
+# Rev 1 (2026-11-01): the tranche's decision, written before the
+# corpus changed, as the house rule requires (P1: a decision precedes
+# the change it decides).
+#
+# Rev 2 (2026-11-01): the numbers the tranche ends with, as the
+# instrument measured them: CHECKED 78, DECLARED 21, UNCHECKED 37, one
+# decision with no promise, of 137 decisions. The 137th is this
+# decision itself, and it is CHECKED - it names its own control. The
+# debt (UNCHECKED) went 91 -> 37; the old single number, "decisions
+# that declare an executable verifier and name no negative control",
+# went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:1dae8b27366260f1381fc35995dc76e67f95df4d625ef25e0ca6099ac096b9e1"
-yaml_sha: "sha256:1dae8b27366260f1381fc35995dc76e67f95df4d625ef25e0ca6099ac096b9e1"
+body_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
+yaml_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -59,9 +71,10 @@ intent:
         and, in the old single number: 88 of 136 decisions declare an
         executable verifier and name no negative control.
 
-      after:
-        CHECKED 77, DECLARED 21, UNCHECKED 37, no promise 1
-        and, in the old single number: 52 of 136.
+      after (this tranche's own decision is the 137th, and it is
+      CHECKED - it names its own control):
+        CHECKED 78, DECLARED 21, UNCHECKED 37, no promise 1
+        and, in the old single number: 52 of 137.
 
     The debt — the UNCHECKED number, the one whose ceiling may only
     fall — went 91 -> 37. The declared class appeared at 21 decisions
