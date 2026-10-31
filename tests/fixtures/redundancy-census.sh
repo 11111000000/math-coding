@@ -163,13 +163,14 @@ CEILING_DANGLING=0
 # ceiling-fall: 20 -> 0, every scope path in the live corpus names a tracked file
 CEILING_DEAD=0
 
-#   CORPUS 136 - decision files in the live corpus. A measurement,
+#   CORPUS 137 - decision files in the live corpus. A measurement,
 #     not a verdict: the "about 50 rules" of the 2026-10 census is a
 #     record, not a standing requirement, and this ceiling bounds the
 #     count from above so that growth is visible.
 #
-# ceiling-fall: 145 -> 136, eleven records moved to the archive
-CEILING_CORPUS=136
+# ceiling-raise: 136 -> 137, the exportable-core-boundary decision is in
+#   the corpus it counts
+CEILING_CORPUS=137
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
