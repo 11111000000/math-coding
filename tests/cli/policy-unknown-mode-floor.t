@@ -77,3 +77,21 @@ baseline.
   0
   $ $INSIDE_DUNE/bin/mathc.exe mode lib/gate.ml 2>/dev/null | jq -c '{mode}'
   {"mode":"tiny"}
+
+THE NEGATIVE CONTROL, and it is the direction that matters: a floor
+the kernel READS must not be named as a floor it does not. If the
+kernel ever started reporting a known floor as unknown, the check
+below would find the error where there is none - and this case fails.
+
+  $ cat > policies.yaml <<'YAML'
+  > - policy_id: floor-fixture
+  >   scope_paths:
+  >     - "lib/**"
+  >   mode_floor: standard
+  >   override_probability: 0.0
+  >   obligations: []
+  >   transitive_into: []
+  >   data_flow_edges: []
+  > YAML
+  $ $INSIDE_DUNE/bin/mathc.exe mode lib/gate.ml 2>&1 >/dev/null | grep -q MC-POLICY-UNKNOWN-MODE-FLOOR; echo "exit=$?"
+  exit=1

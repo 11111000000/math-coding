@@ -37,11 +37,11 @@ write.
   >     d = yaml.safe_load(open(sys.argv[1]))
   > except Exception as e:
   >     print("rejected: not YAML (%s)" % type(e).__name__)
-  >     raise SystemExit(0)
+  >     raise SystemExit(1)
   > risk = d.get("risk") if isinstance(d, dict) else None
   > if not isinstance(risk, dict) or "owner" not in risk or "declared_triggers" not in risk:
   >     print("rejected: the decision has no risk")
-  >     raise SystemExit(0)
+  >     raise SystemExit(1)
   > print("accepted: risk.owner=%s triggers=%d" % (risk["owner"], len(risk["declared_triggers"])))
   > PY
 
@@ -73,8 +73,9 @@ is not YAML, and the check says so.
   >       all:
   >         - verifier: <TODO: fixture-path-or-kernel-verifier>
   > YAML
-  $ python3 check.py old-unquoted.yaml
+  $ python3 check.py old-unquoted.yaml; echo "exit=$?"
   rejected: not YAML (ScannerError)
+  exit=1
 
 The second control: the old shape with the risk under the
 counterexample. This one IS valid YAML - which is why the defect
@@ -92,8 +93,9 @@ reason.
   >     - <TODO: what-could-go-wrong>
   >   owner: <human:role or human:name>
   > YAML
-  $ python3 check.py old-swallowed-risk.yaml
+  $ python3 check.py old-swallowed-risk.yaml; echo "exit=$?"
   rejected: the decision has no risk
+  exit=1
 
 The kernel reads the scaffold too, and it reads the risk it now has.
 
