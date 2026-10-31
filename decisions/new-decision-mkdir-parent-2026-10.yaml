@@ -1,13 +1,14 @@
 ---
 schema: math-coding/3.2
 id: new-decision-mkdir-parent-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 change_kind: bugfix
+negative_control: tests/cli/new-decision.t
 
-body_sha: "sha256:53b64e71fd23e1f36052bce1dc5498563ed205c6572ba7f9ccdbae75f5ec0b67"
-yaml_sha: "sha256:53b64e71fd23e1f36052bce1dc5498563ed205c6572ba7f9ccdbae75f5ec0b67"
+body_sha: "sha256:2308b9699ff6c262d0d6e7a2ab789ca249de951391d3ddaa36e021d9a41f3720"
+yaml_sha: "sha256:2308b9699ff6c262d0d6e7a2ab789ca249de951391d3ddaa36e021d9a41f3720"
 
 axiom_link:
   - A0
@@ -23,6 +24,27 @@ scope:
     - tests/cli/init.t
 
 intent: |
+  The recursive-mkdir invariant is live and measured. The decision was
+  originally a record of a defect; this revision keeps that record and
+  states the present contract the fixtures enforce.
+
+  2026-10-31, REVISION 2: THE FIXTURE FAMILY NOW PINS THE CURRENT
+  SCAFFOLD. `tests/cli/new-decision.t` writes into
+  `.math-coding/decisions/` on an empty tree and rejects a second write
+  without `--force`. `tests/cli/init.t` pins the same forward layout.
+  `tests/cli/init-legacy.t` now reaches `decisions/` only through the
+  explicit legacy environment variables and expects the kernel's current
+  diagnostic plus a scaffold at revision 1 with one obligation; those
+  expectations pass on this tree. The inventory's stale observation that
+  the legacy fixture still expected an older scaffold is no longer true.
+
+  History:
+    rev 1: fixed the single-level mkdir and corrected the fresh-project
+      fixture from the legacy layout to the forward layout.
+    rev 2 (this revision): recorded the current init/legacy expectations,
+      made the outcome links explicit, and named the rejecting cram as
+      this decision's negative control; the mkdir invariant is unchanged.
+
   `mathc new-decision ID --write` could not create a decision in a
   project that did not already hold a decisions directory. The write
   path used a single-level `Unix.mkdir`, while the directory it
@@ -73,11 +95,13 @@ commitment: |
   (a) `new-decision --write` creates the resolved decisions directory
       recursively, parents included, matching the shape already used
       by `lib/import_adr/import_adr.ml` and `lib/init/init.ml`.
-  (b) No new fixture expectation is invented to accommodate the
-      defect. `tests/cli/new-decision.t` asserted the LEGACY path
-      `<TMP>/decisions/` for a fresh `mktemp -d` root. That assertion
-      is what this revision corrects, on four independent pieces of
-      evidence, listed under `evidence`.
+  (b) The fixture family pins the resolver's present contract rather
+      than a historical layout. `tests/cli/new-decision.t` expects the
+      forward path `<TMP>/.math-coding/decisions/` for a fresh
+      `mktemp -d` root; `tests/cli/init.t` pins the same forward
+      scaffold; `tests/cli/init-legacy.t` pins `decisions/` only under
+      explicit legacy environment variables and expects the current
+      policy diagnostic, scaffold revision 1, and one obligation.
 
 counterexample: |
   "The fixture said `decisions/`, so the fixture knew the intended
@@ -121,12 +145,30 @@ antithesis: |
 
 outcomes:
   - id: fresh-project-write-succeeds
-    detail: |
-      `new-decision.t` and `new-decision-axiom-warn.t` both go green.
-      Neither was green before this revision, at `7a4cabc` or at
-      `9150b07`.
+    statement: |
+      `mathc new-decision ID --write` creates the resolved decisions
+      directory recursively and writes the decision there; the fresh
+      project path is `.math-coding/decisions/`.
+  - id: soft-warning-and-overwrite-guard
+    statement: |
+      The write path emits the axiom-link inference warning, reports the
+      written path, and refuses a second write without `--force`.
+  - id: forward-and-legacy-layouts-are-distinct
+    statement: |
+      A fresh project uses `.math-coding/`; only explicit legacy
+      environment variables make `mathc init` create the legacy
+      `decisions/` and `attestations/` tree.
 
 evidence:
+  - id: current-scaffold-and-fixtures
+    measurement: |
+      On 2026-10-31,
+      `dune test tests/cli/new-decision.t tests/cli/new-decision-axiom-warn.t tests/cli/init.t tests/cli/init-defaults.t tests/cli/init-legacy.t`
+      passed. The legacy case expects the diagnostic
+      `policies file <TMP>/decisions/decision.yaml: expected array of policies`
+      and a scaffold at revision 1 with one obligation; the forward
+      cases expect `.math-coding/`.
+
   - id: the-four-claimed-init-failures-were-green
     measurement: |
       The report that prompted this fix listed `init-defaults.t`,
@@ -188,7 +230,7 @@ obligations:
       no decisions directory creates the resolved directory including
       its parents, writes the decision there, prints the path, and
       exits 0.
-    outcome: acceptance
+    outcome: fresh-project-write-succeeds
     acceptance:
       all:
         - verifier: tests/cli/new-decision.t
@@ -197,7 +239,7 @@ obligations:
       The `--write` path still emits the axiom-link inference warning
       and the `wrote` line, and the force-overwrite guard still
       refuses a second write with exit 1.
-    outcome: acceptance
+    outcome: soft-warning-and-overwrite-guard
     acceptance:
       all:
         - verifier: tests/cli/new-decision-axiom-warn.t
@@ -205,7 +247,7 @@ obligations:
     claim: |
       A fresh project root resolves to `.math-coding/`, unchanged by
       this revision. `init` scaffolding is untouched.
-    outcome: acceptance
+    outcome: forward-and-legacy-layouts-are-distinct
     acceptance:
       all:
         - verifier: tests/cli/init.t
