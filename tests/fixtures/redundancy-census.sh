@@ -154,12 +154,12 @@ CEILING_DANGLING=44
 #     docs/plans/), the rest name files the corpus itself deleted.
 CEILING_DEAD=20
 
-#   CORPUS 142 - decision files in the live corpus. The declared
+#   CORPUS 143 - decision files in the live corpus. The declared
 #     target is about 50 rules (decisions/corpus-final-state-2026-10
 #     .yaml); the census measures the distance, the plan closes it.
 #
-# ceiling-raise: 141 -> 142, the protected-paths decision is in the corpus it counts
-CEILING_CORPUS=142
+# ceiling-raise: 142 -> 143, the instruments-repair decision is in the corpus it counts
+CEILING_CORPUS=143
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
