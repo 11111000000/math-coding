@@ -4,8 +4,8 @@ id: version-sync-2026-10
 revision: 2
 state: active
 negative_control: tests/fixtures/sync-version-stale-fails.sh
-body_sha: "sha256:28267ae790dbb2aea29f5748937f080c0106623d34473279495909680f799474"
-yaml_sha: "sha256:28267ae790dbb2aea29f5748937f080c0106623d34473279495909680f799474"
+body_sha: "sha256:2dd0ed8c98e3f17be799cafd6f8be4c1c4d0ca4e247f5e26530e4e916d8a3555"
+yaml_sha: "sha256:2dd0ed8c98e3f17be799cafd6f8be4c1c4d0ca4e247f5e26530e4e916d8a3555"
 intent: |
   Close the follow-up cycle announced in the archived
   `decisions/site-version-from-file-2026-10.yaml` (the file now lives at
@@ -253,12 +253,15 @@ obligations:
         authored; the `compatible_with` and `MC_VERSION` lines of both
         shipped copies of the skill, and `MC_VERSION_DEFAULT` in the
         install script, derive from `VERSION` via
-        `scripts/sync-version.sh`.
+        `scripts/sync-version.sh`. The two shipped copies of the skill
+        document are byte-identical, so a derived point cannot be
+        correct in one and wrong in the other.
     outcome: acceptance
     acceptance:
       all:
         - verifier: file-exists scripts/sync-version.sh
         - verifier: tests/fixtures/sync-version-clean-passes.sh
+        - verifier: tests/fixtures/skill-copies-identical.sh
   - id: sync-version-stale-detected
     claim: |
         When a maintainer hand-edits a derived point out of band
@@ -279,15 +282,6 @@ obligations:
     acceptance:
       all:
         - verifier: tests/fixtures/sync-version-clean-passes.sh
-  - id: both-shipped-copies-agree
-    claim: |
-        The two shipped copies of the skill document are byte-identical,
-        so a derived point cannot be correct in one and wrong in the
-        other.
-    outcome: acceptance
-    acceptance:
-      all:
-        - verifier: tests/fixtures/skill-copies-identical.sh
   - id: trap-log-entry-present
     claim: |
       `OCAML_KERNEL_CONVENTIONS.md` §11.27 records the

@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: verifier-outcome-taxonomy-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/legacy-attestation-debt.sh
-body_sha: "sha256:5c905eeff5e7e716ffcf74849a174448ecee58fa852f2dff7def652c0d19b4b9"
-yaml_sha: "sha256:5c905eeff5e7e716ffcf74849a174448ecee58fa852f2dff7def652c0d19b4b9"
+body_sha: "sha256:5384f66506fd5af5899a8c8aa01e955e42e33b0e63a6145c0cc5ee627ed03978"
+yaml_sha: "sha256:5384f66506fd5af5899a8c8aa01e955e42e33b0e63a6145c0cc5ee627ed03978"
 
 intent: { source: "issue:three-verifier-outcomes-were-one-2026-10-23", text: "Running every verifier in the corpus exposed three cases the kernel treated as one, and each of them changed a number. A verifier that could not be SET UP was reported as a failure, so a corpus-wide sweep reported every toolchain-dependent verifier as a broken project. A `manual:` obligation was reported as inconclusive, so 466 declared obligations could not be satisfied - which is the opposite of what a declaration is for. And an obligation whose verifier names an executable scheme the kernel CAN execute was excluded by a filter that asked a function which does not know about the three original schemes, so 200 perfectly executable checks were reported as checks that could not run." }
 
@@ -24,9 +24,35 @@ commitment: |
      executed. The filter that decides this mirrors
      run_one_verifier's dispatch exactly, including the three
      original schemes.
-  4. The debt fixture pins all three ceilings at their current
-     values: 22 legacy attestations, 30 inconclusive, 25 decisions
-     with no attestation. They may only fall.
+  4. The debt fixture pins the legacy, inconclusive and unattested
+     counts as CEILINGS that may only fall. The three numbers live in
+     ONE place -- `tests/fixtures/legacy-attestation-debt.sh` -- and
+     they are owned by `decisions/legacy-attestation-debt-2026-10.yaml`.
+     This decision does not repeat them: one debt, one owner, one
+     fixture.
+
+  2026-10-31, REVISION 2: THE THREE DEBT COUNTS WERE A POPULATION
+  THAT NO LONGER EXISTS. This decision pinned the legacy, inconclusive
+  and unattested counts at the values the corpus had on 2026-10-23,
+  over a store that was then TRACKED IN GIT. The store is generated on
+  disk and is not tracked (`decisions/store-not-committed-2026-10.yaml`),
+  so those counts described a population the tree no longer has.
+
+  What is true now, measured on 2026-10-31:
+
+    - `bash tests/fixtures/legacy-attestation-debt.sh` answers exit 3
+      (`unknown`, not `pass`): this checkout has no generated store, so
+      there is nothing to measure and the fixture says so instead of
+      reporting a green measurement over nothing.
+    - the three ceilings themselves live in the fixture and are
+      printed by `bash scripts/ceiling-monotonic.sh` against their
+      recorded bases; they are the numbers this decision points at
+      rather than repeats.
+    - the three VERDICTS this decision is about are unchanged and are
+      still exercised by the kernel: a verifier that cannot be set up
+      is `skipped`, a `manual:` obligation is satisfied by a
+      `review`-class attestation, and a verifier the kernel can
+      execute IS executed.
 
 axiom_link:
   - A0
@@ -49,9 +75,14 @@ counterexample: |
   the property holds, and the attestation system has a class for
   exactly that: `review`. Signing it as inconclusive made 466
   declared obligations unsatisfiable, and 466 waivers would have
-  been absurd. The declaration stays bound to a tree through the
-  scope digest, so it is not a free pass: it goes stale when the
-  scope changes.
+  been absurd. The declaration stays bound to a tree through
+  the scope digest, so it is not a free pass: it goes stale when
+  the scope changes.
+
+  The two counts in (b) and in the antithesis are DATED MEASUREMENTS
+  of the 2026-10 change, taken over the tracked store of that day.
+  They are recorded here as the evidence for the decision, not as
+  counters the tree keeps today.
 
 antithesis: |
   The opposite claim would be that the third distinction - executing
@@ -74,6 +105,11 @@ antithesis: |
   have been handled - which is the same shape as the wrapper that
   reported every dune test outcome as success, one level deeper.
 
+  (The 200, 466 and 38-to-152 figures are the 2026-10 measurements of
+  that change, over the tracked store of the day. They are the
+  evidence for the decision; they are not counters this decision
+  keeps.)
+
 outcomes:
   - id: three-outcomes-three-meanings
     statement: |
@@ -95,9 +131,11 @@ scope:
 obligations:
   - id: the-debt-ceilings-are-pinned
     claim: |
-      The fixture pins the legacy, inconclusive and unattested
-      counts at their current values and fails when any exceeds its
-      ceiling.
+      The fixture `tests/fixtures/legacy-attestation-debt.sh` pins the
+      legacy, inconclusive and unattested counts as ceilings and fails
+      when any exceeds its ceiling. The numbers are the fixture's
+      constants; the decision that owns them is
+      `decisions/legacy-attestation-debt-2026-10.yaml`.
     acceptance:
       all:
         - verifier: tests/fixtures/legacy-attestation-debt.sh
@@ -125,7 +163,7 @@ assumptions:
     owner: human:maintainer
     statement: |
       A `manual:` declaration was written by a human who read the
-      decision. The corpus migration converted 327 prose verifier
+      decision. The corpus migration converted prose verifier
       strings into such declarations; the prose was the human's own
       text, and the migration preserved it as a structured
       declaration rather than inventing one.
