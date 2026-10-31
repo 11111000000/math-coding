@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/fixtures/no-dead-references.sh
 #
-# Verifier for decisions/dead-code-removal-2026-10.yaml
+# Verifier for archive/decisions/dead-code-removal-2026-10.yaml
 # (`no-reader-remains`).
 #
 # THE CLAIM. Every name the removal took with it has no reader left
@@ -35,7 +35,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The exclusions are separate pathspecs, not one alternation: git's
 # pathspec syntax does not read `|` as "or".
 skip=(
-  ':(exclude)decisions/dead-code-removal-2026-10.yaml'
+  ':(exclude)archive/decisions/dead-code-removal-2026-10.yaml'
   ':(exclude)tests/fixtures/no-dead-references.sh'
   ':(exclude)tests/cli/embedded-schemas.t'
   ':(exclude)CHANGELOG.md'

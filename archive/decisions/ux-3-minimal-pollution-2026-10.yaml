@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 change_kind: implementation
-body_sha: "sha256:2705fe37196dc7446c1e22b3ecee710f448d05734f1a341792caaf57219d0ee7"
-yaml_sha: "sha256:2705fe37196dc7446c1e22b3ecee710f448d05734f1a341792caaf57219d0ee7"
+body_sha: "sha256:7c1a95c08ca450892ccbfd90ed8fae14e4728eb4818a793b0103229ff1fa1936"
+yaml_sha: "sha256:7c1a95c08ca450892ccbfd90ed8fae14e4728eb4818a793b0103229ff1fa1936"
 intent: |
   Adopt a `.math-coding/` directory layout as the default for new
   `mathc init` runs and add three env-var overrides
@@ -37,7 +37,7 @@ intent: |
   JSON-Schema file, and `mathc init` writes no `schemas/` directory.
   `lib/schema_embedded.ml` (724 lines) and the unused
   `Templates_embedded.readme_md` were therefore removed
-  (`decisions/dead-code-removal-2026-10.yaml`). The schemas remain
+  (`archive/decisions/dead-code-removal-2026-10.yaml`). The schemas remain
   the DOCUMENTATION of the formats; the parser is the law. A
   maintainer who wants the schemas on disk for their own tooling can
   copy them from `schemas/`; the project no longer mandates the
