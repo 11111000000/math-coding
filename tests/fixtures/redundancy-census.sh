@@ -332,6 +332,8 @@ def scope_paths(text):
 dangling = 0
 dead = 0
 active = 0
+dangling_items = []
+dead_items = []
 for path in live:
     text = read(path)
     m = re.search(r"^state:[ \t]*(\S+)", text, re.M)
@@ -349,13 +351,16 @@ for path in live:
             r = resolve(im.group(1))
             if r is None:
                 dangling += 1
+                dangling_items.append((path, "unparseable", im.group(1)))
                 continue
             kind, target = r
             if kind == "id":
                 if target not in known_ids:
                     dangling += 1
+                    dangling_items.append((path, "id", im.group(1)))
             elif not os.path.exists(target):
                 dangling += 1
+                dangling_items.append((path, "path", im.group(1)))
     for sp in scope_paths(text):
         if sp.startswith(STORE_PREFIX):
             continue
@@ -363,6 +368,7 @@ for path in live:
         rx = glob_re(norm)
         if not any(rx.match(f) for f in tracked):
             dead += 1
+            dead_items.append((path, sp))
 
 archive_active = 0
 for path in archive:
@@ -373,8 +379,33 @@ for path in archive:
         archive_active += 1
 
 print(len(live), active, dangling, dead, archive_active)
+
+# The items behind the counts, for whoever has to pay the debt down.
+# The census prints the broken schemes one by one already; a number
+# without the item is a number nobody can act on.
+listing = os.environ.get("MATH_CODING_CENSUS_LIST")
+if listing:
+    with open(listing, "w", encoding="utf-8") as fh:
+        for p, kind, target in dangling_items:
+            fh.write("dangling\t%s\t%s\t%s\n" % (p, kind, target))
+        for p, sp in dead_items:
+            fh.write("dead\t%s\t%s\n" % (p, sp))
 PY
 }
+
+# --- 0b. the items behind the counts ------------------------------------
+# `--list` prints every dangling target and every dead scope path, one
+# per line, with the decision that carries it. A number nobody can act
+# on is a number, not a measurement; the counts below are the ceiling,
+# the list is the work list.
+if [ "${1:-}" = "--list" ]; then
+  list_file="$(mktemp)"
+  trap 'rm -f "$list_file"' EXIT
+  MATH_CODING_CENSUS_LIST="$list_file" \
+    measure_corpus "${MATH_CODING_DECISIONS_DIR:-decisions}" archive/decisions >/dev/null
+  cat "$list_file"
+  exit 0
+fi
 
 # --- 1. measure --------------------------------------------------------
 bin="$(kernel_bin || true)"
