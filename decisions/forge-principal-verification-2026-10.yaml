@@ -1,10 +1,18 @@
 ---
 schema: math-coding/3.2
 id: forge-principal-verification
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:941f59e594c3d0f308ebc406a18164ab06c59c67f8005a8b064d3986d8cf3488"
-yaml_sha: "sha256:941f59e594c3d0f308ebc406a18164ab06c59c67f8005a8b064d3986d8cf3488"
+#
+# Rev 2 (2026-11-01): the fail-open contract the claims inventory
+# falsified. Rev 1 said an unreachable forge yields verdict=pass and
+# exit 0 under the default --fail-mode open. It yields verdict=unknown
+# and exit 3: a membership nobody checked is not a membership. The
+# control that catches the old promise is this decision's own now:
+# tests/cli/forge-verify.t.
+negative_control: tests/cli/forge-verify.t
+body_sha: "sha256:9b508d53b7768981943dd9a1c38cec9a40058fbb1025570e0efd943acfb30e6b"
+yaml_sha: "sha256:9b508d53b7768981943dd9a1c38cec9a40058fbb1025570e0efd943acfb30e6b"
 axiom_link:
   - A1
   - A4
@@ -16,23 +24,38 @@ commitment: |
         is `NotConfigured | Queried of bool | CurlFailure`. The
         module reads `MATH_CODING_FORGE_API`; when unset, every
         check returns `false` (the no-forge fallback per
-        spec/kernel-contract.md §13). HTTP transport uses `curl`
-        via `Unix.open_process_args_in` (no new OCaml dep).
+        spec/kernel-contract.md section 13). HTTP transport uses
+        `curl` via `Unix.open_process_args_in` (no new OCaml dep).
     (b) `bin/Mathc.ml::do_forge_verify` is a new subcommand
         accepting `--org`, `--team`, `--user`, `--committer`,
         and `--fail-mode open|closed`. Default fail-mode is
-        `open`: when the forge is unset or the call errors,
-        the verdict is `pass` and exit 0. `--fail-mode closed`
-        flips the same conditions to `block` / exit 1.
+        `open`: when the forge is unset or the call errors, the
+        verdict is `unknown` and the exit code is 3 -- the kernel
+        says it could not determine the membership, and says so
+        with a non-zero exit (constitution.md Invariant 14b).
+        `--fail-mode closed` flips the same conditions to `block` /
+        exit 1. An unknown fail-mode is refused with exit 2.
+
+        WHAT `open` MEANS, since revision 1 meant something else: it
+        means the check does not BLOCK the merge, not that it
+        CERTIFIES a membership. The distinction is the whole
+        difference between a fail-open check and a false pass, and
+        `decisions/exit-honesty-waivers-2026-10.yaml` is the
+        decision that made it: before it, an unset forge answered
+        `pass` with exit 0, which asserted a membership nobody
+        checked.
     (c) `MATH_CODING_FORGE_API` is the same env var the T1.1
         forge-mirror already reads; the new code reuses it
         without introducing a new env contract.
-    (d) `tests/cli/forge-verify.t` covers three cases:
-        member=true, member=false, forge-unset. The negative
-        case asserts `--fail-mode closed` plus unset forge
-        yields non-zero exit; the positive case asserts the
-        same fixture returns verdict=pass with the member
-        field present.
+    (d) `tests/cli/forge-verify.t` covers four cases: member=true
+        (verdict `pass`, exit 0), member=false (verdict `block`,
+        exit 1), forge-unset (verdict `unknown`, exit 3 under
+        `--fail-mode open`; verdict `block` and exit 1 under
+        `--fail-mode closed`), and an unknown fail-mode (exit 2).
+        The unset-forge case under the default mode is this
+        decision's negative control: a kernel that answered `pass`
+        there would be asserting a membership nobody checked, and
+        the fixture turns red.
 
   No schema migration on existing Decisions (the `required_principals:`
   block is a future extension, not in this revision). No
@@ -53,11 +76,34 @@ intent: |
   `lib/rebuttal.ml::forge_mirror` against
   `MATH_CODING_FORGE_API`. A4 reuses that contract (same env
   var) but adds a different question: **is this committer in
-  this team?** — answered by the teams-membership endpoint,
+  this team?** -- answered by the teams-membership endpoint,
   not the comments-for-commit endpoint. The kernel stays
   closure-tight: no `cohttp`, no async runtime, just a curl
   pipe through `Unix.open_process_args_in` mirroring
   `lib/rebuttal.ml`.
+
+  2026-11-01, REVISION 2: THE FAIL-OPEN CONTRACT WAS FALSIFIED, AND
+  THE COMMAND WAS NOT. Revision 1 said that with the default
+  `--fail-mode open` an unset or unreachable forge yields
+  `verdict=pass` and exit 0, and it wrote the reason down: the
+  merge gate already fails closed, the forge check is a meta
+  check, and fail-open keeps the protocol usable on runners
+  without curl or without the secret. The kernel stopped doing that
+  on 2026-10-30 (`decisions/exit-honesty-waivers-2026-10.yaml`): the
+  unset-forge case now answers `verdict=unknown` with exit 3, and
+  `tests/cli/forge-verify.t` asserts exactly that, with the reason
+  in the fixture: "Before decisions/exit-honesty-waivers-2026-10.yaml
+  this case answered `pass` with exit 0, which asserted a membership
+  nobody checked."
+
+  The argument revision 1 made was right about the POLICY and wrong
+  about the VERDICT. A check that could not be evaluated has not
+  passed; the exit code is the last place where that difference can
+  be lost, and the corpus's own rule (`unknown != pass`) applies to
+  a meta check exactly as it applies to the gate. What fail-open
+  still buys is what it always bought: the merge is not BLOCKED by a
+  check that could not run. It buys that with exit 3 and the
+  verdict `unknown`, not with a green tick.
 
 scope:
   capabilities:
@@ -88,13 +134,22 @@ outcomes:
       no exceptions, no network failures escape the process.
 
   - id: fail-open-default
-    statement: |
-      `--fail-mode open` (default) returns verdict=pass and
-      exit 0 when `MATH_CODING_FORGE_API` is unset or the
-      curl call fails. `--fail-mode closed` flips to
-      verdict=block and exit 1. The flag is required; an
-      unknown value is rejected with exit 2.
+    outcome: fail-open-default
+    claim: |
+      `tests/cli/forge-verify.t` asserts that `--fail-mode open`
+      plus an unset `MATH_CODING_FORGE_API` returns verdict `unknown`
+      and exit 3; that `--fail-mode closed` plus an unset forge
+      returns verdict `block` and exit 1; that a membership of
+      false is `block` with exit 1 in either mode; and that an
+      unknown fail-mode is refused with exit 2.
 
+      The unset-forge case under the default mode is this
+      decision's negative control: a kernel that answered `pass`
+      with exit 0 there would be asserting a membership nobody
+      checked, and the fixture turns red.
+    acceptance:
+      all:
+        - verifier: tests/cli/forge-verify.t
   - id: 1-hour-cache
     statement: |
       Results are cached in-memory for 3600 seconds keyed on
@@ -124,6 +179,16 @@ counterexample: |
   turnup is painful, we make closed the default and the open
   path the override.
 
+  The 2026-11-01 amendment: the objection says "not silently
+  pass-through", and revision 2 is the answer to that half of it.
+  The open path no longer passes silently: it answers `unknown`
+  with exit 3 and says in the `reason` field that the forge was
+  not reached. What it does not do is BLOCK, which is what the
+  objection also asks for, and the two are not the same demand. A
+  check that cannot be evaluated is not a check that failed, and a
+  check that cannot be evaluated is not a check that passed; the
+  exit code is where that difference is kept.
+
   "`team_member` is not a 'gate' — it lives in bin/ as a
   one-shot tool, not in lib/gate.ml::evaluate."
 
@@ -146,8 +211,9 @@ assumptions:
     owner: human:maintainer
     consequence_if_false: |
       On a runner without `curl`, the CurlFailure path
-      fires. With fail-mode=open, the verdict is pass and
-      CI continues. With fail-mode=closed, the build blocks.
+      fires. With fail-mode=open, the verdict is `unknown` and
+      the exit code is 3, so the merge is not blocked and nothing
+      is certified. With fail-mode=closed, the build blocks.
       This is the right semantic; document the assumption.
     review_on:
       - signal: curl-missing

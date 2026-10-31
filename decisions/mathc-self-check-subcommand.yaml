@@ -1,28 +1,65 @@
 ---
 schema: math-coding/3.2
 id: mathc-self-check-subcommand
-revision: 4
+revision: 5
 state: active
-negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:0e019999c920f9f8cce02afee6509e42620ce99fd948be653438c78421dfc688"
-yaml_sha: "sha256:0e019999c920f9f8cce02afee6509e42620ce99fd948be653438c78421dfc688"
+#
+# Rev 5 (2026-11-01): the promise the claims inventory falsified --
+# "the kernel returns pass against this repository" -- rewritten as
+# what the kernel does. It returns `unknown` and exit 3 while the
+# attestation store is generated per run and covers no decision. The
+# control that catches the old promise is this decision's own now:
+# tests/cli/self-check-unknown.t.
+negative_control: tests/cli/self-check-unknown.t
+body_sha: "sha256:62d0baba47428530a146329d99cb60f91bb02bd67526da0eda0f4075903b4a6a"
+yaml_sha: "sha256:62d0baba47428530a146329d99cb60f91bb02bd67526da0eda0f4075903b4a6a"
 intent: |
   Close ROADMAP Tier-1 #2 (`mathc self-check`) and thereby the
   AGENTS.md bootstrap-gate expiry condition verbatim: the
   released 3.0 kernel successfully checks this repository and
   its conformance corpus. `mathc self-check` is the named mechanism;
   until it ships, every assessment is a manual declaration,
-  not an automated guarantee (AGENTS.md §Bootstrap gate).
+  not an automated guarantee (AGENTS.md section Bootstrap gate).
+
+  2026-11-01, REVISION 5: THE PROMISE WAS FALSIFIED, THE MECHANISM
+  WAS NOT. Revision 4 said the dispatcher ships and "the kernel
+  returns `pass` against this repository and its conformance corpus,
+  with exit code 0". It does not, and it cannot: the attestation
+  store is GENERATED (decisions/store-not-committed-2026-10.yaml),
+  so a checkout has no store until the sweep runs, and every
+  obligation without fresh evidence is `unknown`. Measured on this
+  tree, 2026-11-01: `mathc self-check` exits 3, the aggregate
+  verdict is `unknown`, and all 133 subjects are `unknown`.
+
+  What the kernel does say, and what this decision now promises:
+
+    `mathc self-check` answers with a VERDICT and an EXIT CODE that
+    agree: `pass` -> 0, `fail` -> 1, `unknown` -> 3. `unknown` is
+    never collapsed onto 0 (constitution.md:59, Invariant 14b,
+    spec/semantics.md section Kernel Output).
+
+    The parts of the check that do not need evidence DO pass: the
+    conformance corpus, the axioms invariants and the schemas are
+    reported as `pass` on every run (`mathc self-check --format=json`
+    carries them under `corpus`). What is `unknown` is every
+    DECISION's obligations, because the evidence for them lives in
+    the store and the store is generated per run.
+
+    The three cram fixtures assert the three arms end to end, and
+    they are the reason this decision's promise is checkable: a
+    kernel that collapsed `unknown` into `pass` turns
+    `tests/cli/self-check-unknown.t` red, and that is this
+    decision's negative control.
 
 axiom_link:
   - A0
 commitment: |
   Add a normative row for `mathc self-check` in `spec/semantics.md`
-  §"CLI subcommands" so the catalog is complete and the
+  section "CLI subcommands" so the catalog is complete and the
   constitution-level unrecorded gap (semantics.md:152-155) is
   closed on the spec side. The dispatcher ships in a follow-up
   revision of this decision (rev 2), gated by `mathc self-check`
-  passing locally against this repository and its conformance
+  answering honestly against this repository and its conformance
   corpus. Until `gate-attestation-store-fill` (ROADMAP Tier-1
   #1) lands, `mathc self-check` cannot move past `unknown` and
   this decision's exit code is reserved accordingly.
@@ -35,9 +72,14 @@ commitment: |
   (a top-level binding exposed from `lib/gate.ml`). The kernel
   stays offline and side-effect-free; all I/O lives in bin/.
   Exit codes: 0 on `pass`; 1 on `fail`; 3 on `unknown` /
-  infrastructure error — `unknown` is NOT collapsed onto 0, per
+  infrastructure error -- `unknown` is NOT collapsed onto 0, per
   constitution.md:59 (`unknown != pass`) and
   spec/semantics.md:435-440.
+
+  Revision 5 keeps the exit-code rule and rewrites the promise about
+  what the kernel certifies. The dispatcher is shipped; the verdict
+  it reports on a checkout without a generated store is `unknown`,
+  and that is the honest answer, not a failure of the subcommand.
 
 scope:
   paths:
@@ -65,10 +107,13 @@ outcomes:
       store entry exists; the `gate-attestation-store-fill`
       obligation of `decisions/gate-decision.yaml` is closed.
   - id: dispatcher-shipped
-    statement: bin/Mathc.ml dispatches `mathc self-check` and the
-      kernel returns `pass` against this repository and its
-      conformance corpus, with exit code 0.
-
+    statement: |
+      `mathc self-check` dispatches, and its verdict and its exit
+      code always agree: `pass` -> 0, `fail` -> 1, `unknown` -> 3.
+      A checkout without a generated attestation store answers
+      `unknown` and exits 3, because no decision's obligations hold
+      fresh evidence; the conformance corpus, the axioms invariants
+      and the schemas are reported as `pass` on the same run.
 counterexample: |
   `unknown` (exit 3) on an empty store must not be conflated with `pass`.
 
@@ -129,23 +174,27 @@ obligations:
   - id: mathc-self-check-dispatcher-shipped
     outcome: dispatcher-shipped
     claim: |
-      bin/Mathc.ml dispatches `mathc self-check`. The kernel
-      returns `pass` against this repository and its
-      conformance corpus with exit 0; against a deliberately
-      broken fixture the kernel returns `fail` with exit 1;
-      against an unloadable policy the kernel returns
-      `unknown` with exit 3. Revision 2 implements the
-      dispatcher and closes this obligation via the three
-      cram fixtures below; the verifiers name the positive,
-      negative and unknown/infrastructure-error cases
-      separately per AGENTS.md §Self-application
-      ("positive and negative conformance fixtures").
+      The three cram fixtures assert the three arms end to end.
+      `tests/cli/self-check-pass.t` runs the dispatcher against a
+      populated fixture store and requires the covered subjects to
+      report `pass`, the uncovered ones `unknown`, and the exit code
+      to be the one the aggregate verdict implies. The fixture
+      store covers two decisions in full, so the aggregate is
+      `unknown` and the exit code is 3 -- the fixture asserts the
+      composition, not a count. `tests/cli/self-check-fail.t`
+      requires `fail` and exit 1 against a decisive-fail
+      attestation. `tests/cli/self-check-unknown.t` requires
+      `unknown` and exit 3 against a store that is absent, and
+      requires every subject to be `unknown`.
+
+      A kernel that collapsed `unknown` into `pass` turns the third
+      fixture red, which is why it is this decision's negative
+      control.
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
         - verifier: tests/cli/self-check-fail.t
         - verifier: tests/cli/self-check-unknown.t
-
 reversal:
   - signal: kernel-diverges-from-spec
     action: |

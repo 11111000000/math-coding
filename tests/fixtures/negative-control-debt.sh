@@ -96,7 +96,11 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   waiver-infrastructure-2026-10 a control that catches its own
 #   failure: tests/cli/self-check-waiver-verdict.t asserts that a
 #   waived gap is reported as open-with-waiver and never as pass
-CEILING=36
+# ceiling-fall: 36 -> 35, the same tranche gave
+#   forge-principal-verification-2026-10 the control that catches
+#   its own failure: tests/cli/forge-verify.t asserts that an
+#   unreachable forge is unknown and exit 3, never pass and exit 0
+CEILING=35
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
