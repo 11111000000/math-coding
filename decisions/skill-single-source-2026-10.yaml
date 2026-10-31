@@ -1,0 +1,197 @@
+---
+schema: math-coding/3.3
+id: skill-single-source-2026-10
+revision: 1
+state: active
+mode: light
+
+intent: |
+  The applicability rule was stated three times — in the normative
+  algebra (§28), in the agent-facing skill, and in the envelope
+  `mathc init` prints — and the corpus verified each statement
+  separately. Two of those statements are mutually exclusive, and both
+  were green in the same CI run (2026-10-30T14:57:35Z, producer
+  ci:kernel:resign): decisions/solo-default-on-2026-10.yaml said the
+  envelope is default-on, and decisions/adopter-path-2026-10.yaml said
+  the skill is opt-in and proved it by grepping the skill for the
+  phrase "Opt-in".
+
+  The contradiction was never a disagreement about the protocol. It was
+  a disagreement about how to verify a rule that lives in prose, and it
+  survived every check the corpus owns because every check looked at
+  one surface at a time. A rule stated three times is a rule that will
+  drift; the drift is invisible to a gate that verifies each copy
+  separately.
+
+  This decision gives the rule one owner (§28) and one kind of check
+  (agreement between surfaces). It supersedes adopter-path-2026-10 and
+  aligns with solo-default-on-2026-10, which stay active and say the
+  same thing from the other side.
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+commitment: |
+  After this decision closes:
+
+  1. `adoption/SKILL.md` states the applicability rule once, as an
+     operational instruction, and names `spec/algebra-3.2.md` §28 as
+     its authority. It carries no second copy of the rule and no
+     sentence that a reader could act on when §28 says otherwise.
+
+  2. The corpus verifies AGREEMENT between the three surfaces
+     (`spec/algebra-3.2.md` §28, `adoption/SKILL.md`,
+     `lib/init/init.ml::print_applicability_envelope`), not the
+     presence of a phrase in one of them. The check is
+     `scripts/check-applicability-agreement.sh`.
+
+  3. No active decision may assert the applicability rule by grepping
+     a phrase out of a prose file. The check is
+     `scripts/check-no-prose-policy-grep.sh`, and its denylist is
+     explicit: the phrases that state the rule, not a heuristic over
+     all phrases.
+
+  4. The skill documents the evidence path that can fail: `attest-batch
+     --run-per-obligation` (which signs a verdict it obtained by
+     running the verifier), `mathc gaps` (which lists the promises that
+     are still open), and the fact that `--producer=human:me` produces
+     `result: pass` with an empty materials digest — the freshness
+     wildcard. A skill that shows only the path that cannot fail is a
+     receipt template.
+
+  5. The skill lists the scaffold defects that survive this build: the
+     emitted stub is not valid YAML for a strict parser (an unquoted
+     `<TODO: ...>` placeholder), its `risk` block is indented under the
+     `counterexample` scalar and is therefore absent from the parsed
+     decision, and `mathc validate` accepts a stub full of TODOs.
+
+outcomes:
+  - id: one-owner-one-check
+    statement: |
+      The applicability rule is stated once, in §28, and the corpus
+      checks that the skill and the CLI agree with it.
+  - id: no-policy-by-phrase
+    statement: |
+      No active decision verifies a rule by the presence of a sentence
+      in a prose file.
+  - id: the-skill-shows-the-path-that-can-fail
+    statement: |
+      The skill documents the attestation path whose verdict comes
+      from running the verifier, and names the one that does not.
+
+scope:
+  paths:
+    - "adoption/SKILL.md"
+    - ".opencode/skills/math-coding/SKILL.md"
+    - "spec/algebra-3.2.md"
+    - "lib/init/init.ml"
+    - "scripts/check-applicability-agreement.sh"
+    - "scripts/check-no-prose-policy-grep.sh"
+    - "decisions/skill-single-source-2026-10.yaml"
+    - "decisions/adopter-path-2026-10.yaml"
+  exclusions:
+    - "_build/**"
+    - "attestations/**"
+
+obligations:
+  - id: one-owner-one-check
+    claim: |
+      The normative algebra, the adoption skill and the envelope
+      `mathc init` prints state the same applicability rule, and the
+      skill names §28 as its authority instead of carrying a second
+      copy of the rule.
+    acceptance:
+      all:
+        - verifier: scripts/check-applicability-agreement.sh
+  - id: no-policy-by-phrase
+    claim: |
+      No active decision asserts the applicability rule by grepping a
+      phrase out of a prose file.
+    acceptance:
+      all:
+        - verifier: scripts/check-no-prose-policy-grep.sh
+  - id: the-skill-shows-the-path-that-can-fail
+    claim: |
+      The adoption skill names the attestation path that runs the
+      verifier, names the command that lists open promises, and says
+      what `--producer=human:me` produces.
+    acceptance:
+      all:
+        - verifier: shell-grep adoption/SKILL.md --run-per-obligation
+        - verifier: shell-grep adoption/SKILL.md mathc gaps
+  - id: the-known-defects-are-written-down
+    claim: |
+      The adoption skill lists the scaffold defects that survive this
+      build, so an adopter is warned before the scaffold is trusted.
+    acceptance:
+      all:
+        - verifier: shell-grep adoption/SKILL.md Known defects in this release
+        - verifier: shell-grep adoption/SKILL.md not valid YAML for strict parsers
+
+counterexample: |
+  The strongest objection is that this decision removes a protection.
+  `adopter-path-2026-10` earned the right to state the opt-in rule
+  with a measured argument: the with-protocol arm ran 3-4x the control
+  arm on five external projects, and the arm that benefits is the arm
+  where somebody will read the trail. Its counterexample answered the
+  cost objection by separating the price of the protocol from the price
+  of its broken parts, and that answer was good enough to keep.
+
+  The objection is right about the cost and wrong about who owns the
+  rule. It measured the price of applying a protocol to projects that
+  nobody reads; it did not measure whether the rule of application
+  should differ from the rule the kernel enforces. The kernel
+  installs. `mathc init` prints "Installed by default, a single
+  maintainer included". §28 rev 2 says Path A unless throwaway. A skill
+  that says "opt in" does not make the protocol cheaper; it makes the
+  agent's first move disagree with the tool it is about to run, and
+  the disagreement is invisible to every check the corpus owns — which
+  is exactly how two opposite rules came to be attested in one run.
+
+  If the cost objection is right, the honest response is a cheaper
+  default, not a second default: `mode_floor: light` already bounds
+  the per-commit cost to `{commitment, counterexample}`, and the
+  measured per-decision overhead after the layout was locked was ~1-2
+  minutes. That is the floor this decision keeps, and it is the floor
+  `adopter-path` itself named.
+
+  What would change the verdict: evidence that adopters who read the
+  skill install the kernel at a materially lower rate than adopters
+  who do not read it, or that a default-on envelope is measurably
+  refused by projects that would have benefited. The reversal signal
+  is `default-on-blocks-adoption`.
+
+antithesis: |
+  The opposite claim is that the two rules can coexist because they
+  answer different questions: §28 says which path a project takes, and
+  the skill says when an agent should offer it. On that reading the
+  corpus is not contradictory, it is layered — the normative text
+  governs the kernel, the skill governs the conversation, and the CLI
+  prints what the kernel assumes while the agent decides what to
+  propose.
+
+  That claim is attractive because it makes the conflict someone's
+  responsibility rather than the corpus's. It is also unfalsifiable in
+  the way the project has already paid for: a layering that no check
+  compares is a layering where the two layers drift, and the drift
+  shows up as an agent that declines to install a kernel the tool would
+  have installed, with no record of the refusal — the failure
+  `solo-default-on-2026-10` was written to close, reopened by a later
+  commit with no decision behind it. Layers need a seam that says which
+  one wins. The seam is §28, and the check is agreement.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the skill and §28 drift apart again, and no check notices because a check was added for the symptom rather than the rule"
+    - "the phrase denylist grows until every document check is forbidden and the corpus stops checking prose at all"
+    - "the skill's honest evidence path is read as advice and the cheap path is used anyway, because the cheap path is shorter"
+    - "adopter-path-2026-10 is superseded without its measured cost reaching the next reader of the skill"
+
+relations:
+  addresses:
+    - solo-default-on-2026-10@1
+  supersedes:
+    - adopter-path-2026-10@1
