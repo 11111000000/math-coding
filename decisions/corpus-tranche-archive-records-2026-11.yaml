@@ -1,0 +1,324 @@
+---
+schema: math-coding/3.3
+id: corpus-tranche-archive-records-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/shell-grep-negative-control.sh
+body_sha: "sha256:a6646eadfd261f12a77b175d5d6a79886cf5374dfd84b4d7c4035496bd370709"
+yaml_sha: "sha256:a6646eadfd261f12a77b175d5d6a79886cf5374dfd84b4d7c4035496bd370709"
+
+intent: |
+  Fourteen candidates were examined for the archive tranche T2.1. One
+  of them was a record that nothing in the tree named, and it moved.
+  Thirteen were named, and they stayed where they were.
+
+  THE CRITERION, and it is the plan's: a decision is a RECORD when it
+  fixed an event, did its work, and the corpus has nothing left to
+  say about it. Such a decision may move to `archive/decisions/` with
+  `state: retired` and the reason written beside it - but ONLY when
+  nothing in the tree names it. Not "nothing depends on it in a way
+  that matters": NOTHING. No relation target, no verifier, no scope
+  path, and no prose that tells a reader where the file is. The
+  check is mechanical, and it is the check this tranche ran:
+
+      git grep -n "<the name without .yaml>" -- .
+      git grep -n "decisions/<the file>" -- .
+
+  A mention inside `archive/decisions/` counts exactly as much as a
+  mention inside `decisions/`, because the corpus's own instruments
+  resolve decision ids across both: `tests/fixtures/relation-targets-resolve.sh`
+  builds its id set from the live tree AND the archive, and
+  `tests/fixtures/redundancy-census.sh` does the same. A file named
+  by an archived decision is named, and moving the file would not
+  remove the mention - it would only carry the mention along with it.
+
+  THE ONE THAT MOVED:
+
+    decisions/kernel-format-2026-10.yaml
+      becomes archive/decisions/kernel-format-2026-10.yaml
+      id kernel-format-2026-10, revision 1, state retired.
+
+  It recorded one `dune fmt` commit and nothing else. Its intent is
+  that the diff of `bin/Mathc.ml` is the formatter's own output; its
+  commitment is that no verdict, no exit code, no message text and
+  no digest changed; its obligation was `dune fmt --preview`. No
+  relation named it, no verifier named it, and no scope path of
+  another decision named it. Its own `scope.paths` named itself and
+  `bin/Mathc.ml`; the second still exists and the first is a path
+  that now says `archive/decisions/`, which the census does not
+  measure because the census measures the LIVE corpus.
+
+  THE THIRTEEN THAT STAYED, each with what names it:
+
+    format-circular-verifier-message-2026-10 - named by
+      archive/decisions/kernel-format-2026-10.yaml, the file that
+      moved. The mention moved with it, and a mention in the archive
+      is a mention.
+
+    lib-stale-comments-cleanup-2026-10 - `relations.refines` from
+      three archived decisions (kernel-typo-fixes-batch,
+      lib-comment-typo-fixes, re-eval-remediation-todo-fix), and by
+      the header of its own verifier, scripts/check-stale-narrative.sh.
+
+    render-module-split-phase1-2026-10 - named by lib/codec.ml, by
+      two tests, by two plans, and by three decisions, one of them
+      render-module-split-phase1a, which supersedes it.
+
+    dead-code-removal-2026-10 - named by the header of its own
+      verifier, tests/fixtures/no-dead-references.sh, by
+      tests/cli/embedded-schemas.t, and by an archived decision.
+
+    dune-test-wrapper-exit-honesty-2026-10 - named by the header of
+      its own verifier, tests/fixtures/dune-test-wrapper-propagates-failure.sh.
+
+    gate-truth-mathc-path-2026-10 - named by flake.nix and by two
+      pre-commit fixtures.
+
+    install-tooling-default-tag-edge-2026-10 - named by
+      scripts/install-tooling/install.sh, which says it "revises
+      install-tooling-default-tag-edge", and by PACKAGES.md,
+      ROADMAP.md and CHANGELOG.md.
+
+    p8-hook-deficit-2026-10 - named four times by
+      .githooks/pre-commit, by lib/codec.ml, by three tests, by
+      OCAML_KERNEL_CONVENTIONS.md, and by six decisions (one live,
+      five archived), including the waiver whose subject it is.
+
+    schema-string-bump-3.0-alpha-to-3.2-2026-10 - `relations.supersedes`
+      from archive/decisions/schema-string-bump-3.0-alpha-to-3.3-2026-10.yaml,
+      by the ENUM TEXT of schemas/decision.json (the soft-deprecation
+      of the 3.0-alpha family cites it by name), by the scaffold
+      example in lib/new_decision/new_decision.ml, and by a cram test.
+
+    mcp-agent-auto-connect-2026-10 - named by two cram tests that
+      grep the decision id out of `mathc find` output.
+
+    corpus-census-2026-10 - named by
+      decisions/self-check-subject-set-2026-10.yaml.
+
+    D6-bootstrap-v3-verifiers-implemented - named four times by
+      scripts/counterexample-seed.py, and by docs/AUDIT-0.0.20.md,
+      attestation-source-map.md, PACKAGES.md and ROADMAP.md.
+
+    algebra-3.2-notation-flag-2026-10 - named by spec/algebra-3.2.md
+      itself, by two cram tests, by a scope EXCLUSION in
+      docs/plans/t0-1.yaml, and by two decisions.
+
+  THE NUMBERS, measured by the census fixture and the relation lint on
+  this branch, at the merge of main (971f6f80), after the move, and
+  after this decision is filed:
+
+    live decision files in decisions/       145 -> 144 -> 145
+    of them the census counts active         142 -> 141 -> 142
+    files in archive/decisions/               120 -> 121 -> 121
+    archived decisions still saying active    104 -> 104 -> 104
+    dangling relation targets                  44 ->  44 ->  44
+    scope paths matching no tracked file       20 ->  20 ->  20
+    obligations the kernel cannot execute      38 ->  38 ->  38
+
+  The archive grew by one file and its "still active" count did not
+  move: the file that arrived says `state: retired`, which is the
+  whole point of the tranche - a record enters the archive AS a
+  record, not as a rule that happens to sit in another directory.
+  The live corpus ends where it started because one file left and
+  one file (this decision) arrived.
+
+commitment: |
+  1. A decision moves to `archive/decisions/` ONLY when nothing in the
+     tree names it: no relation target, no verifier, no scope path,
+     and no prose that tells a reader where the file is. The check
+     is `git grep -n "<the name>" -- .` over the whole tree, and a
+     mention inside `archive/decisions/` counts exactly as much as a
+     mention inside `decisions/`.
+
+  2. The move is byte-for-byte: `git mv`, and then the two edits the
+     archive needs - `state: retired`, and the reason written beside
+     it as a comment. The reason is a comment because
+     `schemas/decision.json` closes the record with
+     `additionalProperties: false` and there is no field for a
+     reason; the precedent is archive/decisions/considered-mode-migration-2026-10.yaml.
+
+  3. The reason is written where a reader of the FILE will find it,
+     not in a place that only the author knows.
+
+  4. A record enters the archive as a record: it says
+     `state: retired`, so the archive's "still active" count does not
+     grow by one when a file arrives there.
+
+  5. This tranche changes no ceiling, no fixture and no threshold.
+     The corpus is one file smaller and one file larger; the
+     ceilings are the orchestrator's to lower at merge, and the
+     census's CORPUS ceiling of 145 still holds at 145.
+
+  6. The thirteen candidates that are named stay where they are. A
+     tranche that moved them would have had to edit the mentions, and
+     editing the mentions is the work of T2.2a (the dangling
+     targets) and T2.2b (the stale claims) - not of a move that
+     claims to preserve every reference.
+
+axiom_link:
+  - A0
+  - A4
+
+counterexample: |
+  (a) "The criterion is too strict. A file that a decision mentions
+  in PROSE, and nothing else, is not depended upon: the dependency
+  is the relation, the verifier and the scope path. On that reading
+  thirteen of the fourteen candidates would move, and the corpus
+  would shed thirteen files in one tranche."
+  Rejected, and the rejection IS the tranche's discipline. The prose
+  is how a reader finds the file: `decisions/p8-hook-deficit-2026-10.yaml`
+  is named four times in `.githooks/pre-commit`, and a reader who
+  follows that name after the file moved finds nothing. The relation
+  is the machine's form of the same dependency, and the corpus's
+  instruments resolve ids across the archive - so a mention the tree
+  cannot follow is a broken pointer either way. The tranche's claim
+  is not "these thirteen are records"; it is "these thirteen are
+  named, and naming is what keeps a reader's path from going dark".
+  T2.2b is the tranche that judges the thirteen one at a time, and it
+  judges them with the freedom to EDIT the mention - which this
+  tranche does not have, and which this tranche must not fake.
+
+  (b) "One file moved. The tranche is not worth a decision file, and
+  the decision file makes the corpus BIGGER than the file it
+  archived."
+  True, and worth saying out loud: one record moved and one decision
+  was filed, so the live corpus is the size it was. The point of the
+  tranche is not the arithmetic. Thirteen candidates were examined by
+  a mechanical criterion and thirteen were left where they were, with
+  the reason recorded for each - that is the first time this corpus's
+  records have been separated from its rules by a check anybody can
+  repeat, and the result (one file) is the honest size of the class.
+  A tranche that moved three files because three was the budget would
+  have moved three files, and the next reader would have believed the
+  corpus had three records left to archive.
+
+antithesis: |
+  The opposite position is that the ARCHIVE IS NOT A PLACE FOR
+  RECORDS, and that a decision which has done its work should be
+  DELETED, not filed. The archive is a second corpus: it is read by
+  the instruments (the census counts it, the relation lint resolves
+  ids in it), it grows, and every file in it is a file somebody has
+  to keep deciding about. The archive already holds 121 files, 104 of
+  them still saying `state: active`, and the census has a ceiling on
+  THAT number precisely because the archive was not being kept honest.
+
+  The claim is right about the cost, and the cost is paid by deletion
+  too - at a higher price. The record of WHAT WAS DECIDED is the only
+  thing that lets a later reader tell a rule from a relic. A deleted
+  decision leaves a gap that a reader fills with a guess, and the
+  guess usually errs in the direction that makes the tree look
+  tidier than it is. An archived decision with `state: retired` and a
+  reason is a decision that has been asked and answered: the corpus's
+  own instruments can see it without acting on it, and a reader can
+  find out what happened instead of inferring it.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - the-archive-counts-as-a-second-corpus-and-grows-unchecked
+    - a-record-is-archived-while-something-still-names-it
+    - the-criterion-is-softened-until-the-moves-are-easy
+    - the-corpus-ceiling-is-raised-instead-of-lowered
+
+assumptions:
+  - id: a-mention-in-the-archive-is-a-mention
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The corpus's instruments resolve decision ids across the live
+      tree AND the archive: `tests/fixtures/relation-targets-resolve.sh`
+      builds its id set from both directories, and
+      `tests/fixtures/redundancy-census.sh` does the same. A decision
+      named by an ARCHIVED decision is therefore still named, and the
+      mention stays a mention after the file moves.
+    consequence_if_false: |
+      If the instruments resolved the live tree alone, a mention
+      inside `archive/decisions/` would be a mention nobody could act
+      on, and the criterion would have to be "named by the LIVE
+      corpus" - a weaker and stranger rule, under which archiving a
+      decision would silently unbind every decision that names it.
+      The thirteen would then have been judged by a different
+      criterion than the one this tranche applied.
+    review_on:
+      - signal: the-relation-lint-stops-reading-the-archive
+
+  - id: the-archive-is-not-walked-by-the-gate
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel's reader (`lib/memory.ml::decision_document_paths`)
+      walks the directory it is given, and the gate is given
+      `decisions/`. The gate's active set is the entries whose state
+      is `active` or `draft` (`lib/gate.ml::active_entries`), so a
+      file under `archive/decisions/` is not walked at all, and a
+      retired record would not contribute an obligation even if it
+      sat in `decisions/`.
+    consequence_if_false: |
+      If the gate walked the archive as well, a retired record would
+      still be an open promise, and moving a file would be a way of
+      hiding a debt rather than a way of closing one. The tranche
+      would then be a way of making the corpus LOOK smaller, which
+      is the opposite of what the census measures.
+    review_on:
+      - signal: the-gate-walks-the-archive
+
+scope:
+  paths:
+    - "decisions/corpus-tranche-archive-records-2026-11.yaml"
+    - "archive/decisions/kernel-format-2026-10.yaml"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "lib/**"
+    - "bin/**"
+
+outcomes:
+  - id: the-record-left-the-live-corpus
+    statement: |
+      `decisions/kernel-format-2026-10.yaml` is now
+      `archive/decisions/kernel-format-2026-10.yaml`, it says
+      `state: retired`, and it carries the reason beside it. The
+      live corpus does not carry it any more, and the archive's
+      "still active" count did not grow.
+  - id: the-thirteen-are-named-and-stay
+    statement: |
+      The thirteen candidates that are named somewhere in the tree
+      stayed in `decisions/`, each with the mention that names it
+      recorded in the intent of this decision. No mention was
+      removed, and no relation was rewritten.
+  - id: the-criterion-is-repeatable
+    statement: |
+      The criterion is a `git grep` over the whole tree, so the next
+      reader can re-run it and get the same answer this tranche
+      got, and the answer is a number rather than an impression.
+
+obligations:
+  - id: the-record-is-in-the-archive
+    outcome: the-record-left-the-live-corpus
+    claim: |
+      The record this tranche moved is at
+      `archive/decisions/kernel-format-2026-10.yaml`. The check is a
+      file-existence check, which is the honest shape for a claim
+      about where a file is: it can fail, and it fails if the file is
+      moved back or deleted.
+    acceptance:
+      all:
+        - verifier: file-exists archive/decisions/kernel-format-2026-10.yaml
+  - id: the-record-says-it-is-retired
+    outcome: the-record-left-the-live-corpus
+    claim: |
+      The archived file says `state: retired`, so the archive's
+      "still active" count does not grow by one when a record enters
+      it. The check searches that file for the exact line, so a copy
+      made without the retirement makes it fail. The scheme is
+      `shell-grep`, and `tests/fixtures/shell-grep-negative-control.sh`
+      is the control that proves the scheme can fail.
+    acceptance:
+      all:
+        - verifier: shell-grep archive/decisions/kernel-format-2026-10.yaml state: retired
+
+relations:
+  addresses:
+    - redundancy-census-2026-11@1
