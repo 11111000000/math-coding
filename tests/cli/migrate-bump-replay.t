@@ -9,7 +9,7 @@ to `math-coding/3.2`. The fixture's `schema:` line reads
 `math-coding/3.0-alpha`; this is the legacy form the
 schema enum (`schemas/decision.json`) still admits as a
 soft-deprecated form per
-`decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`.
+`archive/decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`.
 
   $ cd "$DUNE_SOURCEROOT"
   $ $INSIDE_DUNE/bin/mathc.exe migrate \

@@ -128,7 +128,7 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #     declares a relation between decisions: `addresses: A1` in
 #     decisions/migration-mechanism-2026-10.yaml and
 #     `addresses: A3` in
-#     decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml.
+#     archive/decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml.
 #     They resolve to axioms, so they are not missing; they are
 #     misplaced, and the corpus carries `axiom_link:` for that.
 #     The ceiling may only fall, and reaches 0 when the corpus stops
