@@ -66,7 +66,7 @@
  * Splitting the ledger by CLAIM is what keeps the exact-set from
  * freezing: the kernel-side bucket is asserted empty with no
  * tolerance, so a parser regression is a zero-tolerance failure even
- * though the author-side buckets still carry ten entries of noise.
+ * though the author-side bucket is now empty.
  *
  * HONEST LIMIT. The classification above is a claim about what an
  * independent YAML reader thinks, and this executable has no YAML
@@ -110,20 +110,19 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
 
 (* Author's debt, not the kernel's. Every entry was checked against
    `yq` (go-yaml), which rejects it; `scripts/scan-silent-drops.sh
-   --validity` prints INVALID for all ten. The bracketed shape is what
-   the independent reader complains about, recorded so the next reader
-   does not have to re-derive it:
+   --validity` prints INVALID for each. The bracketed shape is what
+   the independent reader complained about, recorded so the next reader
+   did not have to re-derive it:
     3-2-cli-catalog            bad indentation of a mapping entry
     ci-blocking-list-config    bad indentation of a sequence entry
     d5-body-vs-wrapper-canon.  mapping values are not allowed here
     mathc-packages-subcommand  a multiline key may not be an implicit key
 
-   Three entries were struck off on 2026-10-29, each in the commit
-   that fixed it, as the assertion below demands: mathc-self-check-
-   subcommand (a plain scalar opened with a backtick),
-   render-html-templates (bad indentation of a sequence entry) and
-   render-ordered-lists (expected ':' after a mapping key). *)
-let author_malformed = [ "decisions/mathc-packages-subcommand.yaml" ]
+   The last entry, mathc-packages-subcommand (a multiline key used as
+   an implicit key), was struck off on 2026-10-31 in the commit that
+   repaired the unread tail. The bucket is now empty and is asserted
+   empty. *)
+let author_malformed = []
 
 (* A stray second `---`. These lose NOTHING: the marker is the LAST
    line of the file, so the tail behind it is empty and every
@@ -204,9 +203,9 @@ let test_the_corpus_was_actually_read () =
    truncates the file during front-matter stripping, BEFORE
    tokenisation, so it leaves an empty leftover list and surfaces on the
    marker channel instead. The CLI reports both under MC-UNPARSED-TAIL,
-   which is why `scan-silent-drops.sh` prints twelve files and this
-   assertion measures ten: same corpus, two channels, no
-   contradiction. The marker channel is asserted separately below. *)
+   which is why the tail channel and the marker channel measure the
+   same corpus separately, with no contradiction. The marker channel is
+   asserted below. *)
 let test_offender_set_is_exactly_the_ledger () =
   let recorded = sorted_uniq (author_malformed @ kernel_holes) in
   let measured =
@@ -241,9 +240,8 @@ let test_marker_set_is_exactly_the_ledger () =
 
 (* The zero-tolerance bucket, stated on its own so the failure says
    what it means. As long as this is empty, every offender in the
-   corpus is accounted for by something a strict reader also rejects
-   -- and the eleven author-side entries above are noise the reader is
-   entitled to make. *)
+   corpus is accounted for by something a strict reader also rejects,
+   and there are no author-side entries above. *)
 let test_no_valid_decision_is_truncated () =
   Alcotest.check
     (Alcotest.list Alcotest.string)

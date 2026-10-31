@@ -1,49 +1,82 @@
 ---
 schema: math-coding/3.2
 id: mathc-packages-subcommand
-revision: 3
+revision: 4
 state: active
-body_sha: "sha256:f04b8909e60a2c78702b66e29c7cf440864eef30dbde62f7376101d5a27e6429"
-yaml_sha: "sha256:f04b8909e60a2c78702b66e29c7cf440864eef30dbde62f7376101d5a27e6429"
-intent: |
-  Add `mathc packages` — a kernel-level subcommand that enumerates
-  every package (decision + obligation pair) in the repository,
-  its current verdict, the verifier, and the most recent
-  attestation status. This is the operator's single-pane view
-  of the project's assurance surface; without it, callers must
-  manually walk `decisions/*.yaml`, `attestations/*.json`, and
-  `docs/AUDIT-*.md` to recover the same picture.
+body_sha: "sha256:4ddc41dd766da90ab760b3bce38f4f80578bd0d0456b081111974cb505388306"
+yaml_sha: "sha256:4ddc41dd766da90ab760b3bce38f4f80578bd0d0456b081111974cb505388306"
 
-  The site at `cmd/members/site/index.md` reads this output via
-  `mathc packages --format=html` to render the package grid page,
-  so the subcommand also serves as the bridge between the
-  kernel and the project's published surface.
+intent: |
+  `mathc packages` is the kernel-level, operator-facing index of the
+  assurance surface: every live decision and every obligation it declares,
+  joined to the current generated attestation store, with the verifier and
+  the per-obligation verdict attached. It is the single-pane view that used
+  to require callers to walk `decisions/` and `attestations/` themselves.
+
+  2026-10-31, REVISION 4: THE CATALOG PROMISE STAYS; THE FILE FORM AND
+  THE PATHS BECOME CURRENT. The previous revision's tail stopped at the
+  `matching the kernel's count` line: the kernel read three obligations
+  and none of the evidence, unknowns, or history below that line. The
+  malformed continuation also made the file's historical paths and counts
+  read as current. This revision repairs the tail without narrowing the
+  catalog promise.
+
+  The current implementation lives in `lib/packages.ml` and is walked by
+  `bin/Mathc.ml::do_packages`. The site consumer is `site/packages.md`,
+  rendered as `dist/packages.html`; `lib/render/render.ml::build_pages`
+  embeds the kernel's HTML fragment. The old `site/index.md` path and the
+  old flat `lib/render.ml` path are historical, not current.
+
+  Measured on this tree on 2026-10-31,
+  `mathc packages --format=json` emitted 139 decisions and 529
+  decision-obligation pairs. Those numbers are a dated measurement, not a
+  promise: the promise is that the catalog covers the kernel-recognized
+  live corpus, and the instrument that proves the shape is
+  `tests/cli/packages.t` plus the live JSON output.
+
+  History:
+    rev 1: adopted the `mathc packages` catalog and its three formats.
+    rev 2: recorded the kernel walker, CLI dispatcher, and site consumer.
+    rev 3: recorded the implementation and the live catalogue surface.
+    rev 4 (this revision): repaired the unread tail and re-pointed the
+      site and renderer references at the paths that exist; the complete
+      catalog promise is unchanged.
 
 axiom_link:
   - A0
+  - A1
+
 commitment: |
-  `bin/Mathc.ml` dispatches `mathc packages [--format=text|json|html]`.
-  The dispatcher invokes a pure function in `lib/packages.ml`
-  that:
-    1. enumerates every `decisions/*.yaml` and `decisions/*.md`,
-    2. for each decision, walks its `obligations[]`,
-    3. joins each obligation with the attestation store at
-       `attestations/`,
-    4. computes a per-obligation verdict (pass | fail | unknown
-       | waived | stale | missing) by the rules in
-       `spec/semantics.md §Evaluation`,
-    5. emits a sorted-key JSON object (default), plain text
-       table (`--format=text`), or a self-contained HTML
-       fragment (`--format=html`).
+  `bin/Mathc.ml::do_packages` dispatches
+  `mathc packages [--format=text|json|html]`. The dispatcher delegates to
+  the pure kernel module `lib/packages.ml`, which:
 
-  A new cram fixture `tests/cli/packages.t` exercises the
-  positive path; a kernel unit test in `tests/packages.ml`
-  asserts the negative path (empty `decisions/`).
+    1. walks the live decision corpus recursively through the same
+       structural rule as the rest of the kernel
+       (`lib/memory.ml::decision_document_paths`),
+    2. reads every obligation and its acceptance verifier from each
+       decision,
+    3. joins each obligation to the generated attestation store and the
+       live waiver set,
+    4. computes the per-obligation verdict
+       (`pass | fail | unknown | waived | stale | missing | no_store`) by
+       the rule in `lib/packages.ml::verdict_of`, which follows the
+       gate's class-establishment rule rather than inventing a second
+       one, and
+    5. emits a sorted-key JSON object (default), a plain-text table, or a
+       self-contained HTML fragment.
 
-  The `site/index.md` page is generated from this subcommand's
-  `--format=html` output. No additional kernel surface is
-  added for the site; the site is a *consumer* of `mathc
-  packages`, not a parallel source of truth.
+  The catalog promise is complete: every decision-obligation pair the
+  kernel recognizes in the live corpus appears with its verifier and
+  current verdict. The live count is deliberately not repeated in the
+  promise because it changes whenever the corpus or store changes;
+  `mathc packages --format=json` is the live measurement.
+
+  `tests/cli/packages.t` exercises the text, JSON, and HTML forms and
+  checks that the HTML count equals the JSON count. The site page
+  `site/packages.md` consumes the HTML form through
+  `lib/render/render.ml::build_pages`; the site does not walk decisions
+  independently.
 
 scope:
   paths:
@@ -54,101 +87,127 @@ scope:
     - tests/dune
     - tests/cli/packages.t
     - site/packages.md
+    - site/packages.ru.md
+    - site/packages.zh.md
     - scripts/render.sh
     - spec/semantics.md
     - schemas/common.json
     - decisions/mathc-packages-subcommand.yaml
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
-  #   tests/packages.ml - no tracked file matches it
-  #   site/index.md - no tracked file matches it
   exclusions:
     - lib/git/**
     - lib/junit/**
     - attestations/**
 
-
 outcomes:
   - id: packages-lists-decisions
     statement: |
       `mathc packages [--format=text|json|html]` lists every
-      decision + verdict.
+      decision-obligation pair in the kernel-recognized live corpus, with
+      the verifier and the current verdict for each pair.
+  - id: packages-join-the-current-store
+    statement: |
+      The verdict for each pair is computed from the generated store and
+      the live waiver set; a checkout with no store reports `no_store`,
+      not `pass`.
+  - id: packages-site-is-a-consumer
+    statement: |
+      `site/packages.md` is rendered with the HTML fragment emitted by
+      `mathc packages`; no parallel site-side decision walker owns the
+      package catalogue.
 
 risk:
   declared_triggers:
     - decision-graph-walk-changes
     - site-rendering-changes
+    - packages-tail-unreadable
   owner: human:maintainer
+
 counterexample: |
-  - counterexample: |
-      The package walker fails silently on a `decisions/*.yaml`
-      with a malformed obligation (e.g. `acceptance` is a string
-      instead of an object). The site then renders a partial
-      grid. Mitigation: the walker returns `Result::Diagnostic`
-      on the first parse error and the dispatcher exits non-zero;
-      `site/index.md` is regenerated only when the kernel
-      succeeds. Cf. `OCAML_BEST_PRACTICES.md §10.1` (adapters
-      surface parse errors as `Diagnostic.t`, not as silent
-      omissions).
-  - decision_graph_wal_changes: |
-      The schema for `obligation.acceptance` evolves (e.g. an
-      `any:` combinator is added). The walker misses the new
-      branch and produces empty verdicts. Mitigation: a
-      conformance runner obligation (`kernel-conformance-runner`)
-      already enumerates every obligation; the walker joins on
-      the same key. Any schema drift shows up as a conformance
-      runner failure before it reaches the site.
+  "A malformed decision could be absent from the package view, so the
+  catalogue can look complete while it is not." This is the strongest
+  objection to a view assembled by a kernel walker.
+
+  The answer has two parts. The walker uses the kernel's structural rule
+  for what a decision is, so a document the kernel does not recognize is
+  not silently presented as a complete decision. The corpus-wide YAML
+  checks (`tests/corpus_no_silent_drops/corpus_no_silent_drops.ml` and
+  `mathc validate` over the corpus) are the instruments that catch a
+  decision whose tail the kernel cannot read. This decision does not
+  claim that the packages view is a second parser with its own error
+  catalogue; it claims that the view covers the kernel-recognized
+  corpus, and that the file itself is read to EOF.
+
+  The second countercase is schema evolution. If
+  `obligation.acceptance` gains another combinator, the view could miss
+  a branch and emit empty verdicts. The mitigation is the shared corpus
+  walk and the conformance runner: both use the kernel's decision model,
+  so schema drift appears there before it becomes a site promise.
+
+antithesis: |
+  The coherent alternative is to let the site walk `decisions/` itself
+  and render the package grid from that walk. It would avoid a kernel
+  package API and could be implemented locally by the renderer.
+
+  That alternative creates two measures of one corpus. The site would
+  need to reproduce the kernel's definition of a decision, the gate's
+  verdict rules, the waiver lookup, and the attestation freshness
+  rules. A disagreement between the two walks would be invisible until
+  a published page and `mathc packages` disagreed. The consumer
+  position is therefore stronger: the kernel owns the package view and
+  the site renders it.
 
 obligations:
   - id: packages-kernel-walker
-    statement: |
+    outcome: packages-lists-decisions
+    claim: |
       The kernel function in `lib/packages.ml` enumerates every
-      decision-obligation pair and emits a verdict per obligation.
-    outcome: packages-kernel
+      decision-obligation pair the kernel recognizes in the live corpus
+      and emits a verdict and verifier for each pair.
     acceptance:
       all:
         - verifier: mathc packages --format=json
 
   - id: packages-cli-dispatcher
-    statement: |
-      `bin/Mathc.ml` exposes `mathc packages` as a documented
-      subcommand with three output formats.
-    outcome: packages-cli
+    outcome: packages-lists-decisions
+    claim: |
+      `bin/Mathc.ml::do_packages` exposes `mathc packages` with text,
+      JSON, and HTML output, and `tests/cli/packages.t` exercises all
+      three forms and their shared count.
     acceptance:
       all:
         - verifier: tests/cli/packages.t
 
   - id: packages-site-bridge
-    statement: |
-      `site/index.md` and `site/packages.md` are produced by
-      `mathc packages --format=html`, not by a parallel walker in
-      `lib/render.ml`.
-    outcome: packages-site
+    outcome: packages-site-is-a-consumer
+    claim: |
+      `site/packages.md` is rendered from `mathc packages --format=html`
+      through `lib/render/render.ml::build_pages`, not from a parallel
+      renderer-side decision walker.
     declared:
       owner: human:maintainer
       review_on: 2026-12-15
-      reason: the site renders the asset index; the rendering is read by a human
+      reason: the rendered package page is read by a human; the kernel and CLI forms are machine-checked above
     acceptance:
       all:
-        - verifier: manual-rendered-asset-index
-          matching the kernel's count
+        - verifier: manual-rendered-package-index
 
 evidence:
-  - kind: declared
-    statement: |
-      The site is the consumer of `mathc packages`. There is no
-      `lib/render.ml::packages_walker`; the render module reads
-      the kernel's HTML output and copies it into the page body.
   - kind: observed
     statement: |
-      On commit v3.0.0.20, `mathc packages --format=json` lists
-      23 obligations; the kernel unit test asserts the count.
+      On 2026-10-31, `mathc packages --format=json` reported 139 live
+      decisions and 529 decision-obligation pairs. The generated store
+      was absent, so all 529 pairs were reported `no_store`; the command
+      did not turn absent evidence into `pass`.
+  - kind: observed
+    statement: |
+      `dune test tests/cli/packages.t` passed, and
+      `mathc validate decisions/mathc-packages-subcommand.yaml` reported
+      parse-ok with no MC-UNPARSED-TAIL after this revision.
 
 unknowns:
-  - Whether the HTML output should be a single self-contained
-    fragment or a multi-page link to per-decision pages. v1 ships
-    a fragment plus a per-decision page generated from the same
-    data. A post-decision survey of the protocol's users may
-    consolidate.
-  - Whether `mathc packages` should also list *waivers* and their
-    expiry. Deferred to v3.1 (covered by Tier-3 close-out
-    `multi-policy hierarchy`).
+  - Whether the HTML surface should remain one self-contained fragment or
+    become a multi-page index with per-decision links. The current site
+    keeps the fragment and renders per-decision pages separately.
+  - Whether `mathc packages` should include archived decisions. The
+    current contract covers the live corpus; archived records are not
+    active promises.
