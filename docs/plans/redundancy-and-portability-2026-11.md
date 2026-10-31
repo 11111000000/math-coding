@@ -411,13 +411,14 @@ Merged into `main`, each with its own decision and its own evidence:
 | T2.2b-1 | the nine falsified claims: eight rewritten into promises the tree can keep, one falsification cancelled because the instrument that produced it was wrong | the census's own negative control, after the instrument was fixed; the report carries the addendum |
 | T2.4 | one debt counter became three: CHECKED (a promise the corpus discharges by attesting itself), DECLARED (a promise with a named owner and a review date), UNCHECKED (a promise with neither) | the counter's synthetic corpus, and the sum invariant: the three numbers plus the promises without one add up to the corpus |
 | T2.2b-2 (tranche 1 of 3) | twelve decisions whose claim was still true and whose FORM had gone stale: the paths that moved, the counts that changed, the anchors that no longer pointed where they did, and the four files that lost their YAML tail | the instruments, and one promise found false as written - the CLI catalog never listed every dispatched subcommand - re-scoped to what the decision actually promised, with the whole-surface claim left where it lives, in `spec-cli-catalog`, under its ceiling |
+| T2.2b-2 (tranche 2 of 3) | eleven more decisions rewritten the same way; the debt fell, because two promises that had no control now name one that can fail | CHECKED 85 -> 87, UNCHECKED 32 -> 31, the sum invariant holds |
 | (the wave's own debt) | two red cram fixtures, both of them mine, found because the suite is now judged by its exit code and not by a grep for `FAIL` | `dune build @runtest` exits 0; the gate trailer now declares its own protected paths, as the design says a project must, and the legacy init expects the kernel to say what it read |
 
 The numbers after the wave (2026-10-31):
 
 | number | before | now |
 |---|---|---|
-| CORPUS - decisions in the live corpus | 144 | 142 |
+| CORPUS - decisions in the live corpus | 144 | 143 |
 | PAPER - obligations the kernel cannot execute | 44 | 35 |
 | BROKEN - verifier schemes the kernel does not know | 5 | 0 |
 | DANGLING - relation targets that resolve to nothing | 44 | 0 |
@@ -539,8 +540,8 @@ list of the same thing:
 | tranche | the inventory's sections | what it does |
 |---|---|---|
 | 3d-1 | 6.1-6.12 (12) | DONE 2026-11-01: rewrite the form; four of the five files that lose their YAML tail; re-point the deleted verifier targets |
-| 3d-2 | 6.13-6.23 (11) | the same, including the debt fixtures that count a store the repository does not track |
-| 3d-3 | 6.24-6.34 (11) | the same, including the site claims |
+| 3d-2 | 6.13-6.23 (11) | DONE 2026-11-01: the same, including the debt fixtures that count a store the repository does not track |
+| 3d-3 | 6.24-6.34 (11) | RUNNING: the same, including the site claims |
 | 3e-1 | 7.1-7.10 (10) | ten records to the archive, with the pointer repairs each move needs |
 | 3e-2 | 7.11-7.20 (10) | ten records; two of them are operational manifests and stay, because a manifest is an input and not a rule |
 
