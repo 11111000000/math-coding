@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.2
 id: validate-and-context
-revision: 3
+revision: 4
 state: active
 negative_control: tests/cli/validate-negative.t
-body_sha: "sha256:292f757b6eb68a55abda3fe880b6e941eeebf9e17536491e7f75327856c77b50"
-yaml_sha: "sha256:292f757b6eb68a55abda3fe880b6e941eeebf9e17536491e7f75327856c77b50"
+body_sha: "sha256:cc705e6a55386fef376abc189911ea15a0ebc25ea8896554aea3bbd4de34f105"
+yaml_sha: "sha256:cc705e6a55386fef376abc189911ea15a0ebc25ea8896554aea3bbd4de34f105"
 intent: |
   Close the deferred obligation `deferred-cli-context` from
   validate-and-context@1 by adding `mathc context BASE HEAD --budget N`
@@ -13,11 +13,35 @@ intent: |
   project memory (active decisions, obligations, changed paths,
   recent commits, spec/axiom/practices docs) tagged with priority
   and freshness, sorted by the priority order defined in
-  spec/semantics.md "context-prioritisation", and truncated to the
+  spec/semantics.md §Context-prioritisation, and truncated to the
   byte budget with omitted items listed alongside an expansion
   command. This makes the bootstrap protocol observable to an LLM
   agent that otherwise has no way to know which policy is in
   force.
+
+  2026-10-31, REVISION 4: THE VERSION LITERAL AND THE CONVENTIONS
+  ANCHORS WENT STALE; THE TWO SUBCOMMANDS DID NOT. The decision
+  promised that `mathc version` prints `math-coding 3.0-alpha:
+  bootstrap`; the version string is derived from the `VERSION` file,
+  which reads `3.7.4` today, so the command prints `math-coding
+  3.7.4: bootstrap`. Every `OCAML_BEST_PRACTICES` citation moved to
+  `OCAML_KERNEL_CONVENTIONS.md` (the file was renamed): the exit-code
+  contract is §4.3, the offline-kernel rule is §1.3, the no-Yojson
+  rule is §7.3, the context priority order mirror is §10.5, and the
+  two trap-log entries are §11.12 and §11.15.
+
+  Measured on 2026-10-31:
+
+    - `mathc version` prints `math-coding 3.7.4: bootstrap` and exits 0.
+    - `mathc context HEAD~1 HEAD --budget 4000` exits 0 and prints a
+      JSON object with the keys `base`, `change`, `decisions`, `head`,
+      `items`, `now`, `obligations`, `omitted`, `total_bytes` and
+      `truncated`.
+    - `lib/codec.ml`, `lib/memory.ml`, `lib/capsule.ml`,
+      `lib/jsonl.ml` and `lib/domain.ml` all exist and are the files
+      this decision names.
+    - `spec/semantics.md §Context-prioritisation` is the normative
+      priority order the capsule sorts by.
 
 axiom_link:
   - A0
@@ -56,6 +80,8 @@ scope:
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   OCAML_BEST_PRACTICES.md - no tracked file matches it
   #   bootstrap/validate-and-context.yaml - no tracked file matches it
+  # 2026-10-31: the conventions file was renamed to
+  #   OCAML_KERNEL_CONVENTIONS.md; the scope names the file that exists.
   exclusions:
     - "lib/decision.ml"
     - "lib/diagnostic.ml"
@@ -67,12 +93,16 @@ outcomes:
       `mathc validate FILE` reads FILE (json or yaml), parses via
       Decision.parse_decision, and reports accept or reject with
       structured diagnostics. Exit codes 0/1/2/3 align with
-      spec/semantics.md "exit honesty" and OCAML_BEST_PRACTICES §4.3.
+      spec/semantics.md §exit honesty and
+      `OCAML_KERNEL_CONVENTIONS.md §4.3`.
   - id: cli-version-still-works
     statement: |
-      `mathc version` prints "math-coding 3.0-alpha: bootstrap" and
-      exits 0. This preserves the v0.0.5 hello-string behavior; it
-      is no longer the bare default but is reachable as a subcommand.
+      `mathc version` prints the version line derived from the `VERSION`
+      file and exits 0. On this tree that is
+      `math-coding 3.7.4: bootstrap`. The version string is read at
+      run time, so the line moves with the `VERSION` file; the promise
+      is that the command reads the file and prints it, not that it
+      prints a fixed literal.
   - id: kernel-stays-offline
     statement: |
       lib/codec.ml exposes load_yaml_string : string -> Jsonl.value
@@ -82,38 +112,39 @@ outcomes:
       leaks into lib/.
   - id: jsonl-array-parser-fixed
     statement: |
-      lib/jsonl.ml:99 parse_array was returning Array (List.rev acc)
+      lib/jsonl.ml parse_array was returning Array (List.rev acc)
       from the `]` branch without appending the just-parsed element,
       making `[x]` parse as `[]` and `[x, y, z]` parse as `[y, x]`.
       Fixed by prepending `v` to `acc` once per iteration; final
-      List.rev acc returns the elements in source order. New trap
-      entry OCAML_BEST_PRACTICES §11.15 records the symptom (every
-      fixture with non-empty array fields parsed its lists as `[]`
-      despite acceptance; the conformance runner did not catch this
-      because it only inspects Some _ / None).
+      List.rev acc returns the elements in source order. The trap-log
+      entry is `OCAML_KERNEL_CONVENTIONS.md §11.15` (the conventions
+      file was renamed from `OCAML_BEST_PRACTICES.md`); it records the
+      symptom (every fixture with non-empty array fields parsed its
+      lists as `[]` despite acceptance; the conformance runner did not
+      catch this because it only inspects Some _ / None).
   - id: cli-context-capsule
     statement: |
       `mathc context BASE HEAD --budget N` exits 0 with a JSON capsule
       containing the keys "change", "decisions", "obligations",
       "items", "omitted", "total_bytes", "truncated", "now",
       "base", and "head". Items are sorted and truncated by
-      priority per spec/semantics.md "context-prioritisation". Each
+      priority per spec/semantics.md §Context-prioritisation. Each
       item carries a "priority" tag and an optional "freshness"
       timestamp. Omitted items are listed in the "omitted" array
       with an "expansion" command.
 
 counterexample: |
-  Why not defer validate entirely until the 3.0 kernel exists?
+  Why not defer validate entirely until the kernel exists?
   Because (a) shape validation today is a useful gate before deeper
-  kernel checks; (b) the v3-alpha protocol is self-applying — without
+  kernel checks; (b) the v3 protocol is self-applying -- without
   a CLI, every agent would have to load OCaml internals to verify a
-  file, which contradicts axiom A1 (epistemic honesty) — agents
+  file, which contradicts axiom A1 (epistemic honesty) -- agents
   cannot legitimately claim "the kernel accepts this" without an
   actual kernel-level invocation; (c) the YAML loader already lives
   in tests/conformance.ml, so duplicating it into bin/Mathc.ml keeps
   the CLI minimal without dragging the kernel into I/O.
 
-  Why not use cmdliner? Because cmdliner is in devShells.test only —
+  Why not use cmdliner? Because cmdliner is in devShells.test only --
   the production closure that `nix build` uses to assemble
   bin/mathc.exe does not include it. Adding cmdliner would break the
   prod build. Stdlib Arg is sufficient for a two-subcommand CLI.
@@ -123,21 +154,21 @@ counterexample: |
   self-contained fixture walker. Coupling it to a YAML helper that
   lives elsewhere would tangle test inputs and kernel inputs. The
   duplication is acceptable, and the fix history (the yaml_strip
-  trap in OCAML_BEST_PRACTICES §11.12) is small enough that both
-  copies can be kept aligned by hand.
+  trap in `OCAML_KERNEL_CONVENTIONS.md §11.12`) is small enough that
+  both copies can be kept aligned by hand.
 
   Why is the priority order defined in spec/semantics.md rather than
-  in OCAML_BEST_PRACTICES.md? Because the priority order is a kernel
-  policy statement, not a coding convention. The spec is the
-  authoritative source; OCAML_BEST_PRACTICES §10.5 mirrors the table
-  for implementer convenience. A change to the order is a protected
-  policy transition; the two files stay in lockstep.
+  in the OCaml conventions file? Because the priority order is a
+  kernel policy statement, not a coding convention. The spec is the
+  authoritative source; `OCAML_KERNEL_CONVENTIONS.md §10.5` mirrors the
+  table for implementer convenience. A change to the order is a
+  protected policy transition; the two files stay in lockstep.
 
   Why not add Yojson (or another JSON library) for capsule output?
-  The kernel stays offline (OCAML_BEST_PRACTICES §1.3) and bin/ may
-  not pull Yojson (OCAML_BEST_PRACTICES §7.3). The capsule JSON is
-  flat and predictable; a hand-rolled renderer that calls
-  Jsonl.stringify for value-level escaping is sufficient. The
+  The kernel stays offline (`OCAML_KERNEL_CONVENTIONS.md §1.3`) and
+  bin/ may not pull Yojson (`OCAML_KERNEL_CONVENTIONS.md §7.3`). The
+  capsule JSON is flat and predictable; a hand-rolled renderer that
+  calls Jsonl.stringify for value-level escaping is sufficient. The
   resulting JSON is valid (`python3 -m json.tool` parses it).
 
   Why is the budget byte-counted, not token-counted? Byte counting
@@ -178,8 +209,8 @@ assumptions:
     owner: human:maintainer
     consequence_if_false: |
       Negative-shell fixtures can only assert exit-code + a coarse
-      keyword search ("commitment" / "invalid" / "error"), which is
-      what the negative fixture already does.
+      keyword search ("commitment" / "invalid" / "error"), which
+      is what the negative fixture already does.
     review_on:
       - signal: kernel-decision-parser-returns-diagnostic
 
@@ -218,8 +249,10 @@ obligations:
   - id: cli-version-preserved
     outcome: cli-version-still-works
     claim: |
-      `mathc version` prints "math-coding 3.0-alpha: bootstrap" and
-      exits 0. The hello-string from v0.0.5 is preserved verbatim.
+      `mathc version` prints the version line derived from the `VERSION`
+      file -- `math-coding 3.7.4: bootstrap` on this tree -- and exits 0.
+      The hello-string shape is preserved: a version, a colon, the word
+      bootstrap.
     acceptance:
       all:
         - verifier: tests/cli/validate-positive.t
@@ -252,7 +285,7 @@ obligations:
       "obligations", "items", "omitted", "total_bytes", "truncated",
       "now", "base", and "head". BASE and HEAD may be any git ref
       (commit, branch, tag). Items are sorted and truncated by the
-      priority order in spec/semantics.md "context-prioritisation".
+      priority order in spec/semantics.md §Context-prioritisation.
       Each item carries a "priority" tag and an optional "freshness"
       timestamp. Omitted items appear in the "omitted" array with an
       "expansion" command of the form "mathc explain <detail_ref>".
