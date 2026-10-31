@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/risk-dead-branches-gone.sh
-body_sha: "sha256:7130961558d0c089a41edc71f434f631b6fb590e19c58e383d1e3b03d37b3fc6"
-yaml_sha: "sha256:7130961558d0c089a41edc71f434f631b6fb590e19c58e383d1e3b03d37b3fc6"
+body_sha: "sha256:9f43bafa3550076e4ef83afdb430de2c9caa584786c54f5a9fa96765546027a9"
+yaml_sha: "sha256:9f43bafa3550076e4ef83afdb430de2c9caa584786c54f5a9fa96765546027a9"
 
 intent: |
   Three places where the kernel said something it could not back up.
@@ -269,4 +269,4 @@ relations:
   addresses:
     - "ceiling-monotonic@2"
   refines:
-    - "risk-policy-driven-floor@1"
+    - risk-policy-driven-floor-2026-10@1

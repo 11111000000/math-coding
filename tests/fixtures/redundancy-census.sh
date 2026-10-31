@@ -128,12 +128,12 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # raise cannot authorise the next one, and the reason is read up to
 # the next '#': it is one line and carries no '#' of its own.
 
-#   PAPER 38 - obligations the kernel's audit classifies as
+#   PAPER 36 - obligations the kernel's audit classifies as
 #     `not-a-check`, measured with the store deliberately empty.
 #
-# ceiling-fall: 44 -> 38, eight promises in the corpus named a verifier
-#   the kernel could not execute; they now name one it can
-CEILING_PAPER=38
+# ceiling-fall: 38 -> 36, two more promises that named a verifier the
+#   kernel could not execute now name one it can
+CEILING_PAPER=36
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -149,25 +149,27 @@ CEILING_PAPER=38
 # ceiling-fall: 5 -> 0, every verifier scheme in the corpus is canonical now
 CEILING_BROKEN=0
 
-#   DANGLING 44 - relation targets in the LIVE corpus that resolve to
+#   DANGLING 0 - relation targets in the LIVE corpus that resolve to
 #     neither a decision id nor an existing file. All 44 name
 #     decisions that were deleted (commit 9a1e23cbf) or paths that
 #     never existed.
-CEILING_DANGLING=44
+# ceiling-fall: 44 -> 0, every relation target in the live corpus resolves
+CEILING_DANGLING=0
 
-#   DEAD 20 - scope paths in the LIVE corpus that match no tracked
+#   DEAD 0 - scope paths in the LIVE corpus that match no tracked
 #     file. Five name AGENTS.md (renamed to KERNEL_AGENTS.md), four
 #     name decisions/plan-2026-10-improvements/* (moved to
 #     docs/plans/), the rest name files the corpus itself deleted.
-CEILING_DEAD=20
+# ceiling-fall: 20 -> 0, every scope path in the live corpus names a tracked file
+CEILING_DEAD=0
 
-#   CORPUS 145 - decision files in the live corpus. A measurement,
+#   CORPUS 136 - decision files in the live corpus. A measurement,
 #     not a verdict: the "about 50 rules" of the 2026-10 census is a
 #     record, not a standing requirement, and this ceiling bounds the
 #     count from above so that growth is visible.
 #
-# ceiling-raise: 144 -> 145, the broken-schemes tranche decision is in the corpus it counts
-CEILING_CORPUS=145
+# ceiling-fall: 145 -> 136, eleven records moved to the archive
+CEILING_CORPUS=136
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.

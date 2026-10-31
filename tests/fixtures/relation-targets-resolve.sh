@@ -140,8 +140,10 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #     also declares four `contradicts:` blocks the schema does not
 #     know, all of them empty. The target resolves; the KEY does not
 #     exist in the vocabulary. The ceiling may only fall.
-CEILING_DANGLING=44
-CEILING_AXIOM=2
+# ceiling-fall: 44 -> 0, every relation target in the live corpus resolves
+CEILING_DANGLING=0
+# ceiling-fall: 2 -> 0, the two axiom targets moved to axiom_link, where they belong
+CEILING_AXIOM=0
 CEILING_UNDECLARED=1
 
 # --- the measurement ----------------------------------------------------
