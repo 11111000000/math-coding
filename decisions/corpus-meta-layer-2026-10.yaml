@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/no-shadow-corpus.sh
-body_sha: "sha256:d49f567c237d205909052c3c6739ffb661d4921b6a815c849da5dbaffa551e27"
-yaml_sha: "sha256:d49f567c237d205909052c3c6739ffb661d4921b6a815c849da5dbaffa551e27"
+body_sha: "sha256:ad2ea149b71e3ac8a755e0082167cc52debb47886df6c1ffd5bd6e0077f92dce"
+yaml_sha: "sha256:ad2ea149b71e3ac8a755e0082167cc52debb47886df6c1ffd5bd6e0077f92dce"
 
 # The paths this decision removed, 2026-10-28. The fixture that guards
 # the removal reads this list, so the list lives in ONE place and the
@@ -82,6 +82,15 @@ intent: |
   tree instead of reading a store about an older one. A census of the
   corpus is a thing you ASK the gate for, not a thing the repository
   carries.
+
+  2026-11: the two decisions this one superseded under
+  "scope-invalidation-breadth-2026-10" and
+  "self-check-fixture-coverage-honest-2026-10" were deleted from the
+  corpus by the cull of 2026-10-29, and their relation entries are
+  gone with them: a relation to a decision the corpus does not have is
+  the claim this decision was made to end. "ceiling-monotonic" still
+  lives, at revision 2 and state superseded, so it is the one name
+  left in the supersedes list below.
 
 commitment: |
   After this decision closes:
@@ -252,7 +261,7 @@ scope:
     - "tests/fixtures/no-shadow-corpus.sh"
     - "tests/cli/dune"
     - "tests/cli/self-check-pass.t"
-    - "tests/fixtures/gate-pass/attestations"
+    - "tests/fixtures/gate-pass/attestations/**"
   exclusions:
     - "attestations/**"
     - "_build/**"
@@ -356,12 +365,8 @@ reversal:
 
 relations:
   addresses:
-    - ceiling-monotonic-2026-10@1
-    - scope-invalidation-breadth-2026-10@1
-    - self-check-fixture-coverage-honest-2026-10@1
+    - ceiling-monotonic@2
     - audit-0.0.21-fixes@3::self-check-verdict-is-pass
   supersedes:
-    - ceiling-monotonic-2026-10@1
-    - scope-invalidation-breadth-2026-10@1
-    - self-check-fixture-coverage-honest-2026-10@1
+    - ceiling-monotonic@2
   superseded_by: []

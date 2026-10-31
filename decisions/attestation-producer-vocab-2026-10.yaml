@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:447af0330be351d1a30ac117ff4bb7df23946eb8491779193d4314b4a146f1aa"
-yaml_sha: "sha256:447af0330be351d1a30ac117ff4bb7df23946eb8491779193d4314b4a146f1aa"
+body_sha: "sha256:044aa7fcd5c94f4f5751558cbacc80e5e2c7b2f6d51de43feb3cd45b3cd055ed"
+yaml_sha: "sha256:044aa7fcd5c94f4f5751558cbacc80e5e2c7b2f6d51de43feb3cd45b3cd055ed"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -287,7 +287,7 @@ relations:
   addresses:
     - verify-path-forms-and-signed-attestations-2026-10
   refines:
-    - kernel-bugs-v3.4-2026-10
+    - kernel-bugs-v3.4@1
   supersedes: []
   superseded_by: []
 
