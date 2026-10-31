@@ -41,6 +41,14 @@ executed here, so the verdict is `unknown` (the evidence is missing)
 rather than `pass`. What the fixture asserts is the RULE: block or
 not block.
 
+The fixture's tree also declares its OWN protected paths, in
+`scripts/protected-paths.txt`. The list lives in the project and not in
+the kernel - that is what makes the core portable - so a project that
+declares none has none, and the rule that protects them has nothing to
+fire on. Before the list moved out of the kernel, this fixture's
+expectation held by accident: the kernel carried the list of another
+repository.
+
   $ cd "$DUNE_SOURCEROOT"
   $ tmp=$(mktemp -d)
   $ cd "$tmp"
@@ -48,7 +56,14 @@ not block.
   $ git config user.email "t@t"
   $ git config user.name "t"
   $ touch dune-project
-  $ mkdir -p lib decisions
+  $ mkdir -p lib decisions scripts
+  $ cat > scripts/protected-paths.txt <<'TXT'
+  > # The protected paths of THIS project. The list lives in the
+  > # project, not in the kernel: the gate reads it from the project
+  > # root, so a project that declares no protected paths has none,
+  > # and the rule that protects them has nothing to fire on.
+  > lib/**
+  > TXT
   $ cat > decisions/existing.yaml <<'YAML'
   > schema: math-coding/3.3
   > id: existing-commitment

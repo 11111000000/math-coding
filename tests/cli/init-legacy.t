@@ -14,7 +14,7 @@ do not leak into later tests in the same cram shell.
   $ export MATH_CODING_ATTESTATIONS_DIR="attestations"
   $ export MATH_CODING_POLICY="decisions/decision.yaml"
   $ cd "$tmpdir"
-  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install
+  $ $INSIDE_DUNE/bin/mathc.exe init . --no-install 2>&1 | sed "s|$DUNE_SOURCEROOT|<ROOT>|g"
   mathc init: created ./decisions, ./attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
@@ -34,6 +34,7 @@ do not leak into later tests in the same cram shell.
         (Tiny). Declare mode_floor in the project's policies.yaml to
         match reality. `mathc init` sees one writer and cannot detect
         the signals above; they are yours to declare.
+  policies file <ROOT>/decisions/decision.yaml: expected array of policies
 
   $ test -d decisions && echo "decisions/: ok"
   decisions/: ok
@@ -57,7 +58,8 @@ kernel-bugs v3.4 fix; legacy layout is otherwise structurally
 identical to the new layout (one master file, two store
 directories).
 
-  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/decision.yaml
+  $ $INSIDE_DUNE/bin/mathc.exe validate decisions/decision.yaml 2>&1 | sed "s|$tmpdir|<TMP>|g"
+  policies file <TMP>/decisions/decision.yaml: expected array of policies
   parse-ok: decisions/decision.yaml
     decision: bootstrap-v3
     revision: 1
