@@ -1,1016 +1,229 @@
-# math-coding 3.2 — the model, as the code implements it
+# The kernel contract
 
-> **The normative model is the OCaml.** This file is the INDEX into
-> it: for every concept the protocol has, it says what the concept
-> guarantees and which module implements it.
+> **What this is.** An index into the OCaml kernel. Every rule the
+> kernel has appears here three times over: WHAT the rule is, WHERE it
+> is enforced (the file and the symbol), and HOW you can see it
+> enforced (the test that fails if it stops being true).
 >
-> It is NOT a second source of truth, and it is not a copy of the
-> code. Where a definition is quoted by the kernel's own diagnostics
-> or read by a conformance fixture, it is stated here VERBATIM,
-> because a fixture that reads a number from this file and compares
-> it with the code is what keeps the two in step — see
-> `tests/cli/risk-bucketing.t`, which reads the risk thresholds from
-> §2 and compares them with `lib/risk.ml`. That comparison is
-> load-bearing: it is the mechanism that makes a change to the
-> buckets in the code fail a test if this file is not updated with
-> it.
+> **What this is not.** A second source of truth, and not a copy of the
+> code. The kernel is the normative text; this file is the map that
+> says where each rule lives. Where a rule is a NUMBER, the number
+> lives in the code, and the test that pins it is named here.
 >
-> The sections that no code reads, no fixture reads and no decision
-> cites were removed: §19 (an exact duplicate of
-> [`spec/constitution.md`](constitution.md), which is the normative
-> statement), §25 (a migration map from a version two releases old),
-> §26 (a "universal property" with a unique morphism), §27 (a
-> "friction-zero theorem" with a proof sketch whose friction figures
-> no code ever measured) and §29 (set cardinalities about who reads
-> what). None of them could fail: a quantified formula that no
-> program checks is not a specification, it is a decoration that has
-> to be maintained by hand — and the drift was invisible, because a
-> prose formula that no code checks cannot fail a test.
+> **Two classes.** A promise with a code symbol behind it and a test
+> that fails when it stops being true is ENFORCED. A promise with
+> neither is DECLARED, and every one of them is in §31 with the owner
+> accountable for it and the date it is looked at again. DECLARED is
+> not a demotion: the corpus's own instrument
+> (`tests/fixtures/negative-control-debt.sh`) counts every promise in
+> three classes — CHECKED, DECLARED, UNCHECKED — and a promise that
+> says which class it is in is better placed than one that pretends.
 >
-> What remains is what the code cannot state about itself: the
-> guarantees the kernel makes, and where each one lives.
+> **The anchors did not move.** The section numbers are the ones this
+> document has carried since the rename of 2026-11: `§2` is the risk
+> function, `§7` is the decision record, `§11` is the dialectic, `§15`
+> is the gate verdict. A pointer that names a section still names it.
+> §32 says what each section became.
 
-**Reading order.** `README.md` (what this is) → `ETHICS.md` (what it
-will not do) → `spec/constitution.md` (the invariants, normative) →
-this file (the model) → `USAGE.md` (how to use it) →
-`KERNEL_AGENTS.md` (how to work on it).
+## §0. Goal and the honest uncertainty principle
 
+- **Rule.** A result is `Pass`, `Fail`, `Inconclusive` or `InfrastructureError`, and the absence of a result is `Inconclusive`, never `Pass`. `Waived`, `Reviewed` and `Observed` are not verdicts.
+- **Code.** `lib/gate.ml` — the verdict type and its rendering; `lib/attestations/attestations.ml` — a missing attestation is not a pass.
+- **Test.** `tests/cli/gate-unknown-exit-3.t` (no evidence is `unknown`, exit 3), `tests/cli/gate-pass.t`, `tests/fixtures/verdict-vocabulary-spec-coherence.sh`.
 
-## §0. Goal
+## §1. Vocabulary
 
-```
-friction_user(commit) ≤ friction(ADR + good-CI + code-review + rebuttal-dialog)
-
-∀ c: cost(commit) ≥ 0  ∧  benefit(commit) ≥ benefit(baseline)
-
-applicability(project, protocol) ∈ ℝ
-∀ P: applicability(P, 𝒫) > 0 ⟹ P is candidate for 𝒫
-
-# Honest uncertainty principle (A1-derived)
-honest_uncertainty: ∀ assurance claim c:
-  result(c) ∈ {Pass, Fail, Inconclusive, InfrastructureError}
-  Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError
-  Pass ≠ Waived ≠ Reviewed ≠ Observed
-  absence(c) ⟹ c is Inconclusive, never Pass
-  # "I haven't checked" ≠ "I checked and it works"
-  # "Waived" ≠ "Pass": waiver defers a check, does not cancel it
-  # "Reviewed" ≠ "Observed": human review is not runtime evidence
-
-∀ c, decision D, obligation ob:
-  attested_pass(ob) ∧ attestation_may_be_stale(ob) ⟹ ob is Inconclusive, not Pass
-  freshness_violation ⟹ result transitions Pass → Stale, not silent Pass
-```
-
----
-
-## §1. Universal sets
-
-```
-𝓒 = Commits                                  (harness-produced)
-𝓟 = Paths
-𝓜 = Modes = {tiny, light, standard, strict, exhaustive}
-𝓡 = Risk ∈ [0, 1]
-𝓞 = Obligations (auto-inferred + policy-declared + transitive)
-𝓣 = Trust = {Untrusted < Authenticated < Delegated < Authoritative}
-𝓢 = Substrate = compiler × build × runtime × toolchain
-𝓐 = Agents = {harness, ci-bot, security-scanner, perf-reviewer, reviewer-N, ...}
-𝓒-rule = KernelRules (decision-addable)
-𝓡-pol = Policies (per-path declarations)
-𝓓-flow = DataFlowEdges (inferred from imports/exports)
-𝓡-reb = Rebuttals = sibling `rebuttals/<sha>.yaml` ⊕ forge_mirror
-𝓡-axiom = AxiomTransitions = revision | addition | removal
-𝓡-trail = Trailer = parsed_git_trailer(c.body)
-𝓓-bin = {linux-x86_64, linux-aarch64, darwin-x86_64, darwin-aarch64, windows-x86_64}
-
-ObligationDomain = obligation_kind × path_namespace
-```
-
----
+- **Rule.** The kinds the kernel knows (`Intent`, `Decision`, `Obligation`, `Change`, `Attestation`, `Observation`, `Revision`) and the sets the algebra is written in (`𝓒` commits, `𝓟` paths, `𝓜` modes, `𝓡` risk, `𝓞` obligations, `𝓣` trust, `𝓢` substrate).
+- **Code.** `lib/domain.ml` — the record and variant definitions.
+- **Test.** `tests/conformance.ml` (every positive fixture parses, every negative fixture is rejected), `tests/repo_structure.ml`.
 
 ## §2. Risk function
 
-```
-risk: 𝓒 → 𝓡
-risk(c) = impact(c) · probability(c) · irreversibility(c)
+- **Rule.** `risk(c) = impact(c) · probability(c) · irreversibility(c)` and `mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))`; the buckets are `< 0.05` tiny, `< 0.20` light, `< 0.60` standard, `< 0.90` strict, exhaustive above that. The floor comes from `policies.yaml`.
+- **Code.** `lib/risk.ml::risk_to_mode`, `lib/risk.ml::mode`, `lib/risk.ml::classify`; `lib/policy.ml::mode_floor_of`.
+- **Test.** `tests/cli/risk-bucketing.t` (the buckets and the effective mode), `tests/cli/mode-floor-from-policies.t` (the floor is read, not assumed).
 
-impact(c) = max{classify(path) : path ∈ c.files}
-  classify: 𝓟 → [0, 1]
-    tests/**         → 0.0
-    docs/**          → 0.05
-    site/**          → 0.2
-    scripts/**       → 0.3
-    schemas/**       → 0.3
-    lib/utils/**     → 0.2
-    lib/core/**      → 0.5
-    bin/**           → 0.5
-    lib/security/**  → 0.8
-    axioms/**        → 0.95
-    migrations/**    → 0.95
-    unclassified     → 0.5
-
-probability(c) = 0.5 + 0.5 · policy_override_probability(c)
-  policy_override_probability(c) ∈ [-1, 1] from policy.yaml
-  default 0
-
-irreversibility(c) = max{marker(path) : path ∈ c.files}
-  no marker → 0.1
-  data-mig → 0.7
-  schema-break → 0.95
-
-mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
-
-risk_to_mode : [0, 1] → 𝓜
-  risk_to_mode(r) =
-    | tiny        if r < 0.05
-    | light       if 0.05 ≤ r < 0.20
-    | standard    if 0.20 ≤ r < 0.60
-    | strict      if 0.60 ≤ r < 0.90
-    | exhaustive  if r ≥ 0.90
-
-mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c)}
-  mode_floor declared in policies.yaml, the vocabulary the parser
-  accepts (lib/policy.ml → Codec.parse_mode):
-    tiny, light, standard, strict, exhaustive
-```
-
-> **Notation note (2026-10-07):** the form `mode(c) = max(risk_to_mode(risk(c)),
-> mode_floor(c))` with the explicit bucketed `risk_to_mode : [0, 1] → 𝓜`
-> is the canonical implementation per `lib/risk.ml:183-188` and decision
-> `decisions/plan-2026-10-improvements/t0-1.yaml`. The earlier ambiguous
-> notation flagged in `decisions/algebra-3.2-notation-flag-2026-10.yaml`
-> (2026-10-05) is superseded; the ambiguity the note recorded is closed
-> by the explicit bucketed form above.
-
-> **Marker note (2026-11 tranche):** the marker table above dropped the three
-> project-specific directory prefixes `migrations/`, `pci/` and
-> `payments/`. None of the three directories exists in this repository, so
-> no path in the tree could ever carry the marker - a branch that cannot
-> fire protects nothing. The two surviving entries are segment tokens
-> (`data-mig`, `schema-break`): a segment with that name says what it is
-> whoever owns the tree. Their absence changed no mode, because the
-> maximum risk this repository can produce is 0.0475, below the first
-> bucket boundary, so the mode of every change came from the declared
-> floor and not from the risk.
->
-> The `mode_floor` vocabulary above is the one the parser accepts. The
-> `silent` / `baseline` / `pci-strict` / `axiom-touching` table it
-> replaces described a function with no callers, and the kernel has read
-> the five real mode names all along. See decision
-> `risk-and-scaffold-honesty-2026-11`.
-
----
+> **Notation note.** The bucketed `risk_to_mode` above is the canonical form, and the shorthand it replaced was ambiguous. The ambiguity and its closure are recorded in `decisions/algebra-3.2-notation-flag-2026-10.yaml`.
 
 ## §3. Authoring model
 
-```
-decision: 𝓒 → Decision
-decision(c) = canonical_decision(c)
-
-canonical_decision(c) ≔
-  | parse(sibling_yaml(c))             if exists
-  | parse(body_section(c))             otherwise
-  if both exist: sha256(sibling_yaml) = sha256(body_section)
-
-sibling_yaml(c) = decisions/<id>.yaml @ <rev> referenced by trailer(c)
-body_section(c) = parse(## math-coding:* ## in c.body)
-```
-
----
+- **Rule.** A decision is read from its sibling YAML when one exists and from the commit body otherwise; when both exist their digests must agree.
+- **Code.** `lib/decision.ml` — the canonical form and the digest comparison; `lib/memory.ml` — the decision store.
+- **Test.** `tests/cli/body-vs-wrapper-canonical.t`, `tests/cli/decision-resolution.t`, `tests/body_canonical_test.ml`.
 
 ## §4. Inline authoring
 
-```
-body_section(c) = parse(## math-coding:* ## in c.body)
-
-∀ c, mode(c) = tiny:
-  body section required
-  minimum: {classification: impact, probability, irreversibility, risk, mode}
-
-∀ c, mode(c) = light:
-  body section required
-  minimum: {commitment, counterexample}
-
-∀ c, mode(c) ∈ {standard, strict, exhaustive}:
-  body section OPTIONAL
-  if present AND sibling_yaml exists: sha256(body) = sha256(sibling_yaml)
-
-∀ axiom-transition c:
-  body section OPTIONAL
-  if present: sha256(body_new_text) = sha256(axiom_file_at(c))
-```
-
----
+- **Rule.** DECLARED, not enforced: the requirement that a change at the modes `tiny` and `light` carries an inline body section is a promise no program checks — the kernel reads the sibling YAML and the trailer. See §31.
+- **Code.** `lib/decision.ml` — the body-section reader, which is what the kernel actually reads.
+- **Test.** `tests/cli/body-vs-wrapper-canonical.t`, `tests/cli/gate-trailer-decision.t`.
 
 ## §5. Trailer mechanism
 
-```
-trailer(c) = parsed_git_trailer(c.body)
-
-apply(PreTemporalPrecedence, c, t) ≔
-  mode(c) ∈ {tiny, light}
-  ⊕ has_sibling_yaml(c)
-  ⊕ (∃ ref ∈ trailer(c): ref matches "decision:<id>@<rev>?" ∧ resolve(ref, parent(c)) ≠ ∅)
-
-apply(CoCommitDecision, c, t) ≔
-  c.files ∩ {lib/**, bin/Mathc.ml, spec/**, schemas/**, axioms/**} = ∅
-  ⊕ ∃ d ∈ tree(parent(c)) ∪ tree(c):
-       kind(d) ∈ {decision, axiom} ∧ basename(d) referenced by trailer(c)
-
-apply(CoCommitFixture, c, t) ≔
-  ∀ ob ∈ obligations(c):
-    ob.acceptance.verifier is fixture OR ob.acceptance.review is filled
-```
-
----
+- **Rule.** At the modes `tiny` and `light` a change needs a decision with it: a sibling YAML, or a `decision:<id>@<rev>` trailer that resolves in the parent tree.
+- **Code.** `lib/gate.ml::apply_rule` — the `PreTemporalPrecedence` rule; `lib/protected_paths.ml` — the paths the rule protects.
+- **Test.** `tests/cli/gate-trailer-decision.t`, `tests/cli/gate-v32-wired.t`.
 
 ## §6. Sibling YAML authoring
 
-```
-sibling_yaml(c) exists iff
-  ∃ d ∈ tree(parent(c)) ∪ tree(c):
-    kind(d) = decision
-    ∧ (basename(d) ∈ c.body.sections
-       OR trailer(c) ⊇ {Refs: decision:<id>@<rev>?}
-       OR declared_decision_paths(c) ⊇ {path_of(d)})
-
-declared_decision_paths(c) = ⋃{yaml_paths(policy(p)) : p ∈ c.files}
-
-∀ c, mode(c) ≥ standard: sibling_yaml exists at commit-time OR trailer references it
-```
-
----
+- **Rule.** A decision lives either as `decisions/<id>.yaml` beside the commit or in the `## math-coding:` body section; the sibling YAML is the canonical form from the mode `standard` up.
+- **Code.** `lib/decision.ml` — the sibling/body reader.
+- **Test.** `tests/cli/decision-resolution.t`, `tests/cli/validate-non-decisions.t`.
 
 ## §7. Decision entity
 
-```
-Decision = ⟨id, rev, parents, intent:⟨source,text⟩, commitment, scope,
-            outcomes, obligations, assumptions, risk, reversal, relations,
-            counterexample, state: draft|active|retired|superseded,
-            mode, mode_floor_used, body_sha, yaml_sha⟩
-
-∀ Decision D:
-  if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅: D.body_sha = D.yaml_sha
-
-# 5 epistemic markers for assumptions (restored from v0.854 axiom A5)
-assumption = ⟨id,
-              state: epistemic_marker,
-              statement: String,
-              owner: String,
-              consequence_if_false: String?,
-              review_on: (signal, timestamp?)*,
-              evidence: String?,
-              confidence: [0.0, 1.0]?⟩
-
-epistemic_marker = fact | hypothesis | judgment | unknown | proven
-
-∀ assumption A:
-  if A.state ∈ {fact, hypothesis}: A.confidence ∈ [0.0, 1.0] is required
-  if A.state ∈ {judgment}: A.evidence is required (human-rationale observation)
-  if A.state = unknown: explicit admission of no current knowledge
-  if A.state = proven: end-to-end kernel-verified claim, reserved for axiom A3 self-application
-
-# marker semantics (A1 Feedback closure)
-fact:        verifiable observation, current
-hypothesis:  predictive, needs future observation
-judgment:    human-rationale opinion, not observable yet
-unknown:     explicitly not known, must not be passed as ground truth
-proven:      closed loop: commitment → attestation → observation
-
-∀ D ∈ Decision, A ∈ D.assumptions:
-  if A.state = proven: ∃ attestation a ∈ Attestation: a.decision = D.id ∧ a.result = Pass
-  if A.state = unknown: A.consequence_if_false must enumerate risks from ignorance
-
-# 8 relations (from spec/domain.md, made explicit in 3.2)
-relation_kind = revises | supersedes | refines | depends_on | conflicts_with
-              | addresses | implements | verifies
-
-relations: ⟨
-  revises: id[],           # updates representation, preserves identity (acyclic)
-  supersedes: id[],        # replaces commitment with different commitment (acyclic)
-  refines: id[],           # narrows scope of parent decision (acyclic)
-  depends_on: id[],        # cannot be evaluated without parent (acyclic)
-  conflicts_with: id[],    # symmetric: mutual exclusion
-  addresses: id[],         # implements one or more axioms
-  implements: id[],        # realizes one or more decisions (in code)
-  verifies: id[]           # attestation that proves one or more obligations
-⟩
-
-∀ D ∈ Decision:
-  acyclic(revises* ∪ supersedes* ∪ refines* ∪ depends_on*)       [I6, I7]
-  symmetric(D₁ ∈ D₂.conflicts_with ⟺ D₂ ∈ D₁.conflicts_with)
-  revises ≠ supersedes: revises updates form; supersedes replaces meaning
-```
+- **Rule.** A decision is a record with an id, a revision, a state, an intent, a commitment, a scope, outcomes, obligations, assumptions, a risk block, relations and two digests. Every active decision names the axiom(s) it addresses through `axiom_link`, and the relation graph is acyclic over `revises`, `supersedes`, `refines` and `depends_on`.
+- **Code.** `lib/decision.ml` — the record, the parser and `infer_axiom_candidates`; `lib/domain.ml` — the type.
+- **Test.** `tests/cli/validate-axiom-link.t` (the axiom link is required), `tests/fixtures/relation-targets-resolve.sh` (every relation target resolves), `tests/cli/validate-sha-match.t`, `tests/body_canonical_test.ml`.
 
 ### §7.1 Byte-range and canonicalisation
 
-```
-body_sha(D) = yaml_sha(D) = "sha256:" + sha256_hex(canonicalise(file_bytes(D)))
-
-canonicalise(bytes) =
-  let normalised = replace_all("\r\n", "\n", bytes) in   # line-ending normalisation
-  let substituted_body = replace_all(
-    re_body, "body_sha: \"" + placeholder, normalised
-  ) in
-  let substituted_yaml = replace_all(
-    re_yaml, "yaml_sha: \"" + placeholder, substituted_body
-  ) in
-  substituted_yaml
-
-placeholder = "sha256:" + "0" * 64 + "\""
-re_body = body_sha: "sha256:[a-f0-9]{64}"     # the CLOSING quote is part of the match
-re_yaml = yaml_sha: "sha256:[a-f0-9]{64}"
-```
-
-The closing quote belongs inside the pattern. `placeholder` already
-ends in one, so a pattern that stops before it leaves the original
-closing quote in place *after* the substituted run and the field
-comes out as `body_sha: "sha256:000...0""` -- two quotes, and no
-longer a YAML scalar. `scripts/axiom-link-seed.py` and
-`lib/decision.ml::body_canonical_sha256` both include it; the
-transcription above did not, and a literal transcription of the
-pseudocode produced 11 of 15 digest vectors wrong before the pattern
-was corrected. Reference implementation wins over transcription: per
-`decisions/digest-helper-spec-divergence-2026-10.yaml`, the
-specification is authoritative, so this is the spec catching up with
-what the reference already did.
-
-The algorithm has four normative properties:
-
-1. **Stability.** Hashing the same file bytes twice produces the same digest. (Powers the equality of every stored `body_sha` and `yaml_sha` on the 72 active decisions.)
-
-2. **Sensitivity.** Changing one byte in the file body (anywhere outside the matched `body_sha` or `yaml_sha` value) produces a different digest.
-
-3. **Insensitivity to placeholder.** Changing the value of `body_sha` (or `yaml_sha`) while keeping the field pattern valid does NOT change the resulting digest; the placeholder-substitution sweep absorbs the change. This is what makes the algorithm a fixed-point: a file's stored digest equals the algorithm's output for the same file.
-
-4. **CRLF-equals-LF.** A file with CRLF line endings and an otherwise-identical file with LF line endings produce the same digest (line-ending normalisation).
-
-The reference implementation is `scripts/axiom-link-seed.py:133-169` (Python) — the earlier citation of `:105-123` pointed at `decisions_dir()`; the kernel-side implementation is `lib/decision.ml::body_canonical_sha256` (OCaml). The two MUST agree on every input. The conformance test in `tests/body_canonical_test.ml` pins the four properties.
-
-Note that the two implementations did NOT agree until `decisions/enforce-body-sha-digest-2026-10`: the OCaml side substituted the placeholder as `prefix ^ "sha256:" ^ zeros ^ "\""`, emitting `sha256:sha256:...` where §7.1 replaces the whole field and the prefix belongs once. The divergence went unnoticed because nothing in the production path called `body_canonical_sha256` — `sha_match_check` compared the two stored fields to each other — and because the conformance test asserts only relative properties, with no absolute vector cross-checked against the Python reference. The reference implementation must additionally CRLF-normalise before hashing to match; it does not, so the two disagree on CRLF input even now.
-
-The `D.body_sha = D.yaml_sha` invariant (when both are present) is a COROLLARY of the algorithm, not an additional rule: both fields name the same digest.
-
-**Dual-authored case (algebra §6 sibling YAML):** this decision formalises only the single-file case. The dual-authored case has zero live consumers and at least three open design questions (wrapper-marker line-anchor vs byte-anchor, YAML anchor / merge-key boundary behaviour, whether the body excludes the YAML front-matter). A follow-up decision `d5-dual-authored-canonical-2026-XX` is anticipated; its `reversal.signal` is `first-dual-authored-decision-drafted`. Until that lands, the dual case remains anticipated but not formalised here, and the kernel's `sha_match_check` continues to enforce the equality as a string check on the two stored fields (T0.2).
-
----
+- **Rule.** `body_sha` and `yaml_sha` are the sha256 of the file's own bytes with both fields replaced by the placeholder `sha256:` + 64 zeros, after CRLF is normalised to LF; the two fields must be equal when both are present.
+- **Code.** `lib/decision.ml::body_canonical_sha256`; the reference implementation is `scripts/axiom-link-seed.py`.
+- **Test.** `tests/body_canonical_test.ml` (the four properties and the digest vectors), `tests/cli/body-vs-wrapper-canonical.t`.
 
 ## §8. Auto-inferred obligations
 
-```
-infer: 𝓒 × 𝓜 → P(Obligation)
-infer(c, m) = ⋃{classify_obligation(path, m) : path ∈ c.files}
-
-classify_obligation: 𝓟 × 𝓜 → P(ObligationKind)
-  case m:
-    tiny/light: ∅
-    standard+:
-      path matches api/**          → {api-backward-compat}
-      path matches state-machine/** → {state-transition-correct}
-      path matches migrations/**    → {data-integrity}
-      path matches security/**      → {security-review}
-      path matches perf-critical    → {perf-bench}
-      path matches cli/subcommand   → {cli-shape, cli-help-text, spec-catalog-row}
-      path matches axioms/**        → {axiom-coherence, axiom-impact-list}
-```
-
----
+- **Rule.** DECLARED, not enforced: the classifier table that maps a path to an obligation kind is a promise no program applies. The obligations the kernel carries are the ones a policy declares and the ones a decision states. See §31.
+- **Code.** `lib/policy.ml::obligation_ref` — the (kind, namespace) pair a policy carries; `lib/policy.ml::compose` — where the obligations come from.
+- **Test.** `tests/policy_test.ml` (the pair and the composition), `tests/fixtures/redundancy-census.sh` (the paper layer the classifier would have removed).
 
 ## §9. Multi-policy per path
 
-```
-policy: 𝓟 → Policy
-policy(p) = declared(p) if exists else default-policy
-policy(p) = ⟨obligations(p), mode_floor(p), transitive_into(p)⟩
+- **Rule.** A path is covered by the policies that name it. Three composition axes apply, in this order: hierarchical (the `parent:` chain is resolved first, by `resolve_policy`), union (the obligations are unioned and the floors maximised), transitive (the data-flow closure adds the obligations of the reachable paths).
+- **Code.** `lib/policy.ml::resolve_policy`, `lib/policy.ml::compose`, `lib/policy.ml::mode_floor_of`, `lib/policy.ml::data_flow_targets`.
+- **Test.** `tests/policy_test.ml` (the three axes and the cycle guard), `tests/cli/mode-floor-from-policies.t`.
 
-direct_obligations(c) = ⋃{obligations(policy(p)) : p ∈ c.files}
-transitive_paths(c) = data_flow_targets*(c.files)
-transitive_obligations(c) = ⋃{obligations(policy(p)) : p ∈ transitive_paths(c)}
+### §9.1 Composition axes
 
-obligations(c) = direct_obligations(c) ⊕ transitive_obligations(c)
-
-data_flow_targets(p):
-  - imports(p) → q: q ∈ data_flow_targets(p)
-  - exports(p) → q: q ∈ data_flow_targets(p)
-  - transitive closure: data_flow_targets*(p) = ⋃ₙ data_flow_targetsⁿ(p)
-```
-
-### §9.1 — composition axes (clarifying note)
-
-The §9 algebra names three composition axes; each is a
-distinct step in the kernel's resolution pipeline:
-
-  (a) **union** — multiple policies matching the same path
-      are merged: `obligations` are unioned (deduplicated by
-      (kind, namespace)), `mode_floor` is the max, and
-      `override_probability` is the sum clamped to `[-1, 1]`.
-      Implemented by `merge_policies` / `compose` /
-      `mode_floor_of` in `lib/policy.ml`.
-
-  (b) **transitive** — `data_flow_targets*` reaches every
-      path reachable via one or more imports/exports edges.
-      The transitive closure drives `transitive_obligations(c)`
-      and the `mode_floor_of` extension. Implemented by
-      `data_flow_targets` in `lib/policy.ml`.
-
-  (c) **hierarchical** — a `parent: <policy_id>` field walks
-      the parent chain; the resolved policy is the cumulative
-      union of obligations + `scope_paths` across every
-      ancestor and the child itself, with `mode_floor`
-      taking the max. The chain MUST terminate (acyclic);
-      cycles surface `MC-POLICY-CYCLE`. Implemented by
-      `resolve_policy` in `lib/policy.ml` (decision
-      `multi-policy-hierarchy-2026-10`).
-
-The three axes compose in this order: hierarchical first
-(resolve), then union (merge paths → policy), then transitive
-(data-flow expansion). `compose` and `mode_floor_of` see the
-resolved policies; the raw `parent:` chain is collapsed by
-`resolve_policy` before the union/transitive steps run.
-
----
+- **Rule.** The three composition axes and the order they compose in: hierarchical (the `parent:` chain is resolved first), union (the policies that match are merged), transitive (the data-flow closure is applied last). The rule is §9's; this sub-section names the axes.
+- **Code.** `lib/policy.ml::resolve_policy`, `lib/policy.ml::compose`, `lib/policy.ml::data_flow_targets`.
+- **Test.** `tests/policy_test.ml`.
 
 ## §10. Rebuttal mechanism
 
-```
-rebuttals(c) = rebuttals_yaml(c) ⊕ forge_mirror(c).comments
-
-rebuttals_yaml(c) ≔ rebuttals/<commit-sha>.yaml if exists
-forge_mirror(c) ≔ forge_api.comments_for(commit_sha) if forge integrated else ∅
-
-∀ rebuttal r ∈ rebuttals(c):
-  r = ⟨rebutter: 𝓐, objection: String, evidence: Evidence,
-       outcome: pending|accepted|rejected_with_reason|ignored_non_binding|never_resolved,
-       trust_level_at_rebuttal: 𝓣⟩
-
-binding(r) ≔ trust(r.rebutter, obligation_domain(c)) ≥ authority(c.mode)
-
-decision_text carries committer's opening position only
-rebuttals live in rebuttals/<sha>.yaml + forge mirror, NOT in body
-
-∀ c, mode(c) ≥ strict: rebuttals(c) may exist (not required)
-∀ c, mode(c) = exhaustive: rebuttals(c) required for non-Unblocked verdict
-```
-
----
+- **Rule.** A rebuttal is a record beside the commit (`rebuttals/<sha>.yaml`) or in the forge mirror, and it binds when the rebutter's trust in the obligation's domain is at least the authority the mode requires.
+- **Code.** `lib/rebuttal.ml` — the reader, `trust_rank` and `compute_binding`; `lib/domain.ml::trust` — the four levels.
+- **Test.** `tests/cli/rebuttals.t`.
 
 ## §11. Dialectic slots (counterexample, antithesis)
 
-```
-counterexample: Decision → String*
-antithesis:     Decision → String?
-
-∀ D ∈ Decision, mode(D) ≠ tiny:
-  |counterexample(D)| ≥ 1
-
-∀ D ∈ Decision, mode(D) = considered:
-  antithesis(D) ≠ ∅ ∧ |antithesis(D)| ≥ 80
-
-role(counterexample) = strongest objection surfaced to a future reader
-role(antithesis)     = coherent counter-position the author engaged with
-role(commitment)     = synthesis
-role(intent)         = thesis (implicit, no separate field)
-
-rebuttals extend this thread via rebuttals/<sha>.yaml
-```
+- **Rule.** A decision above the mode `tiny` carries a `counterexample` — the strongest objection to a future reader — and a decision at the mode `considered` carries an `antithesis` — the counter-position the author engaged with. The kernel warns when the counterexample is missing and blocks when the mode requires it.
+- **Code.** `lib/diagnostic.ml` — the counterexample and antithesis diagnostics; `bin/Mathc.ml` — the validator.
+- **Test.** `tests/cli/validate-counterexample-required.t`, `tests/cli/validate-considered-antithesis.t`.
 
 ### §11.1 Rationale (dialectic method, v3)
 
-Three dialectic moves live in three existing fields:
-
-- `intent` carries the **thesis** implicitly — the position the author
-  starts from.
-- `antithesis` (new field, required for `mode=considered`) is the
-  **counter-position** the author considered and rejected. Distinct from
-  `counterexample`: `antithesis` is the position the author engaged
-  with; `counterexample` is the strongest objection the kernel surfaces
-  to a future reader regardless of what the author considered.
-- `commitment` carries the **synthesis** implicitly — the resolved
-  position after considering both.
-- `counterexample` is the parallel machine-checkable forcing function
-  on top of the dialectic triad.
-
-The triad (intent / antithesis / commitment) is the dialectic. The slot
-(counterexample) is the forcing function. Both are needed: the triad
-shapes the author's thinking; the slot prevents regression in future
-readers.
-
----
+- **Rule.** The three dialectic moves live in three fields: `intent` is the thesis, `antithesis` the counter-position the author considered and rejected, `commitment` the synthesis. The forcing function beside them is the `counterexample` slot of §11. The rule is §11's; this sub-section names the triad.
+- **Code.** `lib/decision.ml` — the fields the parser reads.
+- **Test.** `tests/cli/validate-considered-antithesis.t`, `tests/cli/validate-counterexample-required.t`.
 
 ## §12. Trust dynamics
 
-```
-trust: 𝓐 × ObligationDomain → 𝓣
-
-trust(a, d) = f(history(a, d), attestation-density(a, d))
-  history(a, d) = recent_commits_signed(a, d) × recent_rebuttals_accepted(a, d)
-  attestation-density(a, d) = signed(a, d) / reviewed(a, d)
-  f monotone in both
-
-trust dynamics:
-  rebuttal.accepted                → trust(a, d) ↑
-  rebuttal.rejected_with_reason    → trust(a, d) ↓
-  rebuttal.ignored_non_binding     → trust(a, d) unchanged
-  rebuttal.never_resolved          → trust(a, d) unchanged
-
-trust escalation:
-  ∃ review(claim_expertise, agent, domain) verified by forge
-  → trust(agent, domain) raises one tier
-```
-
----
+- **Rule.** The four trust levels and the binding predicate are ENFORCED (see §10); the DYNAMICS — history, attestation density, escalation — are DECLARED, because no program computes them. See §31.
+- **Code.** `lib/domain.ml::trust`, `lib/rebuttal.ml::trust_rank`, `lib/rebuttal.ml::compute_binding`.
+- **Test.** `tests/cli/rebuttals.t` (the levels and the binding).
 
 ## §13. Auto-attestation
 
-```
-attest: 𝓒 → P(Attestation)
-attest(c) = {⟨id=sha256(c × ob × now × ci_run_id),
-             decision_sha=c.sha,
-             decision_yaml_sha=trailer_decision_sha(c) if exists else ∅,
-             obligation=ob,
-             ci_run_id,
-             substrate_digest=sha256(kernel.ver || ocaml.ver || dep.digests),
-             environment_class_level ∈ 0..4,
-             environment_class_label ∈ dev|staging|staging-integration|prod-mirror|prod,
-             result ∈ Pass|Fail|Inconclusive|InfrastructureError,
-             issued_at, valid_until,
-             evidence_digest=sha256(ci_logs),
-             producer: ci-bot-identity,
-             substrate_fingerprint: 𝓢.id⟩ : ob ∈ obligations(c)}
-
-∀ a ∈ Attestation:
-  a is signed by producer
-  a.environment_class_level ≥ policy.min_environment_class
-  a.substrate_digest ∈ known_substrates(policy)
-```
-
----
+- **Rule.** An attestation records the decision it speaks for, the obligation it discharges, the CI run that produced it, the substrate it was produced against, the environment class it was produced in, the result, and the window in which it is current.
+- **Code.** `lib/attestations/attestations.ml` — the record, the environment class and the substrate digest; `bin/Mathc.ml` — the writer.
+- **Test.** `tests/cli/attest-batch.t`, `tests/cli/attest-batch-positive.t`, `tests/cli/attest-batch-malformed.t`.
 
 ## §14. Multi-CI attestation aggregation
 
-```
-attestations(c) = ⋃{attest_ci(c, k) : k ∈ running_CIs(c)}
-
-gate(c, p, t) default: wait_for_all_blocking_CIs
-  blocking_CIs(c) = {k : policy.ci_blocking(k) = True}
-
-∀ obligation ob:
-  result(ob) =
-    | Pass             if ∀ a ∈ attestations(c) with ob: a.result = Pass ∧ current(a)
-    | Fail             if ∃ a ∈ attestations(c) with ob: a.result = Fail ∧ decisive(a)
-    | Inconclusive     otherwise
-
-current(a) ≔ a.issued_at ≤ now ≤ a.valid_until
-decisive(a, p) ≔ a.environment_class_level ≥ p.decisive_threshold(ob)
-```
-
----
+- **Rule.** An obligation is `Pass` when every attestation for it is a pass and every one of them is current; it is `Fail` when a decisive attestation says so; otherwise it is `Inconclusive`. An attestation is current while `issued_at ≤ now ≤ valid_until`, and decisive when its environment class is at least the threshold the policy declares.
+- **Code.** `lib/attestations/attestations.ml::current_at`, `::decisive_for`, `::aggregate_obligation`; `lib/gate.ml` — the aggregation into a verdict.
+- **Test.** `tests/cli/gate-pass.t`, `tests/cli/gate-unknown-exit-3.t`, `tests/cli/gate-waiver-scope.t`.
 
 ## §15. Gate verdict (phase-aware)
 
-```
-# 3 obligation phases (from spec/domain.md, made explicit in 3.2)
-phase = pre_merge | pre_release | post_release
-
-∀ obligation ob:
-  ob.phase determines when ob is enforced
-  phase(pre_merge):    blocking for merge gate (§15 merge)
-  phase(pre_release):  blocking for release gate (§15 release)
-  phase(post_release): monitoring-only, NOT blocking for merge or release
-                       violation → AssuranceGap, surfaced via dashboard
-
-gate: Change × Policy × 𝓣 × 𝓒-rule → Gate × Optional[ReleaseGate] × Stream[AssuranceGap]
-
-gate_merge(c, p, t, rules):
-  blocking_obligations(c) = {ob ∈ obligations(c) : ob.phase = pre_merge}
-  Open iff ∀ ob ∈ blocking_obligations(c): result(ob) = Pass
-        ∧ ∀ r ∈ rules: apply(r, c, t)
-        ∧ re_evaluation_status(c) ≠ StaleClaim
-  Blocked otherwise
-
-gate_release(candidate_release, p, t, rules):
-  blocking_obligations(release) = {ob ∈ obligations(release) : ob.phase ∈ {pre_merge, pre_release}}
-  Open iff ∀ ob ∈ blocking_obligations(release): result(ob) = Pass
-                  ∧ ∀ r ∈ rules: apply(r, release, t)
-                  ∧ re_evaluation_status(release) ≠ StaleClaim
-                  ∧ attestation_evidence_chain(release) ⊨ release-policy
-  Blocked otherwise
-
-post_release_monitor(c, t) → Stream[AssuranceGap]:
-  monitoring_obligations(c) = {ob ∈ obligations(c) : ob.phase = post_release}
-  ∀ ob ∈ monitoring_obligations(c):
-    if ¬result(ob) ∧ ob.due_date(t) ≤ now:
-      emit AssuranceGap {kind: PostReleaseViolation, ob, evidence}
-
-remedies(pre_merge_block) = {add_trailer_ref, create_sibling_yaml, downgrade_mode}
-remedies(pre_release_block) = {supersede_decision_per_impact_list, add_release_attestation}
-remedies(post_release) = (informational only, no block)
-exit ≠ 0 ∧ remedies ≠ ∅                   [I14]
-```
-
----
+- **Rule.** An obligation has a phase: `pre_merge` blocks the merge gate, `pre_release` blocks the release gate, `post_release` is monitoring-only and surfaces an `AssuranceGap`. The merge gate is open when every blocking obligation passes, every kernel rule applies, and the re-evaluation oracle reports no stale claim.
+- **Code.** `lib/gate.ml::gate_v32`, `lib/gate.ml::gate_release_v32`, `lib/gate.ml::post_release_monitor`; `bin/Mathc.ml::do_gate` — the composition of the two verdicts.
+- **Test.** `tests/cli/gate-v32-wired.t`, `tests/cli/gate-pass.t`, `tests/cli/gate-fail.t`, `tests/cli/gate-stale.t`.
 
 ## §16. Substrate
 
-```
-substrate: CI → 𝓢
-substrate(ci) = parse(ci.substrate-declaration)
-substrate_fingerprint(ci) = sha256(kernel.ver || ocaml.ver || dep.digests)
-
-∀ ci: substrate(ci) canonicalized at startup, frozen for duration
-∀ a ∈ Attestation: a.substrate_fingerprint = substrate_fingerprint(producer(a))
-```
-
----
+- **Rule.** The substrate fingerprint is the sha256 of the kernel version, the OCaml version and the dependency digests; an attestation carries the fingerprint of the substrate it was produced against, so an attestation from another build is visibly another build.
+- **Code.** `lib/attestations/attestations.ml::compute_substrate_digest`, `::compute_substrate_fingerprint`.
+- **Test.** `tests/cli/attest-batch.t`, `tests/cli/attest-batch-from-decisions.t`.
 
 ## §17. Inline axiom change
 
-```
-axiom-transition: Axiom × TransitionKind
-TransitionKind = revision | addition | removal
-
-axiom-revision(c, A):
-  required: {old_sha, new_sha, counterexample, impact-list, trailer_ref}
-  old_sha = sha256(axiom_file_at(parent(c)))
-  new_sha = sha256(axiom_file_at(c))
-  trailer_ref: axiom:A@<old_rev>
-
-axiom-addition(c, A_new):
-  required: {axiom_id, statement, counterexample,
-             references_to_existing_axioms, index_update_in_same_commit,
-             no_contradicts_with_existing_axioms}
-
-axiom-removal(c, A): requires successor axiom declaration, A3-protected
-
-re_evaluate: Decision × AxiomRevision → ReEvaluationStatus
-re_evaluate(d, A_new):
-  ∀ ob ∈ d.obligations:
-    - ob.claim references A_old.forbidden_patterns → StaleClaim
-    - ob.acceptance.verifier is test-style → run, return Compatible on Pass
-    - ob.acceptance.verifier is manual-style → Inconclusive
-
-∀ axiom-revision c:
-  ∀ impact-list(d): re_evaluation_status(d) = re_evaluate(d, A_new)
-  verdict(c) = max_verdict across impact-list(d)
-  max_verdict: Compatible < Inconclusive < StaleClaim
-
-  Compatible only    → axiom change allowed
-  StaleClaim exists  → gate = Blocked + remediation list per affected decision
-  Inconclusive only  → axiom change allowed + follow-up review list
-
-impact-list(d) = {d' : A ∈ d'.referenced_axioms ∨ A ∈ transitive_referenced_axioms(d')}
-```
-
----
+- **Rule.** An axiom change is a revision, an addition or a removal; a revision names the old and the new digests, a counterexample, the impact list and the trailer reference. The re-evaluation oracle answers `Compatible`, `Inconclusive` or `StaleClaim` for every impacted decision, and a stale claim blocks the gate.
+- **Code.** `lib/re_evaluation.ml` — the oracle and the verdict order; `bin/Mathc.ml` — the `re-evaluate` subcommand.
+- **Test.** `tests/cli/re-evaluate.t`, `tests/cli/re-evaluate-decisions.t`.
 
 ## §18. Time-budget
 
-```
-time: Session × Agent → ExecutionLog
-time(s, a) = ⟨scale, value, observed_at, observed_by=a⟩
-
-scale ∈ {WallClockMinutes, TokenBudget, StepCount}
-∀ session: time recorded before commit ∧ reference-class declared
-```
-
----
+- **Rule.** DECLARED, not enforced: a decision may carry a time estimate, and nothing measures the time a decision took. See §31.
+- **Code.** `schemas/decision.json` — the optional `time` block.
+- **Test.** `tests/cli/cli-time-estimate.t`, `tests/cli/cli-time-storage.t`.
 
 ## §20. Kernel rules
 
-```
-𝓒-rule ⊂ 𝒱_ideal_3.2
-initially: 𝓒-rule = {PreTemporalPrecedence, CoCommitDecision, CoCommitFixture}
-
-apply(PreTemporalPrecedence, c, t) ≔
-  mode(c) ∈ {tiny, light}
-  ⊕ has_sibling_yaml(c)
-  ⊕ (∃ ref ∈ trailer(c): ref matches "decision:<id>@<rev>?" ∧ resolve(ref, parent(c)) ≠ ∅)
-
-apply(CoCommitDecision, c, t) ≔
-  c.files ∩ {lib/**, bin/Mathc.ml, spec/**, schemas/**, axioms/**} = ∅
-  ⊕ ∃ d ∈ tree(parent(c)) ∪ tree(c):
-       kind(d) ∈ {decision, axiom} ∧ basename(d) referenced by trailer(c)
-
-apply(CoCommitFixture, c, t) ≔
-  ∀ ob ∈ obligations(c):
-    ob.acceptance.verifier is fixture OR ob.acceptance.review is filled
-
-add-rule: Decision → 𝓒-rule
-add-rule(d) requires:
-  - mode(d) ≥ strict
-  - 1 positive + 1 negative conformance fixture
-  - counterexample with strongest objection
-  - reference to axiom that justifies the rule
-```
-
----
+- **Rule.** The kernel carries three rules: `PreTemporalPrecedence`, `CoCommitDecision` (a change to a protected path needs a decision with it) and `CoCommitFixture` (every obligation needs a fixture or a filled review). A rule is added by decision, only at the mode `strict` or above, with a positive and a negative fixture.
+- **Code.** `lib/gate.ml::apply_rule` — the three rules; `lib/protected_paths.ml` — the protected paths; `bin/Mathc.ml` — the rules the gate applies.
+- **Test.** `tests/cli/gate-v32-wired.t` (each rule fires, and each does not), `tests/fixtures/protected-paths-single-source.sh`.
 
 ## §21. Friction envelope
 
-```
-friction(c) = friction_user(c) ⊕ friction_kernel_dev(c)
-
-friction_user(c) ≔ max(0, cost_user(commit-with-protocol(c)) - cost_user(plain-commit(c)))
-friction_kernel_dev(c) ≔ amortized over all users, O(1) per release cycle
-
-cost_user(c) = body_lines(c) + trailer_lines(c) + yaml_new_lines(c)
-             + rebuttal_lines(c) + context_lines_read(c)
-             where context_lines_read ≤ 1100 for users adopting 3.2
-
-cost_kernel_dev(c) = cost_user(c) + axiom_re_evaluate_cost(c)
-                   + 3600_lines_kernel_dev_context (amortized per release)
-
-friction_user_envelope:
-  tiny:        ≤ 0       (commit message, body classification line, no trailer)
-  light:       ≤ 10      (body {commitment, counterexample})
-  standard:    ≤ 60      (body 30 + trailer 1 + yaml 0-30)
-  strict:      ≤ 130     (body 80 + trailer 1 + yaml 0-50 + rebuttals 0-50)
-  exhaustive:  ≤ 300     (body 200 + trailer 1 + yaml 0-100 + rebuttals 0-100 + formal)
-
-friction_kernel_dev_envelope (constant per release, not per commit):
-  ≤ 3600_lines_once_per_release_cycle
-
-vs baselines:
-  ADR:                 ~100 lines markdown
-  code review (good):  ~30 min wall-clock
-  good CI:             ~50 lines yaml + 5 min/run
-  rebuttal dialog:     ~30 lines in PR comments
-
-ideal_3.2(c) friction_user     ≤ baseline friction  for mode(c) ≤ standard
-ideal_3.2(c) friction_user     ≤ 1.5 × baseline       for mode(c) ∈ {strict, exhaustive}
-ideal_3.2(c) friction_kernel_dev ≤ baseline_once     per release cycle
-```
-
----
+- **Rule.** DECLARED, not enforced: the per-mode line budgets and the comparison with the ADR/CI/review baselines are a promise no program measures. See §31.
+- **Code.** `bin/Mathc.ml` — the `context` subcommand's `--budget`, which is a different number from this one.
+- **Test.** `tests/cli/context-budget-bound.t` (the budget that IS enforced).
 
 ## §22. Quality dimensions
 
-```
-quality(protocol 𝒫) for project P = min over dimensions:
-  correctness          : ∃ obligations, all attested pass
-  explicitness         : commitment(c) recoverable from history(c)
-  recovery             : ∀ irreversible(c) : recovery(c) declared
-  coordination         : multi-agent consensus (rebuttal binding)
-  auditability         : attestation(c) immutable, queryable
-  evolution            : axiom-changes tracked, impacted decisions re-evaluated
-  zero-friction-user   : tiny/light commits have zero user friction
-  no-retrofit          : kernel/protected commits cannot be post-hoc rationalized
-  cross-cutting        : security/perf concerns surface via rebuttal mechanism
-  substrate-honesty    : cross-CI evaluation includes substrate fingerprint
-  sha-consistency      : dual authoring (inline + sibling) cannot drift
-  transitive-policy    : policies extend via data flow edges
-  axiom-safety         : axiom changes gate on re-evaluation oracle
-  applicability-fit    : protocol's friction ≤ protocol's value for this project
-
-applicability-fit(P) =
-  | True   if applicability_3.2(P) > 0    (per §28)
-  | False  if applicability_3.2(P) ≤ 0
-
-∀ project P adopting 3.2: applicability-fit(P) = True
-∀ project P not adopting 3.2: applicability-fit(P) requires explicit rationale
-
-improvements vs baseline:
-  correctness          : +30%
-  explicitness         : +50%
-  recovery             : +100%
-  coordination         : +∞
-  auditability         : +200%
-  evolution            : +150%
-  zero-friction-user   : preserved
-  no-retrofit          : enforced
-  cross-cutting        : enforced
-  substrate-honesty    : enforced
-  sha-consistency      : enforced
-  transitive-policy    : enforced
-  axiom-safety         : enforced
-  applicability-fit    : explicit per project
-```
-
----
+- **Rule.** DECLARED, not enforced: the dimensions and the improvement percentages are a promise no program measures. One rule in this section IS enforced — the required-attestation gate: a decision that declares `required_attestations` rejects a clean tree unless every (kind, producer) pair is satisfied by an attestation in the store. See §31 for the rest.
+- **Code.** `lib/gate.ml::required_attestation_satisfied` and the gate that consults it.
+- **Test.** `tests/cli/required-attestation.t`, `tests/fixtures/unmet-obligations-are-inventoried.sh`.
 
 ## §23. Kernel signature
 
-```
-Kernel = ⟨infer, mode, compose, attest, gate, trust, apply, re_evaluate, transition⟩
-
-infer:           𝓒 × 𝓜 → P(Obligation)
-mode:            𝓒 → 𝓜
-compose:         𝓒 → P(Obligation)
-attest:          𝓒 → P(Attestation)
-gate:            Change × Policy × 𝓣 × 𝓒-rule → Gate
-trust:           𝓐 × ObligationDomain → 𝓣
-apply:           𝓒-rule × 𝓒 × 𝓣 → 𝓑
-re_evaluate:     Decision × AxiomRevision → ReEvaluationStatus
-transition:      Axiom × TransitionKind → AxiomTransition
-
-total cost per commit:
-  O(infer)        = O(|c.files| · path_classification_cost)
-  O(mode)         = O(1)
-  O(compose)      = O(|c.files| + |data_flow_targets*(c.files)| · policy_lookup)
-  O(attest)       = O(|obligations(c)| · verifier_cost)
-  O(gate)         = O(|attestations(c)| + |𝓒-rule| · apply_cost)
-  O(trust)        = O(history(agent, domain))
-  O(re_evaluate)  = triggered only on axiom-revision
-  O(transition)   = O(1)
-
-∀ c: total_cost_user(c) ≤ baseline_cost_user(plain_commit(c)) + ε_user
-∀ c: total_cost_kernel_dev(c) ≤ baseline_cost_kernel_dev(plain_commit(c)) + ε_kernel_dev
-```
-
----
+- **Rule.** The signature is the kernel's: `infer`, `mode`, `compose`, `attest`, `gate`, `trust`, `apply`, `re_evaluate` and `transition` are the functions of `lib/`, and each one is named in the section that owns it. The per-commit COST model that stood beside them — the `O(...)` bounds — is DECLARED: nothing measures the cost of a commit. See §31.
+- **Code.** `lib/*.ml` — the nine functions, each named in its own section above.
+- **Test.** `tests/conformance.ml`, `tests/repo_structure.ml`.
 
 ## §24. Adoption path
 
-```
-adoption(P) = choose_path(P, applicability_3.2(P))
-where choose_path returns one of:
-  Path A: full 3.2 (kernel binary + full methodology)
-  Path C: no math-coding (regular ADR + good CI)
-
-Path A — full 3.2:
-  Step 1: download kernel binary from releases (Linux/macOS/Windows × x86_64/aarch64)
-  Step 2: read USAGE.md + AGENTS.md + axioms/ (~1100 lines)
-  Step 3: copy decisions/decision.yaml template to user's project
-  Step 4: enable mathc gate as blocking CI step
-  Step 5: populate attestation store from CI logs
-  friction_user: 1100_lines_once + per-commit as in §21
-  friction_kernel_dev: amortized, shared with all users
-
-Path A — light mode floor (rev 2):
-  Steps 1-5 as above, with `mode_floor: light` declared in the
-  project's own `policies.yaml`. Per-commit cost falls to
-  {commitment, counterexample} in the body section (§4); a
-  `decision:<id>@<rev>` git trailer satisfies the gate without a
-  sibling YAML (§5). Chosen by default for solo projects with no
-  agent writing into P — see §28.
-
-Path C — no math-coding (regular ADR):
-  Step 1: standard ADR practice (one markdown file per decision)
-  Step 2: counterexample as prose paragraph in ADR
-  Step 3: PR review for verdict (no mathc gate)
-  Step 4: CI logs as evidence (no attestation store)
-  friction: 0 (regular practice)
-
-∀ project P: choose_path(P) based on applicability_3.2(P) per §28
-  applicability > 0           → Path A (full 3.2)
-  applicability ∈ [low, ~0]   → Path A, light mode floor (rev 2)
-  applicability ≈ 0           → Path C (no protocol needed)
-
-preserves (from 3.1):
-  14 constitution invariants
-  5 axioms A0-A4
-  5 modes
-  dual authoring model
-  CI-declared substrate
-  append-only attestation store
-  auto-inferred obligations
-  counterexample as dialog
-  rebuttal mechanism (hybrid)
-  per-domain trust dynamics
-  re-evaluation oracle
-  axiom transition kinds
-
-adds (from §28-§30):
-  applicability envelope
-  two-tier cognitive model
-  binary distribution as architectural property
-```
-
----
+- **Rule.** DECLARED, not enforced: which path a project takes — the full kernel, the kernel at a light floor, or no kernel at all — is the owner's documented judgement. See §31.
+- **Code.** `lib/init/init.ml` — the envelope the CLI prints at deploy time, which is the part a program can say.
+- **Test.** `tests/cli/init.t`, `tests/cli/init-defaults.t`, `scripts/check-adoption-doc-freshen.sh`.
 
 ## §28. Applicability envelope
 
-```
-applicability(project P, protocol 𝒫) ≔ value(P, 𝒫) - friction_user(P, 𝒫)
+- **Rule.** `default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)`. The envelope is default-on: the burden of proof sits on the exclusion, not on the adoption. The membership test that decides a project's rung is a human's judgement, and the kernel prints the envelope rather than deciding it.
+- **Code.** `lib/init/init.ml` — the envelope the CLI prints; `lib/policy.ml` — the mode floor a project declares.
+- **Test.** `scripts/check-applicability-agreement.sh` (the rule is stated once and the three surfaces agree), `tests/cli/applicability-envelope.t`.
 
-(* rev 2 (decision `solo-default-on-2026-10@1`): the envelope is
-   default-on. The burden of proof sits on the exclusion, not on
-   the adoption — Path C requires positive membership in
-   `prototype_or_throwaway(P)`. "There is only one of us" is no
-   longer a membership test; it selects the mode, not the path. *)
+## §30. Binary distribution
 
-value(P, 𝒫) =
-  | +∞ if P ∈ regulatory_audit_required(P)
-  | high    if P ∈ multi_agent_ai_assisted(P)
-  | medium  if P ∈ long_lived_critical_infrastructure(P) ∧ |team(P)| > 1
-  | medium  if P ∈ solo_ai_assisted(P)
-  | low     if P ∈ solo_or_small_team(P) ∧ ¬ai_writes_into(P)
-  | ~0      if P ∈ prototype_or_throwaway(P)
+- **Rule.** DECLARED, not enforced by this repository: the property that a user needs no nix, no OCaml and no dune, and that the released binary is reproducible. The anti-property — a nix-store path in the binary's dependencies — is tracked by `decisions/portable-linux-musl.yaml`. See §31.
+- **Code.** `flake.nix` — the release matrix and the musl build.
+- **Test.** `scripts/check-adoption-doc-freshen.sh` (the pins the adoption documents carry).
 
-regulatory_audit_required(P) ≔ P touches medical|financial|aviation|critical_infra
-multi_agent_ai_assisted(P) ≔ |agents(P)| ≥ 2 ∧ agents coordinate on P
-solo_ai_assisted(P) ≔ ai_writes_into(P) ∧ |humans(P)| ≥ 1
-ai_writes_into(P) ≔ ∃ agent a : a commits or edits files in P
-long_lived_critical_infrastructure(P) ≔ expected_lifetime(P) ≥ 5 years ∧ |team(P)| ≥ 3
-prototype_or_throwaway(P) ≔ P is MVP / spike / experimental code
+## §31. Declared promises
 
-default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)
+Every promise the kernel cannot check is here, with the owner who is accountable for it and the date it is looked at again. The owner and the date are the corpus's standing ones — `human:maintainer`, reviewed on `2026-12-15`, the same pair the corpus's `declared:` blocks carry. A promise that is neither enforced nor declared is UNCHECKED, and the corpus counts that class separately (`tests/fixtures/negative-control-debt.sh`).
 
-applicability_envelope:
-  applicability ≥ +∞      → Path A: full 3.2 (kernel binary + all obligations)
-  applicability ≥ high    → Path A: full 3.2 (kernel binary + obligations)
-  applicability ≥ medium  → Path A: full 3.2, accept higher friction
-  applicability ∈ [low, ~0] → Path A: adopted, light mode floor
-  applicability ≈ 0 (P ∈ prototype_or_throwaway) → Path C: no protocol needed
+| promise | why no program can check it | owner | review on |
+|---|---|---|---|
+| The goal of §0: a commit's friction never exceeds ADR + CI + review | nobody measures a commit's friction | human:maintainer | 2026-12-15 |
+| The path classifier of §8: `api/**` implies `api-backward-compat`, and the rest of the table | the kernel has no classifier; the obligations come from the policies and the decisions | human:maintainer | 2026-12-15 |
+| The inline body section at the modes `tiny` and `light` (§4) | the kernel reads the sibling YAML; it does not read a commit body | human:maintainer | 2026-12-15 |
+| The trust dynamics of §12: history, attestation density, escalation | no program computes a trust level over time | human:maintainer | 2026-12-15 |
+| The time budget of §18 | a decision states a duration; nothing measures the one it took | human:maintainer | 2026-12-15 |
+| The friction envelope of §21: the per-mode line budgets and the baselines | nobody counts the lines of a commit | human:maintainer | 2026-12-15 |
+| The quality dimensions of §22 and their improvement percentages | a percentage of what, measured how, is a human's number | human:maintainer | 2026-12-15 |
+| The cost model of §23: the per-commit complexity bounds | nothing measures the cost of a commit | human:maintainer | 2026-12-15 |
+| The adoption path of §24: which rung a project takes | the membership test is a judgement about the project | human:maintainer | 2026-12-15 |
+| The distribution property of §30: a user needs no toolchain, the binary is reproducible | the release artefacts are built elsewhere and are not compared here | human:maintainer | 2026-12-15 |
+| The dual-authored canonicalisation of §7.1 | the case has no live consumer, and its three open questions are design questions | human:maintainer | 2026-12-15 |
 
-∀ project P: applicability(P, 𝒫_3.2) > 0 ⟹ P is candidate for 𝒫_3.2
-∀ project P: P ∉ prototype_or_throwaway(P) ⟹ default_path(P) = Path A
+## §32. What this document no longer carries
 
-non-candidates (the only Path C class):
-  - prototype / MVP / spike
-  - throwaway tools
-  - learning exercises
-  - 1-day hackathon output
-  i.e. code with no expected continuity: no reader will ever ask
-  why a change was made, so no record can be read.
+Every section that survived kept its number and its subject; what changed is the body. The algebra became a rule with a code symbol and a test, and the sections whose rule no program enforces say so where they stand and point at §31.
 
-candidates (applicability > 0):
-  - regulatory audit environments
-  - multi-agent AI-assisted development
-  - AI-assisted development by a single maintainer
-  - long-lived critical infrastructure
-  - teams of ≥3 on stable projects
-  - solo projects, at a light mode floor
-
-the low rung, stated precisely:
-  A solo maintainer with no agent writing into P has real friction
-  and no coordination problem. rev 1 answered that by excluding
-  the project (Path C). rev 2 keeps the friction observation and
-  rejects the exclusion: the ceremony is scaled, not skipped.
-  Declaring `mode_floor: light` in the project's own
-  `policies.yaml` (§2, `lib/policy.ml::mode_floor`) bounds the
-  per-commit cost to {commitment, counterexample} (§4) and keeps
-  the `decision:` trailer sufficient — no sibling YAML (§5).
-  What remains is the part that outlives the maintainer's memory.
-```
-
----
-
-## §30. Binary distribution as architectural property
-
-```
-distribution: Kernel → {platform-binary × sha256}
-  platforms = {linux-x86_64, linux-aarch64, darwin-x86_64, darwin-aarch64, windows-x86_64}
-  each release publishes 5 binaries
-
-∀ user A ∈ U: A obtains kernel via binary_download(A) ⟹ A.requires(nix) = False
-∀ developer D ∈ K: D obtains kernel via source_build(D) ⟹ D.requires(nix, ocaml, dune) = True
-
-∀ U, K: U ∩ K = ∅    [disjoint populations]
-
-adoption_cost(U) = binary_download_cost + 1100_lines_user_doc
-maintenance_cost(K) = source_build_cost + 3600_lines_kernel_doc + OCaml_toolchain
-
-distribution_property:
-  ∀ users A ∈ U: friction_user(A, c) ≤ friction_baseline(A, c) for mode(c) ≤ standard
-
-distribution requirements:
-  - kernel must compile to native binary (not require runtime interpreter)
-  - kernel must ship as portable artifact (no nix-store paths in dependencies)
-  - kernel must be reproducible (same source → same binary hash)
-
-anti-property (forbidden):
-  - require OCaml compiler on user machines
-  - require nix-store paths in binary dependencies
-  - require dune installation for users
-  - bind kernel to single OS or architecture
-
-∀ future kernel changes: maintain distribution_property
-```
-
----
-
-## Summary
-
-| Section | Topic | Status vs 3.1 |
-|---|---|---|
-| §0 | Goal + Honest Uncertainty | extended |
-| §1 | Universal sets | extended (binary platforms, epistemic markers) |
-| §2 | Risk function | clarified (impact vs risk, mode_floor) |
-| §3 | Authoring model | same (dual) |
-| §4 | Inline authoring | parser-enforced |
-| §5 | Trailer mechanism | drop-if-sibling |
-| §6 | Sibling YAML | same |
-| §7 | Decision entity | +5 epistemic markers, +8 relations, +state, +body_sha/yaml_sha |
-| §8 | Auto-inferred obligations | extended (cli/subcommand, axioms/**) |
-| §9 | Multi-policy | +transitive via data flow |
-| §10 | Rebuttal | hybrid (sibling + forge mirror) |
-| §11 | Counterexample | same |
-| §12 | Trust | per-domain |
-| §13 | Auto-attestation | +substrate_fingerprint, +env_class_level |
-| §14 | Multi-CI aggregation | new |
-| §15 | Gate verdict | +3 obligation phases, +3 gate types |
-| §16 | Substrate | +substrate_fingerprint |
-| §17 | Axiom change | +transition kinds, +re_evaluate oracle |
-| §18 | Time-budget | same |
-| §19 | 14 invariants | preserved |
-| §20 | Kernel rules | +CoCommitDecision, +CoCommitFixture |
-| §21 | Friction envelope | user/kernel-dev split |
-| §22 | Quality dimensions | +applicability-fit |
-| §23 | Kernel signature | same |
-| §24 | Adoption path | two paths (full/no), no 3.2-L |
-| §25 | Equivalence with 3.1 | new |
-| §26 | Universal property | extended |
-| §27 | Friction-zero theorem | extended |
-| §28 | Applicability envelope | new |
-| §29 | Two-tier cognitive model | new |
-| §30 | Binary distribution | new |
+- **What became a DECLARED pointer.** §4 (inline authoring), §8 (the auto-inferred obligations), §12 (the trust dynamics), §18 (the time budget), §21 (the friction envelope), §22 (the quality dimensions), §23 (the cost model), §24 (the adoption path) and §30 (the distribution property): each keeps its number and its subject and says, in place, that the promise is one no program checks. §31 carries the list with the owner and the date.
+- **What became a pointer to a rule that stayed.** §9.1 (the composition axes) and §11.1 (the dialectic's rationale): the rules are §9's and §11's, and the sub-sections name them.
+- **Removed before this transition.** §19 (the fourteen invariants, a duplicate of `spec/constitution.md`), §25, §26, §27 and §29 — see `decisions/kernel-contract-rename-2026-11.yaml` and `archive/decisions/spec-is-an-index-2026-10.yaml`. §19, §27 and §29 are still named by live decisions: those citations were already dangling before this transition and are reported with it.
+- **What a reader can no longer learn here.** The pseudo-mathematics, the quantified formulas and the improvement percentages: they were never checked, and a formula that no program checks cannot fail a test. The rules they described are still here, and each one now names the code that enforces it and the test that would notice if it stopped.

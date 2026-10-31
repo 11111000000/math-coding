@@ -1,0 +1,353 @@
+---
+schema: math-coding/3.3
+id: kernel-contract-shrink-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/kernel-contract-shrink-2026-11.sh
+body_sha: "sha256:7dfbd4739c3e2640eb2a49331c06a2601e3e41dd7de622f94165a36ec6909fa9"
+yaml_sha: "sha256:7dfbd4739c3e2640eb2a49331c06a2601e3e41dd7de622f94165a36ec6909fa9"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.2 (tranche T3.2)"
+  text: |
+    The contract was an index that had become a second source of
+    truth. It said, for every rule the kernel has, WHAT the rule is in
+    pseudo-mathematics -- quantified formulas, thresholds, complexity
+    bounds -- and the pseudo-mathematics was never checked by
+    anything. A formula that no program checks cannot fail a test, and
+    a document that is maintained by hand drifts: the contract still
+    enumerated sections it had already deleted, and it still carried a
+    friction envelope, a cost model and a table of improvement
+    percentages that no program in this repository measures.
+
+    THE FAILURE THIS TRANSITION REMOVES IS MEASURED, NOT ASSUMED.
+    Five fixtures read the contract and compared what they read with
+    the code: `tests/cli/risk-bucketing.t` (the risk buckets against
+    `lib/risk.ml`), `tests/cli/body-vs-wrapper-canonical.t` (the
+    canonicalisation against `lib/decision.ml`),
+    `tests/cli/render-mathjax-spec.t` (the rendered page against the
+    words the document carried), `tests/cli/applicability-envelope.t`
+    (the envelope against the decision that carried it), and
+    `scripts/check-applicability-agreement.sh` (the rule against the
+    skill and the CLI). A fixture that greps the prose breaks the
+    moment the prose is rewritten, and this tranche rewrites the
+    prose. Every one of those five now compares the code with a
+    constant the code owns, or a pointer with an anchor, and never a
+    line of prose.
+
+    WHAT THE DOCUMENT PROMISED BEFORE, AND WHAT IT PROMISES NOW. It
+    promised a model: the algebra of the protocol in quantified form,
+    with a summary table of what changed since 3.1. It promises an
+    index: for every rule the kernel has, the rule, the file and the
+    symbol that enforces it, and the test that would notice if it
+    stopped being true; and for every promise no program can check,
+    the words DECLARED, with the owner accountable for it and the
+    date it is looked at again.
+
+    THE SECTION NUMBERS DID NOT MOVE, and that is the load-bearing
+    part of the transition. About five hundred pointers in `lib/`,
+    `bin/`, `schemas/`, the corpus, the tests and the site name a
+    section of this document, and the kernel's own diagnostics quote
+    them in their message text. A renumbering would have left every
+    one of them pointing at a section that is not there -- and
+    `lib/`, `bin/` and `schemas/` are not in this tranche's scope. The
+    sections that survived kept their number and their subject; what
+    changed is the body.
+
+counterexample: |
+  The strongest objection against this transition is that it deletes
+  information. The old contract carried the friction envelope, the
+  quality dimensions with their percentages, the cost model, the
+  universal sets, the trust dynamics, the adoption path, the
+  distribution property, the time budget -- and this transition
+  reduces most of them to a row in a table that says "nobody
+  measures this". A reader who wanted to know what the kernel
+  promises about friction, or what the protocol claims to improve, or
+  how a trust level rises, gets nothing where there used to be a
+  section. The corpus has spent months teaching that a promise no
+  program checks is decoration, and this transition applies the
+  lesson to the normative text itself: eleven of those promises are
+  still in the document, in one place, with the owner and the date --
+  but a reader who wants the formula has to go to the decision that
+  carries it, and eleven of those decisions have not been written
+  yet.
+
+  The objection is right about what is lost and wrong about the
+  alternative, and the corpus has already measured the alternative.
+  The old document said friction was at most ten lines at the light
+  mode, and no program in this repository ever counted the lines of a
+  commit. It said the quality dimensions improve by thirty percent,
+  and nothing measured a percentage of anything. It carried a cost
+  model with `O(...)` bounds for nine functions, and the model was
+  wrong the moment a tenth function was added -- which is exactly
+  what happened. A reader who reads a promise in this document and
+  believes it is enforced is worse off than a reader who is told, in
+  the same document, that nobody checks it.
+
+  What would change the verdict: if a reader of the contract cannot
+  get to the answer, the DECLARED register is not the index it claims
+  to be. The instrument below checks that every declared promise
+  carries an owner and a review date, and that every path the
+  document names is a path that exists -- so the answer is a pointer
+  away, not a guess.
+
+antithesis: |
+  The coherent counter-position is that the contract should stay a
+  MODEL: a complete, self-contained statement of the protocol, with
+  the mathematics, because the kernel is one implementation of a
+  method and the method outlives the implementation. A reader who
+  wants to know the protocol should not have to read OCaml to find
+  out; and a document of rules and pointers is a document about the
+  kernel, not about the method. The position is right that a contract
+  which only mirrors the code has lost something the code does not
+  have -- the INTENT, the reason the rule is the rule -- and that
+  matters for a protocol whose whole point is that people adopt it.
+
+  The position is wrong about what the code is. The kernel is not one
+  implementation of a method that also exists on paper: the corpus's
+  own instruments ask the KERNEL what it enforces, and the answers
+  come from the code, not from this file. A model in prose and a
+  kernel in code are two implementations of the same rule, and two
+  implementations drift -- which is what this repository spent the
+  last quarter measuring. The intent is not lost by this transition:
+  it lives in the DECISIONS, each of which carries an intent, a
+  counterexample and an antithesis, and the contract points at the
+  code that enforces what those decisions decided.
+
+  The strongest thing the opposite position has is that a reader of
+  the DECLARED register learns what is NOT enforced, and a reader who
+  stops there may believe the project promises nothing about friction
+  at all. This decision concedes the shape: DECLARED is a class, not
+  a dismissal, and every promise in it carries an owner and a date,
+  which is the corpus's own answer to "who is holding this?".
+
+axiom_link:
+  - A0
+  - A3
+
+commitment: |
+  1. THE NORMATIVE TEXT MOVES IN ONE COMMIT, AND IT IS THIS DECISION.
+     The document's bytes change here: `spec/kernel-contract.md` goes
+     from 1016 lines to 229, and the whole change -- the document, the
+     five fixtures that mirrored it, and this decision -- lands in one
+     commit. Nothing else in the corpus's history may carry a partial
+     change to the document.
+
+  2. THE DOCUMENT SAYS WHAT THE KERNEL ENFORCES AND WHAT IS DECLARED.
+     Every rule the kernel has is stated three times over: the rule,
+     the file and the symbol that enforces it, and the test that fails
+     if it stops being true. Every promise no program can check is in
+     §31, with the owner accountable for it and the date it is looked
+     at again. The words DECLARED appear where the promise is, not in
+     a preamble.
+
+  3. THE SECTION NUMBERS DO NOT MOVE. §7 is still the decision record,
+     §11 is still the dialectic, §15 is still the gate verdict, §28 is
+     still the applicability envelope, §4 is still the inline authoring
+     and §23 is still the kernel signature. Nine sections now say, in
+     place, that the promise they carry is one no program checks, and
+     two sub-sections (§9.1, §11.1) point at the rule that stayed;
+     §32 says what each became. A pointer that names a section still
+     resolves: the instrument below checks that every section the live
+     tree names is a section the contract has, and it holds the list
+     of the sections the corpus depends on.
+
+  4. NO FIXTURE COMPARES THE DOCUMENT'S PROSE WITH THE CODE. The five
+     fixtures that mirrored the contract now compare the code with a
+     constant the code owns, or a pointer with an anchor: the risk
+     buckets with the thresholds in `lib/risk.ml::risk_to_mode` and
+     with the kernel's own answer at one risk per bucket; the
+     canonicalisation with the two implementations that carry it; the
+     rendered page with the renderer's own source and with the source's
+     section anchors; the envelope with the CLI's own message and the
+     section it names; the skill and the CLI with the anchors they
+     point at. The instrument below asserts that no fixture under
+     `tests/` or `scripts/` reads the contract's prose, and it has a
+     negative control that proves the assertion can fail.
+
+  5. THE INSTRUMENT IS EXECUTABLE AND IT HAS TEETH.
+     `tests/fixtures/kernel-contract-shrink-2026-11.sh` measures five
+     things -- the document's size, its pointers, its declared
+     register, the mirrors that are left, and the anchors that survive
+     -- and five negative controls prove that each measurement can
+     fail: a contract over the ceiling, a contract whose pointer names
+     a file that is not there, a contract whose declared promise has no
+     owner, a contract that has lost a section the tree names, and a
+     fixture that greps the contract's prose.
+
+outcomes:
+  - id: the-contract-is-an-index
+    statement: |
+      `spec/kernel-contract.md` says, for every rule the kernel has,
+      the rule, the code that enforces it and the test that would
+      notice if it stopped, and it says which promises are only
+      DECLARED. The instrument is
+      `tests/fixtures/kernel-contract-shrink-2026-11.sh`.
+
+  - id: the-promises-are-classed
+    statement: |
+      Every promise the kernel cannot check is named as DECLARED, with
+      an owner and a review date, in the document's own register. The
+      corpus's three classes (CHECKED, DECLARED, UNCHECKED) are the
+      corpus's instrument, and this document uses the second one
+      out loud instead of leaving a promise to look like a check.
+
+  - id: the-mirrors-are-gone
+    statement: |
+      No fixture under `tests/` or `scripts/` compares a line of the
+      contract with the code. The five that did now compare the code
+      with the code, and the instrument fails if a sixth appears.
+
+  - id: the-anchors-survive
+    statement: |
+      Every section the live tree names is a section the contract
+      still has, so the kernel's own diagnostics and the corpus's
+      pointers keep resolving.
+
+scope:
+  paths:
+    - "spec/kernel-contract.md"
+    - "tests/fixtures/kernel-contract-shrink-2026-11.sh"
+    - "tests/cli/risk-bucketing.t"
+    - "tests/cli/body-vs-wrapper-canonical.t"
+    - "tests/cli/render-mathjax-spec.t"
+    - "tests/cli/applicability-envelope.t"
+    - "scripts/check-applicability-agreement.sh"
+    - "tests/fixtures/redundancy-census.sh"
+    - "decisions/kernel-contract-shrink-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "docs/plans/**"
+
+obligations:
+  - id: the-contract-is-small-and-its-pointers-resolve
+    outcome: the-contract-is-an-index
+    claim: |
+      `spec/kernel-contract.md` is at most 229 lines, every path it
+      names is a path that exists, and every promise in its declared
+      register carries an owner and a review date. The measure is the
+      instrument, and the instrument's negative controls prove each
+      of the three can fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-shrink-2026-11.sh
+
+  - id: no-fixture-compares-the-prose-with-the-code
+    outcome: the-mirrors-are-gone
+    claim: |
+      No fixture under `tests/` or `scripts/` reads the contract's
+      prose. The only reads of the contract that are left are reads of
+      its headings, which are the contract's API and not a sentence a
+      rewrite would carry away. The instrument measures this and has a
+      negative control that proves the measurement can fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-shrink-2026-11.sh
+
+  - id: the-anchors-the-tree-names-still-resolve
+    outcome: the-anchors-survive
+    claim: |
+      Every section the live tree names -- in the kernel, the schemas,
+      the corpus, the tests, the site -- is a section the contract
+      still has. The section numbers did not move, so the pointers
+      that quote them in a runtime diagnostic keep resolving. The
+      instrument measures this and has a negative control that proves
+      the measurement can fail.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-shrink-2026-11.sh
+
+  - id: the-applicability-rule-is-stated-once
+    outcome: the-contract-is-an-index
+    claim: |
+      The applicability rule is stated once, in §28, and the skill and
+      the CLI point at it: the section each of them names is a section
+      the contract has.
+    acceptance:
+      all:
+        - verifier: scripts/check-applicability-agreement.sh
+
+assumptions:
+  - id: the-section-numbers-are-the-contract-s-api
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The section numbers of `spec/kernel-contract.md` are part of the
+      contract's interface: the kernel's diagnostics quote them in
+      their message text, and about five hundred pointers in the tree
+      name them. A future revision may renumber them, but it must do so
+      in a protected transition that moves the pointers with them --
+      the same rule the rename of 2026-11 followed.
+    consequence_if_false: |
+      If a revision renumbers the sections without moving the
+      pointers, the kernel's diagnostics and the corpus's citations
+      name sections that do not exist, and the corpus cannot tell the
+      difference between a pointer that resolves and a pointer that
+      looks right. The instrument in this decision catches a lost
+      section, but only for the pointers it can see.
+    review_on:
+      - signal: contract-section-renumbering
+
+  - id: the-corpus-level-prose-mirrors-are-known
+    state: unknown
+    owner: human:maintainer
+    statement: |
+      Four decisions in the live corpus still verify themselves by
+      grepping the contract for a phrase:
+      `decisions/algebra-3.2-notation-flag-2026-10.yaml` (the
+      notation note), `decisions/dialectic-method-v3-2026-10.yaml`
+      (the word `antithesis`),
+      `decisions/multi-policy-hierarchy-2026-10.yaml`
+      (`resolve_policy`) and `decisions/solo-default-on-2026-10.yaml`
+      (`P ∈ prototype_or_throwaway(P)`). Their needles survive in the
+      shrunken document, so they still pass -- but they are the same
+      defect this transition removes, at the corpus's level rather
+      than the fixtures' level, and this transition may not touch
+      them.
+    consequence_if_false: |
+      The next rewrite of the contract that does not carry those four
+      needles turns four corpus obligations red, and the corpus will
+      read that as a broken promise rather than as the mirror it is.
+      The repair is to give each of those obligations a verifier that
+      compares the code with a constant the code owns.
+    review_on:
+      - signal: contract-rewritten-again
+      - signal: corpus-mirror-breaks
+
+reversal:
+  - signal: the-contract-grows-again
+    condition: |
+      The contract's line count rises over the ceiling in
+      `tests/fixtures/kernel-contract-shrink-2026-11.sh`. Resolution:
+      the growth is either a promise the kernel enforces -- which
+      belongs in the rule's own section, with its code and its test --
+      or a promise it does not, which belongs in §31. A growth that is
+      neither is prose, and prose that no program checks is what this
+      transition removed.
+    action: review
+
+  - signal: the-anchors-are-renumbered
+    condition: |
+      A revision renumbers the sections of the contract. Resolution:
+      the renumbering is a protected transition of its own, with its
+      own decision, and it moves the pointers in `lib/`, `bin/`,
+      `schemas/`, the corpus, the tests and the site in the same
+      commit -- the rule the rename of 2026-11 followed.
+    action: rework
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the contract's line count rises over the ceiling in the instrument"
+    - "a fixture under tests/ or scripts/ greps the contract's prose again"
+    - "the corpus's own shell-grep obligations break because a needle is gone"
+    - "a section the tree names is renamed or removed without the pointers moving"
+
+relations:
+  supersedes:
+    - algebra-3.2@3
+  superseded_by: []

@@ -1,6 +1,15 @@
 Integration test for the body-vs-wrapper canonicalisation decision
-(d5-body-vs-wrapper-canonical-2026-10) and the new
-spec/kernel-contract.md §7.1 sub-section.
+(d5-body-vs-wrapper-canonical-2026-10) and the canonicalisation the
+kernel implements (kernel contract §7.1).
+
+WHAT IS NOT PINNED HERE, AND WHY. This fixture used to assert that
+the contract carried a §7.1 sub-section and that the sub-section named
+the placeholder-substitution sweep. That mirror is what the contract's
+shrink removes: a fixture that greps the prose breaks the moment the
+prose is rewritten, and the prose is rewritten now. The algorithm is
+the CODE's -- the kernel and the Python reference each carry it --
+and the conformance test `tests/body_canonical_test.ml` pins its four
+properties. What this fixture holds is the code.
 
   $ cd "$DUNE_SOURCEROOT"
 
@@ -27,15 +36,12 @@ block (the negative case):
   $ rg 'no formal definition' lib/decision.ml
   [1]
 
-The spec/kernel-contract.md §7.1 sub-section exists:
+The Python reference carries the same placeholder the kernel
+substitutes. The two implementations are the algorithm; the document
+is only the index that says where they live.
 
-  $ rg '^### §7\.1' "$DUNE_SOURCEROOT/spec/kernel-contract.md"
-  ### §7.1 Byte-range and canonicalisation
-
-The spec names the placeholder-substitution algorithm:
-
-  $ rg 'placeholder-substitution sweep' "$DUNE_SOURCEROOT/spec/kernel-contract.md"
-  3. **Insensitivity to placeholder.** Changing the value of `body_sha` (or `yaml_sha`) while keeping the field pattern valid does NOT change the resulting digest; the placeholder-substitution sweep absorbs the change. This is what makes the algorithm a fixed-point: a file's stored digest equals the algorithm's output for the same file.
+  $ rg 'PLACEHOLDER = "sha256:" \+ "0" \* 64' scripts/axiom-link-seed.py
+  PLACEHOLDER = "sha256:" + "0" * 64
 
 The schema is unchanged (no `authoring` field was added):
 

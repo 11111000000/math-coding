@@ -184,9 +184,9 @@ CEILING_DEAD=0
 #   the corpus it counts
 # ceiling-raise: 144 -> 145, the corpus-tranche-stale-form-3 record is in
 #   the corpus it counts
-# ceiling-fall: 145 -> 137, nine records moved to the archive and this
-#   tranche's own record entered the corpus it counts
-CEILING_CORPUS=137
+# ceiling-raise: 137 -> 138, the kernel-contract-shrink decision is in
+#   the corpus it counts
+CEILING_CORPUS=138
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
