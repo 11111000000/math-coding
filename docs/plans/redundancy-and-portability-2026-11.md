@@ -232,6 +232,32 @@ a number in the census, it carries a name and a date, and it is a
 class the census reports separately - not a phrase in prose that a
 reader has to notice.
 
+#### T2.1, measured (a mention is not a dependency)
+
+The first pass of the archive tranche looked at fourteen candidates for
+the archive and moved one. The other thirteen were "named by the tree",
+which sounded like a dead end and was not one: the naming turned out to
+be mostly narration, not dependency.
+
+| what the mention is | example | what it means for the move |
+|---|---|---|
+| the id, not a path | `relations.refines` from an archived decision, the `unknowns:` list in `lib/codec.ml` | nothing: both instruments resolve ids across the live tree and the archive, so the mention stays true |
+| a path to a file | `PACKAGES.md`'s index row, a comment that says "see decisions/x" | the path stops existing: point it at the archive, or reword |
+| a story of something that happened | `CHANGELOG.md`, `ROADMAP.md` | nothing: it stays true wherever the file lives |
+| a machine reading the file | a script or a fixture that opens it | the real question: what does it check, and does it still need a live decision |
+| normative text | `spec/algebra-3.2.md:143` | A3: the normative text does not move, so the decision that it names stays |
+
+The criterion in principle 4 is "nothing in the tree depends on it",
+not "nothing in the tree says its name". The first pass used the
+stricter reading because the brief said so, and the strict reading
+costs thirteen moves for nothing. The second pass fixes the pointers
+and moves the files.
+
+So the archive is not a filing cabinet: a record that the corpus's own
+machinery names is entangled with that machinery, and untangling it is
+the work. One move out of fourteen is the honest answer to a question
+that was asked wrongly, not a failure.
+
 ### T3 - the contract of the kernel (2026-11-30 .. 12-04, A3)
 
 | step | what | risk |
