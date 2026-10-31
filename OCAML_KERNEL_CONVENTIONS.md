@@ -2449,7 +2449,7 @@ Hook `.githooks/pre-commit` (старые строки 46–67) считал «3
 блокировал. Реальный P8 (`AGENTS.md` §Edit-loop prevention) —
 «3 consecutive dune build attempts fail» — это для интерактивной
 работы агента, а hook на commit-time не имеет state между
-коммитами. Решение (`decisions/p8-hook-deficit-2026-10`): hook
+коммитами. Решение (`archive/decisions/p8-hook-deficit-2026-10.yaml`): hook
 теперь выдаёт soft warning в stderr, не блокирует; edit-loop
 detection остаётся инструкцией агенту в `AGENTS.md`.
 
@@ -2498,7 +2498,7 @@ hook его больше не enforce'ит.
 
 **Referenced from.** `AGENTS.md` §Edit-loop prevention;
 `decisions/process-principles.yaml` obligation `P8`;
-`decisions/p8-hook-deficit-2026-10.yaml`.
+`archive/decisions/p8-hook-deficit-2026-10.yaml`.
 
 ### 11.40 `mathc_mcp` shell-out deadlocks when child stdout > 64 KiB
 

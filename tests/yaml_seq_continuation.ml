@@ -22,7 +22,7 @@
  * decision YAML. Four corpus decisions were in that shape:
  *
  *   decisions/cli-cram-tests.yaml
- *   decisions/p8-hook-deficit-2026-10.yaml
+ *   archive/decisions/p8-hook-deficit-2026-10.yaml
  *   archive/decisions/render-module-split-phase1-2026-10.yaml
  *   archive/decisions/render-module-split-phase1-2026-10.yaml
  *
@@ -113,7 +113,7 @@ reversal:
 (* --- D4b: a double-quoted item carried across lines ------------- *)
 
 let test_quoted_multiline_seq_item_is_joined () =
-  (* The exact shape of decisions/p8-hook-deficit-2026-10.yaml: the
+  (* The exact shape of archive/decisions/p8-hook-deficit-2026-10.yaml: the
      opening quote is on the dash line and the closing quote on the
      last one, and a continuation carries ": ". That colon is an
      ordinary character inside a flow scalar (YAML 1.2 §7.3.4), so
@@ -397,7 +397,7 @@ let[@warning "-32"] in_repo rel =
 let corpus_cases =
   [
     ("decisions/cli-cram-tests.yaml", "unknowns", 2);
-    ("decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
+    ("archive/decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
     ("archive/decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
   ]
 

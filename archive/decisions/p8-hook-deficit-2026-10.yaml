@@ -2,13 +2,14 @@
 schema: math-coding/3.3
 id: p8-hook-deficit-2026-10
 revision: 1
-state: active
+state: retired
+# Archived by T2.1: a completed hook-deficit resolution record with no live dependency.
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
 change_kind: implementation
 
-body_sha: "sha256:ffe7f1f0d5a6d45cdc574ff6c875fa8ec32c8e688ae312e634317634fd9f0508"
-yaml_sha: "sha256:ffe7f1f0d5a6d45cdc574ff6c875fa8ec32c8e688ae312e634317634fd9f0508"
+body_sha: "sha256:ccd3c0a7487cfa83522cd0208950cf707ffbf2c88bddf2d3f946c4b25a26f03a"
+yaml_sha: "sha256:ccd3c0a7487cfa83522cd0208950cf707ffbf2c88bddf2d3f946c4b25a26f03a"
 
 axiom_link:
   - A0
