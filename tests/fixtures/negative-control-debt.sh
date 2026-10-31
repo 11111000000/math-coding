@@ -100,7 +100,11 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   forge-principal-verification-2026-10 the control that catches
 #   its own failure: tests/cli/forge-verify.t asserts that an
 #   unreachable forge is unknown and exit 3, never pass and exit 0
-CEILING=35
+# ceiling-fall: 35 -> 34, the same tranche gave
+#   corpus-final-state-2026-10 the control that catches its own
+#   failure: tests/cli/self-check-unknown.t asserts that an
+#   unevidenced corpus is unknown and exit 3, never pass and exit 0
+CEILING=34
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
