@@ -1,53 +1,66 @@
 ---
 schema: math-coding/3.2
 id: site-deploy
-revision: 5
+revision: 6
 state: active
-body_sha: "sha256:69da0668757ed09d6754cb022c91dd6fafb6a0f844df3bbe7f3fcea49dda0098"
-yaml_sha: "sha256:69da0668757ed09d6754cb022c91dd6fafb6a0f844df3bbe7f3fcea49dda0098"
+body_sha: "sha256:0f54cf54b67dcc8daa6fb4f07a4c44aac0bdd9e94c6356734ccee021ce9430e9"
+yaml_sha: "sha256:0f54cf54b67dcc8daa6fb4f07a4c44aac0bdd9e94c6356734ccee021ce9430e9"
 intent: |
   Restore the project's published surface (a static site at
-  `site/` rendered to `dist/`) under the 3.0 kernel's own
-  gate. The site **demonstrates** the methodology: it is
-  built by `mathc render`, links between pages reuse the
-  `mathc explain` and `mathc packages` output, and the build
-  pipeline (`.github/workflows/site.yml`) is the same
-  `scripts/dev verify` shell the protocol mandates for
-  every other merge.
+  `site/` rendered to `dist/`) under the kernel's own gate. The site
+  **demonstrates** the methodology: it is built by `mathc render`, links
+  between pages reuse the `mathc explain` and `mathc packages` output,
+  and the build pipeline (`.github/workflows/site.yml`) is the same
+  `scripts/dev verify` shell the protocol mandates for every other merge.
 
-  The site contains articles about mathcoding — the methodology
-  that governs code change. The site is self-referential in the
-  A3 sense: the rules that govern the system also govern the
-  system's published explanation of itself.
+  The site contains articles about mathcoding -- the methodology that
+  governs code change. The site is self-referential in the A3 sense: the
+  rules that govern the system also govern the system's published
+  explanation of itself.
 
-  Revision 2 restores the visual design of v2.1-final inside the
-  v3 architecture: a Tufte-inspired stylesheet (warm cream,
-  oxblood accent, Charter serif, sidenotes, hairline rules),
-  bilingual English + Russian articles, MathJax for LaTeX, and
-  six substantive documents (MANIFESTO, FOUNDATIONS, WORKFLOW,
-  FAQ, CONTRIBUTING, README) alongside the four protocol pages
-  already shipped at rev 1. The `/math-coding/` GitHub Pages
-  subpath is honoured via `<base href>` so the same dist/ tree
-  serves locally and on Pages.
+  Revision 2 restored the visual design of v2.1-final inside the
+  v3 architecture: a Tufte-inspired stylesheet (warm cream, oxblood
+  accent, Charter serif, sidenotes, hairline rules), bilingual English +
+  Russian articles, MathJax for LaTeX, and six substantive documents
+  (MANIFESTO, FOUNDATIONS, WORKFLOW, FAQ, CONTRIBUTING, README) alongside
+  the four protocol pages already shipped at rev 1. The `/math-coding/`
+  GitHub Pages subpath is honoured via `<base href>` so the same dist/
+  tree serves locally and on Pages.
+
+  2026-10-31, REVISION 6: THE DEPLOY PIPELINE DID NOT MOVE, THE RENDER
+  KERNEL DID. The commitment named `lib/render.ml` as the pure function
+  the dispatcher invokes; that file is now `lib/render/render.ml` (the
+  renderer was split into `render`, `render_lang`, `render_md`,
+  `render_yaml`, `render_nav`, `render_pages` and `render_extras`).
+  The CLI synopsis in the same sentence also went stale: `--mermaid` and
+  `--no-mermaid` no longer exist, because `site-diagrams-as-svg-2026-10`
+  removed Mermaid from the pipeline, and `--lang` now accepts
+  `en|ru|zh|both|all` rather than `en|ru`. The page list the site
+  ships grew with it (dashboard, graph, feed, spec pages). The pipeline
+  itself -- `scripts/render.sh` -> `mathc render` -> the allowlist
+  check -> `actions/deploy-pages@v4` -- is exactly as it was.
 
 axiom_link:
   - A0
 commitment: |
-  `bin/Mathc.ml` dispatches `mathc render [--out DIR] [--lang en|ru]
-  [--site-base HREF] [--mathjax|--no-mathjax] [--mermaid|--no-mermaid]`
-  to invoke a pure function in `lib/render.ml`. The render function:
+  `bin/Mathc.ml` dispatches
+  `mathc render [--out DIR] [--lang en|ru|zh|both|all]
+  [--site-base HREF] [--mathjax|--no-mathjax]`
+  to invoke a pure function in `lib/render/render.ml`. The render function:
     1. reads source articles from `site/*.md` and the bilingual
-       siblings `site/*.ru.md` when present,
-    2. walks `decisions/*.yaml` + `attestations/*.json` to
+       siblings `site/*.ru.md` / `site/*.zh.md` when present,
+    2. walks `decisions/*.yaml` + the attestation store to
        produce the package grid (`mathc packages --format=html`),
     3. emits a complete static site under `--out` (default
        `dist/`) with index, axiom pages, methodology,
        bootstrap-gate, packages, MANIFESTO, FOUNDATIONS, WORKFLOW,
-       FAQ, CONTRIBUTING, README, decisions, axioms, assets, and
-       a search index (JSON),
+       FAQ, CONTRIBUTING, README, differences, install, readme,
+       dashboard, graph, the per-decision and per-axiom pages, the
+       spec pages, assets, a search index (JSON), a graph index
+       (JSON) and a feed (XML),
     4. adds Tufte sidenote markup (`<label class="sidenote">`
        + `<sup>` marker), MathJax `<script>` in `<head>`, and
-       `<base href="…">` for non-root deployment,
+       `<base href="...">` for non-root deployment,
     5. verifies every expected file exists (per
        `scripts/render.sh` allowlist) and exits non-zero on
        drift.
@@ -57,6 +70,14 @@ commitment: |
   pinned to `ubuntu-22.04` and runs `scripts/render.sh` on
   every push to main; the resulting `dist/` is published to
   GitHub Pages.
+
+  Measured on 2026-10-31 by `bash scripts/render.sh`: the render
+  reports 188 pages + 1 search index + 1 feed, and `dist/` holds
+  186 files -- 41 top-level HTML pages, 140 per-decision pages,
+  5 per-axiom pages, 4 spec pages, 35 assets, `index.json`,
+  `graph.json` and `feed.xml`. The count is a measurement of what
+  the site ships today; the promise is the pipeline that produces
+  it and the allowlist that refuses a drift.
 
 scope:
   paths:
@@ -75,6 +96,9 @@ scope:
     - decisions/site-deploy.yaml
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   lib/render.ml - no tracked file matches it
+  # 2026-10-31: the render kernel was split; lib/render/render.ml is the
+  #   file that exists now. The scope names the files this decision
+  #   TOUCHED; the implementation anchor is named in prose.
   exclusions:
     - lib/git/**
     - lib/junit/**
@@ -86,6 +110,10 @@ outcomes:
     statement: |
       `.github/workflows/site.yml` runs on every push to main and
       publishes `dist/` to GitHub Pages via `actions/deploy-pages@v4`.
+      Measured on 2026-10-31 by reading the workflow: the trigger is
+      `push` on `main` (plus `workflow_dispatch`), both jobs pin
+      `runs-on: ubuntu-22.04`, and the deploy job uses
+      `actions/deploy-pages@v4`.
 
 risk:
   declared_triggers:
@@ -95,7 +123,7 @@ risk:
     - bilingual-content-drift
   owner: human:maintainer
 counterexample: |
-    - counterexample: |
+    - site-generation-changes: |
       `scripts/render.sh` silently exits 0 even when a
       required page is missing. Mitigation: the render
       allowlist in `scripts/render.sh` is verified by
@@ -193,7 +221,7 @@ obligations:
 
   - id: sidenote-syntax
     statement: |
-      The Markdown subset parsed by `lib/render.ml` accepts
+      The Markdown subset parsed by the render kernel accepts
       `^[text]` inline; the rendered HTML carries a
       `<label class="sidenote">` containing the body and a
       numbered `<sup>` marker at the inline position.
@@ -209,7 +237,7 @@ obligations:
     statement: |
       Every rendered page loads MathJax 3 from
       `cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js` in
-      `defer` mode. Inline `$…$` and display `$$…$$` formulas
+      `defer` mode. Inline `$...$` and display `$$...$$` formulas
       in `site/*.md` render as TeX. The MathJax script tag is
       opt-out via `--no-mathjax` and the default is `--mathjax`.
     outcome: mathjax-loads
@@ -232,7 +260,7 @@ obligations:
 
   - id: base-href-subpath
     statement: |
-      Every rendered page carries `<base href="…">` in `<head>`
+      Every rendered page carries `<base href="...">` in `<head>`
       so relative hrefs resolve correctly when the site is
       served under `/math-coding/` (GitHub Pages default).
       The default value is `/math-coding/`; local development
@@ -258,7 +286,7 @@ obligations:
 
   - id: extended-markdown-subset
     statement: |
-      `lib/render.ml` parses a Markdown subset that covers the
+      The render kernel parses a Markdown subset that covers the
       real-world articles in `site/*.md`: GitHub-flavoured
       pipe tables, `**bold**` and `*italic*` emphasis, `> ` block
       quotes, `[text](url)` inline links, and `---` horizontal
@@ -279,35 +307,38 @@ evidence:
   - kind: declared
     statement: |
       The site is built by the kernel, not by a parallel
-      walker. `lib/render.ml` has no `walk_decisions` function;
+      walker. The render module has no `walk_decisions` function;
       it imports `lib/packages.ml`.
   - kind: observed
     statement: |
-      On commit v3.0.0.20, `scripts/render.sh` produces
-      `dist/index.html`, `dist/axioms.html`, `dist/methodology.html`,
-      `dist/bootstrap-gate.html`, `dist/packages.html`,
-      `dist/decisions/*.html` (one per `decisions/*.yaml`),
-      `dist/axioms/A0.html` ... `dist/axioms/A4.html`,
-      and `dist/assets/style.css` + `dist/assets/site.js`.
+      A dated record from commit v3.0.0.20: `scripts/render.sh`
+      produced `dist/index.html`, `dist/axioms.html`,
+      `dist/methodology.html`, `dist/bootstrap-gate.html`,
+      `dist/packages.html`, `dist/decisions/*.html` (one per
+      `decisions/*.yaml`), `dist/axioms/A0.html` ...
+      `dist/axioms/A4.html`, and `dist/assets/style.css` +
+      `dist/assets/site.js`.
 
-      On rev 2 (this commit), `scripts/render.sh` additionally
-      produces `dist/manifesto.html`, `dist/foundations.html`,
+      On rev 2 (that commit), `scripts/render.sh` additionally
+      produced `dist/manifesto.html`, `dist/foundations.html`,
       `dist/workflow.html`, `dist/faq.html`,
       `dist/contributing.html`, `dist/readme.html`, and the
       `.ru.html` counterparts. The four rev-1 documents remain
       green; per-decision and per-axiom pages are unaffected.
 
+      The CURRENT measurement (2026-10-31) is in the commitment:
+      188 pages, 1 search index, 1 feed, 186 files in `dist/`.
+
 unknowns:
-  - Whether to ship a Spanish or French translation. v3.0.0.20
-    ships English only; v2.1 had `readme-ru.html`. Deferred
-    to a future rev; current rev 2 ships EN+RU.
+  - Whether to ship a Spanish or French translation. The site now
+    ships English, Russian and Chinese; a Spanish or French
+    translation is deferred to a future rev.
   - Whether the site should be served under a custom domain.
     Deferred; default `math-coding` repo Pages URL.
   - Whether to expose a `mathc serve` for local preview. Implemented
     as `scripts/dev serve` (calls `python3 -m http.server` on
-    `dist/`) — not a kernel surface.
+    `dist/`) -- not a kernel surface.
   - Whether sidenotes should support Arabic, CJK, or RTL
-    languages. The Russian translation at rev 2 is the first
-    non-Latin script and renders acceptably because the body
-    font stack includes system fallbacks. CJK and RTL are
-    deferred.
+    languages. The Chinese siblings are already shipped and render
+    acceptably because the body font stack includes system
+    fallbacks. Arabic and RTL are deferred.

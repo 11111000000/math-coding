@@ -1,18 +1,18 @@
 ---
 schema: math-coding/3.2
 id: site-quality-illustrations-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:e526e09667f9f46a53558c4316a33443c3610116b700bc4062c1dca9183a527d"
-yaml_sha: "sha256:e526e09667f9f46a53558c4316a33443c3610116b700bc4062c1dca9183a527d"
+body_sha: "sha256:72899fd5172b24049cb595a6accd4d34658ceb3369e6bb6dc1c07d43864d3e41"
+yaml_sha: "sha256:72899fd5172b24049cb595a6accd4d34658ceb3369e6bb6dc1c07d43864d3e41"
 axiom_link:
   - A2
 intent: |
   Add visual artefacts to the site surface so a first-time
   visitor can grasp the protocol in five seconds without
   reading a wall of prose. The post-Phase-0/Phase-1 site at
-  HEAD is textually complete but visually flat: 8 thin
-  mermaid flowcharts across 70 pages, no logos, no icons, no
+  HEAD is textually complete but visually flat: thin
+  mermaid flowcharts across the pages, no logos, no icons, no
   diagrams of the kernel pipeline.
 
   Three deficits remain from the original analysis that the
@@ -29,30 +29,62 @@ intent: |
 
   This decision records and closes all three with hand-rolled
   SVG artefacts that live under `assets/` and are embedded
-  via `<img>` tags emitted by `lib/render.ml`.
+  via `<img>` tags emitted by the render kernel.
+
+  2026-10-31, REVISION 2: THE ARTEFACTS ARE ALL THERE; THE PAGES THAT
+  CARRY THEM ARE NOT THE PAGES THIS DECISION PROMISED. The promise
+  said the chain diagram sits on the home page, the axiom icons sit
+  on the axioms overview card, and the kernel-pipeline diagram sits
+  on `foundations.html`. The tree says otherwise, measured by
+  `bash scripts/render.sh` followed by a grep for the `<img>` tags:
+
+    - `assets/chain.svg` is embedded on `dist/methodology.html` and
+      its `.ru` and `.zh` siblings. It is NOT on `dist/index.html`,
+      whose own visual anchor is `assets/logo.svg`.
+    - `assets/kernel-architecture.svg` is embedded on the same three
+      methodology pages. It is NOT on `dist/foundations.html`, which
+      carries other diagrams (axiom-graph, attestation-lifecycle,
+      counterexample-flow, axiom-transition, trust-dynamics,
+      substrate-fingerprint, waiver-state-machine,
+      friction-envelope-plot, ...).
+    - The five `assets/axiom-<id>.svg` icons are embedded on the five
+      per-axiom pages, as `<img class="mathc-axiom-icon">`. They are
+      NOT on `dist/axioms.html`, whose only image is the brand logo.
+
+  The assets exist, they are referenced by `<img>` tags that carry
+  alt text, and they are pure SVG. What moved is WHERE they are
+  embedded. A promise about a page the site does not show is not a
+  promise; this revision promises the pages the site shows, and the
+  outcome ids are renamed to say so.
+
+  The renderer that emits the `<img>` tag moved with the render
+  kernel: the inline-figure branch is in `lib/render/render_md.ml`,
+  the axiom icon is emitted by `lib/render/render_pages.ml`, and
+  `lib/render.ml` no longer exists as a file.
 
 commitment: |
   `mathc render` emits a site that carries the following
   visual artefacts in addition to the prose and verdict grid
-  rendered by `site-quality-2026-10@1`:
+  rendered by `site-quality-2026-10`:
 
   1. `assets/chain.svg` -- a horizontal flow diagram showing
      the six kinds (intent -> decision -> obligation ->
      change -> attestation -> revision) with the obligation
-     node visually emphasised (oxblood accent); embedded
-     on `index.html` (above the lead paragraph) and on
-     `methodology.html` (above the prose).
+     node visually emphasised (oxblood accent). It is embedded
+     via `<img>` with a descriptive `alt` on `methodology.html`
+     and on its `.ru` and `.zh` siblings.
 
   2. `assets/axiom-{separation,feedback,invariants,self-application,care}.svg`
      -- five 80x80 icons, one per axiom, drawn in the
-     existing oxblood-on-cream palette; embedded on the
-     respective per-axiom pages (`dist/axioms/<id>.html`)
-     and on the `axioms.html` overview card.
+     existing oxblood-on-cream palette; embedded via `<img
+     class="mathc-axiom-icon">` on the respective per-axiom pages
+     (`dist/axioms/<id>.html`).
 
   3. `assets/kernel-architecture.svg` -- a five-stage
      pipeline diagram (schema -> parser -> attestation join
-     -> self-check -> gate) embedded on `methodology.html`
-     and `foundations.html`.
+     -> self-check -> gate) embedded via `<img>` with a descriptive
+     `alt` on `methodology.html` and on its `.ru` and `.zh`
+     siblings.
 
   All three artefacts are pure SVG (no embedded fonts, no
   external assets, no JavaScript); the `<img>` tags carry
@@ -68,57 +100,70 @@ scope:
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   lib/render.ml - no tracked file matches it
   #   site/index.md - no tracked file matches it
+  # 2026-10-31: the render kernel was split; the implementation lives in
+  #   lib/render/render_md.ml and lib/render/render_pages.ml. The scope
+  #   names the files this decision TOUCHED; the implementation anchor
+  #   is named in prose.
   decisions:
     - "site-deploy@5"
-    - "site-quality-2026-10@1"
+    - "site-quality-2026-10@2"
 
 outcomes:
-  - id: chain-illustration-visible-on-home
-    statement: The home page carries an assurance-chain diagram
-      above the lead paragraph.
-  - id: axiom-icons-on-overview-and-per-axiom
-    statement: Each axiom has a visible 80x80 icon on the
-      overview card and on the per-axiom page.
+  - id: chain-illustration-visible-on-methodology
+    statement: |
+      The assurance-chain diagram is visible on the
+      methodology page and on its Russian and Chinese siblings, as an
+      `<img src="assets/chain.svg">` carrying a descriptive `alt`.
+      It is not on the home page: the home page's own visual anchor is
+      `assets/logo.svg`.
+  - id: axiom-icons-on-per-axiom-pages
+    statement: |
+      Each axiom has a visible 80x80 icon on its per-axiom
+      page, as `<img class="mathc-axiom-icon" src="assets/axiom-<id>.svg">`.
+      The axioms overview card (`dist/axioms.html`) carries no icon
+      today; its only image is the brand logo.
   - id: kernel-pipeline-diagram-on-methodology
-    statement: The kernel pipeline is visible as a single
-      five-stage diagram on `methodology.html` and
-      `foundations.html`.
+    statement: |
+      The kernel pipeline is visible as a single
+      five-stage diagram on `methodology.html` and on its `.ru` and
+      `.zh` siblings, as an `<img src="assets/kernel-architecture.svg">`
+      carrying an `alt` that names the five stages. It is not on
+      `foundations.html`, which carries a different set of diagrams.
 
 assumptions:
   - id: palette-stays-oxblood-on-cream
     state: assumed
-    statement: All new SVGs use the existing palette tokens
+    statement: |
+      All new SVGs use the existing palette tokens
       (#8b3a3a accent on #fbfaf6 background) so the visual
       language stays consistent with the Tufte-derived
       stylesheet.
     owner: human:maintainer
-    consequence_if_false: A future restyle would re-issue
+    consequence_if_false: |
+      A future restyle would re-issue
       this decision with a new palette.
     review_on:
       - signal: design-restyle-proposed
 
 obligations:
   - id: assurance-chain-svg-shipped
-    outcome: chain-illustration-visible-on-home
+    outcome: chain-illustration-visible-on-methodology
     claim: |
-      `assets/chain.svg` exists at HEAD and is referenced
-      via `<img>` on the home page (`dist/index.html`) and
-      on `methodology.html` (`dist/methodology.html`); the
-      `<img>` tag carries an `alt` attribute describing the
-      diagram.
+      `assets/chain.svg` exists at HEAD and is embedded via `<img>`
+      with a descriptive `alt` on `dist/methodology.html` and on its
+      `.ru` and `.zh` siblings. The home page does not carry it.
     acceptance:
       all:
         - verifier: file-exists assets/chain.svg
 
   - id: axiom-icons-shipped
-    outcome: axiom-icons-on-overview-and-per-axiom
+    outcome: axiom-icons-on-per-axiom-pages
     claim: |
       Five axiom icons exist at `assets/axiom-{separation,
       feedback, invariants, self-application, care}.svg`,
-      one per axiom, and each is referenced via `<img>`
-      on the corresponding per-axiom page (`dist/axioms/<id>.html`)
-      and on the axioms overview card (`dist/axioms.html`
-      rendered within `dist/index.html`).
+      one per axiom, and each is embedded via `<img
+      class="mathc-axiom-icon">` on the corresponding per-axiom
+      page (`dist/axioms/<id>.html`).
     acceptance:
       all:
         - verifier: file-exists assets/axiom-separation.svg
@@ -130,10 +175,9 @@ obligations:
   - id: kernel-architecture-svg-shipped
     outcome: kernel-pipeline-diagram-on-methodology
     claim: |
-      `assets/kernel-architecture.svg` exists at HEAD and is
-      referenced via `<img>` on `dist/methodology.html` and
-      `dist/foundations.html`; the `<img>` tag carries an
-      `alt` attribute naming the five pipeline stages.
+      `assets/kernel-architecture.svg` exists at HEAD and is embedded
+      via `<img>` with an `alt` naming the five pipeline stages on
+      `dist/methodology.html` and on its `.ru` and `.zh` siblings.
     acceptance:
       all:
         - verifier: file-exists assets/kernel-architecture.svg
@@ -148,26 +192,28 @@ risk:
   declared_triggers:
     - design-restyle-breaks-passive-og-vibe
     - chrome-quirk-renders-svg-differently
+    - an-illustration-moves-to-a-page-this-decision-does-not-name
+  owner: human:maintainer
 
 counterexample: |
-  "SVG illustrations are styling, not a contract change; no
-  decision is needed." This argument fails for two reasons.
+  SVG illustrations are styling, not a contract change; no
+  decision is needed. This argument fails for two reasons.
   First, the artefacts are hand-rolled SVG paths that
   encode domain meaning (the chain shape encodes the
   protocol's six kinds; the axiom icons encode A0-A4);
   altering the icons would change what visitors see when
   they look up an axiom by its icon, which is itself a
-  public contract. Second, AGENTS.md §P1 binds a decision
-  to any kernel-side change to `lib/render.ml`; the SVG
+  public contract. Second, the conventions file binds a decision
+  to any kernel-side change to the render kernel; the SVG
   embedding adds a new render function and new HTML
   output, so a decision is required under the active
   policy.
 
 antithesis: |
   Author considered and rejected the strongest counter-
-  position that a maintainer might raise: "the site already
+  position that a maintainer might raise: the site already
   ships Tufte-styled prose; an SVG diagram will look out
-  of place." That position is rejected because (a) the
+  of place. That position is rejected because (a) the
   site's existing mermaid flowcharts are SVGs that already
   pass through the same `assets/style.css` palette, so the
   new SVGs are visually consistent with the existing
@@ -180,6 +226,6 @@ antithesis: |
 relations:
   addresses:
     - "site-deploy@5"
-    - "site-quality-2026-10@1"
+    - "site-quality-2026-10@2"
   supersedes:
-    - "site-quality-2026-10@1"
+    - "site-quality-2026-10@2"

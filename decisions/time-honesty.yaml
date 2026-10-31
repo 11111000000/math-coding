@@ -1,31 +1,61 @@
 ---
 schema: math-coding/3.2
 id: time-honesty
-revision: 2
+revision: 3
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:c04c891a3d9fec4ee76bf5f733a440d2498ea730722c8ea5c99c709c895f8b87"
-yaml_sha: "sha256:c04c891a3d9fec4ee76bf5f733a440d2498ea730722c8ea5c99c709c895f8b87"
+body_sha: "sha256:9c939de7960c4ea83dc30e1421bd6f89e09d07a5d747384c22efc909bdff54a2"
+yaml_sha: "sha256:9c939de7960c4ea83dc30e1421bd6f89e09d07a5d747384c22efc909bdff54a2"
 intent: |
-  Close the A1 (Feedback) deficit in math-coding 3.0-alpha for
-  agent narratives about the duration of work. Without an observable
-  scale and a reference class, the agent can drift into strategic
-  misrepresentation — claiming durations in units it cannot ground
+  Close the A1 (Feedback) deficit in math-coding for agent narratives
+  about the duration of work. Without an observable scale and a
+  reference class, the agent can drift into strategic
+  misrepresentation -- claiming durations in units it cannot ground
   (Jones & Euske, 1991). This decision introduces three observable
   scales and a reproducible reference-class estimator.
+
+  2026-10-31, REVISION 3: THE NORM MOVED, THE ESTIMATOR DID NOT. The
+  agent protocol that carries the three-scale discipline was renamed
+  from `AGENTS.md` to `KERNEL_AGENTS.md`; the section is
+  `KERNEL_AGENTS.md §Honest time reporting` and it is there. The
+  decision also referred to the kernel as "math-coding 3.0-alpha" and
+  to the exit-code contract as `OCAML_BEST_PRACTICES §4.3`; the
+  version file reads `3.7.4` and the exit-code contract is
+  `OCAML_KERNEL_CONVENTIONS.md §4.3` (the conventions file was
+  renamed from `OCAML_BEST_PRACTICES.md`).
+
+  Measured on 2026-10-31:
+
+    - `mathc time-estimate --class feature-add --count 10 --percentile p50`
+      exits 0 and prints the estimate as JSON -- scale `minutes`,
+      `estimate_value` 20, reference
+      `SWE-bench Verified (n=500, 2025-Q4)`.
+    - an unknown class exits 2 with the diagnostic
+      `MC-CLASS-UNKNOWN` and the list of known classes.
+    - `bin/data/time-distribution.yaml` exists and names the section
+      it belongs to.
+    - `lib/domain.ml`'s `kind` enum still has exactly five
+      constructors (`Decision | Obligation | Attestation | Waiver |
+      Change`); `execution_log` was added as a RECORD type, not as a
+      constructor.
+    - `dune test tests/conformance.ml` exits 0 (158 cases).
 
 axiom_link:
   - A0
 commitment: |
-  Add an honest-time-reporting norm to AGENTS.md, a
+  Add an honest-time-reporting norm to `KERNEL_AGENTS.md`, a
   reference-class time estimator subcommand (mathc time-estimate)
   backed by a declared distribution file, optional additive
-  `time.estimate` / `time.actual` fields in Decision/Attestation,
+  `time.estimate` / `time_observed` fields in Decision/Attestation,
   and a new additive execution_log record in lib/domain.ml. Do
   NOT modify the kernel's sealed `kind` enum, the constitution,
   or any protected rule. Do NOT add new required fields to
   existing schemas. Do NOT introduce token-budget scoring (out of
   scope per ETHICS.md non-surveillance; future Decision).
+
+  The norm lives in `KERNEL_AGENTS.md §Honest time reporting` (the
+  section the agent protocol actually ships), and the estimator
+  reads the declared distribution at `bin/data/time-distribution.yaml`.
 
 scope:
   paths:
@@ -52,26 +82,29 @@ scope:
 outcomes:
   - id: agent-narrative-anchored
     statement: |
-      Every agent claim about task duration in AGENTS.md or in
+      Every agent claim about task duration in `KERNEL_AGENTS.md` or in
       submitted Decisions is expressed in one of three observable
       scales (wall-clock-minutes, token-budget, step-count) and
       cites a reference class.
   - id: estimator-reproducible
     statement: |
-      bin/mathc.exe time-estimate produces the same numeric
+      `mathc time-estimate` produces the same numeric
       estimate for the same (class, count, percentile) input on
-      every run, byte-for-byte. Exit codes follow spec/semantics
-      and OCAML_BEST_PRACTICES §4.3.
+      every run, byte-for-byte. Exit codes follow `spec/semantics.md`
+      and `OCAML_KERNEL_CONVENTIONS.md §4.3`: a known class exits 0
+      with a JSON estimate, an unknown class exits 2 with the
+      diagnostic `MC-CLASS-UNKNOWN`.
   - id: additive-only
     statement: |
       No existing positive conformance fixture stops parsing.
       No existing required field of decision/attestation grows.
-      lib/domain.ml gains a new record type, not a new
-      constructor in `kind`.
+      `lib/domain.ml` gains a new record type, not a new
+      constructor in `kind` -- `kind` still has exactly five
+      constructors.
 
 counterexample: |
-  "Time estimates are subjective; codifying them just adds
-  bureaucracy without changing agent behaviour." The
+  Time estimates are subjective; codifying them just adds
+  bureaucracy without changing agent behaviour. The
   counterargument fails because the deficit today is not
   "imprecision" but "unobservability": the agent can write
   "two months of focused work" with no scale, no reference
@@ -102,7 +135,7 @@ assumptions:
       cover every honest duration claim for math-coding agents.
     owner: human:maintainer
     consequence_if_false: |
-      A claim legitimately needs a fourth scale (e.g.,
+      A claim legitimately needs a fourth scale (e.g.
       latency-budget for distributed verification). The change
       would be a protected policy transition (new enum value).
     review_on:
@@ -113,8 +146,8 @@ obligations:
   - id: agendum-time-honesty-present
     outcome: agent-narrative-anchored
     claim: |
-      AGENTS.md contains a section "Honest time reporting" with
-      the three-scale discipline, an explicit reference to
+      `KERNEL_AGENTS.md` contains a section "Honest time reporting"
+      with the three-scale discipline, an explicit reference to
       bin/data/time-distribution.yaml, and an anti-patterns list.
     acceptance:
       all:
@@ -122,8 +155,8 @@ obligations:
   - id: estimator-subcommand-runs
     outcome: estimator-reproducible
     claim: |
-      bin/mathc.exe time-estimate --class <known> --count N
-      --percentile <p50|p80|p95|p99> exits 0 and prints the
+      `mathc time-estimate --class <known> --count N
+      --percentile <p50|p80|p95|p99>` exits 0 and prints the
       estimate as JSON. Unknown class exits 2 with a JSON
       diagnostic.
     acceptance:
@@ -144,14 +177,15 @@ obligations:
 reversal:
   - signal: agent-narratives-still-unanchored
     condition: |
-      After 60+ commits since acceptance, the AGENTS.md rule
+      After 60+ commits since acceptance, the KERNEL_AGENTS.md rule
       is not reflected in any agent's submitted Decisions
       (manual review by maintainer).
     action: review
   - signal: kernel-can-measure-time
     condition: |
-      The 3.0 kernel is implemented and can produce an
-      ExecutionLog.kind attestation automatically.
+      The kernel can produce an ExecutionLog attestation
+      automatically, so the agent no longer has to declare its own
+      estimate.
     action: supersede
 
 risk:
