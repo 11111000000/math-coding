@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-scheme-allowlist.sh
-body_sha: "sha256:e0cb09a7d00ab4310b827cd5096fdd3311d87e2f55a84662babc535446bb65de"
-yaml_sha: "sha256:e0cb09a7d00ab4310b827cd5096fdd3311d87e2f55a84662babc535446bb65de"
+body_sha: "sha256:2c59a8510fdae6b4c787cdfeab8954455716f22f3375b35db123b232ce9de998"
+yaml_sha: "sha256:2c59a8510fdae6b4c787cdfeab8954455716f22f3375b35db123b232ce9de998"
 
 intent: |
   Two ways the corpus grows are invisible to the gate, and both of
@@ -38,7 +38,7 @@ intent: |
 
   (2) THE RELATION TARGET. A decision may name other decisions:
   `supersedes`, `addresses`, `depends_on` and the rest
-  (spec/algebra-3.2.md §7). Each name is a claim about the corpus's
+  (spec/kernel-contract.md §7). Each name is a claim about the corpus's
   history. The kernel checks the SHAPE of such a claim and nothing
   else - `mathc mark-superseded --by=<id>@<rev>` parses the reference
   and never asks whether the decision exists

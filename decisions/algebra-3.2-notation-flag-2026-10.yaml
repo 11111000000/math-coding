@@ -4,10 +4,10 @@ id: algebra-3.2-notation-flag-2026-10
 revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:83e882a748f33a53b0162c24eb18c8682ffe9cfc96dab07da97e13d16238256a"
-yaml_sha: "sha256:83e882a748f33a53b0162c24eb18c8682ffe9cfc96dab07da97e13d16238256a"
+body_sha: "sha256:c9b48b8a42af88b978cf2fbbb4b9c667b3f682c0e0b4a27a79c7f391e80500b8"
+yaml_sha: "sha256:c9b48b8a42af88b978cf2fbbb4b9c667b3f682c0e0b4a27a79c7f391e80500b8"
 intent: |
-  Flag a latent ambiguity in `spec/algebra-3.2.md` §2 (Risk function)
+  Flag a latent ambiguity in `spec/kernel-contract.md` §2 (Risk function)
   that an automated auditor caught in 2026-10-05 but which the agent
   is **not authorised** to silently rewrite:
 
@@ -69,7 +69,7 @@ commitment: |
 scope:
   capabilities: []
   paths:
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
   exclusions:
     - "lib/**"
     - "bin/**"
@@ -80,7 +80,7 @@ scope:
 outcomes:
   - id: notation-ambiguity-recorded
     statement: |
-      A reader of `spec/algebra-3.2.md` §2 who notices that
+      A reader of `spec/kernel-contract.md` §2 who notices that
       `⌈risk(c)⌉` cannot map `[0, 1]` onto `𝓜` is pointed at
       `decisions/algebra-3.2-notation-flag-2026-10.yaml` as the
       resolution record.
@@ -122,12 +122,12 @@ obligations:
   - id: notation-note-present
     outcome: notation-ambiguity-recorded
     claim: |
-      `spec/algebra-3.2.md` immediately after §2 contains a
+      `spec/kernel-contract.md` immediately after §2 contains a
       "Notation note" block referencing this decision file and
       summarising the ambiguity.
     acceptance:
       all:
-        - verifier: shell-grep spec/algebra-3.2.md Notation note
+        - verifier: shell-grep spec/kernel-contract.md Notation note
 
 
 reversal:

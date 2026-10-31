@@ -4,8 +4,8 @@ id: 3-2-cli-catalog
 revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:2ae928248f98a943f0d3fab36dd678fe93c97d31db86c325ac984202f4e42e14"
-yaml_sha: "sha256:2ae928248f98a943f0d3fab36dd678fe93c97d31db86c325ac984202f4e42e14"
+body_sha: "sha256:c95e31307b8d66ac1c60af9baa61f3ee41317a7a2b2da9fb6385485b0ac54a1c"
+yaml_sha: "sha256:c95e31307b8d66ac1c60af9baa61f3ee41317a7a2b2da9fb6385485b0ac54a1c"
 intent: |
   Resolve the spec-vs-implementation drift on 3.2-ideal
   algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
@@ -13,10 +13,10 @@ intent: |
   subcommands` documents 14. The three undocumented
   subcommands are:
 
-    mathc mode       — algebra §2 risk function (lib/risk.ml);
-    mathc rebuttals  — algebra §10 hybrid rebuttal mechanism
+    mathc mode       — kernel contract §2 risk function (lib/risk.ml);
+    mathc rebuttals  — kernel contract §10 hybrid rebuttal mechanism
                     (lib/rebuttal.ml);
-    mathc re-evaluate — algebra §17 re-evaluation oracle
+    mathc re-evaluate — kernel contract §17 re-evaluation oracle
                     (lib/re_evaluation.ml).
 
   These subcommands were introduced in the v3.1.0-alpha
