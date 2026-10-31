@@ -76,18 +76,21 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # CEILING is the UNCHECKED bound: the decisions whose promises are
 # neither controlled nor declared. It may fall and may never rise.
 #
-# MEASURED 2026-11-01: 91. At that moment the corpus had 136
-# decisions: 44 naming a `negative_control`, 91 in neither class, and
-# one (attestation-store-fill) with no obligations at all. The number
-# fell twice in this tranche — to 73 when the uncheckable promises
-# were DECLARED (the `declared:` fields), and to 37 when the
-# decisions that name a control that catches their own failure said
-# so (`negative_control:`). The pin follows the truth down.
+# MEASURED 2026-11-01: 91 at the moment the instrument landed. The
+# corpus had 136 decisions: 44 naming a `negative_control`, 91 in
+# neither class, and one (attestation-store-fill) with no obligations
+# at all. The number fell twice in this tranche — to 73 when the
+# uncheckable promises were DECLARED (the `declared:` fields), and to
+# 37 when the decisions that name a control that catches their own
+# failure said so (`negative_control:`). The pin follows the truth
+# down.
 #
 # ceiling-fall: 123 -> 91, the corpus changed shape: one number
 #   became three, and the number that survived as UNCHECKED is the
 #   debt that was always meant to reach zero
-CEILING=91
+# ceiling-fall: 91 -> 73, the uncheckable promises left the debt: the
+#   twenty-one decisions that declare them are in the DECLARED class
+CEILING=73
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls

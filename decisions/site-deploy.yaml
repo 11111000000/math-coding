@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-deploy
 revision: 5
 state: active
-body_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
-yaml_sha: "sha256:c45139fb69d8a9b9be8906f582304f2cc59d9fa0a8f5f720c5d17122878847d7"
+body_sha: "sha256:69da0668757ed09d6754cb022c91dd6fafb6a0f844df3bbe7f3fcea49dda0098"
+yaml_sha: "sha256:69da0668757ed09d6754cb022c91dd6fafb6a0f844df3bbe7f3fcea49dda0098"
 intent: |
   Restore the project's published surface (a static site at
   `site/` rendered to `dist/`) under the 3.0 kernel's own
@@ -161,6 +161,10 @@ obligations:
       `.github/workflows/site.yml` runs `scripts/render.sh` on
       every push to main and publishes `dist/` to GitHub Pages.
     outcome: site-deploy-pipeline
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the workflow run lives on GitHub, not in this tree
     acceptance:
       all:
         - verifier: manual-gh-run-list-workflow-site-yml-limit-1-json-statu

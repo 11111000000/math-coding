@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-distribution-2026-10
 revision: 1
 state: active
-body_sha: "sha256:8663f3956f59d1bb922bda51f3e995ff3c5c322d6a8ce51d7fd5e3eb5b7a3fea"
-yaml_sha: "sha256:8663f3956f59d1bb922bda51f3e995ff3c5c322d6a8ce51d7fd5e3eb5b7a3fea"
+body_sha: "sha256:47eb9360d83713682da7a4c7a138e068f00439411780bc753709f82e392888a6"
+yaml_sha: "sha256:47eb9360d83713682da7a4c7a138e068f00439411780bc753709f82e392888a6"
 axiom_link:
   - A1
 intent: |
@@ -100,6 +100,10 @@ obligations:
       revision marker as ISO 8601), and `<description>`
       (a one-line summary of the decision's intent and
       obligation count).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the feed is read by a human and by a feed reader outside this tree
     acceptance:
       all:
         - verifier: manual-feed-xml-is-valid
@@ -115,6 +119,10 @@ obligations:
       leaving the site. The CTA shipped as anchors, not as the
       `<aside class="mathc-onboarding">` wrapper this obligation
       originally named: no such element is emitted.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the landing page is read by a human
     acceptance:
       all:
         - verifier: manual-cta-block-emits

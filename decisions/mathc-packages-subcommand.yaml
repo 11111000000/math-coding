@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathc-packages-subcommand
 revision: 3
 state: active
-body_sha: "sha256:be4f2305871f15af6ea1d5466ca62f6de51bb6a1ecc4ebda4af9b4bf721d4488"
-yaml_sha: "sha256:be4f2305871f15af6ea1d5466ca62f6de51bb6a1ecc4ebda4af9b4bf721d4488"
+body_sha: "sha256:f04b8909e60a2c78702b66e29c7cf440864eef30dbde62f7376101d5a27e6429"
+yaml_sha: "sha256:f04b8909e60a2c78702b66e29c7cf440864eef30dbde62f7376101d5a27e6429"
 intent: |
   Add `mathc packages` — a kernel-level subcommand that enumerates
   every package (decision + obligation pair) in the repository,
@@ -123,6 +123,10 @@ obligations:
       `mathc packages --format=html`, not by a parallel walker in
       `lib/render.ml`.
     outcome: packages-site
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the site renders the asset index; the rendering is read by a human
     acceptance:
       all:
         - verifier: manual-rendered-asset-index

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 6
 state: active
-body_sha: "sha256:a0c3a55944c5b9aec5c31c6a1195fc4206c2beed561f4c1783b543cb93d25d70"
-yaml_sha: "sha256:a0c3a55944c5b9aec5c31c6a1195fc4206c2beed561f4c1783b543cb93d25d70"
+body_sha: "sha256:42f7e28efc2ed9d5873cc372b853eb584eec4d3e40683c3b3ef601eb82612f9a"
+yaml_sha: "sha256:42f7e28efc2ed9d5873cc372b853eb584eec4d3e40683c3b3ef601eb82612f9a"
 intent: |
   Close deficit D1 and D2 from docs/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
@@ -261,6 +261,10 @@ obligations:
       call site) would push D1 into the next caller; this is
       the minimum change that lets `mathc validate
       decisions/decision.yaml` exit 0.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the conformance fixtures the claim names are not in the corpus
     acceptance:
       all:
         - verifier: dune build --root . tests/yaml_block_scalars.exe

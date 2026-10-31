@@ -5,8 +5,8 @@ revision: 1
 state: superseded
 mode: light
 change_kind: implementation
-body_sha: "sha256:f2280142cd7580ee325b5132f81072f900563ba3f3376452f09dc9dd99cdce8d"
-yaml_sha: "sha256:f2280142cd7580ee325b5132f81072f900563ba3f3376452f09dc9dd99cdce8d"
+body_sha: "sha256:6037d85b234e4516e091f40641de74bc28f6e8d2551facfd87b886b8e06a3263"
+yaml_sha: "sha256:6037d85b234e4516e091f40641de74bc28f6e8d2551facfd87b886b8e06a3263"
 
 intent: |
   Реализовать Phase 1A из
@@ -79,6 +79,10 @@ obligations:
       `Render.md_inline_parse`, `Render.md_inline`,
       `Render.code_fence_tag`, `Render.md_parse`
       бит-в-бит совпадают с до-переноса.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the golden comparison is manual and the current golden differs
     acceptance:
       all:
         - verifier: manual-target-missing-tests-render-kernel-exe-cases-md-
@@ -89,6 +93,10 @@ obligations:
       зависимых страниц (`index*.html`, `manifesto*.html`,
       `methodology*.html`, `packages*.html`) идентичны до
       и после переноса.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the golden comparison is manual and the current golden differs
     acceptance:
       all:
         - verifier: dune promote (или ручная проверка diff)

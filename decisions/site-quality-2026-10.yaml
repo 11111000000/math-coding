@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:e001875e43b43c431e29a304c967c348f267d91f40c2e5d4cb2c0ac58dcb05e4"
-yaml_sha: "sha256:e001875e43b43c431e29a304c967c348f267d91f40c2e5d4cb2c0ac58dcb05e4"
+body_sha: "sha256:2455c2283f73e370c10e4aca92b610441f9d45d0809a263fb3efcdff43682f85"
+yaml_sha: "sha256:2455c2283f73e370c10e4aca92b610441f9d45d0809a263fb3efcdff43682f85"
 axiom_link:
   - A1
 intent: |
@@ -102,6 +102,10 @@ obligations:
       On a 1400-px viewport, the home page hero `<h1>` is at most
       two lines; the version string does not appear inside the
       `<h1>` text.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the rendering is read by a human in a browser
     acceptance:
       all:
         - verifier: manual-render-hero-element
@@ -115,6 +119,10 @@ obligations:
       "eight principles" (manifesto), "23 subjects" / "subjects
       _count = 23" (bootstrap-gate), and "29 active decisions"
       (foundations) no longer appear in the rendered text.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the rendering is read by a human in a browser
     acceptance:
       all:
         - verifier: manual-render-prose-numbers
@@ -125,6 +133,10 @@ obligations:
       The site top navigation carries an "Algebra" link pointing at
       `spec/kernel-contract.html` from every page that has the full
       nav.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the rendering is read by a human in a browser
     acceptance:
       all:
         - verifier: manual-render-nav-spec-link
@@ -140,6 +152,10 @@ obligations:
       (each with `id` + `claim` + `verdict`), `counterexample`
       (if non-empty), `risk` (if non-empty), and `relations`
       (if non-empty).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the rendering is read by a human in a browser
     acceptance:
       all:
         - verifier: manual-render-decision-page-section
@@ -154,6 +170,10 @@ obligations:
       (`index.html`, `axioms.html`, `manifesto.html`,
       `foundations.md`-siblings, etc.) the toggle still renders
       and links to the correct sibling.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the rendering is read by a human in a browser
     acceptance:
       all:
         - verifier: manual-render-footer-lang-toggle

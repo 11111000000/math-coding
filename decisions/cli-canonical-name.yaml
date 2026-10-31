@@ -5,9 +5,9 @@ revision: 4
 state: active
 negative_control: tests/fixtures/decisions-have-no-mc-prefix.sh
 
-body_sha: "sha256:1c418cb3eca97bd6fc24e65743ea4cfff4f00a27fa66c88591887b6f61f2de5d"
+body_sha: "sha256:3388b3a5f0a174af91940b5b0c9543f7d8be341d152f7286d83595be779f4991"
 
-yaml_sha: "sha256:1c418cb3eca97bd6fc24e65743ea4cfff4f00a27fa66c88591887b6f61f2de5d"
+yaml_sha: "sha256:3388b3a5f0a174af91940b5b0c9543f7d8be341d152f7286d83595be779f4991"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -172,6 +172,10 @@ obligations:
     claim: |
       `git grep -E '\bmc\b'` over tracked files in scope returns
       0 results outside the `MC-*` diagnostic-code family.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the scan over the tracked documents is a reading task, not a program
     acceptance:
       all:
         - verifier: manual-text-scan-tracked-no-mathc-cli

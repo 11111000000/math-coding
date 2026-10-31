@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:044aa7fcd5c94f4f5751558cbacc80e5e2c7b2f6d51de43feb3cd45b3cd055ed"
-yaml_sha: "sha256:044aa7fcd5c94f4f5751558cbacc80e5e2c7b2f6d51de43feb3cd45b3cd055ed"
+body_sha: "sha256:7011668a90ff36cd7f8d396ab6e7ad83a7c78ac2c8f6c7230f6bad4d617e4875"
+yaml_sha: "sha256:7011668a90ff36cd7f8d396ab6e7ad83a7c78ac2c8f6c7230f6bad4d617e4875"
 
 intent: |
   Make the store say WHO produced each attestation, in a vocabulary a
@@ -352,6 +352,10 @@ obligations:
     claim: |
       Gate, self-check and assess verdicts are unchanged: both
       validators are reached only from `mathc validate`.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the check it names (`scripts/dev ready`) does not exist, so no program can run it
     acceptance:
       all:
         - verifier: manual-target-missing-scripts-dev-ready

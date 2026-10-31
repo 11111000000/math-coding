@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:73ba9bdeefefd6757726f902a12179c1b5b5453a54e4045d1ce5fedd167e8500"
-yaml_sha: "sha256:73ba9bdeefefd6757726f902a12179c1b5b5453a54e4045d1ce5fedd167e8500"
+body_sha: "sha256:a483d9e7e300c2f07568e1c25658396eb238821d75dbdf76ab9f552d49a3bd46"
+yaml_sha: "sha256:a483d9e7e300c2f07568e1c25658396eb238821d75dbdf76ab9f552d49a3bd46"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -454,6 +454,10 @@ obligations:
       `ghcr.io/11111000000/mathc:<VERSION>` exists and is
       built by a CI job that respects
       `OCAML_BEST_PRACTICES` §11.26.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the image is published by an external CI; nothing in this tree can watch it
     acceptance:
       all:
         - verifier: tests/cli/install.t

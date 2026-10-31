@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-bugs-v3.4
 revision: 1
 state: active
-body_sha: "sha256:34ed779374808dcada8ab66549a73f9a406b068fb219be00edc3f0ccf4643a92"
-yaml_sha: "sha256:34ed779374808dcada8ab66549a73f9a406b068fb219be00edc3f0ccf4643a92"
+body_sha: "sha256:ac2d1d3411bebe7aa1e7a7ea5b67bdcb2ac0f326b5546021771b488ad2a5d270"
+yaml_sha: "sha256:ac2d1d3411bebe7aa1e7a7ea5b67bdcb2ac0f326b5546021771b488ad2a5d270"
 intent: |
   Close six kernel-level defects surfaced by the 2026-10-16 brownfield
   experiment on httpx and cobra (REPORT.md §3, PLAN.md §3). The defects fall
@@ -253,6 +253,10 @@ obligations:
       Memory.decision_entry.revision is Some 1-string for a YAML
       whose revision is the bare integer 1. The verifier
       below exercises the path end-to-end via mathc context.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: reading the revision out of one document is a review of that document
     acceptance:
       all:
         - verifier: manual-revision-int-extraction-review

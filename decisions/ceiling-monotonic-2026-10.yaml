@@ -5,8 +5,8 @@ revision: 2
 state: superseded
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
-body_sha: "sha256:a9fa54ead32d4aedaf3153327382b66d7677072fba005262dc9ef2403e0c64e2"
-yaml_sha: "sha256:a9fa54ead32d4aedaf3153327382b66d7677072fba005262dc9ef2403e0c64e2"
+body_sha: "sha256:d11846964ae04c8e5a36fa5510f943cf09d64ac5e73f82a74876a280cba68453"
+yaml_sha: "sha256:d11846964ae04c8e5a36fa5510f943cf09d64ac5e73f82a74876a280cba68453"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -200,6 +200,10 @@ obligations:
       meta-layer (decisions/corpus-meta-layer-2026-10.yaml). A
       ceiling may now GROW without a program noticing. The claim is
       kept as the record of what the checker used to guarantee.
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the ceiling checker was removed on 2026-10-28; nothing reads the ceiling any more
     acceptance:
       all:
         - verifier: manual-ceiling-checker-removed
@@ -210,6 +214,10 @@ obligations:
       program checks it and no program requires it. Removed on
       2026-10-28 with the corpus-debt meta-layer
       (decisions/corpus-meta-layer-2026-10.yaml).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: the marker is read by a human reading the diff; no program requires it
     acceptance:
       all:
         - verifier: manual-ceiling-raise-marker-unmonitored
