@@ -362,12 +362,30 @@ in the relations that are the point of the work.
 
 1. **T3.2** - shrink the normative text to a contract of the kernel,
    or retire it entirely and rewrite the six references in `axioms/`.
-2. **T4.1** - a separate package for the transferable core, or a
-   marked boundary inside this repository.
 
 T2.4 was decided on 2026-10-31: the promises are divided by their
 nature, and the instrument grows three numbers where it had one. The
 decision is written out under T2.4 above.
+
+T4.1 was decided on 2026-11-01: a MARKED BOUNDARY inside this
+repository, plus a script that cuts the transferable core out of it.
+Not a separate package - not yet, and not because packaging is
+unimportant:
+
+- The export can be added later in an afternoon; un-mixing a package
+  that was born with the kernel costs a month.
+- The kernel is still being written (this wave is changing `lib/`),
+  so a package would have to be cut again the moment it was born, and
+  two version lines in one step is exactly the disease the census
+  measures - two answers to "3.7.4" from two binaries.
+- A boundary that is only a WORD erodes; a boundary that is a script
+  with a test does not. The export script and the test that pins its
+  contents are the tranche.
+
+What this does not do is keep the boundary only on paper: the export
+script names the transferable parts (the kernel, `policies.yaml`, the
+three artifacts, the skill) and the test fails if the export carries
+anything else.
 
 ## 8. State of the wave (2026-10-31)
 
@@ -492,5 +510,7 @@ T2.2b inventory is read-only, and it reports.
 | wave | tranches | why they do not collide |
 |---|---|---|
 | 3a | T3.1 alone, plus the T2.2b inventory (read-only) | the inventory edits nothing |
-| 3b | T2.4 (schema, the debt counter, the classification) and T3.2 (the contract) | `schemas/decision.json` and the counter against `spec/` and the four fixtures |
-| 3c | T2.2b in tranches of ten to fifteen decisions | one branch, because the decisions name each other |
+| 3b | T4.2 (one master policy, an installer that says which build it is) and T4.1 (the boundary as a script, with the test that pins it) | the installer and the template against a new export script; neither edits the 136 live decisions |
+| 3c | T2.4 (schema, the debt counter, the classification) and T3.2 (the contract) | `schemas/decision.json` and the counter against `spec/` and the four fixtures |
+| 3d | T2.2b in tranches of ten to fifteen decisions | one branch, because the decisions name each other |
+| 4 | T4.3 (the project's own strings leave the core) | `lib/diagnostic.ml` and `lib/gate.ml`, after T3.1 has landed |
