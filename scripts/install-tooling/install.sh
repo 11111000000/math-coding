@@ -51,7 +51,14 @@ MC_VERSION_DEFAULT="3.7.4"
 MC_REPO="11111000000/math-coding"
 MC_RELEASE_BASE="https://github.com/${MC_REPO}/releases/download"
 MC_BINARY_BASENAME="mathc"
-MC_TEMPLATE_REMOTE_PATH="scripts/install-tooling/templates/active-policy.yaml"
+# The master policy template is NOT downloaded by this script. It
+# travels inside the binary: `mathc init` writes the embedded copy
+# (templates/master-policy.yaml, generated into lib/init/init.ml by
+# scripts/sync-master-policy.sh) into the new project. The tree copy
+# under scripts/install-tooling/templates/ is a GENERATED artefact of
+# the same source, kept because the kernel validates it
+# (tests/cli/install.t) -- it was here that a dead
+# `MC_TEMPLATE_REMOTE_PATH` pointed at a file nothing ever fetched.
 MC_TARBALL_NAME="dist-adoption.tar.gz"
 # Per `decisions/ux-3-cosign-image-2026-10.yaml` outcome
 # `cosign-verify-runs-on-install`. The Docker image signature

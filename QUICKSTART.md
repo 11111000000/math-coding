@@ -65,13 +65,36 @@ Replace `<VERSION>` with a release tag (e.g. `v3.3.0`) or `edge` for the most re
 
 ## First decision
 
+`mathc init` writes the master policy and the two directories the
+kernel reads. This is what it creates, exactly (2026-11-01, measured
+by running it in an empty directory):
+
+```text
+<mathc init .>            # the new project
+├── .math-coding/
+│   ├── attestations/     # where the attestations go
+│   ├── decisions/        # where the decisions go (the project's own)
+│   └── policy.yaml       # THE MASTER POLICY: id bootstrap-v3, revision 1
+├── .githooks/pre-commit  # unless --no-install
+└── .github/workflows/ci.yml   # only with --with-ci-workflow
+```
+
+`policy.yaml` is the master policy: it names the scope paths you
+edit (`src/**`, `tests/**`, ... are placeholders) and the one
+obligation that points at your own tree. It is the same document as
+`templates/master-policy.yaml` in this repository, and the same bytes
+the binary carries.
+
 Greenfield:
 
 ```sh
 cd /path/to/new-project
 mathc init . --no-install
-mathc validate decisions/decision.yaml
+mathc validate .math-coding/policy.yaml
 ```
+
+A project that predates the `.math-coding/` layout keeps
+`decisions/decision.yaml` instead; `mathc` finds either one.
 
 Brownfield (existing MADR / adr-tools / arc42):
 

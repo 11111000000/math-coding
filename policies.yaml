@@ -12,9 +12,37 @@
 # with a one-line commit and a trailer; a path whose floor is
 # `standard` must carry a decision.
 #
-# WHAT THIS FILE IS NOT. It is not the master policy. The master
-# policy is the active protocol DECISION — `bootstrap-v3@3` in
-# `decisions/decision.yaml` — and it is located by id, not by path.
+# WHAT THIS FILE IS NOT. It is not the master policy, and it is not
+# an instance of one either: it is the POLICY SEQUENCE -- the file
+# that says which paths carry which floor. Three documents used to
+# answer the question "what is the policy?", and all three had
+# drifted apart (measured 2026-11-01, decision
+# `one-master-policy-and-build-id-2026-11`):
+#
+#   * this file -- a policy SEQUENCE: five records, seventeen scope
+#     paths, `mode_floor` standard on two of them and light on three,
+#     and no obligations at all (which `schemas/policy.json` does not
+#     allow: it says `obligations` has `minItems: 1`).
+#   * `scripts/install-tooling/templates/active-policy.yaml` -- a
+#     DECISION document (`id: bootstrap-v3`, revision 1), not a
+#     policy sequence at all, and not a copy of this file either.
+#   * `decisions/decision.yaml` -- THIS repository's instance of the
+#     master policy (`bootstrap-v3@3`): a decision with seven
+#     obligations, six of them about this repository.
+#
+# THE VOCABULARY, since the three were named as if they were one
+# thing:
+#
+#   master policy   the protocol's document, ONE source:
+#                   `templates/master-policy.yaml`. Every copy of it
+#                   is GENERATED (scripts/sync-master-policy.sh) and
+#                   checked (tests/fixtures/master-policy-one-source.sh).
+#   active policy   a project's instance of the master policy: the
+#                   file the kernel reads, located by id
+#                   (`bootstrap-v3`). In this repository it is
+#                   `decisions/decision.yaml` (`bootstrap-v3@3`).
+#   policy sequence  this file: the per-path floors.
+#
 # The two were sharing one resolver until 2026-10-30, and the shared
 # resolver pointed at a decision document, which parses as an empty
 # policy sequence. So every path classified as `tiny`, the floor was
