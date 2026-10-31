@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
-body_sha: "sha256:1b62957e99f7e71de75427740b8ccdfcbb7f3269eab56045071a17e9a05c90f9"
-yaml_sha: "sha256:1b62957e99f7e71de75427740b8ccdfcbb7f3269eab56045071a17e9a05c90f9"
+body_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
+yaml_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
 
 intent: |
   Five obligations in five decisions named a verifier scheme the
@@ -109,9 +109,9 @@ intent: |
     and the ceiling may fall from 5 to 0.
 
   The numbers, measured before and after (the census fixture and
-  the kernel's own audit, both at the same tree - ef2b95b3 before,
-  5daf5757 after; the trees between them carry this tranche and
-  nothing else):
+  the kernel's own audit, on the tranche's own branch: ef2b95b3
+  before, 5daf5757 after - the trees between them carry this tranche
+  and nothing else):
 
     PAPER (obligations the kernel cannot execute)   44 -> 38
     BROKEN (verifier strings a YAML quote broke)      5 -> 0
@@ -126,6 +126,15 @@ intent: |
   exceeded before this tranche (141 against a ceiling of 140), and
   this tranche is not what made it red; it adds one file to a
   corpus that was one over the line.
+
+  The branch this work lands on ALSO carries three peer tranches -
+  instruments-repair, protected-paths-and-empty-diff and
+  corpus-growth-lints - which add three decisions of their own. The
+  live corpus at that branch head therefore carries 145 decision
+  files, and the census reports the corpus ceiling exceeded by five
+  rather than by one. Those three decisions are not this tranche's
+  and are not counted in the numbers above, which are this tranche's
+  alone.
 
 commitment: |
   1. Every obligation whose verifier named a scheme the kernel
