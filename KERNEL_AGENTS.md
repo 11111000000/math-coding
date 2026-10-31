@@ -71,9 +71,9 @@ Before changing anything in this repository, read in order:
    the inline "where things live" lists elsewhere.
 3. `README.md` — short pitch and pointers.
 4. `spec/constitution.md` — invariants of the kernel.
-5. `spec/algebra-3.2.md` — formal mathematical specification of the 3.2-ideal kernel (normative alongside prose specs).
-6. `spec/domain.md` — entity model (prose; superseded by `algebra-3.2.md` §7).
-7. `spec/semantics.md` — gate logic, exit codes, CLI subcommand catalog (prose; superseded by `algebra-3.2.md` §15).
+5. `spec/kernel-contract.md` — formal mathematical specification of the 3.2-ideal kernel (normative alongside prose specs).
+6. `spec/domain.md` — entity model (prose; superseded by `kernel-contract.md` §7).
+7. `spec/semantics.md` — gate logic, exit codes, CLI subcommand catalog (prose; superseded by `kernel-contract.md` §15).
 7. `OCAML_BEST_PRACTICES.md` — project-specific OCaml conventions,
    including which conventions are *enforced* by `decisions/decision.yaml`.
    The trap log in §11 is the first place to look when debugging an

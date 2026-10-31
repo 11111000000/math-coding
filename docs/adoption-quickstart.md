@@ -36,7 +36,7 @@ mathc init . --no-install
 mathc init: created ./.math-coding/decisions, ./.math-coding/attestations
   decision.yaml: schema math-coding/3.2, scope paths editable
   pre-commit hook: skipped (--no-install)
-  applicability envelope (spec/algebra-3.2.md §28, default-on):
+  applicability envelope (spec/kernel-contract.md §28, default-on):
   ...
 ```
 

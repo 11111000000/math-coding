@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 400" role="img" aria-labelledby="cf-title" preserveAspectRatio="xMidYMid meet">
-  <title id="cf-title">The counterexample flow: author writes a counterexample set in decision.yaml; the kernel checks |C(D)| ≥ 1 for any decision whose mode is not tiny; on absence the gate blocks the merge and emits a remediation. Counterexample is the machine-checkable forcing function; antithesis is the coherent counter-position the author engaged with (algebra §11, §11.1).</title>
+  <title id="cf-title">The counterexample flow: author writes a counterexample set in decision.yaml; the kernel checks |C(D)| ≥ 1 for any decision whose mode is not tiny; on absence the gate blocks the merge and emits a remediation. Counterexample is the machine-checkable forcing function; antithesis is the coherent counter-position the author engaged with (kernel contract §11, §11.1).</title>
   <desc>A top row carries the four-stage flow author → |C(D)| check → gate decision → allow or block. The block path descends to a remediation box. A bottom contrast row distinguishes counterexample (forcing function, machine-checkable) from antithesis (the position the author engaged with, prose-only).</desc>
   <defs>
     <style>

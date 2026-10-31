@@ -154,7 +154,7 @@ forge-verify, не для gate-логики. Решения, в которых �
 | Upstream код | `2c3145a:lib/forge.ml`, `2c3145a:bin/Mathc.ml::do_forge_verify`, `2c3145a:tests/cli/forge-verify.t` |
 | WIP (удалён) | `8f593fa` (unreachable, восстановим через `git fsck`) |
 | Базовый коммит анализа | `ae3933c merge: bring site-deploy changes (PR #8, PR #9) into local main` |
-| Spec | `spec/algebra-3.2.md` §13 (forge-principal-verification), §7 (entity model) |
+| Spec | `spec/kernel-contract.md` §13 (forge-principal-verification), §7 (entity model) |
 | Аксиомы | A1 (feedback), A4 (authority) |
 
 ---

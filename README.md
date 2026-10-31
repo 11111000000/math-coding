@@ -8,7 +8,7 @@
 > Author: Petr Kosov <p.b.kosov@yandex.ru>
 > Status: 3.7.4, current release v3.7.4. Bootstrap gate
 > expired at v3.0.0.19 (2026-09-29). The 3.2-ideal algebra
-> (`spec/algebra-3.2.md`) is normative alongside the prose specs.
+> (`spec/kernel-contract.md`) is normative alongside the prose specs.
 > License: Apache-2.0 (see `LICENSE`, `NOTICE`).
 > Ethics: [`ETHICS.md`](ETHICS.md).
 > Kernel implementation: OCaml. Runtime is a portable binary — users of math-coding in other languages do not need OCaml, `dune`, `nix`, or any tool listed below.
@@ -86,10 +86,10 @@ free; protected-policy transitions keep the manual checklist on top.
 | `mathc decision-state <id> <action>` | Move one decision through its lifecycle states |
 | `mathc render` | Build the static site under `dist/` |
 | `mathc time-estimate` | Honest duration claim from a reference class |
-| `mathc mode PATH ...` | 3.2-ideal risk classification (algebra §2) |
-| `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (algebra §10) |
-| `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (algebra §17) |
-| `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, algebra §17) |
+| `mathc mode PATH ...` | 3.2-ideal risk classification (kernel contract §2) |
+| `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (kernel contract §10) |
+| `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (kernel contract §17) |
+| `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, kernel contract §17) |
 | `mathc version` | Print the bootstrap hello and exit 0 |
 | `mathc update [--channel=...] [--yes]` | Self-update the binary from the release channel |
 | `mathc session-start` | Write `.local/session-start` ISO timestamp |

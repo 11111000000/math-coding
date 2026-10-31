@@ -515,7 +515,7 @@ mathcoding 的拒绝不是特性；它是用以维持协议诚实性的边界：
 
 ## 何时 mathcoding 适用
 
-适用包络（`spec/algebra-3.2.md` §28）以敌对的方式写就：哪些
+适用包络（`spec/kernel-contract.md` §28）以敌对的方式写就：哪些
 项目*无法承担*这一纪律。更友善的读法反过来问：哪些项目从中
 获益？纪律的真实成本是多少？
 
@@ -562,7 +562,7 @@ mathcoding 真正构成开销的，只有内核已以静默模式覆盖的那些
 - [公理](axioms.html) —— 五条公理。
 - [基石](foundations.html) —— 公理 → OCaml。
 - [规范/宪法](spec/constitution.html) —— 14 条不变量。
-- [规范/algebra-3.2](spec/algebra-3.2.html) —— 形式化代数
+- [规范/kernel-contract](spec/kernel-contract.html) —— 形式化代数
   （规范性的）。
 - [USAGE](https://github.com/11111000000/math-coding/blob/main/USAGE.md) ——
   路径 A / 路径 B 的采用手册（GitHub 上的权威源；`USAGE.md` 不渲染到

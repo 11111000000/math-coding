@@ -104,28 +104,28 @@ that authorises all other decisions. Its obligations are tracked in
 | `archive/decisions/validator-actionable-error.yaml` | `validator-actionable-error` | 1 | RESOLVED | D8 actionable validator error: missing-field name in diagnostic |
 | `decisions/process-principles.yaml` | `process-principles` | 3 | RESOLVED | locks ROADMAP P1-P7 as obligations |
 | `archive/decisions/D6-bootstrap-v3-verifiers-implemented.yaml` | `D6-bootstrap-v3-verifiers-implemented` | 2 | RESOLVED | closes D6 (manual-only verifiers) per AUDIT-0.0.20 |
-| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | RETIRED | attempted algebra-3.2 §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
+| `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | RETIRED | attempted kernel contract §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
 | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 2 | RESOLVED | locks ADR location + first-file convention |
 | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
 | `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 2 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
 | `decisions/site-deploy.yaml` | `site-deploy` | 5 | RESOLVED | restores the project's published surface under its own gate |
 | `decisions/cli-canonical-name.yaml` | `cli-canonical-name` | 2 | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
 | `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 2 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
-| `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | RESOLVED | adopts `spec/algebra-3.2.md` as formal normative spec |
+| `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | RESOLVED | adopts `spec/kernel-contract.md` as formal normative spec |
 | `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | RESOLVED | closes the 10 render-kernel defects catalogued in the decision's own scope (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
 | `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `archive/decisions/mathjax-default-on-2026-10.yaml` | `mathjax-default-on-2026-10` | 1 | RESOLVED | flips `Render.config.enable_mathjax` default `false` → `true`; reverses the `mathjax-default-off` workaround from `render-kernel-fixes-2026-10@1` because `mathjax-delimiter-hardening-2026-10@1` removed `$..$` as a math boundary; emits MathJax on every page (prose + axiom + spec) |
 | `archive/decisions/site-version-from-file-2026-10.yaml` | `site-version-from-file-2026-10` | 1 | RESOLVED | replaces hardcoded `3.0-alpha` / `v3.0.0` literals in `lib/render/render.ml` with a single `VERSION` file; `mathc render` + `mathc version` read it; closes the dual-source drift between the live site hero and the current release tag |
-| `decisions/plan-2026-10-improvements/t1-1.yaml` | `t1-1` | 1 | RESOLVED | wires `lib/rebuttal.ml::forge_mirror` to `MATH_CODING_FORGE_API`; algebra §10 hybrid mechanism is functional end-to-end; closes `plan-2026-10-improvements@1` Tier 1 obligation `t1-1-forge-mirror` |
-| `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes algebra §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_KERNEL_CONVENTIONS.md` §11.25 |
+| `decisions/plan-2026-10-improvements/t1-1.yaml` | `t1-1` | 1 | RESOLVED | wires `lib/rebuttal.ml::forge_mirror` to `MATH_CODING_FORGE_API`; kernel contract §10 hybrid mechanism is functional end-to-end; closes `plan-2026-10-improvements@1` Tier 1 obligation `t1-1-forge-mirror` |
+| `decisions/risk-policy-driven-floor-2026-10.yaml` | `risk-policy-driven-floor-2026-10` | 1 | RESOLVED | wires `lib/policy.ml` into `lib/risk.ml` so `mode_floor` and `policy_override_probability` honor declared policies instead of returning constants; closes kernel contract §2 "Phase 2E replaces this stub" comment; adds `policies.yaml` at the repo root and `OCAML_KERNEL_CONVENTIONS.md` §11.25 |
 | `archive/decisions/tier-1-closure-2026-10.yaml` | `tier-1-closure-2026-10` | 1 | RESOLVED | closes ROADMAP Tier 1: 5 conformance fixtures carry the v3 dialectic `antithesis` field, `process_principles.ml::classify_verifier` and `fixture_coverage.ml::classify` accept three new patterns (sub-decision refs, shell-negated grep, `mathc-self-check-` keywords), 18 stale verifier references in 4 decisions are fixed, ROADMAP.md §"Priority queue" records Tier 0 as `closed` |
 | `decisions/ci-blocking-list-config.yaml` | `ci-blocking-list-config` | 2 | RESOLVED | configurable blocking-CI list via MATH_CODING_BLOCKING_CIS |
 | `decisions/process-principles-close-branches.yaml` | `process-principles-close-branches` | 3 | RESOLVED | close-branches subcommand and pre-commit hook (process-principles@2 P2 detail) |
 | `decisions/mathc-packages-subcommand.yaml` | `mathc-packages-subcommand` | 3 | RESOLVED | Tier-1 #4 |
 | `decisions/obligation-count-reconcile.yaml` | `obligation-count-reconcile` | 3 | RESOLVED | aligns PACKAGES.md counts with `obligations.yaml` |
-| `archive/decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 2 | RESOLVED | factual corrections to spec/algebra-3.2.md and spec/semantics.md (2026-10-05 audit F7, F11) |
-| `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in algebra §2 (2026-10-05 audit F9) |
+| `archive/decisions/spec-prose-corrections-2026-10.yaml` | `spec-prose-corrections-2026-10` | 2 | RESOLVED | factual corrections to spec/kernel-contract.md and spec/semantics.md (2026-10-05 audit F7, F11) |
+| `decisions/algebra-3.2-notation-flag-2026-10.yaml` | `algebra-3.2-notation-flag-2026-10` | 2 | RESOLVED | flags ambiguous `⌈risk(c)⌉` notation in kernel contract §2 (2026-10-05 audit F9) |
 | `decisions/schema-empty-sha-2026-10.yaml` | `schema-empty-sha-2026-10` | 3 | RETIRED | schema relaxation for empty-string `body_sha`/`yaml_sha` stubs; not counted as active decision |
 | `archive/decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` | `audit-0.0.21-fixes-self-check-waiver-2026-10` | 2 | META | waiver record for the structural deficit on `self-check-verdict-is-pass`; not counted as active decision |
 | `decisions/waiver-infrastructure-2026-10.yaml` | `waiver-infrastructure-2026-10` | 1 | META | introduces `lib/waiver.ml` + the consult step in `bin/Mathc.ml`; waivers live under `decisions/waivers/`; not counted as active decision (no kernel surface) |
@@ -152,7 +152,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/plan-2026-10-improvements/t4-2.yaml` | `t4-2-explain-diagnostic` | 1 | RESOLVED | Tier-4 #2: `mathc explain-diagnostic <CODE>` subcommand; registry in `lib/diagnostic.ml::explain`; positive+negative cram fixture |
 | `archive/decisions/site-svg-methodology-2026-10.yaml` | `site-svg-methodology-2026-10` | 1 | RESOLVED | adds 5 hand-rolled SVG figures to the methodology page (`lifecycle-fsm`, `friction-ladder`, `attestation-lifecycle`, `risk-bands`, `verdict-flow`); the figures are embedded inline in the site markdown; each SVG is accessibility-tagged (`role="img"` + `aria-labelledby` + `<title>`) and inherits the existing `.mathc-figure-methodology img { max-width: 56rem; }` CSS rule |
 | `archive/decisions/site-svg-manifesto-2026-10.yaml` | `site-svg-manifesto-2026-10` | 1 | RESOLVED | adds 4 hand-rolled SVG figures to the manifesto page (`architecture-overview`, `human-in-the-loop`, `human-roles`, `kernel-vs-human`); the figures are embedded inline in the site markdown; new `.mathc-figure-manifesto img { max-width: 56rem; }` CSS rule in `assets/style.css` |
-| `archive/decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); the figures are embedded inline in the site markdown; covers algebra §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
+| `archive/decisions/site-svg-foundations-2026-10.yaml` | `site-svg-foundations-2026-10` | 1 | RESOLVED | adds 8 hand-rolled specialist diagrams to the foundations page (`counterexample-flow`, `axiom-transition`, `trust-dynamics`, `substrate-fingerprint`, `waiver-state-machine`, `friction-envelope-plot`, `quality-radar`, `reasoning-budget`); the figures are embedded inline in the site markdown; covers kernel contract §11, §12, §13–14, §16, §17, §18, §21, §22, §27 |
 | `archive/decisions/site-svg-workflow-2026-10.yaml` | `site-svg-workflow-2026-10` | 1 | RESOLVED | adds the `bootstrap-timeline` SVG to the workflow page; the figure is embedded inline in the site markdown; new `.mathc-figure-workflow img { max-width: 56rem; }` CSS rule; the timeline shows the three regime boundaries (v3-alpha-0.0.1 → 8fa7fcf → today) |
 | `decisions/obligations.yaml` | (aggregator) | — | INDEX | tracks bootstrap-v3 obligations |
 
@@ -311,9 +311,9 @@ This isolates I/O from the pure kernel (see `OCAML_KERNEL_CONVENTIONS §10.1`).
 | File | Purpose |
 |---|---|
 | `constitution.md` | 14 invariants; the kernel MUST preserve these |
-| `domain.md` | Closed entity model; what kinds exist (prose; superseded by `algebra-3.2.md` §7) |
-| `semantics.md` | Operational rules (prose; superseded by `algebra-3.2.md` §15) |
-| `algebra-3.2.md` | Formal mathematical specification of the 3.2-ideal kernel (31 sections, §0–§30) |
+| `domain.md` | Closed entity model; what kinds exist (prose; superseded by `kernel-contract.md` §7) |
+| `semantics.md` | Operational rules (prose; superseded by `kernel-contract.md` §15) |
+| `kernel-contract.md` | Formal mathematical specification of the 3.2-ideal kernel (31 sections, §0–§30) |
 
 ## Paseo console (`plugin/math-coding-console/`)
 

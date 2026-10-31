@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 620 540" role="img" aria-labelledby="ladder-title" preserveAspectRatio="xMidYMid meet">
-  <title id="ladder-title">Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from algebra §21.</title>
-  <desc>Four rungs from least to most severe. Silent — typo fix, comment, refactor that adds no behavior. Record — new endpoint, dependency upgrade. Ask — API change, public-contract change. Block — constitution, schema, kernel rule. The kernel chooses the least sufficient level; it may raise friction but never lower it. For each rung the right side lists the corresponding mode budget from algebra §21: tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300 lines.</desc>
+  <title id="ladder-title">Friction ladder: silent (top, kernel chooses) below ask (human reviews) to block (bottom, kernel refuses). Friction budget on the right, drawn from kernel contract §21.</title>
+  <desc>Four rungs from least to most severe. Silent — typo fix, comment, refactor that adds no behavior. Record — new endpoint, dependency upgrade. Ask — API change, public-contract change. Block — constitution, schema, kernel rule. The kernel chooses the least sufficient level; it may raise friction but never lower it. For each rung the right side lists the corresponding mode budget from kernel contract §21: tiny ≤ 0, light ≤ 10, standard ≤ 60, strict ≤ 130, exhaustive ≤ 300 lines.</desc>
   <defs>
     <style>
       .rung-silent { fill: #f1ede5; stroke: #b0a99c; stroke-width: 1.25; }
@@ -92,5 +92,5 @@
     <text class="budget-mode-mute" x="345" y="435" font-size="8">(+ formal proofs)</text>
   </g>
 
-  <text class="footer-text" x="240" y="490">friction budget per commit — algebra §21</text>
+  <text class="footer-text" x="240" y="490">friction budget per commit — kernel contract §21</text>
 </svg>

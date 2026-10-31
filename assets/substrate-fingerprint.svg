@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 320" role="img" aria-labelledby="sf-title" preserveAspectRatio="xMidYMid meet">
-  <title id="sf-title">Substrate fingerprint: kernel.ver ⊕ ocaml.ver ⊕ dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (algebra §13 + §14, §16).</title>
+  <title id="sf-title">Substrate fingerprint: kernel.ver ⊕ ocaml.ver ⊕ dep.digests hashed per CI run; aggregated across blocking CIs to be substrate-honest (kernel contract §13 + §14, §16).</title>
   <desc>Three inputs (kernel version, OCaml version, dependency digests) feed a SHA-256 digest. Each attestation captures this fingerprint; multi-CI aggregation joins attestations whose substrate_fingerprint matches the policy's known_substrates, preserving substrate honesty across heterogeneous CI environments.</desc>
   <defs>
     <style>

@@ -206,7 +206,7 @@ responsibility is to fill the TBD sections before
 ## Choose your adoption path
 
 Math-coding installs by default. The envelope
-([`spec/algebra-3.2.md`](spec/algebra-3.2.md) §28) is
+([`spec/kernel-contract.md`](spec/kernel-contract.md) §28) is
 default-on: the burden of proof sits on the exclusion, not on the
 adoption. To *not* adopt, your project must be throwaway — code with
 no expected continuity, which no reader will ever audit. "There is

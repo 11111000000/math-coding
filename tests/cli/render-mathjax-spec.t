@@ -5,7 +5,7 @@ defer mode. Every `$..$` and `$$..$$` formula in
 typescript-friendly substring — MathJax typesets the
 delimiters at runtime, so the rendered HTML carries the
 raw `$..$` content inside its body even when no `$..$`
-delimiter is present in the source (algebra-3.2.md uses
+delimiter is present in the source (kernel-contract.md uses
 ` ``` ` fenced blocks for its math; the formulas still reach
 the DOM as the live source string).
 
@@ -29,5 +29,5 @@ Acceptance gate for obligation `spec-mathjax-rendered` in
   $ grep -qF 'friction_user' $tmpdir/dist/spec/kernel-contract.html
   $ grep -qF 'risk_to_mode' $tmpdir/dist/spec/kernel-contract.html
   $ grep -qF 'class="mathc-spec-page"' $tmpdir/dist/spec/kernel-contract.html
-  $ grep -qF 'algebra-3.2' $tmpdir/dist/spec/kernel-contract.html
+  $ grep -qF 'spec/kernel-contract.md' $tmpdir/dist/spec/kernel-contract.html
   $ rm -rf dist

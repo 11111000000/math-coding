@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" role="img" aria-labelledby="vf-title" preserveAspectRatio="xMidYMid meet">
-  <title id="vf-title">Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps grounded in algebra-3.2 sections 7, 8, 2, 9, 14, 15.</title>
+  <title id="vf-title">Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps grounded in kernel contract sections 7, 8, 2, 9, 14, 15.</title>
   <desc id="vf-desc">A vertical pipeline. Input row at the top names decisions, attestations, and active policy. Six numbered step boxes run downward: parse decisions with identity I4; infer obligations per section 8; classify mode via the risk function per section 2; compose direct and transitive obligations per section 9; collect attestations across running CIs per section 14; gate_merge per section 15 plus A2 invariants. The output row at the bottom lists the four verdict colours and their exit codes from spec/semantics.md section 4.3.</desc>
   <defs>
     <style>
@@ -69,7 +69,7 @@
       <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
       <text class="vf-step-num" x="14" y="18">2</text>
       <text class="vf-step-name" x="34" y="18">infer obligations</text>
-      <text class="vf-step-ref" x="34" y="33">infer: &#120106; &#215; &#120099; &#8594; P(Obligation) &#183; algebra-3.2 &#167;8</text>
+      <text class="vf-step-ref" x="34" y="33">infer: &#120106; &#215; &#120099; &#8594; P(Obligation) &#183; kernel contract &#167;8</text>
       <text class="vf-step-detail" x="34" y="42">classify_obligation(path, mode) keyed by path glob and risk mode</text>
     </g>
     <path class="vf-arrow" d="M320,118 L320,138" marker-end="url(#vf-arrow)"/>
@@ -78,7 +78,7 @@
       <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
       <text class="vf-step-num" x="14" y="18">3</text>
       <text class="vf-step-name" x="34" y="18">classify mode(c)</text>
-      <text class="vf-step-ref" x="34" y="33">risk(c) = impact &#215; probability &#215; irreversibility &#183; algebra-3.2 &#167;2</text>
+      <text class="vf-step-ref" x="34" y="33">risk(c) = impact &#215; probability &#215; irreversibility &#183; kernel contract &#167;2</text>
       <text class="vf-step-detail" x="34" y="42">risk_to_mode: [0,1] &#8594; {tiny, light, standard, strict, exhaustive} &#183; lib/risk.ml</text>
     </g>
     <path class="vf-arrow" d="M320,188 L320,208" marker-end="url(#vf-arrow)"/>
@@ -87,7 +87,7 @@
       <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
       <text class="vf-step-num" x="14" y="18">4</text>
       <text class="vf-step-name" x="34" y="18">compose obligations</text>
-      <text class="vf-step-ref" x="34" y="33">direct &#8855; transitive &#183; algebra-3.2 &#167;9 (multi-policy per path)</text>
+      <text class="vf-step-ref" x="34" y="33">direct &#8855; transitive &#183; kernel contract &#167;9 (multi-policy per path)</text>
       <text class="vf-step-detail" x="34" y="42">obligations(c) = direct_obligations(c) &#8855; transitive_obligations(c)</text>
     </g>
     <path class="vf-arrow" d="M320,258 L320,278" marker-end="url(#vf-arrow)"/>
@@ -96,7 +96,7 @@
       <rect class="vf-card" x="0" y="0" width="640" height="48" rx="4"/>
       <text class="vf-step-num" x="14" y="18">5</text>
       <text class="vf-step-name" x="34" y="18">collect attestations</text>
-      <text class="vf-step-ref" x="34" y="33">attestations(c) = &#8899; attest_ci(c, k) &#183; algebra-3.2 &#167;14</text>
+      <text class="vf-step-ref" x="34" y="33">attestations(c) = &#8899; attest_ci(c, k) &#183; kernel contract &#167;14</text>
       <text class="vf-step-detail" x="34" y="42">blocking_CIs(c) per policy.ci_blocking; default: wait_for_all_blocking_CIs</text>
     </g>
     <path class="vf-arrow" d="M320,328 L320,348" marker-end="url(#vf-arrow)"/>
@@ -105,7 +105,7 @@
       <rect class="vf-card-emph" x="0" y="0" width="640" height="58" rx="4"/>
       <text class="vf-step-num" x="14" y="18">6</text>
       <text class="vf-step-name" x="34" y="18">gate_merge(c, p, t, rules)</text>
-      <text class="vf-step-ref" x="34" y="33">algebra-3.2 &#167;15 + A2 invariants (every invariant paired with recovery)</text>
+      <text class="vf-step-ref" x="34" y="33">kernel contract &#167;15 + A2 invariants (every invariant paired with recovery)</text>
       <text class="vf-step-detail" x="34" y="42">Open iff &#8704; ob &#8712; blocking_obligations(c): result(ob) = Pass &#8743; re_evaluation_status &#8800; StaleClaim</text>
       <text class="vf-step-detail" x="34" y="52">remedies &#8800; &#8709; when exit &#8800; 0 &#183; constitution I14 (exit honesty)</text>
     </g>

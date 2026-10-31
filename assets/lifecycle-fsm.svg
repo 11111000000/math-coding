@@ -126,5 +126,5 @@
     <text class="legend-text" x="392" y="46">waiver-expiry — the waiver’s time bound has elapsed</text>
   </g>
 
-  <text class="footer-text" x="500" y="548">state ∈ {active, draft, retired, superseded} — algebra §7</text>
+  <text class="footer-text" x="500" y="548">state ∈ {active, draft, retired, superseded} — kernel contract §7</text>
 </svg>

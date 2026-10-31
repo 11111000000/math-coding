@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 620" role="img" aria-labelledby="qr-title" preserveAspectRatio="xMidYMid meet">
-  <title id="qr-title">Quality radar — fourteen dimensions of math-coding as axes: correctness, explicitness, recovery, coordination, auditability, evolution, zero-friction-user, no-retrofit, cross-cutting, substrate-honesty, sha-consistency, transitive-policy, axiom-safety, applicability-fit (algebra §22). Illustrative placeholder scores between 0.5 and 1.0.</title>
-  <desc>A polar radar chart with 14 axes radiating from a centre, each labelled with one of the protocol's 14 quality dimensions. Concentric grid rings mark 0.25, 0.50, 0.75, and 1.00 levels. A filled polygon connects an illustrative project score on each axis. The minimum over the 14 dimensions is the protocol's quality score (algebra §22).</desc>
+  <title id="qr-title">Quality radar — fourteen dimensions of math-coding as axes: correctness, explicitness, recovery, coordination, auditability, evolution, zero-friction-user, no-retrofit, cross-cutting, substrate-honesty, sha-consistency, transitive-policy, axiom-safety, applicability-fit (kernel contract §22). Illustrative placeholder scores between 0.5 and 1.0.</title>
+  <desc>A polar radar chart with 14 axes radiating from a centre, each labelled with one of the protocol's 14 quality dimensions. Concentric grid rings mark 0.25, 0.50, 0.75, and 1.00 levels. A filled polygon connects an illustrative project score on each axis. The minimum over the 14 dimensions is the protocol's quality score (kernel contract §22).</desc>
   <defs>
     <style>
       .qr-axis { stroke: #8b3a3a; stroke-width: 1; fill: none; }

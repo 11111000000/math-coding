@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The applicability rule has one home: spec/algebra-3.2.md §28.
+# The applicability rule has one home: spec/kernel-contract.md §28.
 #
 # Three surfaces carry it — the normative algebra, the agent-facing
 # skill, and the envelope `mathc init` prints at deploy time. A rule
@@ -28,16 +28,16 @@ check() {
 }
 
 # 1. The normative text still states the default-on rule.
-check "spec/algebra-3.2.md §28 no longer states default_path(P) = Path A unless throwaway" \
-  "grep -q 'default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)' spec/algebra-3.2.md"
+check "spec/kernel-contract.md §28 no longer states default_path(P) = Path A unless throwaway" \
+  "grep -q 'default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)' spec/kernel-contract.md"
 
 # 2. The skill states the same default and cites the authority instead
 #    of restating a second rule.
 check "adoption/SKILL.md does not state the default-on rule" \
   "grep -q 'Default: apply\.' adoption/SKILL.md"
 
-check "adoption/SKILL.md does not cite spec/algebra-3.2.md" \
-  "grep -q 'spec/algebra-3.2.md' adoption/SKILL.md"
+check "adoption/SKILL.md does not cite spec/kernel-contract.md" \
+  "grep -q 'spec/kernel-contract.md' adoption/SKILL.md"
 
 # 3. The CLI prints the envelope it claims to print.
 check "lib/init/init.ml no longer prints the default-on envelope" \
