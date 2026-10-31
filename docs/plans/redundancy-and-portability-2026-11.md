@@ -425,3 +425,72 @@ no longer hold - judgment, one at a time, not a pattern), T2.4 (the
 debt counter grows three numbers where it had one), T3 (the contract
 of the kernel: 322 references to the spec in 120 files), T4 (the
 portable core), T5 (the measurement and the book).
+
+## 9. Wave 3 (2026-11-01 .. 11-08)
+
+The wave that is next, and why it goes in this order.
+
+### 9.1 T3.1 - the file named for a version
+
+`spec/algebra-3.2.md` is named after the version it describes. That is
+the defect: the next edition of the contract makes the name a lie, and
+the fix is a rename - of the file and of the 322 places that name it.
+
+Measured on 2026-10-31, the path appears 322 times in 120 tracked
+files. The split that decides what happens to each mention:
+
+| what it is | how many | what happens |
+|---|---|---|
+| a test that greps the document | 22 files | the grep follows the new path; four of them stop grepping the prose at all (T3.2) |
+| a runtime diagnostic quoting the path | 4 messages | the message names the new path; the texts in five cram fixtures follow |
+| a schema description | 5 files | the description names the new path |
+| a decision whose `verifier:` greps the document | 4 | the obligation names the new path |
+| a decision whose `scope.paths:` names it | 2 | the scope names the new path |
+| a section pointer (`algebra §13`) in code or tests | 106 | the pointer names the new document's sections |
+| prose in a decision | 23 files | the mention names the new path |
+| a mention in an archived decision | 19 files | nothing: a record says what was true then |
+| `axioms/**` | 6 | A3: the normative text does not move on its own, so this is ONE protected transition with its own decision, and the six references move inside it |
+
+The rename is therefore not a `git mv` and a search-and-replace. It is
+a protected transition, and the check is the corpus: after it, no
+decision, no test and no code file names a path that does not exist.
+
+### 9.2 T3.2 - the contract, and what it promises
+
+After the rename the document shrinks: about 100 lines that say what
+the kernel ENFORCES (rule, code, test) and what is only DECLARED. One
+decision supersedes `decisions/algebra-3.2.yaml`. The four fixtures
+that mirror the document compare constants with the code instead of
+grepping the prose - a fixture that greps the prose breaks the moment
+the prose is rewritten, which is the failure this step removes.
+
+### 9.3 T2.4 - three numbers where there was one
+
+The debt counter reports three numbers now: CHECKED (a control that
+can fail), DECLARED (an owner and a date, and nobody checking) and
+UNCHECKED (neither). The ceiling that may only fall moves to
+UNCHECKED. A declared obligation needs a field the schema knows about,
+or it hides inside the field a checked one uses and the corpus lies in
+a new place.
+
+### 9.4 T2.2b - the claims that no longer hold
+
+The decisions whose claims the tree has falsified. It is judgment, one
+decision at a time, and no pattern finds them: a keyword heuristic
+over the 142 live decisions offers 77 candidates and misjudges half
+of them. So the work comes first as an INVENTORY - for each live
+decision, is its claim still true, and what is the evidence - and the
+edits follow the inventory, in tranches of ten to fifteen.
+
+### 9.5 The order, and the ownership
+
+T3.1 runs alone: it touches 120 files, and two parallel tranches
+editing the corpus at the same time would make every conflict in the
+corpus ambiguous. Next to it runs only work that cannot conflict: the
+T2.2b inventory is read-only, and it reports.
+
+| wave | tranches | why they do not collide |
+|---|---|---|
+| 3a | T3.1 alone, plus the T2.2b inventory (read-only) | the inventory edits nothing |
+| 3b | T2.4 (schema, the debt counter, the classification) and T3.2 (the contract) | `schemas/decision.json` and the counter against `spec/` and the four fixtures |
+| 3c | T2.2b in tranches of ten to fifteen decisions | one branch, because the decisions name each other |
