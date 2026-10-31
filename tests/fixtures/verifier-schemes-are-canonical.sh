@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/fixtures/verifier-schemes-are-canonical.sh
 #
-# The instrument for decisions/corpus-tranche-broken-schemes-2026-11.
+# The instrument for archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml.
 #
 # WHAT IT PROVES, in three parts.
 #

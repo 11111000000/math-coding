@@ -1,12 +1,13 @@
 ---
 schema: math-coding/3.3
 id: corpus-tranche-broken-schemes-2026-11
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the broken-verifier-scheme repair, with no live dependency.
 mode: light
 negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
-body_sha: "sha256:8b2efd58360c6ef4e410dac8368b8f640bc1c049297add5bede978d0c006ca07"
-yaml_sha: "sha256:8b2efd58360c6ef4e410dac8368b8f640bc1c049297add5bede978d0c006ca07"
+body_sha: "sha256:b740e82d77f09402287527de6cf054370c5e4e6a013f45edb7331c15edaa8deb"
+yaml_sha: "sha256:b740e82d77f09402287527de6cf054370c5e4e6a013f45edb7331c15edaa8deb"
 
 intent: |
   Five obligations in five decisions named a verifier scheme the
@@ -284,7 +285,7 @@ scope:
     - "lib/diagnostic.ml"
     - "bin/Mathc.ml"
     - "decisions/verifier-scheme-convention-2026-11.yaml"
-    - "decisions/corpus-tranche-broken-schemes-2026-11.yaml"
+    - "archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml"
     - "decisions/cli-canonical-name.yaml"
     - "decisions/forge-principal-verification-2026-10.yaml"
     - "decisions/exit-code-symmetry-2026-10.yaml"
