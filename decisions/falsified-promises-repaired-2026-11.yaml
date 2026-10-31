@@ -1,0 +1,489 @@
+---
+schema: math-coding/3.3
+id: falsified-promises-repaired-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/negative-control-debt.sh
+body_sha: "sha256:34591304f546c829f63a568a027c0cb8bd6eb6f21916c32a341f0e0405602125"
+yaml_sha: "sha256:34591304f546c829f63a568a027c0cb8bd6eb6f21916c32a341f0e0405602125"
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.4 (tranche T2.2b, the FALSIFIED tranche)"
+  text: |
+    Tranche T2.2b of the redundancy-and-portability plan: the tranche
+    the claims inventory of 2026-11-01 opened. The inventory read
+    every live decision and classified nine of them as FALSIFIED --
+    the tree contradicts what they say. Nine promises that were
+    false, in a corpus of 140, is the cheapest kind of debt to pay
+    and the most expensive kind to leave: a false promise in the
+    corpus is a claim the gate cannot keep and the reader will
+    believe.
+
+    THE INVENTORY IS A SNAPSHOT, AND THE TREE MOVED UNDER IT. The
+    inventory was taken on 2026-11-01 at a commit that is not this
+    one. Before anything was rewritten, every one of the nine was
+    RE-CHECKED against the tree, and the re-check changed the verdict
+    for one of them:
+
+      redundancy-census-2026-11 promised that the ceilings have
+      teeth, and the inventory said they do not: the census's
+      negative control measured the LIVE corpus and came out at the
+      ceiling instead of above it. The census has been fixed since
+      -- its control now clears the environment and measures a
+      SYNTHETIC corpus -- and it passes today:
+      "ok: negative control: a synthetic corpus measures 41 paper
+      obligations, above the ceiling 36". So that promise was
+      never false, the instrument was, and the instrument was
+      repaired without this tranche. THE FALSIFICATION IS CANCELLED,
+      and the decision file is not touched.
+
+    The other eight were false on the day the inventory read them
+    and are false today. Here is what each one promised, what
+    falsified it, and what it became. Every number below was
+    measured on this tree on 2026-11-01, with the command that
+    measured it.
+
+    1. corpus-final-state-2026-10
+       PROMISED: a corpus of about fifty RULES, every obligation
+       either executable or covered by a dated acceptance,
+       `mathc self-check` exiting 0, and the CI step that reads it a
+       gate again.
+       FALSIFIED BY: `MATH_CODING_ROOT="$PWD" mathc self-check` ->
+       exit 3, aggregate verdict `unknown`, 133 subjects, all
+       `unknown`; and `bash tests/fixtures/redundancy-census.sh` ->
+       140 decisions in the live corpus and 36 obligations no
+       program can execute.
+       BECAME: revision 2. The shape is a number with ceilings that
+       may only fall, the promise debt is three numbers (CHECKED,
+       DECLARED, UNCHECKED), the gate never certifies what it did
+       not check, and the rules-and-records question is still asked
+       one decision at a time. Its control is
+       tests/cli/self-check-unknown.t.
+
+    2. corpus-silent-drop-inventory-2026-10
+       PROMISED: the ledger of 2026-10-29 -- twelve offenders of 216,
+       ten of them files an independent reader rejects, two a stray
+       document marker, and no file a strict reader reads to EOF and
+       the kernel does not.
+       FALSIFIED BY: `bash scripts/scan-silent-drops.sh --validity` ->
+       "5 of 139 file(s) carry a silent-drop diagnostic", four of
+       them INVALID (author's debt) and one MULTI-DOC (a stray
+       marker with nothing behind it); and `--all` -> 7 of 313.
+       The corpus's own ledger in
+       tests/corpus_no_silent_drops/corpus_no_silent_drops.ml had
+       already been struck down to four plus one.
+       BECAME: revision 2. The rule is untouched -- an EXACT SET in
+       both directions, zero tolerance on the kernel's own holes --
+       and the numbers are the numbers the instrument measures.
+
+    3. forge-principal-verification
+       PROMISED: with the default `--fail-mode open`, an unreachable
+       forge yields verdict=pass and exit 0.
+       FALSIFIED BY: tests/cli/forge-verify.t, which asserts the
+       opposite and says why: "Before
+       decisions/exit-honesty-waivers-2026-10.yaml this case answered
+       `pass` with exit 0, which asserted a membership nobody
+       checked." The unset forge now answers `unknown` and exit 3.
+       BECAME: revision 2. Fail-open means the merge is not BLOCKED;
+       it no longer means the check succeeded. Its control is
+       tests/cli/forge-verify.t.
+
+    4. gate-attestation-store-fill
+       PROMISED: the gate maps `unknown` to exit 0, with `pass`,
+       `unknown` and `open-with-waiver` all exiting 0.
+       FALSIFIED BY: `bin/Mathc.ml::verdict_to_exit` --
+       `Gate.Unknown -> 3` -- and by
+       tests/cli/gate-unknown-exit-3.t. The mapping is the symmetric
+       one constitution.md Invariant 14b states and
+       spec/semantics.md tabulates.
+       BECAME: revision 3. The gate still consumes the store it is
+       given; the exit code is now the honest one. Its control is
+       tests/cli/gate-unknown-exit-3.t.
+
+    5. mathc-self-check-subcommand
+       PROMISED: the dispatcher ships and the kernel returns `pass`
+       against this repository and its conformance corpus, with exit
+       code 0.
+       FALSIFIED BY: `MATH_CODING_ROOT="$PWD" mathc self-check` ->
+       exit 3, verdict `unknown`, 133 of 133 subjects `unknown`. The
+       store is GENERATED per run, so a checkout has no evidence to
+       certify; the conformance corpus, the axioms invariants and
+       the schemas do pass.
+       BECAME: revision 5. The dispatcher ships, and its verdict and
+       its exit code always agree: `pass` -> 0, `fail` -> 1,
+       `unknown` -> 3. Its control is tests/cli/self-check-unknown.t.
+
+    6. missing-directory-is-not-a-crash-2026-10
+       PROMISED: `dune test` passes on a checkout with no generated
+       store -- the whole suite, as the decision's acceptance.
+       FALSIFIED BY: tests/fixture_coverage.ml is RED (the
+       rejecting-case debt stands at 54 against a ceiling of 52) and
+       tests/cli/gate-trailer-decision.t is RED (it expects `block`
+       where the kernel answers `unknown`). Neither is a crash on a
+       missing directory.
+       BECAME: revision 2. The RULE -- a missing artefact is an
+       empty result, not an exception -- holds, and it is measured
+       by a fixture written for it:
+       tests/fixtures/missing-directory-is-an-empty-result.sh, with a
+       negative control that proves the crash detector can fire.
+
+    7. redundancy-census-2026-11
+       PROMISED: the ceilings have teeth -- a synthetic corpus over
+       every ceiling must be reported as over it.
+       FALSIFIED BY: nothing, today. `bash
+       tests/fixtures/redundancy-census.sh` -> PASS, and its negative
+       control measures a SYNTHETIC corpus: "ok: negative control: a
+       synthetic corpus measures 41 paper obligations, above the
+       ceiling 36". The inventory's diagnosis was right about the
+       cause -- the control measured the live corpus under an
+       inherited MATH_CODING_ROOT -- and the instrument has since
+       been repaired.
+       BECAME: nothing. The decision file is NOT touched, its
+       revision stays 1, and the falsification is cancelled. The
+       check of what was re-checked, and why the inventory was wrong
+       about this one, is this paragraph.
+
+    8. spec-cli-catalog
+       PROMISED: the normative section lists every mathc subcommand
+       present in bin/Mathc.ml at HEAD.
+       FALSIFIED BY: the counts. spec/semantics.md carries 18 `###
+       `<command>` rows and the dispatcher answers 39 names, so 21
+       commands are implemented and undocumented -- verify, update,
+       explain-diagnostic, init, migrate, doctor, rehash and
+       fourteen more.
+       BECAME: revision 3. The gap is MEASURED and bounded by a
+       ceiling that may only fall:
+       tests/fixtures/spec-cli-catalog-gap.sh reads the dispatcher's
+       match arms and the catalog's rows, prints the undocumented
+       commands by name, and fails when the number exceeds 21. The
+       rows that ARE there still describe the commands they name.
+
+    9. waiver-infrastructure-2026-10
+       PROMISED: the CLI maps `Open_with_waiver` to the verdict string
+       `pass`, and only the STRING is mapped -- the gap stays in the
+       output.
+       FALSIFIED BY: `bin/Mathc.ml::verdict_to_pass_fail_unknown`
+       maps `Gate.Open_with_waiver` to "open-with-waiver", and the
+       aggregate does the same: a wholly-waived repository is
+       reported as `open-with-waiver`, not `pass`. The mapping was
+       removed on 2026-10-25 by
+       decisions/self-check-waiver-verdict-coherence-2026-10.yaml,
+       which measured seven subjects printed as `pass` next to their
+       own unmet causes.
+       BECAME: revision 3. A waived gap is reported as
+       `open-with-waiver` and never as `pass`, the causes stay in the
+       output, the exit code is still 0, and the waiver still names
+       ONE gap. Its control is tests/cli/self-check-waiver-verdict.t.
+
+    WHAT THE TRANCHE DID TO THE NUMBERS. The promise debt fell by
+    five decisions, because a promise that names the control that
+    catches its own failure is CHECKED and a promise that names none
+    is debt. The "before" column is the INSTRUMENT's number as of
+    the start of this tranche, not section 3 of the inventory: the
+    instrument classifies by the field `negative_control:` and the
+    inventory by the substance of the fixture, and the difference
+    between the two is named, decision by decision, in
+    `decisions/declared-promises-and-three-numbers-2026-11.yaml`.
+
+      CHECKED   78 -> 84
+      DECLARED  21 -> 21 (unchanged: this tranche added no
+                     declaration, because every promise it wrote is
+                     checkable)
+      UNCHECKED 37 -> 32
+
+    and the corpus itself grew by one, because this decision is in
+    the corpus it counts: 140 -> 141. The ceiling followed it up,
+    with the marker the ceiling checker reads.
+
+commitment: |
+  After this tranche closes:
+
+  1. Eight of the nine falsified decisions are REWRITTEN as
+     statements about the current tree, each with a `negative_control:`
+     that names the control which catches its own failure, and each
+     with its revision raised. The ninth (redundancy-census-2026-11)
+     is NOT touched: its promise is true, its instrument was
+     repaired elsewhere, and the falsification is cancelled here.
+
+  2. Every rewritten promise is CHECKABLE, and the verifier that
+     was checking the old promise either still checks the new one
+     or was rewritten with it. Where the old verifier checked the
+     WHOLE SUITE rather than the promise, it was replaced by a
+     fixture that measures the promise (this is what happened to
+     missing-directory-is-not-a-crash-2026-10 and to
+     spec-cli-catalog, and both new fixtures carry a negative
+     control of their own).
+
+  3. No promise was invented to replace a falsified one. Where the
+     old promise was unreachable, it was either written as a
+     requirement with a control (the CLI catalog gap became a
+     measured, bounded number) or stated as the fact it now is (the
+     gate is an audit, the corpus is measured, the store is
+     generated). Not one of the eight became a `declared:` block:
+     every promise written here is one a program can check.
+
+  4. THE INVENTORY IS A RECORD AND IS NOT REWRITTEN. Its original
+     lines stand as they were measured. A short postscript (section
+     9.1) says what became of the nine, dated, with the decision
+     that did it.
+
+  5. The instruments still hold, and the corpus ceiling moved up by
+     exactly one -- this decision -- with the marker the ceiling
+     checker reads. The UNCHECKED ceiling moved DOWN, from 37 to 32,
+     with a marker per fall.
+
+  6. The tree is not greener than it was: two suites are still red
+     (tests/fixture_coverage.ml and tests/cli/gate-trailer-decision.t),
+     and this tranche did not pretend otherwise. The reds are other
+     instruments' business, with their own ceilings.
+
+counterexample: |
+  "Rewriting nine decisions means admitting that the corpus lied to
+  itself for months. The honest answer is simpler: archive all nine
+  and stop reading them."
+
+  The objection is right about the diagnosis and wrong about the
+  cure, and the reason it is wrong is that it treats all nine the
+  same way. An archive is for a RECORD: something that happened
+  once, in a past tense, that still reads like a rule. Six of the
+  nine are not records at all -- they are RULES, and a rule that has
+  stopped being true cannot be archived, it has to be repaired. The
+  difference is not subtle:
+
+    - `mathc self-check` exits 0 against this repository.
+      ARCHIVING THAT LEAVES THE CORPUS SILENT about what self-check
+      does. The reader still has to know, and the answer has to be
+      somewhere. If the file is in `archive/decisions/`, the answer
+      is in a drawer.
+    - The gate maps `unknown` to exit 0.
+      ARCHIVING THAT LEAVES THE CORPUS WITH NO RULE about the exit
+      code, while the code keeps one. A rule that is not written
+      down is a rule nobody can point at when a CI script starts
+      treating `unknown` as `pass`.
+    - A missing directory is an empty result, not an exception.
+      ARCHIVING THAT REMOVES THE ONLY PLACE the corpus says why the
+      guards exist, and the next author writes `Sys.is_directory`
+      without the guard.
+
+  The objection's premise is also too strong. The corpus did not
+  lie for months: eight of the nine promises were true WHEN THEY
+  WERE WRITTEN and stopped being true when the kernel moved on
+  (2026-10-25 for the waiver verdict, 2026-10-30 for the exit
+  codes and the forge). A corpus that outlives its code needs its
+  promises re-read against the code; that is the work this tranche
+  is, and the alternative is not "be honest", it is "stop
+  claiming anything".
+
+  And the archive is not free. T2.1 of the plan already moved
+  twelve records out, and the lesson was that a record the corpus's
+  own machinery names is entangled with that machinery: the
+  verifier, the relations, a hook that points at it. Six of these
+  nine decisions carry relations and obligations that other files
+  point at. Archiving them means repairing ten more pointers, to
+  preserve six rules nobody would then read.
+
+  What the objection gets RIGHT, and what this tranche answers with:
+  the corpus did carry nine false promises, and the inventory that
+  found them is the reason the corpus knows. That is the direction
+  the method wants -- the check is able to catch its own lie -- and
+  the nine repairs are that check working, not that check failing.
+
+antithesis: |
+  The opposite position is that the nine decisions should have been
+  REWRITTEN FROM THE START rather than falsified and repaired: a
+  corpus that keeps changing its mind about what it promises is a
+  corpus whose promises are provisional, and a provisional promise
+  is worth less than a record.
+
+  The position is coherent, and it has one advantage this tranche
+  cannot match: it never says anything false. A decision that only
+  ever said what was true at the time it was written cannot be
+  falsified later, because it never claimed to be about the present.
+
+  The position is wrong about what a rule IS. A rule that says "the
+  gate maps `unknown` to exit 0" is not a record of a day; it is a
+  claim about what the gate DOES, and a claim about what a piece of
+  code does is true or false TODAY. The corpus's own doctrine --
+  the kernel's reading of a document is a contract with every
+  consumer -- cannot be satisfied by documents that describe the
+  past: the reader who runs `mathc gate` today and reads the
+  decision from October is misinformed either way. The difference
+  between the record and the rule is not WHEN it was written; it is
+  WHETHER IT CLAIMS TO HOLD NOW.
+
+  The position is also wrong about the cost. The rule this tranche
+  follows is not "rewrite every decision the moment the code
+  moves" -- it is "the corpus's shape is a number, and a promise
+  that has stopped being true is visible". The census measures the
+  paper layer, the dangling targets, the dead scope paths; the
+  inventory measured the truth of nine claims by hand. Nine claims
+  in 140 files is a price worth paying once, and the debt counter
+  fell by five while it was paid.
+
+outcomes:
+  - id: the-nine-falsified-decisions-are-resolved
+    statement: |
+      Eight of the nine decisions the claims inventory falsified are
+      rewritten as statements about the current tree, each with a
+      control that catches its own failure and a raised revision;
+      the ninth is left untouched because its promise is true and the
+      falsification against it is cancelled.
+  - id: the-promise-debt-fell
+    statement: |
+      The promise debt of the corpus is five decisions smaller than
+      it was before the tranche: CHECKED 78 -> 84, UNCHECKED 37 ->
+      32, DECLARED unchanged at 21, and the four classes still add up
+      to the corpus.
+  - id: the-inventory-is-a-record
+    statement: |
+      The claims inventory of 2026-11-01 keeps its original lines,
+      and a dated postscript says what became of the nine.
+
+scope:
+  paths:
+    - "decisions/falsified-promises-repaired-2026-11.yaml"
+    - "decisions/corpus-final-state-2026-10.yaml"
+    - "decisions/corpus-silent-drop-inventory-2026-10.yaml"
+    - "decisions/forge-principal-verification-2026-10.yaml"
+    - "decisions/gate-attestation-store-fill-decision.yaml"
+    - "decisions/mathc-self-check-subcommand.yaml"
+    - "decisions/missing-directory-is-not-a-crash-2026-10.yaml"
+    - "decisions/spec-cli-catalog.yaml"
+    - "decisions/waiver-infrastructure-2026-10.yaml"
+    - "tests/fixtures/missing-directory-is-an-empty-result.sh"
+    - "tests/fixtures/spec-cli-catalog-gap.sh"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "tests/fixtures/redundancy-census.sh"
+    - "docs/corpus-claims-inventory-2026-11.md"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "docs/plans/**"
+
+obligations:
+  - id: every-repaired-decision-parses
+    outcome: the-nine-falsified-decisions-are-resolved
+    claim: |
+      Each of the eight rewritten decisions is read by the kernel:
+      `mathc validate` answers parse-ok for every one of them, with
+      the revision the tranche raised and the obligations it now
+      carries.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-final-state-2026-10.yaml
+        - verifier: mathc validate decisions/corpus-silent-drop-inventory-2026-10.yaml
+        - verifier: mathc validate decisions/forge-principal-verification-2026-10.yaml
+        - verifier: mathc validate decisions/gate-attestation-store-fill-decision.yaml
+        - verifier: mathc validate decisions/mathc-self-check-subcommand.yaml
+        - verifier: mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml
+        - verifier: mathc validate decisions/spec-cli-catalog.yaml
+        - verifier: mathc validate decisions/waiver-infrastructure-2026-10.yaml
+
+  - id: the-corpus-shape-is-still-bounded
+    outcome: the-nine-falsified-decisions-are-resolved
+    claim: |
+      `tests/fixtures/redundancy-census.sh` still measures the
+      corpus and still holds every ceiling: no dangling relation
+      target, no dead scope path, no unrecognised verifier scheme,
+      and the live corpus within its ceiling -- which moved up by
+      exactly one decision, this one, with the marker the ceiling
+      checker reads.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-promise-debt-is-measured-and-fell
+    outcome: the-promise-debt-fell
+    claim: |
+      `tests/fixtures/negative-control-debt.sh` prints CHECKED,
+      DECLARED, UNCHECKED and the promise-less decisions, requires
+      the four classes to add up to the corpus, and holds the
+      UNCHECKED class at its ceiling -- which fell from 37 to 32 as
+      the tranche gave eight decisions a control that catches their
+      own failure.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-two-new-controls-have-teeth
+    outcome: the-nine-falsified-decisions-are-resolved
+    claim: |
+      The two fixtures this tranche wrote carry negative controls of
+      their own:
+      `tests/fixtures/missing-directory-is-an-empty-result.sh` runs
+      its crash detector against a stub that answers the way a
+      kernel answers when it raises, and requires the detector to
+      catch it;
+      `tests/fixtures/spec-cli-catalog-gap.sh` requires its
+      measurement to report a synthetic gap over the ceiling, a
+      synthetic gap of zero, and `unknown` for a spec it cannot
+      read.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/missing-directory-is-an-empty-result.sh
+        - verifier: tests/fixtures/spec-cli-catalog-gap.sh
+
+  - id: the-relations-still-resolve
+    outcome: the-nine-falsified-decisions-are-resolved
+    claim: |
+      Every relation target in the live corpus still resolves to a
+      decision that exists, live or archived, or to a file that
+      exists: `tests/fixtures/relation-targets-resolve.sh` reports
+      zero dangling targets.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a rewritten promise is narrowed until it is trivially true -- the next pass must compare the rewritten text against the tree again, not against the old promise"
+    - "a rewritten decision drops a rule to make it checkable: the rule that disappears is not visible in the diff of a promise, and the plan's T2.2b is the place to notice"
+    - "the UNCHECKED ceiling is raised instead of fallen on the next tranche: a debt that grows while the corpus shrinks is a debt that is being relabelled"
+    - "the two new fixtures are the only controls for their decisions and a later change breaks them together with the promise they guard"
+
+assumptions:
+  - id: the-inventory-is-a-snapshot-and-not-a-verdict
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The claims inventory of 2026-11-01 is a RECORD of one pass over
+      one corpus at one commit, and it is not re-read as a verdict
+      about the tree. One of its nine FALSIFIED verdicts was wrong
+      (redundancy-census-2026-11), and the way it was wrong was a
+      repaired instrument -- which is exactly what a snapshot of a
+      moving tree should be expected to be.
+    consequence_if_false: |
+      If the inventory were treated as a standing verdict, then the
+      nine would be re-litigated against the tree on every pass and
+      the record would be rewritten every time the tree moved -- the
+      snapshot would become a rule, and the rule would be false as
+      often as the tree moves.
+    review_on:
+      - signal: inventory-lines-are-edited
+
+  - id: a-rewritten-promise-is-still-a-promise
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      Rewriting a promise does not discharge it. Each of the eight
+      rewritten decisions names the control that catches its own
+      failure, and the controls are fixtures or cram cases that run
+      against the kernel -- not comments, not intentions, and not
+      the decision's own text.
+    consequence_if_false: |
+      If a rewritten promise had no control, it would sit in the
+      UNCHECKED class and the tranche would have moved debt around
+      instead of paying it. The instrument that says so is
+      `tests/fixtures/negative-control-debt.sh`, and the number it
+      prints is the report card for this assumption.
+    review_on:
+      - signal: unchecked-ceiling-stops-falling

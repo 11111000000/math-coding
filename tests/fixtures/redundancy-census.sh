@@ -173,7 +173,9 @@ CEILING_DEAD=0
 #   the corpus it counts
 # ceiling-raise: 138 -> 139, the kernel-contract-rename decision is in the corpus it counts
 # ceiling-raise: 139 -> 140, the declared-promises decision is in the corpus it counts
-CEILING_CORPUS=140
+# ceiling-raise: 140 -> 141, the falsified-promises-repaired decision is in
+#   the corpus it counts
+CEILING_CORPUS=141
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
