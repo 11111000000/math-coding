@@ -4,8 +4,8 @@ id: the-cost-of-the-method-2026-11
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:e04df0f68d7a5c9675ae18567a2c19c826e5327f8a0f825e83cceeb3217a01e4"
-yaml_sha: "sha256:e04df0f68d7a5c9675ae18567a2c19c826e5327f8a0f825e83cceeb3217a01e4"
+body_sha: "sha256:f96bd5f7e56d9d54c333db7e67e6e0e42ae82f356c1a3a643165e5cf3370e4d0"
+yaml_sha: "sha256:f96bd5f7e56d9d54c333db7e67e6e0e42ae82f356c1a3a643165e5cf3370e4d0"
 
 axiom_link:
   - A0
@@ -175,24 +175,25 @@ obligations:
         closed - and a reading is re-made by a person, not by a
         scheduler.
 
-  - id: the-figure-is-not-restated
+  - id: the-figure-keeps-its-cause
     outcome: the-ratio-is-not-restated
     claim: |
-      No decision in the live corpus states a cost ratio for the
-      method, and the archive keeps the old figure with its cause.
-      The corpus's own instruments do not measure a ratio, so nothing
-      can check the claim; it is a commitment about what this
-      repository does not publish.
+      The archive keeps the figure and the cause of the figure in the
+      same place: the record that holds the 3-4x also names the
+      env-var defect that produced it, so a reader who meets the
+      number meets the reason with it. The live corpus quotes the
+      figure only as history, in the decision that measures the cost.
     acceptance:
       all:
-        - verifier: shell-grep "3-4x" decisions/
+        - verifier: shell-grep archive/decisions/adopter-path-2026-10.yaml the gap is 3-4x
     declared:
       owner: human:maintainer
       review_on: 2026-12-15
       reason: >
-        A promise about an absence has no positive check that can fail
-        on its own; the grep is a weak control, and the honest class
-        is a declaration with an owner and a date.
+        That no live decision PUBLISHES a ratio cannot be checked by a
+        grep over a directory the corpus does not have a scheme for;
+        the checkable half - the figure and its cause together - is
+        the control above, and the rest is a declaration.
 
 risk:
   owner: human:maintainer
