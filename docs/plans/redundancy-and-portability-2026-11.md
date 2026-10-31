@@ -408,12 +408,15 @@ Merged into `main`, each with its own decision and its own evidence:
 | T4.2 | one master policy (`templates/master-policy.yaml`) with the installer template and `mathc init`'s literal generated from it, and a build id: the hash of the binary's own bytes, so one file always answers the same and two files answer differently | `master-policy-one-source.sh` and `build-id-distinguishes.sh`, both with negative controls |
 | T3.1 | the normative contract was renamed `spec/algebra-3.2.md` -> `spec/kernel-contract.md`: 176 mentions of the old path in the live tree are zero, the normative text moved in ONE protected transition under its own decision, and the contract's own bytes did not change | `kernel-contract-rename-2026-11.sh`, with six exclusions that are each a RECORD, and a negative control for each |
 | T2.2b (the inventory) | 136 live decisions read one at a time: 73 still true, 9 falsified, 34 stale in form, 20 records; and in the same pass, 78 checked, 24 declared, 34 unchecked | the report carries the evidence per decision; the orchestrator re-measured its five headline findings, and one had the wrong cause - and it was a real defect in this plan's own instrument |
+| T2.2b-1 | the nine falsified claims: eight rewritten into promises the tree can keep, one falsification cancelled because the instrument that produced it was wrong | the census's own negative control, after the instrument was fixed; the report carries the addendum |
+| T2.4 | one debt counter became three: CHECKED (a promise the corpus discharges by attesting itself), DECLARED (a promise with a named owner and a review date), UNCHECKED (a promise with neither) | the counter's synthetic corpus, and the sum invariant: the three numbers plus the promises without one add up to the corpus |
+| (the wave's own debt) | two red cram fixtures, both of them mine, found because the suite is now judged by its exit code and not by a grep for `FAIL` | `dune build @runtest` exits 0; the gate trailer now declares its own protected paths, as the design says a project must, and the legacy init expects the kernel to say what it read |
 
 The numbers after the wave (2026-10-31):
 
 | number | before | now |
 |---|---|---|
-| CORPUS - decisions in the live corpus | 144 | 139 |
+| CORPUS - decisions in the live corpus | 144 | 141 |
 | PAPER - obligations the kernel cannot execute | 44 | 36 |
 | BROKEN - verifier schemes the kernel does not know | 5 | 0 |
 | DANGLING - relation targets that resolve to nothing | 44 | 0 |
@@ -442,11 +445,12 @@ obvious:
   commit, and the wave's own rule is that a tranche is checked by the
   instruments rather than by the reader of a diff.
 
-What is left, in the plan's order: T2.2b (the decisions whose claims
-no longer hold - judgment, one at a time, not a pattern), T2.4 (the
-debt counter grows three numbers where it had one), T3 (the contract
-of the kernel: 322 references to the spec in 120 files), T4 (the
-portable core), T5 (the measurement and the book).
+What is left, in the plan's order: T2.2b-2 (the 34 claims that are
+still true and whose FORM went stale, and the 20 records - judgment,
+one decision at a time, not a pattern), T3.2 (the contract of the
+kernel: the normative text is already renamed and now has to shrink),
+T4.3 (the project's own strings leave the core), T5.1 (the cost of
+the method, measured against the binary it replaces).
 
 ## 9. Wave 3 (2026-11-01 .. 11-08)
 
@@ -521,3 +525,47 @@ T2.2b inventory is read-only, and it reports.
 | 3c | T2.4 (schema, the debt counter, the classification) and T3.2 (the contract) | `schemas/decision.json` and the counter against `spec/` and the four fixtures |
 | 3d | T2.2b in tranches of ten to fifteen decisions | one branch, because the decisions name each other |
 | 4 | T4.3 (the project's own strings leave the core) | `lib/diagnostic.ml` and `lib/gate.ml`, after T3.1 has landed |
+
+### 9.6 T2.2b-2 in tranches, and the rule the wave learned the hard way
+
+T2.2b-2 is the inventory's own reading: 34 decisions whose claim is
+still true and whose FORM went stale, and 20 that are records rather
+than rules. The plan says ten to fifteen per tranche, on one branch,
+because the decisions name each other. The split follows the
+inventory's own order, so the work list is the report and not a second
+list of the same thing:
+
+| tranche | the inventory's sections | what it does |
+|---|---|---|
+| 3d-1 | 6.1-6.12 (12) | rewrite the form; four of the five files that lose their YAML tail; re-point the deleted verifier targets |
+| 3d-2 | 6.13-6.23 (11) | the same, including the debt fixtures that count a store the repository does not track |
+| 3d-3 | 6.24-6.34 (11) | the same, including the site claims |
+| 3e-1 | 7.1-7.10 (10) | ten records to the archive, with the pointer repairs each move needs |
+| 3e-2 | 7.11-7.20 (10) | ten records; two of them are operational manifests and stay, because a manifest is an input and not a rule |
+
+**THE RULE: THE EXIT CODE IS THE SIGNAL.** A cram failure is
+reported as `File <test>, line 1`. It is not reported as `FAIL`. A
+check that greps the log for `FAIL` therefore passes on a red suite -
+and that is exactly what this wave did, twice, on the corpus's own
+fixtures. From here the suite is judged by the exit code of
+`dune build @runtest`, and by the names of the failing files when it
+is non-zero. A rule that cannot fail is not a rule; that is the same
+sentence the plan writes about a ceiling, and it applies to a check.
+
+Both red fixtures were mine, and both had been red since earlier in
+the wave:
+
+- the gate trailer stopped blocking an uncited change to a protected
+  path when the protected-path list moved out of the kernel into the
+  project. That move is the point - it is what makes the core
+  portable - and it means a project that declares no protected paths
+  has none, so the rule has nothing to fire on. The fixture now
+  declares its own list, as the design says a project must.
+- the legacy init expected the kernel to be quiet about a file it read
+  as a policy sequence and was not. The kernel now says so, and the
+  fixture expects it, with the machine's own paths normalised the way
+  `tests/cli/adopt.t` has always normalised them.
+
+Neither expectation was wrong when it was written. Both encoded a
+behaviour that had changed underneath them, and the wave's own
+instrument - the grep - could not see either.
