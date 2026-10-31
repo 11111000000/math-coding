@@ -19,7 +19,7 @@ antithesis: |
   developers and no AI agents — a plain ADR plus code review
   is sufficient." The author engaged with this position and
   rejected it on three grounds: (a) the applicability
-  envelope at `spec/algebra-3.2.md` §28 explicitly notes
+  envelope at `spec/kernel-contract.md` §28 explicitly notes
   that math-coding pays off precisely when coordination
   costs (multiple agents, audit requirements, multi-decade
   lifetime) appear — projects below the threshold should

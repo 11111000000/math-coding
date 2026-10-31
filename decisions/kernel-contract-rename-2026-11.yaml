@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: kernel-contract-rename-2026-11
-revision: 2
+revision: 3
 state: active
 mode: standard
 negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
-body_sha: "sha256:423816c4c7691386278879ef2a901982e5fcbc8a92fa1179b976bb025eff1961"
-yaml_sha: "sha256:423816c4c7691386278879ef2a901982e5fcbc8a92fa1179b976bb025eff1961"
+body_sha: "sha256:dcadedd89e2b071e57148bd91995ee1053ca1cbeeab715d3cfdae0a447379ba5"
+yaml_sha: "sha256:dcadedd89e2b071e57148bd91995ee1053ca1cbeeab715d3cfdae0a447379ba5"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
@@ -47,14 +47,24 @@ intent:
           about the past.
       36  in 12 files under lib/ - comments, plus four runtime
           diagnostics whose message quotes the path.
-      26  in 5 schema files - descriptions that name the section.
       30  in 12 files under docs/ - prose and links.
+      26  in 5 schema files - descriptions that name the section.
+      20  in 10 files at the root - README, ROADMAP, PACKAGES, USAGE,
+          KERNEL_AGENTS, the CHANGELOG, the attestation source map,
+          policies.yaml and the two copies of the adoption skill.
+      16  in 5 files under tests/ that are not cram fixtures.
       9   in bin/Mathc.ml - runtime strings and comments.
       7   in 3 files under scripts/ - one of them a check that greps
           the document.
       6   in 6 site pages.
-      6   in the two copies of the adoption skill.
       2   in spec/ and axioms/ - NORMATIVE TEXT.
+
+    The list above is MEASURED, not estimated, and it sums to the 331
+    the header claims. Two classes the first draft of this paragraph
+    left out - the twenty in the root documents and the sixteen under
+    tests/ that are not cram fixtures - are in it now, and one of its
+    numbers was wrong: the two copies of the adoption skill carry FOUR
+    mentions between them, not six.
 
     And 122 section pointers of the form `algebra §N` in lib/, bin/
     and tests/ alone (93 in lib/, 9 in bin/, 20 in tests/). They
@@ -77,6 +87,9 @@ intent:
              land with it.
       rev 2  the kernel and the CLI: the four runtime diagnostics and
              the 122 section pointers name the new path.
+      rev 3  the live corpus: thirty decisions, the five schema files,
+             the site, the documentation and the installer template
+             follow the file.
 
 counterexample: |
   The strongest objection against this transition is that it changes
@@ -204,7 +217,16 @@ commitment: |
      fixture below asserts that the archive still holds its mentions,
      so a future "cleanup" that rewrites them fails.
 
-  7. The PLANS ARE NOT TOUCHED, and this is a deliberate exception
+  6b. THE CHANGELOG IS NOT REWRITTEN EITHER, for the same reason
+     the archive is not rewritten. Its entries are dated records of
+     what each release shipped, and the v3.3.3 rename set the
+     precedent: the release notes keep the names the files had when
+     those releases were cut. The rename of this tranche is recorded
+     the way that precedent records a rename - a NEW entry in the
+     Unreleased section, naming both names, above the history rather
+     than inside it.
+
+  7. THE PLANS ARE NOT TOUCHED, and this is a deliberate exception
      to the rule in (2). `docs/plans/redundancy-and-portability-2026-11.md`
      is the plan that MEASURED this transition: it counted the
      mentions and named the old path to do it. Rewriting the plan
@@ -220,6 +242,16 @@ commitment: |
      visible and reviewable rather than by refusing it: a protected
      transition that nobody can see is not protected, it is just
      unlogged.
+
+  8b. WHAT THE INSTRUMENT EXCLUDES IS DECLARED IN THE INSTRUMENT.
+     Five places may still name the old path, and each of them says
+     why in the fixture's own header, because an exclusion that
+     nobody can account for is an exclusion that hides a hole:
+     the archive (history), the plans (the measurement that counted
+     the mentions), the CHANGELOG (the record of what each release
+     shipped), this decision (the record of the move), and the
+     instrument itself (a check that cannot name the thing it forbids
+     cannot forbid it).
 
   9. THE INSTRUMENT IS EXECUTABLE AND IT HAS TEETH.
      `tests/fixtures/kernel-contract-rename-2026-11.sh` asserts that
@@ -283,6 +315,17 @@ scope:
     - "site/**"
     - "adoption/SKILL.md"
     - ".opencode/skills/math-coding/SKILL.md"
+    - "README.md"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+    - "USAGE.md"
+    - "KERNEL_AGENTS.md"
+    - "CHANGELOG.md"
+    - "attestation-source-map.md"
+    - "policies.yaml"
+    - "docs/**"
+    - "assets/**"
+    - "tests/**"
   exclusions:
     - "archive/decisions/**"
     - "docs/plans/**"
@@ -418,7 +461,5 @@ reversal:
     action: review
 
 relations:
-  addresses:
-    - plan-2026-10-improvements@1
   supersedes: []
   superseded_by: []
