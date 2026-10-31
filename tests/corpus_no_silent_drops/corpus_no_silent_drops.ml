@@ -125,7 +125,6 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
    render-ordered-lists (expected ':' after a mapping key). *)
 let author_malformed =
   [
-    "decisions/ci-blocking-list-config.yaml";
     "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml";
     "decisions/mathc-packages-subcommand.yaml";
   ]
