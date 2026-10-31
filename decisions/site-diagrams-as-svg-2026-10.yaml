@@ -1,19 +1,19 @@
 ---
 schema: math-coding/3.2
 id: site-diagrams-as-svg-2026-10
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:d0f24fe36f893dfef321f2e5998621715d81ebf1c0057177fa40f4b46b0d3fac"
-yaml_sha: "sha256:d0f24fe36f893dfef321f2e5998621715d81ebf1c0057177fa40f4b46b0d3fac"
+body_sha: "sha256:bd68ce259fdf24325df10c4c69dbfddbb6d3b1c8618ca378fafe4a0beff887d0"
+yaml_sha: "sha256:bd68ce259fdf24325df10c4c69dbfddbb6d3b1c8618ca378fafe4a0beff887d0"
 axiom_link:
   - A3
 intent: |
   Mermaid-rendered diagrams on the site look off-palette and
   break the Tufte rhythm, and several diagram-bearing pages
-  (methodology, foundations) trail their figures in a lump at
-  the end instead of placing each figure next to the paragraph
-  it illustrates. This decision removes Mermaid from the render
-  pipeline entirely and replaces every diagram with a
+  (methodology, foundations) trail their figures in a lump at the
+  end instead of placing each figure next to the paragraph
+  it illustrates. This decision removed Mermaid from the render
+  pipeline entirely and replaced every diagram with a
   hand-rolled, accessibility-tagged SVG in the unified Tufte
   palette (oxblood / cream). Each figure is embedded inline via
   the `![alt](assets/foo.svg)` markdown form, positioned at the
@@ -28,15 +28,43 @@ intent: |
   `.mathc-figure-inline` wrapper and whose mermaid FSM is
   retired.
 
+  WHY THE RISK WAS LOW (the rev-1 risk note, kept because it is the
+  reasoning and not a number): the change removes a third-party
+  dependency (the Mermaid CDN), which is strictly a reduction in
+  runtime surface. The SVG figures are additive artifacts; the
+  renderer change was a deletion plus a small inline-figure branch.
+  Reversal was one revert commit.
+
+  2026-10-31, REVISION 2: THE BEHAVIOUR IS UNCHANGED, ITS ANCHORS ARE
+  NOT. (1) The renderer that carries the promise moved: the Mermaid
+  removal and the inline-figure branch live in `lib/render/render.ml`
+  and, for the figure markup itself, in `lib/render/render_md.ml`;
+  `lib/render.ml` no longer exists as a file. (2) The RISK MAP WAS THE
+  ONLY ONE IN THE CORPUS THAT DID NOT CARRY AN OWNER AND A SET OF
+  DECLARED TRIGGERS. The schema requires both, 138 of the 140 live
+  decisions carry `declared_triggers` and 136 carry `owner`, and this
+  one carried neither; the risk now carries both, and the reasoning
+  that used to live in the risk map moved up into this intent where
+  it can still be read.
+
+  Measured on 2026-10-31: `grep -rn mermaid lib/ bin/ assets/style.css`
+  returns nothing; the eight diagram pages each carry at least one
+  `<figure class="mathc-figure mathc-figure-inline">`; and no rendered
+  page carries a `class="mermaid"` element.
+
 commitment: |
   `mathc render` no longer emits Mermaid markup and no longer
-  loads the Mermaid CDN. `lib/render.ml`, `bin/Mathc.ml`, and
-  `assets/style.css` carry no Mermaid support, and the eight
-  diagram pages (methodology, foundations, manifesto, workflow,
-  bootstrap-gate, axioms/separation, axioms/feedback,
-  axioms/self-application) render every diagram as
+  loads the Mermaid CDN. The render kernel (`lib/render/render.ml`,
+  `lib/render/render_md.ml`), `bin/Mathc.ml`, and `assets/style.css`
+  carry no Mermaid support, and the eight diagram pages (methodology,
+  foundations, manifesto, workflow, bootstrap-gate, axioms/separation,
+  axioms/feedback, axioms/self-application) render every diagram as
   `<figure class="mathc-figure mathc-figure-inline">` wrapping
   an `<img>` to a present `assets/*.svg`.
+
+  The CLI carries no Mermaid switch: `mathc render --help` lists only
+  `--out`, `--lang`, `--site-base`, `--mathjax` and `--no-mathjax`.
+  That is the shape of the promise today; there is no flag to remove.
 
 scope:
   capabilities:
@@ -61,14 +89,21 @@ scope:
     - "assets/bootstrap-regime.svg"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   lib/render.ml - no tracked file matches it
+  # 2026-10-31: the render kernel was split; the implementation lives in
+  #   lib/render/render.ml and lib/render/render_md.ml. The scope names
+  #   the files this decision TOUCHED; the implementation anchor is named
+  #   in prose.
 
 outcomes:
   - id: mermaid-removed-from-renderer
     statement: |
-      `lib/render.ml`, `bin/Mathc.ml`, and `assets/style.css`
+      The render kernel (`lib/render/render.ml`,
+      `lib/render/render_md.ml`), `bin/Mathc.ml`, and `assets/style.css`
       contain no Mermaid support: no `mermaid` code-fence
       branch, no `enable_mermaid` config field or CLI flag, no
       Mermaid CDN script, and no `.mermaid` CSS rules.
+      Measured on 2026-10-31 by
+      `grep -rn mermaid lib/ bin/ assets/style.css`: no hits.
   - id: inline-figures-render-on-eight-pages
     statement: |
       The rendered `dist/` pages for methodology, foundations,
@@ -77,6 +112,10 @@ outcomes:
       at least one `<figure class="mathc-figure
       mathc-figure-inline">` and zero Mermaid `<div
       class="mermaid">` elements.
+      Measured on 2026-10-31 by `bash scripts/render.sh` followed by
+      a grep for `mathc-figure-inline` over those eight pages: 8 of 8
+      carry the figure, and `grep -rc 'class="mermaid"' dist`
+      finds none.
 
 obligations:
   - id: mermaid-removed-from-renderer
@@ -85,7 +124,7 @@ obligations:
       No Mermaid support remains in the render pipeline: the
       `mermaid` code-fence branch, the `enable_mermaid` config
       field, the `--mermaid` CLI flag, and the Mermaid CDN
-      script are all absent from `lib/render.ml` and
+      script are all absent from the render kernel and
       `bin/Mathc.ml`, and no `.mermaid` CSS rule remains in
       `assets/style.css`.
     acceptance:
@@ -103,9 +142,9 @@ obligations:
         - verifier: tests/render_kernel.ml
 
 counterexample: |
-  "Removing Mermaid loses the ability to write a quick diagram
+  Removing Mermaid loses the ability to write a quick diagram
   in a fenced block without hand-authoring an SVG; the author
-  is now forced to hand-roll every diagram."
+  is now forced to hand-roll every diagram.
 
   Counterargument: the hand-rolled SVGs are the point. Mermaid's
   default palette and typography do not respect the Tufte
@@ -118,8 +157,8 @@ counterexample: |
   justify.
 
 antithesis: |
-  The strongest counter-position: "keep Mermaid and style it
-  with CSS overrides instead of replacing it."
+  The strongest counter-position: keep Mermaid and style it
+  with CSS overrides instead of replacing it.
 
   That position is rejected because (a) Mermaid's SVG is
   generated client-side from its own source grammar, so the
@@ -130,7 +169,7 @@ antithesis: |
   "Syntax error in text" regressions recorded in
   `mathjax-delimiter-te-and-skip-mermaid-2026-10`; (c) a
   hand-rolled SVG is a static, diff-able artifact that the
-  kernel's own renderer emits unchanged — the diagram becomes
+  kernel's own renderer emits unchanged -- the diagram becomes
   data the methodology can inspect, not a runtime side effect.
 
 assumptions:
@@ -148,16 +187,12 @@ assumptions:
       - signal: deployment-target-moves-to-host-root
 
 risk:
-  impact: low
-  probability: low
-  irreversibility: low
-  mode_floor: tiny
-  rationale: |
-    The change removes a third-party dependency (Mermaid CDN),
-    which is strictly a reduction in runtime surface. The SVG
-    figures are additive artifacts; the renderer change is a
-    deletion plus a small inline-figure branch. Reversal is one
-    revert commit.
+  owner: human:maintainer
+  declared_triggers:
+    - a-mermaid-reference-returns-to-the-render-pipeline
+    - an-inline-figure-renders-without-its-alt-text
+    - design-restyle-breaks-passive-og-vibe
+    - chrome-quirk-renders-svg-differently
 
 relations:
   supersedes:
