@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: process-principles
 revision: 5
 state: active
-body_sha: "sha256:c7c18e27da10cc18f817cec5d517ecf2d8b779cabaed13dbd3584bcc20af9f8a"
-yaml_sha: "sha256:c7c18e27da10cc18f817cec5d517ecf2d8b779cabaed13dbd3584bcc20af9f8a"
+body_sha: "sha256:26ff6ef762aa2d939e136c98949d61263a06c95bbf8b54d320907a2ba05a2c0c"
+yaml_sha: "sha256:26ff6ef762aa2d939e136c98949d61263a06c95bbf8b54d320907a2ba05a2c0c"
 intent: |
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
@@ -387,6 +387,6 @@ risk:
 relations:
   addresses:
     - bootstrap-v3
-    - ROADMAP.md#process-principles-binding-on-all-agents
+    - ./ROADMAP.md#process-principles-binding-on-all-agents
   supersedes: []
   superseded_by: []

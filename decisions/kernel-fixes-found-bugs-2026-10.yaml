@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: kernel-fixes-found-bugs-2026-10
 revision: 1
 state: active
-body_sha: "sha256:b7e2587282bcc2e7f68c963374a6008d4f702ddfbbb4eac233dd49ab86a435aa"
-yaml_sha: "sha256:b7e2587282bcc2e7f68c963374a6008d4f702ddfbbb4eac233dd49ab86a435aa"
+body_sha: "sha256:3a02220394e0738d0b655c5d60267873b45fbf948ed8bd723e15f3a6ce0ce191"
+yaml_sha: "sha256:3a02220394e0738d0b655c5d60267873b45fbf948ed8bd723e15f3a6ce0ce191"
 intent: |
   Six defects found while landing `solo-default-on-2026-10@1`, of
   which three are data-integrity bugs rather than cosmetics, fixed as
@@ -69,6 +69,11 @@ intent: |
   racing a stub server with `sleep 0.2`; `scripts/install-tooling/
   install.sh` committed mode 100644, so every fixture that executes it
   got exit 126.
+
+  2026-11: the decision that landed the adopt subcommand was deleted
+  from the corpus on 2026-10-29, so the relation that named it is gone. The
+  subcommand is in the tree and this decision's own obligations cover it
+  (tests/cli/adopt.t); the trail is in git history.
 
 axiom_link:
   - A0
@@ -324,7 +329,6 @@ relations:
   addresses:
     - bootstrap-v3@3
     - solo-default-on-2026-10@1
-    - ux-3-adopt-subcommand-2026-10@1
     - archive/decisions/ux-3-minimal-pollution-2026-10.yaml
     - verifier-scheme-convention-2026-11@1
   supersedes: []
