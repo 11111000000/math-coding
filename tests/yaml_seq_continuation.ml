@@ -441,24 +441,31 @@ let test_corpus_schema_keys_were_recovered () =
         (List.mem_assoc "estimated_class" ps)
   | _ -> Alcotest.fail "expected an object"
 
-(* D3 must keep working. The two corpus files carrying a stray
-   document marker still report it: the D4 fix changes the sequence
-   parser, not front-matter stripping, and a test that let the
-   marker detection lapse would let the D3 files look repaired. *)
+(* D3 must keep working. The corpus file that carried a stray
+   document marker (`decisions/forge-stub-read-request-2026-10.yaml`)
+   was repaired on 2026-11-01, and no tracked file in the repository
+   carries a stray marker any more -- so the pin moves from the
+   corpus to a synthetic document. The CLAIM is unchanged: the D4
+   fix changes the sequence parser, not front-matter stripping, and
+   a test that let the marker detection lapse would let a repaired
+   file look repaired for the wrong reason. *)
 let test_document_marker_detection_is_unchanged () =
-  List.iter
-    (fun rel ->
-      let path = in_repo rel in
-      let raw = In_channel.with_open_bin path In_channel.input_all in
-      let _, leftover, extra = Codec.load_yaml_string_full raw in
-      Alcotest.check Alcotest.int
-        (rel ^ ": the marker is still found")
-        1
-        (match extra with None -> 0 | Some _ -> 1);
-      Alcotest.check Alcotest.int
-        (rel ^ ": it truncates pre-tokenisation")
-        0 (List.length leftover))
-    [ "decisions/forge-stub-read-request-2026-10.yaml" ]
+  let raw =
+    String.concat "\n"
+      [
+        "---";
+        "schema: math-coding/3.3";
+        "id: synthetic-second-marker";
+        "intent: a document that carries a stray second marker";
+        "---";
+        "counterexample: the tail behind the marker is invisible";
+      ]
+  in
+  let _, leftover, extra = Codec.load_yaml_string_full raw in
+  Alcotest.check Alcotest.int "the marker is still found" 1
+    (match extra with None -> 0 | Some _ -> 1);
+  Alcotest.check Alcotest.int "it truncates pre-tokenisation" 0
+    (List.length leftover)
 
 let () =
   Alcotest.run

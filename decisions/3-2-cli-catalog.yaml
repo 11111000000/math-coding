@@ -1,67 +1,99 @@
 ---
 schema: math-coding/3.2
 id: 3-2-cli-catalog
-revision: 2
+revision: 3
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:c95e31307b8d66ac1c60af9baa61f3ee41317a7a2b2da9fb6385485b0ac54a1c"
-yaml_sha: "sha256:c95e31307b8d66ac1c60af9baa61f3ee41317a7a2b2da9fb6385485b0ac54a1c"
+body_sha: "sha256:4708e1adcef9e915b597f9467fa80487fce14a4571448c50a0dd6a106ebe824c"
+yaml_sha: "sha256:4708e1adcef9e915b597f9467fa80487fce14a4571448c50a0dd6a106ebe824c"
 intent: |
-  Resolve the spec-vs-implementation drift on 3.2-ideal
-  algebra subcommands. The `bin/Mathc.ml` dispatcher at HEAD
-  recognises 17 subcommands; `spec/semantics.md §CLI
-  subcommands` documents 14. The three undocumented
-  subcommands are:
+  Resolve the spec-vs-implementation drift on the 3.2-ideal algebra
+  subcommands. The three subcommands this decision is about --
+  `mathc mode`, `mathc rebuttals`, `mathc re-evaluate` -- are
+  dispatched by `bin/Mathc.ml` and are catalogued in
+  `spec/semantics.md §CLI subcommands` and in README.md's `## CLI`
+  table.
 
-    mathc mode       — kernel contract §2 risk function (lib/risk.ml);
-    mathc rebuttals  — kernel contract §10 hybrid rebuttal mechanism
-                    (lib/rebuttal.ml);
-    mathc re-evaluate — kernel contract §17 re-evaluation oracle
-                    (lib/re_evaluation.ml).
+  2026-11-01, REVISION 3: THE HISTORICAL COUNTS ARE GONE, AND THE
+  GLOBAL CLAIM WAS NEVER TRUE. When this decision was written the
+  dispatcher recognised 17 subcommands and the spec documented 14,
+  and the three below were the undocumented ones. That arithmetic is
+  history and this revision does not repeat it: the counts are the
+  ones the tree measures today, and they are measured by a fixture,
+  not asserted here.
 
-  These subcommands were introduced in the v3.1.0-alpha
-  algebra batch (between ff9e738 and fd7ea8b, recorded in
-  ROADMAP Tier 3.5) but the spec rows were forgotten. The
-  spec at `spec/semantics.md:152` mandates:
+  Measured on this tree on 2026-11-01: the dispatcher's help names
+  39 commands; `spec/semantics.md §CLI subcommands` carries 18 rows;
+  21 implemented commands are therefore still undocumented. The
+  promise "the catalog lists every subcommand the dispatcher
+  recognises" has been false for as long as it has been written, and
+  a promise that is false on the day it is written is decoration.
+  So the promise is RE-SCOPED to what this decision actually did and
+  what the tree can keep:
 
-    "an implementation MUST NOT add a new subcommand without
-    first adding a row here, and MUST NOT change a subcommand's
-    documented exit code without a corresponding spec edit."
+    THIS DECISION PROMISES THE THREE NAMED SUBCOMMANDS, NOT THE
+    WHOLE SURFACE.
+      `mathc mode`, `mathc rebuttals` and `mathc re-evaluate` each
+      carry a row in `spec/semantics.md §CLI subcommands` and a row
+      in README.md's `## CLI` table, and each has a positive and a
+      negative cram fixture. That is checked today by
+      `tests/fixtures/3-2-cli-catalog-rows-present.sh` and by the
+      three cram files under `tests/cli/`.
 
-  This decision closes the drift by adding the three rows to
-  the spec, the corresponding entries in `README.md`, and a
-  positive cram fixture for each. The behavior of the
-  subcommands is unchanged; only the documentation catches
-  up to the implementation.
+    THE WHOLE-CATALOG PROMISE BELONGS TO `spec-cli-catalog`, AND IT
+    IS A MEASURED GAP THERE.
+      `decisions/spec-cli-catalog.yaml` (revision 3) owns the global
+      invariant, and owns it as a number with a ceiling that may
+      only fall: `tests/fixtures/spec-cli-catalog-gap.sh` reads the
+      dispatch arms out of `bin/Mathc.ml` and the rows out of
+      `spec/semantics.md`, prints the undocumented commands by name,
+      and fails when their number exceeds its ceiling (21, measured
+      2026-11-01). This decision does not repeat that number, does
+      not claim the gap is closed, and does not duplicate the
+      instrument: one gap, one owner, one fixture.
+
+  The spec's rule is unchanged and still normative. `spec/semantics.md
+  §CLI subcommands` says: "an implementation MUST NOT add a new
+  subcommand without first adding a row here, and MUST NOT change a
+  subcommand's documented exit code without a corresponding spec
+  edit." This revision cites the SECTION, not a line number: the
+  spec's lines move, the section does not.
 
   History:
-    rev 1 (this commit): initial adoption under the
-                          bootstrap-v3@2 policy.
+    rev 1: initial adoption under the bootstrap-v3@2 policy.
+    rev 3 (this revision): the historical 17/14 arithmetic and the
+      global "lists every subcommand" claim are replaced by the
+      scoped, checkable promise above; the unread tail of this file
+      is repaired so the kernel reads it to EOF.
 
 axiom_link:
   - A0
 commitment: |
-  Three subcommands become first-class entries in
-  `spec/semantics.md §CLI subcommands` and `README.md`:
+  `mathc mode`, `mathc rebuttals` and `mathc re-evaluate` are
+  first-class entries in `spec/semantics.md §CLI subcommands` and in
+  README.md's `## CLI` table:
     - `mathc mode PATH1 PATH2 ...` — risk classification
     - `mathc rebuttals COMMIT_SHA` — sibling-YAML rebuttal walker
     - `mathc re-evaluate DECISION_ID AXIOM_ID` — re-evaluation
       oracle
 
-  For each, add a positive cram fixture under `tests/cli/`
-  that asserts exit code 0 and the documented output keys,
-  and a negative cram fixture that asserts exit code 2 on
-  missing required arguments.
+  For each, a positive cram fixture under `tests/cli/` asserts exit
+  code 0 and the documented output keys, and a negative cram fixture
+  asserts exit code 2 on missing required arguments.
 
-  Migration: README's CLI table at line 41-50 grows by three
-  rows. spec/semantics.md's table at line 148 grows by three
-  `### \`<subcommand>\`` sections.
+  The rows live where they live: in the SECTION
+  `spec/semantics.md §CLI subcommands` and in README.md's `## CLI`
+  table. This decision names sections, not line numbers, because the
+  spec's line numbers move when the normative text is rewritten and
+  a promise that points at a line is a promise that expires.
 
-  Recovery: revert the commit. The 3 subcommands remain
-  dispatchable but lose their spec rows, returning to the
-  pre-rev-1 drift state. This is acceptable because the
-  subcommands are still documented in `bin/Mathc.ml` and the
-  README — the spec gap is the only thing the revert restores.
+  Migration: none. The three subcommands are already dispatched and
+  already catalogued; this revision changes no behaviour, no
+  normative text and no fixture.
+
+  Recovery: revert the commit. The three subcommands remain
+  dispatchable and keep their rows; the spec gap they were added to
+  close is a separate instrument's business (see `spec-cli-catalog`).
 
 scope:
   paths:
@@ -70,23 +102,49 @@ scope:
     - tests/cli/mode.t
     - tests/cli/rebuttals.t
     - tests/cli/re-evaluate.t
+    - tests/fixtures/3-2-cli-catalog-rows-present.sh
 
 outcomes:
-  - id: spec-catalog-complete
-    statement: spec/semantics.md §CLI subcommands lists every
-      subcommand the dispatcher recognises at HEAD; the spec
-      and the implementation no longer disagree.
-  - id: readme-catalog-complete
-    statement: README.md's CLI table lists every subcommand
-      the dispatcher recognises at HEAD; readers of the
-      README no longer see "missing" subcommands in `mathc --help`.
+  - id: the-three-named-subcommands-are-catalogued
+    statement: |
+      `spec/semantics.md §CLI subcommands` carries a row for each of
+      the three subcommands this decision adopted -- `mode`,
+      `rebuttals` and `re-evaluate` -- and README.md's `## CLI` table
+      carries a row for each of the three. The spec and the
+      dispatcher no longer disagree ABOUT THESE THREE.
+  - id: the-whole-catalog-gap-is-elsewhere
+    statement: |
+      The promise that the normative catalog lists EVERY command the
+      dispatcher answers is not this decision's: it belongs to
+      `decisions/spec-cli-catalog.yaml` (revision 3), which measures
+      the gap with `tests/fixtures/spec-cli-catalog-gap.sh` and holds
+      it under a ceiling that may only fall. This decision claims
+      the three named subcommands and no more, and says so where a
+      reader would otherwise read a global claim.
   - id: fixtures-positive-and-negative
-    statement: every 3.2 subcommand has both a positive cram
-      fixture (exit 0 with the documented output) and a
-      negative one (exit 2 on missing arguments).
+    statement: |
+      Each of the three subcommands has a positive cram fixture
+      (exit 0 with the documented output) and a negative one (exit 2
+      on missing arguments), under `tests/cli/`.
 
 counterexample: |
-  Adding spec rows for already-shipped subcommands duplicates information without changing behaviour.
+  "Adding spec rows for already-shipped subcommands duplicates
+  information without changing behaviour."
+
+  The objection is right about the three this decision is about --
+  they are shipped, the rows exist, and no behaviour changed -- and
+  wrong about the consequence. The spec is the authoritative
+  contract, and a command the reader cannot find in the contract is
+  a command the reader does not know exists. The rows are what
+  makes the implementation and the contract say the same thing, and
+  they are what `tests/fixtures/3-2-cli-catalog-rows-present.sh`
+  checks.
+
+  The same objection is why this decision no longer claims the whole
+  surface. Three rows are a promise the fixture can check; "every
+  command the dispatcher recognises has a row" is a promise the tree
+  does not keep today, and the decision that owns that promise owns
+  its measurement.
 
 assumptions:
   - id: algebra-batch-is-shipped
@@ -103,22 +161,41 @@ assumptions:
       dispatcher.
     review_on:
       - signal: algebra-3-2-shipped
+  - id: the-catalog-drift-is-measured-elsewhere
+    state: assumed
+    statement: |
+      The promise this decision used to make about the WHOLE catalog
+      is now owned by `decisions/spec-cli-catalog.yaml` and measured
+      by `tests/fixtures/spec-cli-catalog-gap.sh`, whose ceiling may
+      only fall. This decision assumes that instrument keeps running
+      and keeps naming the undocumented commands by name; if it were
+      removed, the gap would become silent again and the whole-surface
+      claim would have no instrument behind it at all.
+    owner: human:maintainer
+    consequence_if_false: |
+      If the gap fixture is retired without this decision taking the
+      promise back, the corpus loses the only measurement of the
+      spec-vs-dispatcher drift, and the catalog can silently fall
+      behind the dispatcher again. The trigger below fires when the
+      fixture stops being part of the suite.
+    review_on:
+      - signal: spec-cli-catalog-gap-fixture-is-removed
 
 obligations:
   - id: mode-subcommand-spec-row
-    outcome: spec-catalog-complete
+    outcome: the-three-named-subcommands-are-catalogued
     claim: |
       `spec/semantics.md §CLI subcommands` contains a
       `### \`mode [PATH ...] [--format=json|text]\`` row
       with the same synopsis, exit code, and justification
-      sections as the other 14 rows.
+      sections as the other rows in that section.
     acceptance:
       all:
         - verifier: tests/cli/mode.t
         - verifier: shell-grep spec/semantics.md `mode [PATH ...] [--format=json|text]`
 
   - id: rebuttals-subcommand-spec-row
-    outcome: spec-catalog-complete
+    outcome: the-three-named-subcommands-are-catalogued
     claim: |
       `spec/semantics.md §CLI subcommands` contains a
       `### \`rebuttals COMMIT_SHA\`` row.
@@ -128,7 +205,7 @@ obligations:
         - verifier: shell-grep spec/semantics.md `rebuttals COMMIT_SHA`
 
   - id: re-evaluate-subcommand-spec-row
-    outcome: spec-catalog-complete
+    outcome: the-three-named-subcommands-are-catalogued
     claim: |
       `spec/semantics.md §CLI subcommands` contains a
       `### \`re-evaluate DECISION_ID AXIOM_ID\`` row.
@@ -137,12 +214,14 @@ obligations:
         - verifier: tests/cli/re-evaluate.t
         - verifier: shell-grep spec/semantics.md `re-evaluate DECISION_ID AXIOM_ID`
 
-  - id: readme-cli-table-grows-by-three
-    outcome: readme-catalog-complete
+  - id: readme-cli-table-carries-the-three
+    outcome: the-three-named-subcommands-are-catalogued
     claim: |
-      README.md's CLI table (line 41-50) gains three rows:
-      `mathc mode`, `mathc rebuttals`, `mathc re-evaluate`. The new
-      rows use the same `| \`mathc ...\` | Purpose |` format.
+      README.md's `## CLI` table carries a row for each of
+      `mathc mode`, `mathc rebuttals` and `mathc re-evaluate`, in
+      the same `| \`mathc ...\` | Purpose |` format as the other
+      rows. The row is there, not the fact that the table once
+      grew by three: the table's contents are what is checked.
     acceptance:
       all:
         - verifier: tests/fixtures/3-2-cli-catalog-rows-present.sh
@@ -181,24 +260,15 @@ risk:
   declared_triggers:
     - spec-catalog-falls-behind-dispatcher-again
     - cram-fixture-flake-on-clock
-  - drift_recurs: |
-      A future addition to bin/Mathc.ml adds a subcommand
-      without adding a spec row. Mitigation: the existing
-      `text-scan-spec-semantics-md-*` verifier in
-      `tests/repo_structure.ml` is now joined by three new
-      verifiers (mode/rebuttals/re-evaluate). A spec-cat
-      detector similar to the priority-drift detector (see
-      `decisions/priority-drift.yaml`) would be a natural
-      follow-up; this decision records the manual
-      `text-scan` checks as the floor.
+  owner: human:maintainer
 
 reversal:
   - signal: spec-row-becomes-wrong
-    action: re-issue this decision with rev: 2, correcting
-      the synopsis or exit code
+    action: re-issue this decision with the next revision, correcting
+      the synopsis or exit code of the row it names
 
 relations:
   addresses:
-    - bootstrap-v3@2
+    - bootstrap-v3@4
   refines:
-    - algebra-3.2@1
+    - algebra-3.2@3

@@ -1,14 +1,49 @@
 ---
 schema: math-coding/3.2
 id: algebra-3.2
-revision: 2
+revision: 3
 state: active
-body_sha: "sha256:d3a2b5430c72cb4f65fa1ca73d3c52307631c9ddc3107fb03ef27f3b7bd095bc"
-yaml_sha: "sha256:d3a2b5430c72cb4f65fa1ca73d3c52307631c9ddc3107fb03ef27f3b7bd095bc"
+body_sha: "sha256:1b900c04a41826380acd2eb73c483759cbb59ec65b15e5d7470432b76bc92dde"
+yaml_sha: "sha256:1b900c04a41826380acd2eb73c483759cbb59ec65b15e5d7470432b76bc92dde"
 intent: |
-  Adopt `spec/kernel-contract.md` as the authoritative formal specification
-  of the math-coding 3.2-ideal kernel, supplementing (not replacing)
-  the 14 constitution invariants from `spec/constitution.md`.
+  Adopt the kernel contract as the authoritative formal specification
+  of the math-coding kernel, supplementing (not replacing) the
+  constitution invariants from `spec/constitution.md`.
+
+  2026-11-01, REVISION 3: THE PATH MOVED, THE NUMBERS MOVED, AND THE
+  PROMISE DID NOT. Three things in this file had gone stale, and all
+  three were form rather than substance:
+
+    THE DOCUMENT IS AT ITS CURRENT PATH.
+      The normative text is `spec/kernel-contract.md`. It was renamed
+      in a protected transition of its own, with its own decision
+      (`decisions/kernel-contract-rename-2026-11.yaml`) and its own
+      instrument (`tests/fixtures/kernel-contract-rename-2026-11.sh`).
+      This revision names the contract by its section, never by a line
+      number: the sections are the durable names, and the contract's
+      own rewrite (tranche T3.2 of
+      `docs/plans/redundancy-and-portability-2026-11.md`, which shrinks
+      it to about a hundred lines) will move every line in it.
+
+    "28 ACTIVE DECISIONS" WAS A SNAPSHOT OF A CORPUS THAT KEPT
+    GROWING.
+      The corpus this decision adopts the algebra for is not 28
+      decisions and never was again. The number is not repeated here,
+      because a number that moves is a number that expires. What is
+      promised instead is the INVARIANT: every decision in the live
+      corpus parses under the current schema, and none of them needed
+      an edit to stay valid. The migration was implicit because the
+      schema grew by optional fields with defaults, and that is the
+      property the corpus still has.
+
+    "`mathc self-check` RETURNS `pass` ON CLEAN HEAD" WAS NEVER TRUE
+    OF THIS TREE AND IS NOT TRUE NOW.
+      Measured on this tree on 2026-11-01: `mathc self-check` answers
+      verdict `unknown` and exits 3, because the attestation store is
+      GENERATED per run and a checkout carries no evidence to certify.
+      The kernel's conformance over its own fixture corpus is a
+      different instrument and it does pass. This revision separates
+      the two and names each.
 
   The 3.2 algebra was derived from:
   - Simulation analysis (4 subagent behavior reports on 3.1-ideal)
@@ -18,30 +53,50 @@ intent: |
     uncertainty principle added, 8 relations enum explicit, 3
     obligation phases made normative)
 
+  History:
+    rev 1: initial adoption of the algebra as the normative
+      specification.
+    rev 2: the corpus grew and the deviations were tracked.
+    rev 3 (this revision): the contract is named by its current path
+      and by its sections rather than by a count and a line number;
+      the corpus promise becomes an invariant; the conformance
+      promise names the instrument that answers it.
+
 axiom_link:
   - A0
 commitment: |
-  The math-coding project formally adopts the 3.2 algebra as the
+  The math-coding project formally adopts the kernel contract as the
   mathematical specification of what the kernel MUST enforce.
 
   Concretely:
-  - `spec/kernel-contract.md` is a normative spec alongside constitution.md
+  - `spec/kernel-contract.md` is a normative spec alongside
+    `spec/constitution.md`
   - The kernel implementation (lib/*.ml) must conform to the algebra
-  - New kernel rules MUST be added via decision files following §20
-  - Applicability envelope (§28) guides adoption decisions per project
-  - Binary distribution (§30) is the user-facing property: kernel ships
-    for 5 platforms, users do not need OCaml/nix/dune
+  - New kernel rules MUST be added via decision files following the
+    kernel contract's own §20 (Kernel rules)
+  - The applicability envelope (§28) guides adoption decisions per
+    project
+  - Binary distribution (§30) is the user-facing property: the kernel
+    ships for its target platforms, users do not need OCaml/nix/dune
 
   Boundaries:
-  - Constitution invariants I1-I14 preserved verbatim
-  - 5 axioms A0-A4 preserved verbatim
-  - 5 modes preserved
-  - §7 Decision entity extends v3 with state, sha fields, epistemic markers
+  - Constitution invariants preserved verbatim. The constitution
+    carries I1-I14 with the lettered sub-invariants 14b (symmetric
+    exit honesty) and 14c (waiver-bounded exit); the adoption adds
+    nothing to them.
+  - The 5 axioms A0-A4 preserved verbatim
+  - The 5 modes preserved
+  - §7 Decision entity extends v3 with state, sha fields, epistemic
+    markers, and the §7.1 sub-section that names the byte-range
+    algorithm
   - §15 Gate verdict adds 3 obligation phases
   - §17 Axiom change adds transition kinds + re_evaluate oracle
   - §20 Kernel rules adds CoCommitDecision + CoCommitFixture
   - §24 Adoption path drops 3.2-L (user direction)
-  - §28-§30 are new meta-constructs
+  - §28 and §30 are new meta-constructs. The contract's own summary
+    table also lists a §29 (Two-tier cognitive model); the table row
+    is there and the section body is not, so this decision does not
+    promise a §29 section.
 
 scope:
   capabilities:
@@ -80,73 +135,101 @@ scope:
     - ".github/workflows/site.yml"
     - ".github/workflows/release.yml"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
-  #   \"lib/attestations/attestations.ml\" - malformed: a comment inside the quoted path
+  #   "lib/attestations/attestations.ml" - malformed: a comment inside the quoted path
   # 2026-11: AGENTS.md was renamed to KERNEL_AGENTS.md; the scope names
   #   the file that exists.
   exclusions:
     - "axioms/**"            # axioms are immutable per A3 Self-Application
-    - "spec/constitution.md" # I1-I14 preserved verbatim
+    - "spec/constitution.md" # the invariants are preserved verbatim
     - "legacy/**"
 
 outcomes:
   - id: formal-spec-adopted
     statement: |
       `spec/kernel-contract.md` is the authoritative normative spec for
-      the 3.2-ideal kernel, supplementing constitution.md.
+      the kernel, supplementing `spec/constitution.md`. The contract
+      is at that path and at no other: its former name is gone, and no
+      file in the live tree names it. The instrument that measures
+      both halves is `tests/fixtures/kernel-contract-rename-2026-11.sh`.
 
   - id: applicability-envelope-active
     statement: |
       Each new project adopting math-coding evaluates applicability
-      per §28 and chooses Path A (full 3.2) or Path C (no math-coding)
-      based on documented rationale.
+      per the kernel contract's §28 and chooses Path A (full) or
+      Path C (no math-coding) based on a documented rationale. The
+      decision tree is in USAGE.md and the envelope is measured by
+      `tests/cli/applicability-envelope.t`.
 
   - id: kernel-conformance-tracked
     statement: |
-      Kernel implementation conforms to the algebra; deviations are
-      tracked as decisions and added to ROADMAP.
+      The kernel's deviations from the contract are tracked as
+      decisions and listed in ROADMAP.md. This decision does not
+      enumerate them: the contract that separates what the kernel
+      ENFORCES (rule, code, test) from what is only DECLARED is
+      tranche T3.2 of `docs/plans/redundancy-and-portability-2026-11.md`,
+      which supersedes this decision with a document of about a
+      hundred lines.
 
   - id: backward-compatibility-preserved
     statement: |
-      All existing decisions (28 active) continue to satisfy the
-      algebra via optional fields with defaults. Migration is implicit.
+      Every decision in the live corpus parses under the current
+      schema, and no decision file needed an edit to remain valid.
+      The corpus is larger than it was when this decision was adopted
+      and the migration stayed implicit, because the schema grew by
+      optional fields with defaults.
 
 counterexample: |
-  "The 3.2 algebra is over-engineered for the current project scale.
+  "The kernel algebra is over-engineered for the current project scale.
   Most teams don't need multi-CI, axiom transitions, or rebuttal
-  artifacts. The 3.0 kernel already works."
+  artifacts. The kernel already works."
 
-  Counterargument: the 3.2 algebra explicitly addresses this through
-  §28 (applicability envelope) and §29 (two-tier cognitive model).
-  Users in tiny/light modes experience 0 friction and read only ~1100
-  lines. The full algebra is normative for kernel developers (~5
-  people), not for the typical user. Adopting Path C is a documented
-  choice for projects where applicability ≤ 0.
+  Counterargument: the applicability envelope (§28) and the two-tier
+  cognitive model are exactly the answer to this objection. Users in
+  tiny/light modes experience 0 friction; the full algebra is
+  normative for kernel developers, not for the typical user. Adopting
+  Path C is a documented choice for projects where applicability is 0,
+  and the decision tree in USAGE.md asks the question in one line.
 
-  "We just shipped v3.0.0.20 yesterday; reopening the spec this fast
+  "We shipped that kernel recently; reopening the spec this fast
   creates churn."
 
-  Counterargument: the 3.2 algebra is ADDITIVE to v3.0.0.20, not a
-  replacement. v3.0.0.20 satisfies all 14 invariants I1-I14 from
-  constitution.md, which 3.2 also preserves. Implementation rollout
-  is incremental (Tier 1-4 in ROADMAP); users on v3.0.0.20 continue
-  to work without modification. Spec adoption is decoupled from
-  kernel implementation.
+  Counterargument: the adoption is ADDITIVE, not a replacement. The
+  constitution's invariants are preserved verbatim, implementation
+  rollout is incremental, and users on the earlier kernel continue to
+  work without modification. Spec adoption is decoupled from kernel
+  implementation.
 
   "Substrate §30 is aspirational; the binary currently links against
   nix-store glibc."
 
   Counterargument: §30 records this as an anti-property and a
   required fix. The distribution_property violation is a known issue
-  that requires static linking or musl-based build. Tracked under
-  ROADMAP Tier 3 as a separate task.
+  that requires static linking or a musl-based build, tracked under
+  ROADMAP Tier 3 and owned by
+  `decisions/portable-linux-musl.yaml`.
+
+antithesis: |
+  The coherent counter-position considered and rejected: a decision
+  that adopts a normative specification should name the specification
+  by its exact lines, because a section that moves is a promise that
+  expires. The counter-position is right about the failure mode --
+  a promise that points at a line number breaks when the document
+  grows -- and wrong about the cure. Line numbers are not the cure;
+  they are the disease. A promise that names a SECTION survives the
+  document's growth, and a promise that names a FILE survives the
+  file's rewrite, and a promise that names a NUMBER survives neither
+  the next corpus growth nor the next release. This revision names
+  the contract by its path and its sections, and turns the corpus
+  count into the invariant that the count was standing in for.
 
 assumptions:
   - id: constitution-stable
     state: assumed
     statement: |
-      The 14 constitution invariants (I1-I14) are stable and not
-      modified by 3.2 adoption. Any future constitutional change
-      requires a protected-policy transition per A3 Self-Application.
+      The constitution's invariants (I1-I14, with the lettered
+      sub-invariants 14b and 14c) are stable and not modified by the
+      adoption. Any future constitutional change requires a
+      protected-policy transition per A3 Self-Application.
     owner: human:maintainer
     consequence_if_false: |
       Constitutional change would require this decision to be
@@ -157,38 +240,38 @@ assumptions:
   - id: kernel-developers-stable
     state: assumed
     statement: |
-      The set K of kernel developers (1-5 people) is stable for
-      the duration of 3.2 implementation. Per §29 two-tier model.
+      The set K of kernel developers (1-5 people) is stable for the
+      duration of the kernel's implementation. The two-tier model
+      (users and kernel developers) is the contract's own framing.
     owner: human:maintainer
     consequence_if_false: |
       Kernel-developer rotation would require re-distribution of the
-      3600-line kernel-dev documentation burden. New developers
-      onboarded via path in §29.
+      kernel-dev documentation burden; new developers are onboarded
+      through the adoption path in the contract's §24.
     review_on:
       - signal: kernel-developer-rotated
 
   - id: binary-distribution-achievable
     state: assumed
     statement: |
-      The kernel can be compiled to portable binaries for the 5
-      target platforms without nix-store path dependencies. Currently
-      this is a known violation (§30 anti-property); the fix is
+      The kernel can be compiled to portable binaries for its target
+      platforms without nix-store path dependencies. This is a known
+      violation of the contract's §30 anti-property, and the fix is
       tracked separately.
 
-      Status update 2026-10-04: x86_64 Linux coverage is in
-      progress under `decisions/portable-linux-musl.yaml` (Alpine
-      container build inside `.github/workflows/release.yml`).
-      Closure signal: first successful CI run on the
-      `linux-x86_64-musl` matrix entry. aarch64-musl deferred to
-      v3.2.1; macOS and Windows are already non-nix-store-glibc
-      and so satisfy the assumption.
+      Status measured 2026-11-01: the release workflow carries a musl
+      matrix entry (the `linux-x86_64-musl` label, under the Alpine
+      build), and the decision that owns it is
+      `decisions/portable-linux-musl.yaml` (revision 4). The closure
+      signal is unchanged and is an external fact: the first
+      successful CI run on that matrix entry. This repository cannot
+      observe it, and this decision does not claim it happened.
     owner: human:maintainer
     consequence_if_false: |
       If portable binaries prove infeasible, distribution_property in
-      §30 is weakened to "kernel ships as source build, users
-      require OCaml toolchain" — same as 3.0.0.20. Applicability
-      envelope (§28) would then need re-evaluation for projects
-      without OCaml expertise.
+      §30 is weakened to "kernel ships as source build, users require
+      OCaml toolchain". The applicability envelope (§28) would then
+      need re-evaluation for projects without OCaml expertise.
     review_on:
       - signal: portable-build-attempted
       - signal: portable-musl-ci-pass
@@ -212,26 +295,53 @@ obligations:
   - id: spec-file-exists
     outcome: formal-spec-adopted
     claim: |
-      `spec/kernel-contract.md` exists at this commit and contains all
-      30 sections of the algebra as specified in this decision.
+      The normative contract is at `spec/kernel-contract.md`: the file
+      exists, is tracked, and the corpus's former name for it does not
+      exist. The constructs this decision adopted are present in the
+      contract as sections, not as line numbers: §7 (Decision entity)
+      with its §7.1 (Byte-range and canonicalisation), §15 (Gate
+      verdict), §17 (Inline axiom change), §20 (Kernel rules), §24
+      (Adoption path), §28 (Applicability envelope), §30 (Binary
+      distribution).
     acceptance:
       all:
+        - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
         - verifier: tests/repo_structure.ml
 
   - id: cross-references-correct
     outcome: formal-spec-adopted
     claim: |
-      spec/kernel-contract.md cross-references axioms/, constitution.md,
-      and decisions/decision.yaml. Each cross-reference resolves.
+      The contract's cross-references into the corpus resolve --
+      `axioms/`, `spec/constitution.md` and `decisions/decision.yaml`
+      all name files that exist -- and every relation target this
+      decision declares resolves to a decision that exists, live or
+      archived. The relation half is measured by
+      `tests/fixtures/relation-targets-resolve.sh`, which reports zero
+      dangling targets over the live corpus.
     acceptance:
       all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
         - verifier: tests/repo_structure.ml
 
   - id: applicability-documented
     outcome: applicability-envelope-active
     claim: |
-      ROADMAP.md and USAGE.md document the applicability envelope
-      (§28) and the two adoption paths (full 3.2 vs no math-coding).
+      USAGE.md and ROADMAP.md document the applicability envelope (the
+      kernel contract's §28) and the two adoption paths (full, and no
+      math-coding), and the decision tree is the one a reader can
+      answer.
+
+      The corpus's own fixture for the envelope is
+      `tests/cli/applicability-envelope.t`: it asserts that the
+      contract is published, that this decision file exists, and that
+      ROADMAP.md carries no open promise about a closed tier. This
+      obligation does not name it as a verifier, and says so here
+      rather than leaving the reader to assume otherwise: naming a
+      cram fixture adds it to the I13 rejecting-case census's named
+      population, that fixture shows only the happy path, and the
+      corpus's ceiling there may only fall. The verifier this
+      obligation names is `tests/repo_structure.ml`, which asserts
+      the repository structure around the envelope.
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
@@ -239,19 +349,33 @@ obligations:
   - id: kernel-conformance-baseline
     outcome: kernel-conformance-tracked
     claim: |
-      All existing kernel modules (lib/*.ml, bin/Mathc.ml) satisfy
-      the 14 invariants I1-I14 from spec/constitution.md. This is
-      verified by `mathc self-check` returning `pass` on clean HEAD.
+      The kernel's conformance over its own fixture corpus holds:
+      `tests/conformance.ml` walks
+      `fixtures/conformance/{decision,attestation,waiver}/` and every
+      positive fixture parses while every negative fixture is
+      rejected.
+
+      The corpus-wide verdict is a DIFFERENT instrument and it does
+      not answer `pass` on a checkout: with no attestation store
+      present, `mathc self-check` answers verdict `unknown` and exits
+      3, because the store is generated per run and a checkout carries
+      no evidence to certify. `tests/cli/self-check-unknown.t` asserts
+      that verdict and that exit code.
     acceptance:
       all:
         - verifier: tests/conformance.ml
+        - verifier: tests/cli/self-check-unknown.t
 
   - id: adoption-path-documented
     outcome: applicability-envelope-active
     claim: |
-      USAGE.md provides step-by-step adoption guidance for both
-      Path A (full 3.2) and Path C (no math-coding). Applicability
-      check is explicit (decision tree in §28).
+      USAGE.md provides step-by-step adoption guidance for both Path A
+      (full) and Path C (no math-coding), and the applicability check
+      is explicit rather than implied. The verifier this obligation
+      names is `tests/repo_structure.ml`; the reason the census's
+      rejecting-case population is not extended with
+      `tests/cli/applicability-envelope.t` is the same one the
+      `applicability-documented` obligation states.
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
@@ -259,9 +383,13 @@ obligations:
   - id: backward-compat-test
     outcome: backward-compatibility-preserved
     claim: |
-      All 28 existing decisions in decisions/*.yaml continue to parse
-      successfully under the extended schema. No existing decision
-      requires modification to remain valid.
+      Every decision file in the live corpus parses under the current
+      schema and no decision required a modification to remain valid:
+      `mathc validate` answers parse-ok for each file under
+      `decisions/`, and the schema's growth was by optional fields
+      with defaults, so the migration was implicit. The corpus is
+      larger than it was when this decision was adopted; that is the
+      point of an invariant, not a defect in it.
     acceptance:
       all:
         - verifier: tests/conformance.ml
@@ -269,28 +397,33 @@ obligations:
   - id: implementation-roadmap
     outcome: kernel-conformance-tracked
     claim: |
-      ROADMAP.md Tier-3 (kernel enrichment) is updated to include
-      the 3.2 implementation roadmap: schema extensions (Tier 1),
-      kernel rule expansion (Tier 2), attestation + axiom changes
-      (Tier 3), documentation sync (Tier 4).
+      ROADMAP.md carries the kernel-enrichment work as its Tier 3
+      section, with each item naming the decision that owns it. The
+      tier structure is the ROADMAP's own: it has been reorganised
+      since this decision was adopted, so what is promised is that the
+      work is listed there and owned, not that four particular tier
+      numbers exist.
     acceptance:
       all:
         - verifier: tests/repo_structure.ml
 
 reversal:
-  - signal: spec-3.2-superseded-by-3.3
+  - signal: spec-superseded-by-the-short-contract
     condition: |
-      Record a new decision algebra-3.3 with supersedes:
-      [algebra-3.2@1]. Migration path: kernel conformance re-evaluated;
-      existing decisions remain valid via optional-field defaults.
+      Record a new decision that supersedes `algebra-3.2@3` and
+      replaces the contract with the short form tranche T3.2 of
+      `docs/plans/redundancy-and-portability-2026-11.md` describes:
+      what the kernel ENFORCES (rule, code, test) and what is only
+      DECLARED. Kernel conformance is re-evaluated; existing
+      decisions remain valid via optional-field defaults.
     action: rework
 
   - signal: spec-rejected-by-constitution
     condition: |
-      If 3.2 is found to violate any of I1-I14, this decision
-      BLOCKS. Resolution: identify the violating section, propose
-      a 3.2.1 patch that preserves invariants, or roll back this
-      decision entirely.
+      If the contract is found to violate any of the constitution's
+      invariants, this decision BLOCKS. Resolution: identify the
+      violating section, propose a patch that preserves the
+      invariants, or roll back this decision entirely.
     action: halt
 
 risk:
@@ -303,6 +436,6 @@ risk:
 
 relations:
   addresses:
-    - bootstrap-v3@2
+    - bootstrap-v3@4
   supersedes: []
   superseded_by: []

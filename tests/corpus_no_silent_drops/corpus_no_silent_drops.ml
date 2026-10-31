@@ -123,22 +123,22 @@ let[@warning "-32"] sorted_uniq xs = List.sort_uniq String.compare xs
    subcommand (a plain scalar opened with a backtick),
    render-html-templates (bad indentation of a sequence entry) and
    render-ordered-lists (expected ':' after a mapping key). *)
-let author_malformed =
-  [
-    "decisions/3-2-cli-catalog.yaml";
-    "decisions/ci-blocking-list-config.yaml";
-    "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml";
-    "decisions/mathc-packages-subcommand.yaml";
-  ]
+let author_malformed = [ "decisions/mathc-packages-subcommand.yaml" ]
 
-(* A stray second `---`. These lose NOTHING: in both, the marker is the
-   LAST line of the file, so the tail behind it is empty and every
+(* A stray second `---`. These lose NOTHING: the marker is the LAST
+   line of the file, so the tail behind it is empty and every
    top-level key is already in the tree. They are listed separately
    because "the diagnostic fired" and "the kernel lost something" are
    different statements, and conflating them is how a real loss gets
    dismissed as cosmetic -- which is why the case below also pins the
-   no-loss claim instead of taking it on trust. *)
-let cosmetic_marker = [ "decisions/forge-stub-read-request-2026-10.yaml" ]
+   no-loss claim instead of taking it on trust.
+
+   EMPTY as of 2026-11-01: the last file in this shape,
+   `decisions/forge-stub-read-request-2026-10.yaml`, had its stray
+   marker struck in the commit that rewrote the decision's stale
+   form. The bucket is asserted empty, so a second marker that
+   appears is red. *)
+let cosmetic_marker = []
 
 (* Files a strict reader reads to EOF and the kernel does not. Empty,
    and asserted empty: this is the only bucket that is ours to fix, so

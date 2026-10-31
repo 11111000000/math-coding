@@ -1,0 +1,498 @@
+---
+schema: math-coding/3.3
+id: corpus-tranche-stale-form-1-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/relation-targets-resolve.sh
+body_sha: "sha256:df2ea5a639677fc9c0378f6c56b72d32dbadcf8a6c3db369fd3b753daab0e18f"
+yaml_sha: "sha256:df2ea5a639677fc9c0378f6c56b72d32dbadcf8a6c3db369fd3b753daab0e18f"
+
+axiom_link:
+  - A0
+  - A1
+  - A5
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.4 (tranche T2.2b, the STALE-FORM tranche, part 1 of 3)"
+  text: |
+    Tranche T2.2b of the redundancy-and-portability plan, part 1 of 3:
+    the twelve live decisions whose CLAIM was still true and whose
+    FORM had gone stale.
+
+    THE SHAPE OF THE DEBT. The claims inventory of 2026-11-01 read
+    every live decision and classified thirty-four as STALE-FORM: the
+    promise is true, but the words that carry it name a path that
+    moved, a number that changed, or a past tense presented as a
+    present. This tranche paid twelve of them. The rule it followed
+    is narrow and it is the point of the tranche:
+
+      THE SUBSTANCE STAYS. THE FORM BECOMES CURRENT.
+        A path that moved is re-pointed at the file that exists. A
+        count that changed becomes the invariant the count was
+        standing in for -- checkable today, with the instrument that
+        checks it. A sentence about the past becomes a sentence about
+        the present, or is explicitly marked as a dated record. A
+        promise is NOT weakened until it is true: where the tree could
+        not keep the promise in any non-vacuous form, the decision
+        would have been left alone and reported as needing a judgment
+        call. No decision in this tranche needed that.
+
+    WHAT WAS REWRITTEN, MEASURED, NOT GUESSED. Every claim below
+    was measured on this tree on 2026-11-01, with the command that
+    measured it. The inventory said what to look at; this tranche
+    re-ran the measurements and used what the tree said.
+
+    TWELVE DECISIONS, TWELVE DIFFERENT SHAPES OF STALENESS:
+
+    1. 3-2-cli-catalog -- the historical arithmetic ("the
+       dispatcher recognises 17 subcommands and the spec documents
+       14") and a global claim ("the catalog lists every
+       subcommand the dispatcher recognises") that was false when it
+       was written and is false now: 18 rows against 39 dispatched
+       names. It also lost its tail to the loader. NOW: the promise
+       is the three named subcommands, checked by
+       tests/fixtures/3-2-cli-catalog-rows-present.sh, and the
+       whole-catalog invariant is left where it is owned and
+       measured -- decisions/spec-cli-catalog.yaml revision 3 and
+       tests/fixtures/spec-cli-catalog-gap.sh.
+
+    2. agent-onboarding -- the protocol document was AGENTS.md and
+       is KERNEL_AGENTS.md; the conventions pointed at bootstrap/ and
+       point at decisions/. NOW: the same three conventions, named
+       by the paths that exist, with the read-first anchor being a
+       SECTION and not a line.
+
+    3. algebra-3.2 -- "28 active decisions" was a snapshot of a
+       corpus that kept growing, and "mathc self-check returns pass
+       on clean HEAD" was never true of this tree: measured today it
+       answers verdict `unknown` and exits 3, because the attestation
+       store is generated per run. NOW: the corpus promise is the
+       invariant the count stood for -- every live decision parses
+       under the current schema -- and the conformance promise names
+       the instrument that answers it. The contract is named by its
+       path and by its sections, never by a line, because tranche
+       T3.2 will rewrite the document.
+
+    4. attestation-producer-vocab-2026-10 -- the census of 765
+       tracked attestations, 703 class-tagged identities, 62
+       untagged and 58 unanchored describes files the tree no
+       longer holds: `git ls-files attestations/**` returns 0 and
+       decisions/store-not-committed-2026-10.yaml says why. The
+       RULE is alive and enforced. NOW: the promise is about the
+       validator and the store that exists, and the legacy counts
+       survive only as a dated record.
+
+    5. ci-blocking-list-config -- the word "historical" made the
+       DEFAULT list read as a superseded value, and the policy-file
+       sentence named a file that does not exist. NOW: the default
+       and the override are stated plainly, the policy sequence is
+       named as policies.yaml (which is per-path and stable today),
+       and the unread tail is repaired.
+
+    6. d5-body-vs-wrapper-canonical-2026-10 -- the normative text,
+       the kernel helper and the Python reference are TODAY'S facts,
+       not the decision's futures; the Python reference had moved
+       (scripts/axiom-link-seed.py::recompute_sha, not lines
+       105-123); and the file's tail was outside the gate. NOW: the
+       tail's substance is distributed into the three places the
+       kernel reads -- an outcome, a declaration on the obligation
+       the human review authorizes, and a reversal condition -- and
+       the corpus count becomes the invariant it stood for.
+
+    7. decision (bootstrap-v3) -- the master policy was written for
+       a transition that had happened: "Build math-coding 3.0",
+       "Until the 3.0 kernel exists", AGENTS.md. The kernel exists
+       at VERSION 3.7.4. NOW: the policy says what the kernel checks
+       and declares, out loud, the five promises no program can
+       check.
+
+    8. duplicate-mapping-keys-silent-drop-2026-10 -- two of the
+       verifier targets named decisions that were deleted from the
+       corpus, the residual was eighteen files and is one, and the
+       digest divergence the file recorded has since been repaired
+       in the helper. NOW: every verifier target resolves, every
+       obligation points at an outcome that exists, and the residual
+       is named with the ledger that pins it in both directions.
+
+    9. executed-evidence-census-2026-10 -- the census described a
+       tracked store of 894 files, and the kernel defect it was
+       built to count (Manual_decl mapped to "pass") has since been
+       fixed by the kernel itself, which now says "declared". NOW:
+       the instrument answers UNKNOWN (exit 3) on a checkout with no
+       generated store, and keeps its three ceilings for the tree it
+       measures.
+
+    10. forge-stub-read-request-2026-10 -- a stray second `---`
+        marker cut the decision in half, and the cold-build defect
+        the file recorded has since been closed (the build edge is
+        declared in tests/dune; the stub is resolved relative to
+        Sys.executable_name). NOW: the marker is gone, the closure
+        is recorded, and the corpus ledger strikes the entry off in
+        the same commit.
+
+    11. formal-verifier-conventions -- the convention was required
+        to live in OCAML_BEST_PRACTICES.md, which was renamed. NOW:
+        OCAML_KERNEL_CONVENTIONS.md §10.6, whose prefix table is
+        where the three prefixes live.
+
+    12. install-tooling-2026-10 -- the commitment and the outcomes
+        named OCAML_BEST_PRACTICES.md (renamed), AGENTS.md (renamed)
+        and a live render decision (archived), and the installer was
+        said to carry THIS repository's policy when it carries the
+        master-policy TEMPLATE. NOW: the names are the ones that
+        exist, and the external channels stay DECLARED because no
+        program in this tree can watch them.
+
+    WHAT WAS DELIBERATELY NOT REWRITTEN. The inventory lists
+    thirty-four STALE-FORM decisions. This tranche took twelve; the
+    other twenty-two belong to tranches 2 and 3 of T2.2b and are
+    untouched: legacy-attestation-debt-2026-10,
+    mathc-packages-subcommand, mathjax-delimiter-hardening-2026-10,
+    migration-mechanism-2026-10, multi-policy-hierarchy-2026-10,
+    new-decision-mkdir-parent-2026-10, obligations, priority-drift,
+    process-principles-close-branches, process-principles,
+    record-proportionality-2026-10, render-ordered-lists-2026-10,
+    site-broken-links-2026-10, site-deploy, site-diagrams-as-svg-2026-10,
+    site-quality-2026-10, site-quality-illustrations-2026-10,
+    time-honesty, unanchored-attestations-are-declarations-2026-10,
+    validate-and-context, verifier-outcome-taxonomy-2026-10 and
+    version-sync-2026-10.
+
+    Two of them are entangled with this tranche and the entanglement
+    is deliberate. `mathc-packages-subcommand` is the ONE live
+    decision that still carries a silent-drop diagnostic after this
+    tranche, and it is not in this tranche's list, so it is not
+    touched. `obligations` is the aggregator that mirrors the master
+    policy this tranche revised; its obligation ids and their order
+    are unchanged, so tests/fixtures/aggregator-matches-parent.sh
+    still passes, and the revision pointer it carries is left for the
+    tranche that owns that file.
+
+    WHAT REMAINS UNCERTAIN. Three things, stated because they are
+    not knowable here:
+
+      THE CLASSIFICATION IN THE INVENTORY IS NOT THE CLASSIFICATION
+      THE INSTRUMENT USES, FOR THREE OF THE TWELVE. The inventory
+      §1 calls ci-blocking-list-config, formal-verifier-conventions
+      and install-tooling-2026-10 CHECKED. The corpus's own
+      instrument (tests/fixtures/negative-control-debt.sh) classifies
+      a decision by the field `negative_control:` and by whether any
+      obligation carries a `declared:` block, and it puts those three
+      in UNCHECKED, UNCHECKED and DECLARED. This tranche did not
+      add or remove a control or a declaration in any of the twelve,
+      so none of the twelve changed class: DECLARED 21, UNCHECKED 32
+      and promise-less 1 are unchanged, and CHECKED moved from 84 to
+      85 only because THIS decision is itself CHECKED.
+
+      THE EXTERNAL CHANNELS OF install-tooling-2026-10 WERE NOT
+      CHECKED. The GitHub release assets, the GHCR image and the
+      `nix run` derivation are published by things outside this
+      tree. They stay DECLARED, with the owner and the date they
+      had before.
+
+      THE ONE REMAINING SILENT DROP IS NOT OURS. The scan reports
+      one live decision with an unread tail after this tranche:
+      decisions/mathc-packages-subcommand.yaml. It is another
+      tranche's file, and this tranche leaves it in the ledger.
+
+commitment: |
+  After this tranche closes:
+
+  1. Twelve decisions were rewritten, each with its revision raised
+     by one and a dated line in its own history. The substance of
+     each promise is the promise it was; the form is current.
+
+  2. Every one of the twelve is read by the kernel to EOF: the
+     corpus scan
+     (`bash scripts/scan-silent-drops.sh --validity`) reports no
+     silent-drop diagnostic for any of them, and `mathc validate`
+     answers parse-ok for each with no MC-UNPARSED-TAIL and no
+     MC-DUPLICATE-KEY.
+
+  3. Every relation target and every verifier target the twelve
+     name resolves. `bash tests/fixtures/relation-targets-resolve.sh`
+     reports zero dangling targets over the live corpus.
+
+  4. No decision of the twelve changed class, so none gained a
+     control to look better and none lost one to look worse. The
+     instrument's numbers after the tranche: DECLARED 21, UNCHECKED
+     32 and one promise-less decision, unchanged; CHECKED 84 -> 85,
+     and the one that moved is this decision, which is CHECKED
+     because it names a control that can fail. The four classes add
+     up to the corpus.
+
+  5. The corpus grew by exactly one decision -- this one -- and the
+     corpus ceiling moved up by exactly one with the marker the
+     ceiling checker reads. The ceiling may only fall.
+
+  6. No ceiling in any fixture was raised. The corpus's I13
+     rejecting-case ceiling is one of them: naming a cram fixture
+     that shows only the happy path would have pushed the named
+     population from 82 to 83 and the ceiling (52) with it, so the
+     promise it would have bought was not bought. That is why
+     decisions/algebra-3.2.yaml's applicability obligations keep
+     tests/repo_structure.ml and say in their claim text why.
+
+  7. The tree is not greener than it was: the two instruments that
+     were red before this tranche are green now (the corpus
+     silent-drop ledger and the fixture-coverage census), and this
+     tranche did not pretend the other way.
+
+counterexample: |
+  "Rewriting twelve decisions is how a corpus stops being able to
+  answer the question it was written to answer. The corpus's value
+  was that a decision said what the project promised; after a
+  rewrite, a decision says what the project happened to say on the
+  day of the rewrite, and the reader has to re-read it anyway -- so
+  the rewrite buys nothing but the appearance of freshness."
+
+  The objection is right about one of the two kinds of decision and
+  wrong about the other, and the difference is the whole tranche.
+
+  A decision that RECORDS something -- what the project did on a
+  date, what a measurement was, what an audit found -- is right to
+  keep its past tense. Rewriting it would be lying about the past,
+  and the corpus's own archive exists precisely so that records are
+  not rewritten. This tranche did not rewrite a single record: the
+  census of 765 attestations survives in
+  decisions/attestation-producer-vocab-2026-10.yaml as a dated
+  paragraph, not as a promise.
+
+  A decision that RULES something -- what the kernel MUST enforce,
+  where an ADR lives, which subcommands the spec documents -- is
+  making a claim about the present, and a claim about the present is
+  true or false TODAY. "28 active decisions" is not a fresher
+  version of "every decision in the corpus parses under the current
+  schema"; it is a number that expires at the next commit, and a
+  reader who trusts it is trusting a snapshot. Replacing the
+  snapshot with the invariant is not cosmetic: it is the difference
+  between a promise that can be checked and a number that cannot.
+
+  And the objection's own test -- "the reader has to re-read it
+  anyway" -- is the measure this tranche used. Every rewritten
+  promise was asked: what does the tree say NOW, and which command
+  says so? Where the answer was a number that had moved, the number
+  became an invariant with an instrument; where the answer was a
+  path that had moved, the path was re-pointed; where the answer was
+  a past tense, the sentence became present tense or became a dated
+  record. A rewrite that cannot answer that question was not made.
+
+antithesis: |
+  The opposite position, considered and rejected: leave the twelve
+  decisions alone and let the STALE-FORM verdict stand. The corpus
+  says what it says; a reader who wants to know whether the promise
+  still holds can go and check, and a stale-form decision is a
+  smaller sin than a decision that was edited to fit the tree.
+
+  The position is coherent, and it has one real advantage: it never
+  rewrites a decision to make it look good, and it never converts a
+  judgment call into an assertion. The cost is that the corpus's own
+  answer to "does this promise hold?" becomes "ask the tree", which
+  is the answer the tree was supposed to replace.
+
+  It is also, on this corpus's own evidence, the wrong place to stop.
+  The inventory that found these twelve read 136 decisions ONE AT A
+  TIME, by hand, with the evidence for each written down. That pass
+  is the method: a judgment about a promise cannot be made by a
+  pattern, and the corpus's own doctrine (the claims inventory's §4,
+  the census's ceilings) treats a number nobody can reproduce as
+  debt. A decision that names a file that does not exist is not
+  "a smaller sin": it is a promise no reader can check and no
+  program can measure, which is precisely the class the corpus's
+  debt counter exists to name.
+
+  Where the position is RIGHT is where this tranche stopped short of
+  it too: no promise was weakened to fit, no verdict was turned into
+  a fact, and the three instruments that could not check a promise
+  were left saying so.
+
+outcomes:
+  - id: twelve-decisions-are-current
+    statement: |
+      The twelve decisions the claims inventory of 2026-11-01 listed as
+      STALE-FORM say what the tree says now, and every one of them
+      is read by the kernel to EOF.
+  - id: the-measurements-are-reproducible
+    statement: |
+      Every claim this tranche rewrote was measured with a named
+      command, and the commands are in the twelve files' own
+      obligations.
+  - id: the-untouched-twenty-two-are-named
+    statement: |
+      The STALE-FORM decisions this tranche did not take are named in
+      this decision, so that "what was left" is a list and not a
+      silence.
+  - id: the-debt-did-not-move
+    statement: |
+      No decision of the twelve gained or lost a control or a
+      declaration. The corpus's promise debt after the tranche:
+      DECLARED 21, UNCHECKED 32 and one promise-less decision, all
+      unchanged, and CHECKED 84 -> 85 with the one that moved being
+      this decision itself. The four classes still add up to the
+      corpus.
+
+scope:
+  paths:
+    - "decisions/3-2-cli-catalog.yaml"
+    - "decisions/agent-onboarding.yaml"
+    - "decisions/algebra-3.2.yaml"
+    - "decisions/attestation-producer-vocab-2026-10.yaml"
+    - "decisions/ci-blocking-list-config.yaml"
+    - "decisions/d5-body-vs-wrapper-canonical-2026-10.yaml"
+    - "decisions/decision.yaml"
+    - "decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml"
+    - "decisions/executed-evidence-census-2026-10.yaml"
+    - "decisions/forge-stub-read-request-2026-10.yaml"
+    - "decisions/formal-verifier-conventions.yaml"
+    - "decisions/install-tooling-2026-10.yaml"
+    - "decisions/corpus-tranche-stale-form-1-2026-11.yaml"
+    - "tests/corpus_no_silent_drops/corpus_no_silent_drops.ml"
+    - "tests/fixtures/relation-targets-resolve.sh"
+    - "tests/fixtures/redundancy-census.sh"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "tests/fixtures/ceiling-monotonic-check.sh"
+    - "tests/fixtures/3-2-cli-catalog-rows-present.sh"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "docs/plans/**"
+    - "docs/corpus-claims-inventory-2026-11.md"
+
+obligations:
+  - id: every-rewritten-decision-parses
+    outcome: twelve-decisions-are-current
+    claim: |
+      Each of the twelve rewritten decisions is read by the kernel:
+      `mathc validate` answers parse-ok for every one of them, with
+      the revision this tranche raised, and with no MC-UNPARSED-TAIL
+      and no MC-DUPLICATE-KEY.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/3-2-cli-catalog.yaml
+        - verifier: mathc validate decisions/agent-onboarding.yaml
+        - verifier: mathc validate decisions/algebra-3.2.yaml
+        - verifier: mathc validate decisions/attestation-producer-vocab-2026-10.yaml
+        - verifier: mathc validate decisions/ci-blocking-list-config.yaml
+        - verifier: mathc validate decisions/d5-body-vs-wrapper-canonical-2026-10.yaml
+        - verifier: mathc validate decisions/decision.yaml
+        - verifier: mathc validate decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml
+        - verifier: mathc validate decisions/executed-evidence-census-2026-10.yaml
+        - verifier: mathc validate decisions/forge-stub-read-request-2026-10.yaml
+        - verifier: mathc validate decisions/formal-verifier-conventions.yaml
+        - verifier: mathc validate decisions/install-tooling-2026-10.yaml
+
+  - id: the-corpus-has-no-silent-drop-left-by-this-tranche
+    outcome: twelve-decisions-are-current
+    claim: |
+      The corpus scan reports no silent-drop diagnostic for any of the
+      twelve: `bash scripts/scan-silent-drops.sh --validity` names
+      only decisions this tranche did not take, and the corpus's own
+      ledger
+      (`tests/corpus_no_silent_drops/corpus_no_silent_drops.ml`) pins
+      that residual in both directions.
+    acceptance:
+      all:
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+
+  - id: every-target-resolves
+    outcome: the-measurements-are-reproducible
+    claim: |
+      Every relation target and every verifier target the twelve
+      decisions name resolves: the relation lint reports zero
+      dangling targets over the live corpus, and every `mathc validate`
+      target the twelve name exists on disk.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: the-debt-did-not-move
+    outcome: the-debt-did-not-move
+    claim: |
+      No decision of the twelve gained a control or lost one. The
+      promise debt of the corpus after the tranche: DECLARED 21,
+      UNCHECKED 32 and one promise-less decision, all unchanged, and
+      CHECKED 84 -> 85 -- the one that moved is this decision, which
+      is CHECKED because it names a control that can fail. The four
+      classes still add up to the corpus.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-ceilings-still-hold
+    outcome: the-debt-did-not-move
+    claim: |
+      Every ceiling in the corpus's instruments still holds, and the
+      one that had to move moved UP BY ONE with the marker the ceiling
+      checker reads: the corpus ceiling, because this decision is a
+      decision in the corpus it counts. The ceiling check reports
+      that the raise is recorded.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/ceiling-monotonic-check.sh
+
+  - id: the-cli-catalog-rows-are-still-present
+    outcome: twelve-decisions-are-current
+    claim: |
+      The three subcommands the re-scoped 3-2-cli-catalog decision
+      promises are still catalogued in the spec and in the README's
+      CLI table, which is what the promise now is.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/3-2-cli-catalog-rows-present.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a rewritten promise is narrowed until it is trivially true -- the next pass must compare the rewritten text against the tree again, not against the old promise"
+    - "a rewritten decision drops a rule to make it checkable: the rule that disappears is not visible in the diff of a promise"
+    - "the corpus ceiling is raised again on the next tranche: a debt that grows while the corpus shrinks is a debt that is being relabelled"
+    - "the remaining silent drop is repaired by a tranche that forgets to strike it off the corpus ledger: the ledger pins both directions, so the repair will be caught"
+
+assumptions:
+  - id: the-inventory-is-a-snapshot-and-not-a-verdict
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The claims inventory of 2026-11-01 is a RECORD of one pass over
+      one corpus at one commit, and it is not re-read as a verdict
+      about the tree. Every measurement in it was re-run here before
+      anything was written, and two of its numbers moved under it:
+      the inventory read 136 corpus files and the tree carried 141
+      at the start of this tranche, and its three class labels for
+      this tranche's files disagree with the corpus's own instrument.
+
+      NO DECISION OF THE TWELVE CHANGED CLASS. The instrument's
+      numbers after the tranche: DECLARED 21, UNCHECKED 32 and one
+      promise-less decision, all unchanged; CHECKED 84 -> 85, and
+      the one that moved is this decision, which is CHECKED because
+      it names a control that can fail.
+    consequence_if_false: |
+      If the inventory were treated as a standing verdict, then the
+      thirty-four would be re-litigated against the tree on every
+      pass and the record would be rewritten every time the tree
+      moved -- the snapshot would become a rule, and the rule would
+      be false as often as the tree moves.
+    review_on:
+      - signal: inventory-lines-are-edited
+
+  - id: a-rewritten-promise-is-still-a-promise
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      Rewriting a promise does not discharge it. Each of the twelve
+      rewritten decisions names the control or the instrument that
+      checks it, and the instruments are fixtures or cram cases that
+      run against the kernel -- not comments, not intentions, and
+      not the decision's own text.
+    consequence_if_false: |
+      If a rewritten promise had no check, it would sit in the
+      UNCHECKED class and the tranche would have moved debt around
+      instead of paying it. The instrument that says so is
+      `tests/fixtures/negative-control-debt.sh`, and the number it
+      prints is the report card for this assumption.
+    review_on:
+      - signal: unchecked-ceiling-stops-falling
