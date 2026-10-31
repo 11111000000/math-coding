@@ -56,6 +56,10 @@ set -uo pipefail
 
 cd "$(dirname "$0")/.." || exit 1
 
+# The checkout under test. The fixture repositories copy the
+# protected-path matcher and its list out of it (see `new_repo`).
+REPO_ROOT="$PWD"
+
 # The workflow under test. $RP_YML overrides it, same shape as $CI_YML in
 # ci-step-exit-sim.sh, so the controls below can be pointed at any
 # revision.
@@ -166,6 +170,24 @@ new_repo() {
   git -C "$d" config user.name 'release-pending sim'
   git -C "$d" config commit.gpgsign false
   git -C "$d" config tag.gpgsign false
+  # THE CHECKOUT'S PROTECTED-PATH MATCHER AND THE LIST IT READS.
+  #
+  # The workflow's detect-diff step reads both out of the checkout:
+  # the list of protected paths is ONE file
+  # (`scripts/protected-paths.txt`), and the matcher that applies it
+  # is `scripts/protected-paths.sh`. A fixture repository that does
+  # not carry them cannot answer the gate's question at all — and the
+  # gate FAILS CLOSED on a missing matcher, so every row below would
+  # fail for a reason that has nothing to do with the gate.
+  #
+  # They go into the BASE tree, so the PR diff (`git diff BASE...HEAD`)
+  # does not mention them: the fixture PR still touches exactly the
+  # file it says it touches.
+  mkdir -p "$d/scripts"
+  cp "$REPO_ROOT/scripts/protected-paths.sh" "$d/scripts/protected-paths.sh"
+  cp "$REPO_ROOT/scripts/protected-paths.txt" "$d/scripts/protected-paths.txt"
+  git -C "$d" add -A
+  git -C "$d" commit -q -m 'the checkout carries the protected-path matcher and its list'
   printf '%s\n' "$d"
 }
 

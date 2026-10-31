@@ -1,0 +1,373 @@
+---
+schema: math-coding/3.3
+id: protected-paths-and-empty-diff-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/protected-paths-single-source.sh
+body_sha: "sha256:49f1b0a84cdf389371e0a0889ed0e1e1e52b892885c47b9bfb1b05ad6bf2c957"
+yaml_sha: "sha256:49f1b0a84cdf389371e0a0889ed0e1e1e52b892885c47b9bfb1b05ad6bf2c957"
+
+intent:
+  source: "plan:redundancy-and-portability-2026-11:T1.2,T1.3b"
+  text: |
+    TWO DEFECTS, MEASURED ON THIS REPOSITORY ON 2026-10-31.
+
+    THE FIRST: ONE QUESTION, THREE ANSWERS.
+
+    "Which paths of this repository are protected?" was answered in
+    three places, and the three answers did not agree:
+
+      lib/gate.ml:1016
+        lib/  bin/Mathc.ml  spec/  schemas/  axioms/
+      scripts/pre-commit/decision-fixture-co-commit.sh:16-20
+        lib/*.ml  bin/Mathc.ml  spec/*.md  schemas/*.json
+      .github/workflows/release-pending.yml:123-129
+        bin/Mathc.ml  bin/*  lib/*  scripts/install-tooling/*
+
+    `lib/` against `lib/*.ml` against `lib/*`. The three consumers
+    were not three readings of one policy: they were three
+    spellings, written at three times, by three people or moments,
+    and they had drifted apart. MEASURED, by running the OLD hook
+    (b9a0decb) against the OLD gate's prefix comparison and the OLD
+    workflow's `case` arms, path by path:
+
+      path                          old gate  old hook  old workflow
+      lib/gate.ml                       yes      yes          yes
+      lib/attestations/evidence.mli     yes       NO          yes
+      lib/dune                          yes       NO          yes
+      bin/Mathc.ml                      yes      yes          yes
+      bin/mathc_mcp.ml                   NO       NO          yes
+      spec/algebra-3.2.md               yes      yes           NO
+      schemas/decision.json             yes      yes           NO
+      axioms/index.md                   yes       NO           NO
+      scripts/install-tooling/install.sh NO       NO          yes
+      README.md                          NO       NO           NO
+
+    So the gate asked for a decision next to a change to
+    `lib/attestations/evidence.mli` and the hook did not; the hook
+    asked for one next to a change to `spec/algebra-3.2.md` and the
+    release gate did not fire for it at all; the release gate fired
+    for `scripts/install-tooling/install.sh` and nothing else did;
+    and `axioms/index.md` was protected by exactly one of the three.
+
+    THE SECOND: THE GATE ANSWERED `pass` TO A QUESTION IT HAD NOT
+    ASKED.
+
+    lib/gate.ml:955-958 computed the base verdict as
+
+      match (changed_paths, obligation_count) with
+      | [], _ | _, 0 -> Pass
+      | _ -> aggregate gaps
+
+    so an EMPTY change set short-circuited the verdict to `pass` --
+    and the gaps it had already computed were never consulted. The
+    empty change set is not one fact but three, and the gate could
+    not tell them apart:
+
+      - "the two trees are the same": the change's question has
+        nothing to ask, and `pass` is the right answer;
+      - "git could not tell me what changed": the gate's own input
+        is missing, and `unknown` is the only honest answer;
+      - the AUDIT question (`--no-scope`): "is the whole corpus still
+        sound?", whose answer is the corpus's gaps, whatever the diff
+        was.
+
+    MEASURED, before the change, on this tree:
+
+      $ mathc gate --no-scope --no-execute HEAD HEAD
+      {"verdict":"pass","obligations":468,"gaps_total":468,
+       "gaps_by_kind":{"MissingEvidence":468}, ...}
+      exit 0
+
+    A green gate whose own document listed 468 obligations and 468
+    gaps -- 468 reasons why it could not conclude. The same tree,
+    one commit earlier, with a NON-empty diff, answered `unknown`
+    with the same 468 gaps and exit 3. The only difference between
+    the two runs was whether git had anything to report. The second
+    short-circuit arm (`_, 0`) was the same defect in smaller
+    dress: a decision whose `required_attestations` are unmet has no
+    OBLIGATIONS, so the obligation count is 0, so the gate reported
+    `pass` while the store was missing evidence the decision
+    demanded.
+
+    Nothing in the corpus, in the store or in CI watched for either
+    defect. The gate that exists to catch unverified commitments was
+    itself unverified in the two ways that mattered most.
+
+commitment: |
+  After this decision closes:
+
+  1. The protected paths of this repository are ONE list, in
+     `scripts/protected-paths.txt`, and the three consumers read it:
+     the gate (through `lib/protected_paths.ml`), the pre-commit hook
+     (through `scripts/protected-paths.sh`) and the release-pending
+     workflow (through the same script). The list is the UNION of
+     the three former lists, so no consumer is weaker than it was:
+     every path any of them protected is protected by all of them
+     now, and the table in the intent is the proof.
+
+  2. The three consumers keep their own RULES. The gate still asks
+     for a decision committed with the change; the hook still asks
+     for a decision file in the same commit; the workflow still asks
+     whether the shipped artifact is stale. What changed is that the
+     SET of protected paths is one set.
+
+  3. The copies cannot drift apart silently. Two checks compare the
+     consumers against the list, each with a negative control: the
+     shell fixture compares the matcher and the hook against an
+     INDEPENDENT reading of the list (an awk implementation of the
+     same rule) and requires a consumer that reads a different list
+     to be reported as a divergence; the cram fixture compares the
+     gate's own behaviour against the shell matcher and requires the
+     gate's answer to change when the gate is pointed at a different
+     list.
+
+  4. The gate's verdict is computed FROM THE GAPS. There is no
+     short-circuit that answers `pass` without looking at them. The
+     change set is a value with two cases -- `Diff_read` (git
+     answered, the list may be empty) and `Diff_unreadable` (git did
+     not answer) -- and an unreadable diff is a gap of its own, with
+     a cause that names the unreadable diff, so the reason is in the
+     document and not only in the verdict string.
+
+  5. "The two trees are the same" still answers `pass`: the scoped
+     gate on an empty diff touches no decision, has no gaps and
+     exits 0. The change must not have turned "nothing changed" into
+     "unknown".
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A3
+
+counterexample: |
+  (a) "An empty diff IS the absence of changes. `git diff base..head`
+  names no file exactly when the two trees are the same, so there is
+  nothing to distinguish: the gate asks 'does this change break a
+  commitment?' and the answer to 'there is no change' is `pass`."
+  Rejected: the premise is false about the CODE, not about git. The
+  old code did not ask git whether the trees were the same -- it
+  asked whether `git diff` PRINTED anything, and a `git diff` that
+  FAILED prints nothing. The two are indistinguishable in the old
+  output and trivially distinguishable in git's exit status, and the
+  status was thrown away: `run_git_command` returned stdout and
+  dropped the exit code, so a repository with a damaged object store
+  -- a diff that cannot be read -- was read as "nothing changed".
+  Measured: with the tree object removed from the object store,
+  `git rev-parse --verify HEAD^{commit}` still succeeds and
+  `git diff --name-only HEAD..HEAD` exits 128. The old gate answered
+  `pass` on that.
+
+  (b) "The audit question is a different command and does not need
+  this change." Rejected: the audit question IS the empty-diff case,
+  and it is the case that produced the measured green gate. The
+  audit question asks about the whole corpus; its answer is the
+  corpus's gaps; the diff is irrelevant to it. The old code made
+  the diff decisive for a question the diff does not decide, and the
+  price was a `pass` on a corpus with 468 unmet obligations.
+
+  (c) "Three lists are three policies, and a policy may differ from
+  another." This is the strongest form of the objection, and it is
+  right about the RULES: the gate, the hook and the workflow do
+  require different things of a protected path, and this decision
+  keeps those three rules apart. It is wrong about the LISTS: the
+  three were not three policies but three spellings of one idea,
+  and they disagreed in ways no one chose -- `axioms/` protected by
+  exactly one of the three, `spec/` by two, `bin/mathc_mcp.ml` by
+  one. A policy difference is a decision; a spelling difference is a
+  drift. The difference is visible in the table: the three lists do
+  not line up with the three rules either (the hook, whose rule is
+  "a kernel change carries a decision", protected `spec/*.md` and
+  not `axioms/`; the workflow, whose rule is "the shipped artifact
+  is stale", protected `lib/*` and not `spec/`).
+
+antithesis: |
+  The opposite claim would be that the repository was fine, and that
+  three lists are three answers to three different questions.
+
+  The claim is right about the questions. The gate asks whether the
+  change breaks a commitment; the pre-commit hook asks whether a
+  decision was committed beside the change; the release-pending
+  workflow asks whether the published artifact is stale relative to
+  the base. Those are three questions and they need three rules, and
+  this decision keeps the three rules where they were.
+
+  And it is right that a single list is a blunt instrument: the
+  union of the three former lists makes every consumer protect
+  everything the union names, so the gate now asks for a decision
+  beside a change to `scripts/install-tooling/install.sh` (it did
+  not before) and the release gate now fires for a change to
+  `axioms/index.md` (it did not before). That is a real widening, and
+  it is why the union was chosen over the intersection: an
+  intersection would have dropped `axioms/` from the hook and `spec/`
+  from the workflow, and nothing would have said so.
+
+  What the claim does not survive is the premise that the three
+  lists were three deliberate answers. They were not: they were
+  written out three times, and the drift between them was
+  invisible because nothing compared them. The instrument this
+  decision adds -- a comparison of the three consumers against one
+  list, with a negative control -- is what makes the claim
+  checkable, and the check is what says the lists were not policies.
+  The difference between "three policies" and "three spellings" is
+  not visible in the lists; it is visible in whether anybody can say
+  WHY they differ. Nobody could.
+
+outcomes:
+  - id: the-protected-paths-are-one-list
+    statement: |
+      The protected paths of this repository are one list in
+      `scripts/protected-paths.txt`, and the gate, the pre-commit
+      hook and the release-pending workflow all read it.
+
+  - id: the-copies-are-compared
+    statement: |
+      A check compares every consumer's answer against the list, and
+      a consumer that reads a different list is reported as a
+      divergence.
+
+  - id: the-empty-diff-is-not-a-pass
+    statement: |
+      The gate's verdict is computed from its gaps: an audit question
+      with gaps answers `unknown`, an unreadable diff answers
+      `unknown` with the reason in the gap list, and only "the two
+      trees are the same" answers `pass`.
+
+scope:
+  paths:
+    - "scripts/protected-paths.txt"
+    - "scripts/protected-paths.sh"
+    - "scripts/pre-commit/decision-fixture-co-commit.sh"
+    - "scripts/release-pending-gate-sim.sh"
+    - ".github/workflows/release-pending.yml"
+    - "lib/protected_paths.ml"
+    - "lib/gate.ml"
+    - "lib/path_config.ml"
+    - "lib/dune"
+    - "bin/Mathc.ml"
+    - "tests/fixtures/protected-paths-single-source.sh"
+    - "tests/cli/protected-paths-single-source.t"
+    - "tests/cli/gate-empty-diff.t"
+    - "tests/gate/state_filter.ml"
+    - "decisions/protected-paths-and-empty-diff-2026-11.yaml"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+
+obligations:
+  - id: the-protected-paths-are-one-list
+    claim: |
+      The protected paths are one list, and every consumer reads it.
+      The check compares the shell matcher and the pre-commit hook
+      against an INDEPENDENT reading of the list (an awk
+      implementation of the same rule) and fails when any consumer
+      disagrees with it on any probe path.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/protected-paths-single-source.sh
+
+  - id: the-compare-check-can-go-red
+    claim: |
+      The comparison has teeth: a consumer that reads a DIFFERENT
+      list (one extra pattern) must be reported as a divergence. The
+      fixture builds that consumer and requires the divergence to be
+      seen, so a comparison that could not fail is a failure.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/protected-paths-single-source.sh
+
+  - id: the-gate-reads-the-same-list
+    claim: |
+      The gate reads the same list: for every probe path derived from
+      the list, the gate's own verdict (the §20 CoCommitDecision
+      rule firing) and the shell matcher's answer agree.
+    acceptance:
+      all:
+        - verifier: tests/cli/protected-paths-single-source.t
+
+  - id: the-empty-diff-is-not-a-pass
+    claim: |
+      The three cases are distinguished: the audit question with
+      gaps answers `unknown` (it answered `pass` with 468 gaps in the
+      same document before), an unreadable diff answers `unknown`
+      with the reason in the gap list, and an empty diff with
+      nothing touched answers `pass`.
+    acceptance:
+      all:
+        - verifier: tests/cli/gate-empty-diff.t
+
+  - id: the-release-gate-reads-the-same-list
+    claim: |
+      The release-pending workflow reads the same list, and its
+      simulation still passes every row and both controls: a
+      protected-path PR is detected, an unprotected one is not, and
+      every way of not knowing still blocks.
+    acceptance:
+      all:
+        - verifier: scripts/release-pending-gate-sim.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the protected-path list is edited"
+    - "a consumer stops reading scripts/protected-paths.txt"
+    - "the gate's change-set handling is changed again"
+
+assumptions:
+  - id: the-union-is-the-right-resolution
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The right answer to "three lists disagree" is their UNION, not
+      their intersection and not a negotiation between the three
+      consumers. The union never weakens a protection; the
+      intersection silently drops one, and a negotiation is a
+      decision this file does not make.
+    consequence_if_false: |
+      If the three former lists were three deliberate policies rather
+      than three drifted spellings, the union over-protects: the
+      hook would demand a decision beside a change to the installer,
+      and the release gate would fire for a change to the axioms. The
+      remedy would be a list with SECTIONS -- one per consumer -- and
+      the check would compare each section against its consumer. The
+      machinery for that is already here: the matcher reads a list of
+      patterns, and a sectioned list is a list of patterns plus a
+      section name.
+
+  - id: the-list-is-project-data-not-protocol
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The protected paths belong to the PROJECT, not to the
+      protocol: an adopter's protected paths are the adopter's
+      business, and the kernel must not carry this repository's
+      answer. The list therefore lives outside the kernel and is
+      read at the I/O boundary; a project that declares none has no
+      protected paths, and the §20 CoCommitDecision rule is inert
+      there.
+    consequence_if_false: |
+      If the kernel is to carry a DEFAULT protected-path list for
+      adopters, the default has to live somewhere the kernel can
+      read, and `mathc init` has to write it -- which is the
+      scaffold tranche's business (T1.3a), not this one's. Until
+      then an adopter's gate has no protected paths, and the honest
+      answer to "which paths must carry a decision" for that project
+      is "the ones it declares".
+
+  - id: an-empty-list-is-not-an-error
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      An ABSENT protected-path list means "this project declares no
+      protected paths", and it is not a failure. A list that exists
+      but cannot be READ is a failure, and the shell matcher exits 2
+      on it so that a caller can fail closed rather than treat it as
+      "nothing is protected".
+    consequence_if_false: |
+      If a missing list must be an error, the gate has to exit
+      non-zero when the file is absent, and every project without one
+      -- every adopter -- would have a gate that cannot run at all.
+      The repository's own protection against a silent deletion is
+      the fixture that asserts the list exists and is non-empty.

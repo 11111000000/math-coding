@@ -17,6 +17,7 @@
   gate
   packages
   policy
+  protected_paths
   re_evaluation
   rebuttal
   risk

@@ -1534,6 +1534,22 @@ let[@warning "-32"] run_git_command base head args =
   let _status, raw = run_proc_quiet "git" argv in
   raw
 
+(* THE SAME QUERY, WITH THE EXIT STATUS.
+ *
+ * `run_git_command` throws the status away, and for most callers that
+ * is right: a query whose answer is a list of names has an empty list
+ * as a usable answer. For the DIFF it is not right, because an empty
+ * list is also what "nothing changed" looks like, and the gate has to
+ * tell those two apart — "the two trees are the same" and "git could
+ * not tell" are different facts, and the gate used to answer PASS to
+ * both (lib/gate.ml::evaluate, before `Gate.change_set`).
+ *
+ * So the status is returned here and the caller decides what a
+ * non-zero exit means for its question. *)
+let[@warning "-32"] run_git_command_status base head args =
+  let argv = args @ [ base ^ ".." ^ head ] in
+  run_proc_quiet "git" argv
+
 (* A directory that carries a math-coding layout marker.
    The artifact layout exists WITH OR WITHOUT dune —
    `lib/path_config.ml::effective_root` says so explicitly ("the
@@ -6924,12 +6940,35 @@ let do_gate () =
       end)
     [ ("BASE", !base); ("HEAD", !head) ];
   let memory = build_memory_for root !base !head in
-  let changed_paths_raw =
-    try run_git_command !base !head [ "diff"; "--name-only" ] with _ -> ""
+  (* THE DIFF, AND WHETHER GIT ANSWERED IT.
+   *
+   * The old line threw the exit status away and turned a failed `git
+   * diff` into an empty file list, which the gate then read as "no
+   * changes" and answered PASS. Measured on this repository on
+   * 2026-10-31, the same tree with a non-empty diff answered
+   * `unknown` with 468 gaps and with an empty diff answered `pass`
+   * with the SAME 468 gaps in the document: the verdict contradicted
+   * its own evidence, and the only thing that had changed was
+   * whether git had anything to report.
+   *
+   * So the status is kept, and the change set is a value with two
+   * cases (`Gate.change_set`): git answered, or git did not. A
+   * repository whose objects are damaged, or a git that cannot be
+   * run, produces the second — and the gate's answer to "I could
+   * not find out what changed" is `unknown`, with the reason in the
+   * gap list, not `pass`. *)
+  let diff_status, changed_paths_raw =
+    try run_git_command_status !base !head [ "diff"; "--name-only" ]
+    with _ -> (Unix.WEXITED 128, "")
   in
   let changed_paths =
     changed_paths_raw |> String.split_on_char '\n'
     |> List.filter (fun s -> String.length s > 0)
+  in
+  let changed =
+    match diff_status with
+    | Unix.WEXITED 0 -> Gate.Diff_read changed_paths
+    | _ -> Gate.Diff_unreadable
   in
   let store_root = resolve_store_root root in
   let store_reader path =
@@ -6998,8 +7037,34 @@ let do_gate () =
       (fun (e : Memory.decision_entry) -> e.Memory.decision_id)
       memory.Memory.decisions
   in
+  (* THE PROTECTED PATHS OF THIS PROJECT.
+   *
+   * The list is project data, read here at the I/O boundary and
+   * handed to the kernel as a value: `scripts/protected-paths.txt` is
+   * the single answer to "which paths are protected?", and the
+   * pre-commit hook and the release-pending workflow read the same
+   * file. The kernel used to carry its own copy of the answer
+   * (`lib/gate.ml:1016`: lib/, bin/Mathc.ml, spec/, schemas/,
+   * axioms/), which was one of three different answers to one
+   * question.
+   *
+   * An absent list means "this project declares no protected paths",
+   * and the §20 CoCommitDecision rule then has nothing to ask about.
+   * That is a fact about the project, not an error: the list is this
+   * project's business, and the plan that moves these strings out of
+   * the kernel (docs/plans/redundancy-and-portability-2026-11.md,
+   * T4.3) wants exactly this shape. THIS repository's list is
+   * asserted to exist and to be non-empty by
+   * tests/fixtures/protected-paths-single-source.sh, so a deletion
+   * here is caught by a check rather than silently disarming the
+   * rule. *)
+  let protected_paths =
+    Protected_paths.load
+      (Path_config.join_root ~root
+         (Path_config.resolve_protected_paths_path ()))
+  in
   let c_info =
-    Gate.commit_info_of ~changed_paths ~body:commit_body_raw
+    Gate.commit_info_of ~protected_paths ~changed_paths ~body:commit_body_raw
       ~corpus_decision_ids
   in
   let cited = Gate.resolved_trailer_refs c_info in
@@ -7141,8 +7206,8 @@ let do_gate () =
        %!"
       budget_s !unchecked;
   let result =
-    Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory
-      ~changed_paths ~store ~rebuttals
+    Gate.evaluate ~now:(now_iso ()) ~base:!base ~head:!head ~memory ~changed
+      ~store ~rebuttals
       ~touched:(if !scope && not !no_scope then Some touched else None)
       ~live
       ~materials_of_decision:
