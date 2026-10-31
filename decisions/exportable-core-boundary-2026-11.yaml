@@ -1,0 +1,299 @@
+---
+schema: math-coding/3.3
+id: exportable-core-boundary-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/exportable-core-boundary.sh
+body_sha: "sha256:5bb3cd6ec3342e5588226ca1886eb897052aaf5becf72c49e33b4880ac7c2cf4"
+yaml_sha: "sha256:5bb3cd6ec3342e5588226ca1886eb897052aaf5becf72c49e33b4880ac7c2cf4"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T4.1)"
+  text: |
+    The boundary between the transferable protocol and this repository's
+    project material was a sentence in a plan. That made it vulnerable to
+    the failure the plan names: a boundary defined by what it does not
+    mention erodes as the repository grows. T4.1 turns the boundary into a
+    cut that a script performs and a test can reject.
+
+    The plan names the transferable material in section 0 and T4.1. The
+    three artifacts are exactly:
+
+    1. a decisions directory;
+    2. an attestations directory;
+    3. policies.yaml.
+
+    T4.1 names policies.yaml separately and also says "three artifacts".
+    Read with section 0, that is one redundant mention, not a fourth
+    artifact. The export therefore carries policies.yaml once and creates
+    the other two artifact locations as empty directories. It does NOT copy
+    this repository's live decision corpus or generated evidence store:
+    those are project records, while the empty locations are the protocol
+    scaffolding an adopting project fills.
+
+    The measured export at main f163c2f6b is:
+
+    - lib/: 59 files, the kernel libraries;
+    - bin/: 5 files, the mathc and MCP executables and their build data;
+    - policies.yaml: 1 policy file;
+    - decisions/: 1 empty protocol artifact directory;
+    - attestations/: 1 empty protocol artifact directory;
+    - adoption/SKILL.md: 1 canonical agent skill;
+    - VERSION, dune-project and math-coding.opam: the identity and build
+      metadata without which the copied kernel cannot be built or identified.
+
+    At the same main f163c2f6b baseline, the project material behind the cut
+    is: 136 live decision YAML files, 19 conformance fixtures, 36 site files,
+    41 plugin files, 43 script files (including 3 release-installer files),
+    and the book (10 files under spec/ and axioms/ plus KERNEL_AGENTS.md and
+    OCAML_KERNEL_CONVENTIONS.md). The script prints the complete remaining
+    top-level list as well, so the named measurement is not a second,
+    silently drifting inventory.
+
+    This decision changes neither the kernel nor the normative text. It
+    changes what can be cut out of this repository and proves that the cut
+    still yields a kernel that compiles, reports its version, and accepts a
+    decision.
+
+commitment: |
+  After this decision closes:
+
+  1. `scripts/export-core.sh` is the executable boundary. With no argument
+     it writes to `_build/export/core/`; with one argument it writes to that
+     directory. The relative path is resolved from the caller's working
+     directory. The exporter never deletes an unrelated non-empty
+     destination.
+
+  2. The export has an exact path allowlist. It contains:
+
+     - `lib/` and `bin/`, copied byte-for-byte;
+     - `policies.yaml`, copied byte-for-byte;
+     - empty `decisions/` and `attestations/` protocol artifact directories;
+     - `adoption/SKILL.md`, copied byte-for-byte;
+     - `VERSION`, `dune-project` and `math-coding.opam`, copied
+       byte-for-byte as version and build metadata.
+
+     Nothing else is allowed. In particular the export contains no
+     `site/`, `plugin/`, `fixtures/conformance/`, release tooling, project
+     decision corpus, project attestation store, site rendering code,
+     templates, tests, schemas, or book.
+
+  3. The exporter prints both sides of the cut. The output names every
+     included class and every top-level source entry that remains outside
+     the protocol. The output is evidence of the cut, not a second promise
+     about it; the allowlist in the script is the cut.
+
+  4. `tests/fixtures/exportable-core-boundary.sh` reads the exported tree
+     with an independent path allowlist. It compares the copied kernel,
+     policy, skill and build metadata with their sources, checks that the
+     two protocol artifact directories are empty, and checks that the named
+     project surfaces are absent.
+
+  5. The fixture has a negative control. In temporary copies it injects a
+     site file, a plugin file, a conformance-corpus file, release-tooling
+     file, book file and project decision file, one at a time. The same
+     boundary check must reject every copy. The repository checkout is not
+     modified by the control.
+
+  6. The exported tree builds with dune and the resulting binary reports
+     `math-coding 3.7.4: bootstrap`. The fixture creates a decision in the
+     exported decisions directory, stamps it with the exported `mathc`, and
+     requires `mathc validate` to accept it.
+
+  7. The build needs `dune-project` and `math-coding.opam`: the former
+     declares the Dune project and the latter gives the `public_name`
+     executables an opam package. `VERSION` gives `mathc version` an
+     identity. The exported kernel does NOT need `schemas/`, `spec/` or
+     `axioms/` to compile, report its version, or validate the probe
+     decision; the build and decision check prove that absence rather than
+     assuming it.
+
+  8. This export does not change the kernel, the normative text, the
+    policies' meaning, or the three artifacts' contents. It only cuts a
+    tree and proves that the cut is buildable.
+
+axiom_link:
+  - A0
+  - A3
+
+counterexample: |
+  The strongest objection is that the export is one more list, and lists
+  go stale. The real boundary is not a set of paths: it is the set of
+  things the kernel does not know about the project. A script can copy the
+  right directories today and still leak the project's identity through a
+  string in lib/, a policy that names site/, or a dependency added outside
+  the allowlist. On that view, the exporter gives the appearance of a
+  boundary while the architectural boundary remains unenforced.
+
+  The objection is partly correct, and this decision does not claim more
+  than it has. The exporter enforces a FILE boundary: it prevents the
+  known project components from crossing and makes the copied tree build
+  and decide. It cannot prove that the kernel has no project knowledge,
+  and the fixture does not pretend otherwise. The plan assigns that work to
+  T4.3, which removes the project's strings from the core. This decision
+  does not solve that part of the objection and does not close T4.3.
+
+  The list can also become incomplete. If the kernel later needs a new
+  build input outside `lib/`, `bin/`, the build metadata, the policy and
+  the skill, the exported build check will fail if that input is required
+  to compile or to validate the probe. If it is an optional runtime input,
+  the present fixture will not see the omission. That is a real limit of a
+  T4.1 boundary check, not a hypothetical. The review signal is a new
+  runtime or build dependency in the kernel; the response is to extend the
+  allowlist deliberately with a measured reason, not to copy the whole
+  repository.
+
+  What would change the verdict: evidence that a normal downstream use of
+  the exported core requires project material excluded here, or a project
+  dependency silently entering the core. The first would mean the
+  allowlist is too narrow; the second would mean T4.3 has not done its
+  work. Neither is answered by adding more names to the export script.
+
+antithesis: |
+  The opposite position is to keep the boundary as an architectural fact,
+  defer the script until the package is cut, and avoid the maintenance of
+  a second list. Under that position the kernel, policy, artifact
+  locations and skill will separate naturally when the package is made;
+  until then there is nothing useful for an export to do, and a script
+  risks freezing a temporary partition that the next kernel change will
+  invalidate.
+
+  The position is coherent and identifies the exporter's real weakness:
+  the allowlist is not the architecture and can drift. It does not answer
+  why the boundary should remain words while the repository changes. A
+  sentence has no executable claim and no negative control, so the
+  sentence can say "the site stays here" while a later copy operation
+  quietly includes the site and nobody is told.
+
+  The chosen position is narrower than the opposite one claims to need.
+  It does not create a package, split version lines, move the corpus, or
+  declare the core independent of the project. It creates a reversible cut
+  inside the repository, checks that the cut builds, and leaves the
+  semantic work to T4.3. If the boundary later moves, the script and its
+  fixture are two small files to revise; until then, the words have a
+  machine-checkable meaning.
+
+outcomes:
+  - id: the-boundary-is-executable
+    statement: |
+      scripts/export-core.sh cuts the protocol core from the repository and
+      refuses to publish a tree containing any path outside its allowlist.
+
+  - id: the-export-is-buildable
+    statement: |
+      The exported tree compiles with dune and its mathc executable reports
+      its version and accepts a valid decision.
+
+  - id: project-material-stays-behind
+    statement: |
+      The export contains no site, plugin, conformance corpus, release
+      tooling, project corpus, project evidence store or book.
+
+  - id: the-boundary-can-go-red
+    statement: |
+      A temporary export contaminated with any representative project file
+      is rejected by the fixture's independent boundary check.
+
+scope:
+  paths:
+    - "scripts/export-core.sh"
+    - "tests/fixtures/exportable-core-boundary.sh"
+    - "decisions/exportable-core-boundary-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "tests/cli/**"
+    - "docs/plans/**"
+    - "scripts/install-tooling/**"
+
+obligations:
+  - id: the-export-is-the-boundary
+    claim: |
+      The export contains the kernel, policies.yaml, the three protocol
+      artifact locations and the canonical skill, and contains none of the
+      site, plugin, conformance corpus, release tooling, project corpus or
+      book.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/exportable-core-boundary.sh
+
+  - id: the-boundary-check-can-go-red
+    claim: |
+      The boundary check rejects temporary copies contaminated with a site
+      file, plugin file, conformance-corpus file, release-tooling file,
+      book file or project decision file.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/exportable-core-boundary.sh
+
+  - id: the-exported-core-accepts-a-decision
+    claim: |
+      The exported tree builds, its mathc executable reports the expected
+      version, and mathc validate accepts a decision created inside the
+      exported protocol artifact directory.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/exportable-core-boundary.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "if the kernel needs a build or runtime dependency outside the allowlist, the exported build or decision probe fails and adopters receive an incomplete core"
+    - "if a project-specific file or string enters the export, downstream users receive project material and the boundary fixture turns red"
+    - "if the artifact directories acquire repository-corpus semantics, downstream users receive this repository's records and the claimed protocol boundary becomes false"
+    - "if the Dune project or opam package changes incompatibly, the exported tree stops building and the fixture reports the loss"
+    - "if T4.2 changes policies.yaml or the master-policy layout, the exported policy can describe a layout the adopter no longer has"
+    - "if T4.3 changes the kernel's project-specific strings, the file boundary can stay green while semantic independence remains unproven"
+
+assumptions:
+  - id: the-three-artifacts-are-locations-not-project-records
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The plan's "decisions directory, attestations directory and
+      policies.yaml" names protocol artifact locations, not this
+      repository's particular corpus and evidence store. The export's two
+      empty directories express that reading.
+    consequence_if_false: |
+      If the three artifacts were intended to include this repository's
+      live decisions and generated attestations, exporting them would carry
+      the project corpus across the very boundary T4.1 is meant to draw. The
+      exporter and fixture would then have to be withdrawn, not merely
+      widened.
+    review_on:
+      - signal: the plan distinguishes project corpus from artifact scaffolding
+
+  - id: the-kernel-does-not-need-the-book-or-schemas-at-runtime
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel's parser is hand-written and the adoption skill says an
+      adopting tree needs no schemas/ directory. The exported build,
+      version command and decision validation exercise that assumption
+      without spec/, axioms/ or schemas/ present.
+    consequence_if_false: |
+      If a future core command needs a schema or normative file at runtime,
+      the export is incomplete even though the current probe still passes.
+      The exporter must then include that file deliberately, and T4.3 must
+      decide whether it is protocol or project material.
+    review_on:
+      - signal: a core runtime dependency reads schemas spec or axioms
+
+  - id: a-file-boundary-is-the-scope-of-t4-1
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      T4.1 asks for a marked boundary and an export script. Semantic
+      independence of the kernel from the project is the separate work
+      assigned to T4.3.
+    consequence_if_false: |
+      If T4.1 was meant to prove semantic independence, this decision would
+      be incomplete even with a green fixture. The missing evidence would
+      be an architectural or behavioral test of the kernel's ignorance of
+      project paths and strings, and that test would need to name its own
+      negative control.
+    review_on:
+      - signal: T4.3 is retired or absorbed without a replacement
