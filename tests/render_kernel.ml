@@ -1066,7 +1066,7 @@ let[@warning "-32"] ru_home_sibling_is_index_html () =
 
 let[@warning "-32"] footer_links_github_origin () =
   (* The footer emits GitHub blob URLs for AGENTS.md, ROADMAP.md,
-     PACKAGES.md, and spec/algebra-3.2.md. Before the fix it
+     PACKAGES.md, and spec/kernel-contract.md. Before the fix it
      emitted `../AGENTS.html` (404). Per
      `decisions/site-broken-links-2026-10@1`, obligation
      `footer-meta-docs-link-github`. *)
@@ -1098,8 +1098,8 @@ let[@warning "-32"] footer_links_github_origin () =
     "footer links to PACKAGES.md on GitHub" true
     (has "github.com/11111000000/math-coding/blob/main/PACKAGES.md" body);
   Alcotest.(check bool)
-    "footer links to spec/algebra-3.2.md on GitHub" true
-    (has "github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md" body);
+    "footer links to spec/kernel-contract.md on GitHub" true
+    (has "github.com/11111000000/math-coding/blob/main/spec/kernel-contract.md" body);
   (* Negative: the old broken-relative-link pattern is gone. *)
   Alcotest.(check bool)
     "footer does NOT carry '../AGENTS.html'" true
@@ -1111,8 +1111,8 @@ let[@warning "-32"] footer_links_github_origin () =
     "footer does NOT carry '../PACKAGES.html'" true
     (not (has "../PACKAGES.html" body));
   Alcotest.(check bool)
-    "footer does NOT carry '../spec/algebra-3.2.md'" true
-    (not (has "../spec/algebra-3.2.md" body))
+    "footer does NOT carry '../spec/kernel-contract.md'" true
+    (not (has "../spec/kernel-contract.md" body))
 
 let[@warning "-32"] nav_has_github_link () =
   (* The nav carries a GitHub anchor pointing at the bare
@@ -1137,7 +1137,7 @@ let[@warning "-32"] nav_has_github_link () =
             Render.body_md = "body";
           };
           {
-            Render.name = "spec/algebra-3.2";
+            Render.name = "spec/kernel-contract";
             Render.title = "Algebra";
             Render.body_md = "body";
           };
@@ -1151,7 +1151,7 @@ let[@warning "-32"] nav_has_github_link () =
       let path =
         match page_key with
         | "home" -> "index.html"
-        | "spec/algebra-3.2" -> "spec/algebra-3.2.html"
+        | "spec/kernel-contract" -> "spec/kernel-contract.html"
         | _ -> page_key ^ ".html"
       in
       let page = List.find (fun p -> p.Render.path = path) pages in
@@ -1168,16 +1168,16 @@ let[@warning "-32"] nav_has_github_link () =
            path)
         true
         (not (has "href=\"./github\"" page.Render.body)))
-    [ ("home", "Home"); ("axioms", "Axioms"); ("spec/algebra-3.2", "Algebra") ]
+    [ ("home", "Home"); ("axioms", "Axioms"); ("spec/kernel-contract", "Algebra") ]
 
 let[@warning "-32"] axioms_link_html_not_md () =
   (* The five axiom markdown sources must reference the rendered
      spec HTML, not the raw spec markdown. Before the fix the
-     links were `../spec/algebra-3.2.md`, which 404'd because
-     `mathc render` ships the spec as `dist/spec/algebra-3.2.html`.
+     links were `../spec/kernel-contract.md`, which 404'd because
+     `mathc render` ships the spec as `dist/spec/kernel-contract.html`.
      Per `decisions/site-broken-links-2026-10@1`, obligation
      `axiom-pages-link-rendered-spec`. The link is the bare
-     `spec/algebra-3.2.html` (no `../` prefix) because `<base
+     `spec/kernel-contract.html` (no `../` prefix) because `<base
      href="/math-coding/">` overrides the document URL as the
      base for relative URL resolution, so `../X` resolves
      outside the site. *)
@@ -1190,19 +1190,19 @@ let[@warning "-32"] axioms_link_html_not_md () =
       let path = Filename.concat root ("axioms/" ^ name ^ ".md") in
       let md = read_text path in
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/algebra-3.2.md"
+        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/kernel-contract.md"
            name)
         true
-        (not (has "../spec/algebra-3.2.md" md));
+        (not (has "../spec/kernel-contract.md" md));
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/algebra-3.2.html"
+        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/kernel-contract.html"
            name)
         true
-        (not (has "../spec/algebra-3.2.html" md));
+        (not (has "../spec/kernel-contract.html" md));
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md DOES link to spec/algebra-3.2.html" name)
+        (Printf.sprintf "axioms/%s.md DOES link to spec/kernel-contract.html" name)
         true
-        (has "spec/algebra-3.2.html" md))
+        (has "spec/kernel-contract.html" md))
     axiom_files;
   (* Render `dist/` afresh and verify the rendered axiom pages
      carry the link to the rendered spec. *)
@@ -1234,14 +1234,14 @@ let[@warning "-32"] axioms_link_html_not_md () =
       let path = Filename.concat dist rel in
       let html = read_text path in
       Alcotest.(check bool)
-        (Printf.sprintf "dist/%s carries spec/algebra-3.2.html link" rel)
+        (Printf.sprintf "dist/%s carries spec/kernel-contract.html link" rel)
         true
-        (has "spec/algebra-3.2.html" html);
+        (has "spec/kernel-contract.html" html);
       Alcotest.(check bool)
         (Printf.sprintf
-           "dist/%s does NOT carry the raw spec/algebra-3.2.md link" rel)
+           "dist/%s does NOT carry the raw spec/kernel-contract.md link" rel)
         true
-        (not (has "../spec/algebra-3.2.md" html)))
+        (not (has "../spec/kernel-contract.md" html)))
     axiom_files
 
 let () =

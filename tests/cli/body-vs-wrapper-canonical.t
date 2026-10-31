@@ -1,6 +1,6 @@
 Integration test for the body-vs-wrapper canonicalisation decision
 (d5-body-vs-wrapper-canonical-2026-10) and the new
-spec/algebra-3.2.md §7.1 sub-section.
+spec/kernel-contract.md §7.1 sub-section.
 
   $ cd "$DUNE_SOURCEROOT"
 
@@ -16,9 +16,9 @@ two added by the digest-recompute work, which had to spell out
 why §7.1 says the scheme prefix appears exactly once.
 
   $ rg '§7\.1' lib/decision.ml
-     two stored hashes is defined in spec/algebra-3.2.md §7.1
-     canonicalisation algorithm named in spec/algebra-3.2.md §7.1
-     Algebra §7.1 reads:
+     two stored hashes is defined in spec/kernel-contract.md §7.1
+     canonicalisation algorithm named in spec/kernel-contract.md §7.1
+     Kernel contract §7.1 reads:
      neither §7.1, nor the Python reference
 
 The stale "no formal definition" phrase is absent from the comment
@@ -27,14 +27,14 @@ block (the negative case):
   $ rg 'no formal definition' lib/decision.ml
   [1]
 
-The spec/algebra-3.2.md §7.1 sub-section exists:
+The spec/kernel-contract.md §7.1 sub-section exists:
 
-  $ rg '^### §7\.1' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
+  $ rg '^### §7\.1' "$DUNE_SOURCEROOT/spec/kernel-contract.md"
   ### §7.1 Byte-range and canonicalisation
 
 The spec names the placeholder-substitution algorithm:
 
-  $ rg 'placeholder-substitution sweep' "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
+  $ rg 'placeholder-substitution sweep' "$DUNE_SOURCEROOT/spec/kernel-contract.md"
   3. **Insensitivity to placeholder.** Changing the value of `body_sha` (or `yaml_sha`) while keeping the field pattern valid does NOT change the resulting digest; the placeholder-substitution sweep absorbs the change. This is what makes the algorithm a fixed-point: a file's stored digest equals the algorithm's output for the same file.
 
 The schema is unchanged (no `authoring` field was added):
@@ -45,7 +45,7 @@ The schema is unchanged (no `authoring` field was added):
 The decision file is in main:
 
   $ test -f decisions/d5-body-vs-wrapper-canonical-2026-10.yaml
-  $ test -f "$DUNE_SOURCEROOT/spec/algebra-3.2.md"
+  $ test -f "$DUNE_SOURCEROOT/spec/kernel-contract.md"
   $ test -f tests/body_canonical_test.ml
   $ test -f lib/decision.ml
 

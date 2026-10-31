@@ -1,7 +1,7 @@
 A COMMIT THAT CITES THE DECISION IT IMPLEMENTS NEEDS NO SECOND
 DECISION FILE.
 
-Algebra §5 and §20 give a change to a protected path
+Kernel contract §5 and §20 give a change to a protected path
 (`lib/**`, `bin/Mathc.ml`, `spec/**`, `schemas/**`, `axioms/**`) two
 ways to name the commitment it implements:
 

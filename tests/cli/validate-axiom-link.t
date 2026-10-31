@@ -9,7 +9,7 @@ decisions is enforced by the parser
 Draft, Retired, and Superseded decisions are exempt — only
 `active` carries the contract. The diagnostic message names the
 decision id when present and points at
-`spec/algebra-3.2.md §7`.
+`spec/kernel-contract.md §7`.
 
   $ cd "$DUNE_SOURCEROOT"
 
@@ -44,7 +44,7 @@ the specific `MC-AXIOM-LINK-MISSING` diagnostic:
   >   owner: human:maintainer
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json active-no-axiom-link.yaml | jq -c '{verdict, code, severity, message}'
-  {"verdict":"reject","code":"MC-AXIOM-LINK-MISSING","severity":"block","message":"active-no-axiom-link-demo: decision has state=active but empty axiom_link: spec/algebra-3.2.md §7 requires every active decision to name the axiom(s) it addresses via the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision front-matter"}
+  {"verdict":"reject","code":"MC-AXIOM-LINK-MISSING","severity":"block","message":"active-no-axiom-link-demo: decision has state=active but empty axiom_link: spec/kernel-contract.md §7 requires every active decision to name the axiom(s) it addresses via the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision front-matter"}
 
 A decision with `axiom_link: [A0]` and `state: active` is accepted
 (the rule is accepted; non-empty axiom_link is the fix):

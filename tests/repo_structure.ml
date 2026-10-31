@@ -991,7 +991,7 @@ let[@warning "-32"] test_portable_linux_decision_active () =
   if not (file_exists dec) then
     Alcotest.failf
       "decisions/portable-linux-musl.yaml missing — required by ROADMAP Tier \
-       3.5+ #13 and algebra-3.2 §30";
+       3.5+ #13 and kernel contract §30";
   let txt = read_file dec in
   (* Accepts both 'state: active' (in-flight) and 'state: retired'
      (after the 'alpine-ci-build-fails' reversal signal fired). The

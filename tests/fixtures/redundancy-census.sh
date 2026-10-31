@@ -483,8 +483,8 @@ printf '     live decisions %s; the 2026-10 census aimed at about 50 rules and i
 printf '     archive %s files, of which %s are decisions still saying state: active\n' \
   "$(ls archive/decisions/*.yaml 2>/dev/null | wc -l | tr -d ' ')" "$archive_active"
 printf '     the normative text last changed on %s, %s commits ago\n' \
-  "$(git log -1 --format=%cs -- spec/algebra-3.2.md 2>/dev/null || echo unknown)" \
-  "$(git rev-list --count "$(git log -1 --format=%H -- spec/algebra-3.2.md 2>/dev/null || echo HEAD)"..HEAD 2>/dev/null || echo unknown)"
+  "$(git log -1 --format=%cs -- spec/kernel-contract.md 2>/dev/null || echo unknown)" \
+  "$(git rev-list --count "$(git log -1 --format=%H -- spec/kernel-contract.md 2>/dev/null || echo HEAD)"..HEAD 2>/dev/null || echo unknown)"
 printf '     sizes: lib+bin %s lines, site+plugin+scripts+tests %s lines\n' \
   "$(cat lib/*.ml lib/*/*.ml bin/*.ml 2>/dev/null | wc -l | tr -d ' ')" \
   "$(cat site/*.md plugin/**/*.ts plugin/**/*.tsx scripts/*.sh tests/*.ml 2>/dev/null | wc -l | tr -d ' ')"

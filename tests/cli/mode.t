@@ -1,5 +1,5 @@
 mathc mode computes the risk classification for one or more paths
-per algebra 3.2 §2 (lib/risk.ml). Exercises the success path
+per kernel contract §2 (lib/risk.ml). Exercises the success path
 with a kernel path (lib/packages.ml) and a docs path
 (README.md).
 

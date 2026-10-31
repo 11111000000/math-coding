@@ -109,7 +109,7 @@ soft-warn diagnostic is present. (`accept` was renamed to `parse-ok`
 in commit a602b361.)
 
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json inline-seq-no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/kernel-contract.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Scenario 3 — pre-existing indented form (`key:` on its own line,

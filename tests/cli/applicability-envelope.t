@@ -1,4 +1,4 @@
-Applicability envelope decision tree (algebra §28):
+Applicability envelope decision tree (kernel contract §28):
 the formula applicability(P, 𝒫) = value(P, 𝒫) - friction_user(P, 𝒫)
 drives Path A (full 3.2) vs Path C (no math-coding) choice.
 
@@ -19,8 +19,8 @@ The repo has constitutional structure (axioms, 14 invariants):
   index.md
   separation.md
 
-The algebra file exists and is normative (algebra §28):
-  $ test -f "$DUNE_SOURCEROOT/spec/algebra-3.2.md" && echo "spec present" || echo "spec missing"
+The algebra file exists and is normative (kernel contract §28):
+  $ test -f "$DUNE_SOURCEROOT/spec/kernel-contract.md" && echo "spec present" || echo "spec missing"
   spec present
 
 The decision file exists (bootstrap of applicability):
@@ -28,7 +28,7 @@ The decision file exists (bootstrap of applicability):
   decision present
 
 Applicability envelope is functional when:
-1. spec/algebra-3.2.md published (passed above)
+1. spec/kernel-contract.md published (passed above)
 2. decisions/algebra-3.2.yaml accepted (passed above)
 3. the ROADMAP makes no open promise about it. The ROADMAP used to
 count three "Tier 3.5" mentions; the census collapsed the closed

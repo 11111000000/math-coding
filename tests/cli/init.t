@@ -28,7 +28,7 @@ Empty directory: init succeeds and creates the expected files.
   mathc init: created ./.math-coding/decisions, ./.math-coding/attestations
     decision.yaml: schema math-coding/3.2, scope paths editable
     pre-commit hook: skipped (--no-install)
-    applicability envelope (spec/algebra-3.2.md §28, default-on):
+    applicability envelope (spec/kernel-contract.md §28, default-on):
       path: Path A. Installed by default, a single maintainer included.
         To skip, the project must be throwaway — prototype,
         MVP, spike, one-day hackathon — and the rationale goes

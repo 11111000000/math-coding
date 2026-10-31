@@ -76,7 +76,7 @@ heredoc lines that already start with `> ` (RFC: cram lacks an
 
 The digest fields carry the 64-zero placeholder: a hand-written
 file has no digest to copy. The kernel now recomputes the digest
-of the file's own bytes (spec/algebra-3.2.md §7.1) and rejects a
+of the file's own bytes (spec/kernel-contract.md §7.1) and rejects a
 stale value with `MC-SHA-DIGEST-STALE` (Block, exit 1) -- and the
 zero placeholder is stale in the strongest sense, asserting a
 digest no body ever had. The digest is incidental to what this

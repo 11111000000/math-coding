@@ -1,6 +1,6 @@
 mathc gate --no-scope --no-execute -- the AUDIT question: every active
 decision, read from the store, with no verifier run -- with the §15
-phase-aware verdict (algebra §15) wired in lib/gate.ml:gate_v32 and
+phase-aware verdict (kernel contract §15) wired in lib/gate.ml:gate_v32 and
 bin/Mathc.ml:do_gate now applies the §20 kernel rules, and `do_gate`
 composes the two verdicts (phase-aware Block wins, otherwise the v3.0
 attestation verdict stands).
@@ -8,7 +8,7 @@ attestation verdict stands).
 Scenario 1 — protected path (`lib/`) with no sibling decision
 file and no `Refs:` trailer: the §20 `CoCommitDecision` rule
 fires and the composed verdict is Block, exit 1. This is the
-positive case for the §15/§20 wiring (per spec/algebra-3.2.md
+positive case for the §15/§20 wiring (per spec/kernel-contract.md
 §5, §20): a kernel change without a co-committed decision is a
 knownable violation, not an unknown one.
 

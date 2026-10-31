@@ -4,7 +4,7 @@
 #
 # WHAT IT MEASURES. A decision may declare relations to other
 # decisions: `supersedes`, `addresses`, `depends_on` and the rest
-# (spec/algebra-3.2.md §7). Each of them names something. The kernel
+# (spec/kernel-contract.md §7). Each of them names something. The kernel
 # does NOT check that the thing exists: `mathc mark-superseded
 # --by=<id>@<rev>` validates the SHAPE of the reference and nothing
 # else (lib/lifecycle/lifecycle.ml::parse_by), and no command walks
@@ -43,7 +43,7 @@
 #
 #   schemas/decision.json says the relation block holds "Directed
 #   relations to other Decisions", and its `additionalProperties` is
-#   false. spec/algebra-3.2.md §7 says `addresses: id[], # implements
+#   false. spec/kernel-contract.md §7 says `addresses: id[], # implements
 #   one or more axioms`. Two decisions in the live corpus put an AXIOM
 #   (`A1`, `A3`) into `addresses:`. Those targets resolve to an
 #   axiom, not to a decision - so they are not "missing", and calling

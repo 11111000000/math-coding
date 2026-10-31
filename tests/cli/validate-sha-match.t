@@ -2,12 +2,12 @@ mathc validate enforces sha-match when both `body_sha` and `yaml_sha`
 are recorded on a Decision. The rule has TWO layers, and the second
 is what this fixture is actually about.
 
-Layer 1 (spec/algebra-3.2.md §7): if both fields are present they
+Layer 1 (spec/kernel-contract.md §7): if both fields are present they
 must be string-equal ("if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅
 then D.body_sha = D.yaml_sha"). Disagreement surfaces as the
 `MC-SHA-MISMATCH` diagnostic (Block severity, exit code 1).
 
-Layer 2 (spec/algebra-3.2.md §7.1): equality is NECESSARY BUT NOT
+Layer 2 (spec/kernel-contract.md §7.1): equality is NECESSARY BUT NOT
 SUFFICIENT. A decision's digest is defined over its own file bytes,
 so the kernel recomputes it and rejects a stale value with
 `MC-SHA-DIGEST-STALE` (Block, exit 1). Both live in
@@ -90,7 +90,7 @@ just rejected validates:
 A decision with both hashes present and DIFFERENT is rejected with
 the specific `MC-SHA-MISMATCH` diagnostic (Block, exit 1). The
 message embeds both digests verbatim and a policy reference to
-spec/algebra-3.2.md §7.
+spec/kernel-contract.md §7.
 
 Note the code, given that BOTH values here are fabricated: layer 1
 short-circuits, so the disagreement is reported as MISMATCH and the
@@ -139,7 +139,7 @@ at the recompute algorithm (next_actions snippet):
   reject: sha-match-mismatch.yaml
     code: MC-SHA-MISMATCH
     severity: block
-    message: sha-match-mismatch-demo: body_sha (sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef) and yaml_sha (sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210) disagree: spec/algebra-3.2.md §7 requires both hashes to be equal when both are present. Recompute via the placeholder-substitution algorithm (sha256 of the decision with both fields replaced by 'sha256:' + 64 zeros); see scripts/axiom-link-seed.py:133-169 for the reference implementation.
+    message: sha-match-mismatch-demo: body_sha (sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef) and yaml_sha (sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210) disagree: spec/kernel-contract.md §7 requires both hashes to be equal when both are present. Recompute via the placeholder-substitution algorithm (sha256 of the decision with both fields replaced by 'sha256:' + 64 zeros); see scripts/axiom-link-seed.py:133-169 for the reference implementation.
   [1]
 
 A decision with ONLY `body_sha` (yaml_sha absent) is accepted —

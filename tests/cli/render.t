@@ -64,7 +64,7 @@ under `--lang=all`.
   $ grep -qF 'github.com/11111000000/math-coding/blob/main/AGENTS.md' $tmpdir/dist/index.html
   $ grep -qF 'github.com/11111000000/math-coding/blob/main/ROADMAP.md' $tmpdir/dist/index.html
   $ grep -qF 'github.com/11111000000/math-coding/blob/main/PACKAGES.md' $tmpdir/dist/index.html
-  $ grep -qF 'github.com/11111000000/math-coding/blob/main/spec/algebra-3.2.md' $tmpdir/dist/index.html
+  $ grep -qF 'github.com/11111000000/math-coding/blob/main/spec/kernel-contract.md' $tmpdir/dist/index.html
   $ grep -qF 'href="manifesto.zh.html"' $tmpdir/dist/axioms.zh.html
   $ grep -qF 'href="foundations.zh.html"' $tmpdir/dist/axioms.zh.html
   $ grep -qF 'href="manifesto.html"' $tmpdir/dist/manifesto.ru.html

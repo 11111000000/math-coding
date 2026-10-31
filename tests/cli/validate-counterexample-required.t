@@ -1,6 +1,6 @@
 mathc validate enforces the schema-level required-ness of the
 `counterexample` field for decisions whose `mode` is >=
-`standard`. Per spec/algebra-3.2.md §11 and
+`standard`. Per spec/kernel-contract.md §11 and
 `decisions/plan-2026-10-improvements/t6-2.yaml`, an active
 decision with `mode` in `{standard, strict, exhaustive}` MUST
 carry a non-empty `counterexample`. When the rule fires, the
@@ -137,7 +137,7 @@ id and the spec reference:
   reject: mode-standard-no-counterexample.yaml
     code: MC-COUNTEREXAMPLE-MISSING
     severity: block
-    message: mode-standard-no-counterexample-demo: decision has mode=standard but empty counterexample: spec/algebra-3.2.md §11 requires the counterexample dialectical slot for modes >= standard; add a counterexample section naming the strongest objection (or downgrade to mode: light if a documented soft slot is appropriate)
+    message: mode-standard-no-counterexample-demo: decision has mode=standard but empty counterexample: spec/kernel-contract.md §11 requires the counterexample dialectical slot for modes >= standard; add a counterexample section naming the strongest objection (or downgrade to mode: light if a documented soft slot is appropriate)
   [1]
 
 Whitespace-only counterexample values are treated as empty
@@ -270,7 +270,7 @@ the verdict stays `parse-ok`.
   >   owner: human:maintainer
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-light-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/kernel-contract.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 A `mode: tiny` decision WITHOUT counterexample: also accepts
@@ -306,7 +306,7 @@ A `mode: tiny` decision WITHOUT counterexample: also accepts
   >   owner: human:maintainer
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json mode-tiny-no-counterexample.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/kernel-contract.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 `mode: strict` WITHOUT counterexample is also rejected (strict
