@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
-revision: 2
+revision: 3
 state: active
 negative_control: tests/fixtures/forge-stub-read-request.sh
-body_sha: "sha256:b8e04afa0915a50e144f56d1669e4f42ec0902634ed7083054c10e7b426f656c"
-yaml_sha: "sha256:b8e04afa0915a50e144f56d1669e4f42ec0902634ed7083054c10e7b426f656c"
+body_sha: "sha256:befe984b36366b90ac9bb6748c55ded902d8bcd1e997af672b5c7bc6d27d13f8"
+yaml_sha: "sha256:befe984b36366b90ac9bb6748c55ded902d8bcd1e997af672b5c7bc6d27d13f8"
 axiom_link:
   - A0
 intent: |
@@ -53,32 +53,41 @@ intent: |
   under test — `lib/rebuttal.ml::forge_mirror` — is untouched, and
   so are the assertions in `tests/rebuttal_forge_stub.ml`.
 
-  Defect 3 (found during verification, NOT fixed here): the test
-  spawns `forge_stub.exe` by path, so dune cannot see the edge. On
-  a cold `_build` the test executable starts before the stub has
+  Defect 3 (found during verification, recorded here at rev 2): the
+  test spawns `forge_stub.exe` by path, so dune cannot see the edge.
+  On a cold `_build` the test executable starts before the stub has
   finished linking and dies with `stub binary not found` -- three
-  failures in 0.06s, no assertion run. It reproduces on a clean
-  checkout of the pre-fix tree and has nothing to do with either
-  defect above. Declaring `(deps %{exe:support/forge_stub/
-  forge_stub.exe})` on the `(tests)` stanza in `tests/dune` was
-  tried and reverted: it does create the edge, but a test stanza
-  with deps runs sandboxed from `_build/default/tests/`, and
-  `spawn_stub` walks up for `dune-project` to find the project
-  root -- which now resolves to the sandbox, yielding the doubled
-  path `_build/default/tests/_build/default/...`. Fixing it
-  properly means deriving the root from `DUNE_SOURCEROOT` or
-  refusing to walk through a `_build` directory, i.e. an edit to
-  `spawn_stub` in the file a parallel worktree is reformatting,
-  for a defect this decision did not introduce and does not need
-  to close. Recorded here instead of fixed; see the
-  `reversal` signal.
+  failures in 0.06s, no assertion run. It reproduced on a clean
+  checkout of the pre-fix tree and had nothing to do with either
+  defect above. Rev 2 recorded it instead of fixing it: the
+  `(deps ...)` attempt had been reverted because a test stanza with
+  deps runs sandboxed from `_build/default/tests/`, and the resolver
+  walked up for `dune-project` to find the project root -- which then
+  resolved to the sandbox, yielding the doubled path
+  `_build/default/tests/_build/default/...`.
+
+  2026-11-01, REVISION 3: DEFECT 3 IS CLOSED, AND BOTH HALVES OF IT
+  ARE CLOSED. The build edge is now declared on the shared `(tests
+  ...)` stanza in `tests/dune` as
+  `(deps %{exe:./support/forge_stub/forge_stub.exe})`, and the path
+  resolver in `tests/rebuttal_forge_stub.ml::spawn_stub` no longer
+  walks at all: it resolves the stub relative to
+  `Sys.executable_name`, which the OCaml runtime fills in with an
+  absolute path. The suite no longer depends on where `_build`
+  lives. This revision records the closure and does not claim the
+  work as its own.
 
   History:
     rev 1: read_request stops at the blank line; the stub answers
       every connection; paired fixture and scope recorded.
-    rev 2 (this revision): defect 3 recorded after verification,
-      with the `(deps)` experiment and its revert. No code
-      changed.
+    rev 2: defect 3 recorded after verification, with the
+      `(deps)` experiment and its revert. No code changed.
+    rev 3 (this revision): the stray second document marker at the
+      end of this file is gone, so the kernel reads the whole
+      decision; defect 3 is recorded as CLOSED (the build edge is
+      declared in `tests/dune` and the stub is resolved relative to
+      `Sys.executable_name`), and the scope names the two files that
+      closure touched.
 commitment: |
   `read_request fd` reads one HTTP head and returns it. It returns
   exactly once: at the first blank line, or at EOF if the peer
@@ -101,6 +110,12 @@ commitment: |
   fails against the pre-fix stub, which is what makes it a
   verifier and not decoration.
 
+  The suite can reach its assertions at all because the build edge
+  to the stub is declared: `tests/dune` carries
+  `(deps %{exe:./support/forge_stub/forge_stub.exe})` on the shared
+  `(tests ...)` stanza, and the stub is located relative to
+  `Sys.executable_name` rather than by walking up for `dune-project`.
+
   Boundaries:
   - `lib/rebuttal.ml::forge_mirror` is unchanged, including its
     refusal to raise: an unanswered stub is still `[]`, not a
@@ -118,14 +133,16 @@ scope:
   paths:
     - "tests/support/forge_stub/forge_stub.ml"
     - "tests/fixtures/forge-stub-read-request.sh"
+    - "tests/rebuttal_forge_stub.ml"
+    - "tests/dune"
     - "decisions/forge-stub-read-request-2026-10.yaml"
   exclusions:
     - "lib/rebuttal.ml (the seam under test; not modified)"
-    - "tests/rebuttal_forge_stub.ml (assertions unchanged; only the comment describing the stub as single-shot was corrected, it became false with this change)"
-    - "tests/dune (rebuttal_forge_stub was and is enabled)"
     - "decisions/ci-green-batch1-2026-10.yaml (its Tier 2G note is historically accurate; this file is the decision it promised, so no revision bump is needed and the @1 references from ci-cram-cleanup-batch2 stay valid)"
     - "the `mathc init` cram hang observed while verifying, which is unrelated and pre-existing"
-    - "tests/dune (the missing stub dependency is recorded under intent defect 3; the `(deps)` attempt was reverted)"
+  # 2026-11: the two files that close defect 3 moved from the exclusions
+  #   into the paths: the build edge lives in tests/dune and the resolver
+  #   lives in tests/rebuttal_forge_stub.ml::spawn_stub.
 outcomes:
   - id: stub-answers-request-head
     statement: |
@@ -269,10 +286,12 @@ reversal:
     action: rework
   - signal: cold-build-stub-race-survives
     condition: |
-      `dune build @runtest` on a clean `_build` still reports
-      `rebuttal_forge_stub: stub binary not found`. The suite is
-      warm-tree green and `scripts/check.sh` green; only the cold
-      parallel build loses the race.
+      `dune build @runtest` on a clean `_build` reports
+      `rebuttal_forge_stub: stub binary not found` again. The edge
+      that prevents it is declared in `tests/dune`
+      (`(deps %{exe:./support/forge_stub/forge_stub.exe})`) and the
+      stub is located relative to `Sys.executable_name`, so a return
+      of this symptom means one of those two was undone.
     action: rework
   - signal: stub-moved-out-of-tests
     condition: |
@@ -293,4 +312,3 @@ relations:
   implements: []
   verifies:
     - docs/plans/t1-1.yaml
----
