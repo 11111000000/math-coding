@@ -1,105 +1,153 @@
 ---
 schema: math-coding/3.2
 id: version-sync-2026-10
-revision: 1
+revision: 2
 state: active
 negative_control: tests/fixtures/sync-version-stale-fails.sh
-body_sha: "sha256:0536d5d62447e1677473eb8ab22aa116f6d0da97c8e4c34bca8312c7a9bf695d"
-yaml_sha: "sha256:0536d5d62447e1677473eb8ab22aa116f6d0da97c8e4c34bca8312c7a9bf695d"
+body_sha: "sha256:28267ae790dbb2aea29f5748937f080c0106623d34473279495909680f799474"
+yaml_sha: "sha256:28267ae790dbb2aea29f5748937f080c0106623d34473279495909680f799474"
 intent: |
-  Close the follow-up cycle announced in
-  `decisions/site-version-from-file-2026-10.yaml:76-81`:
-  "a follow-up cycle can wire `scripts/release.sh` to call
-  `git describe --tags --abbrev=0 > VERSION` so a tag and
-  the file stay in lock-step".
+  Close the follow-up cycle announced in the archived
+  `decisions/site-version-from-file-2026-10.yaml` (the file now lives at
+  `archive/decisions/site-version-from-file-2026-10.yaml`): a follow-up
+  cycle can wire `scripts/release.sh` to call
+  `git describe --tags --abbrev=0 > VERSION` so a tag and the file stay
+  in lock-step.
 
-  The drift between the live `VERSION` file
-  (`3.1.0-alpha-final`) and the in-tree references in
-  `adoption/SKILL.md` (`MC_VERSION=3.0.0.20`,
-  `compatible_with: mathc@>=3.0.0.20`) is the immediate
-  defect this decision closes. After this cycle:
+  The drift this decision closed was concrete. The live `VERSION` file
+  read `3.1.0-alpha-final` while the in-tree references in
+  `adoption/SKILL.md` still advertised `MC_VERSION=3.0.0.20` and
+  `compatible_with: mathc@>=3.0.0.20`. That pair of literals is
+  history, and this revision does not repeat it as a live fact.
 
-    - `VERSION` is the single source of truth (already true
-      after `site-version-from-file-2026-10@1`).
-    - `adoption/SKILL.md` and `scripts/install-tooling/install.sh`
-      derive their version strings from `VERSION` via
-      `scripts/sync-version.sh`.
-    - A maintainer who bumps `VERSION` runs `scripts/sync-version.sh --write`
-      to refresh all derived points; CI runs
-      `scripts/sync-version.sh --check` on every push and
-      rejects PRs that drift.
+  WHAT THE TREE SAYS NOW, measured on 2026-10-31:
+
+    - `VERSION` reads `3.7.4`.
+    - `adoption/SKILL.md` line 9 reads `compatible_with: mathc@>=3.7.4`
+      and line 10 reads `MC_VERSION=3.7.4`.
+    - The byte-identical agent-skill copy
+      `.opencode/skills/math-coding/SKILL.md` carries the same two
+      derived points at the same two line positions.
+    - `scripts/install-tooling/install.sh` carries
+      `MC_VERSION_DEFAULT=3.7.4`.
+
+  THE PROMISE IS NOT THAT THE VERSION IS 3.7.4. A version is a record
+  and it moves. The promise is the invariant the version stood for:
+  exactly ONE version string is authored, in `VERSION`, and every other
+  copy is derived from it by a script whose `--check` mode fails when
+  they disagree. The number is a measurement of the invariant, not the
+  invariant.
+
+  2026-10-31, REVISION 2: THE FORM WENT STALE IN FOUR PLACES, AND THE
+  SUBSTANCE DID NOT MOVE. (1) The version literals named above were the
+  2026-10 drift, not the current state. (2) The trap-log anchor moved:
+  the conventions file was renamed `OCAML_BEST_PRACTICES.md` to
+  `OCAML_KERNEL_CONVENTIONS.md`, and the entry that records this exact
+  drift is `OCAML_KERNEL_CONVENTIONS.md` §11.27 (VERSION drift
+  between skill and binary), not §11.22 (which is about a
+  non-portable `nix develop` build and never carried the discipline this
+  decision cites). (3) The promise named ONE shipped copy of the skill;
+  the tree ships TWO, and the second one is the copy an agent actually
+  loads -- a one-file promise is not the promise the tree keeps.
+  (4) The script was about 120 lines; it is 340 today and it writes
+  three derived files, not one.
 
   History:
-    rev 1 (this commit): initial adoption. Closes the
-    follow-up announced at site-version-from-file-2026-10.yaml:76-81.
+    rev 1: initial adoption. Closes the follow-up announced at
+      `archive/decisions/site-version-from-file-2026-10.yaml`.
+    rev 2 (this revision): the version literals are replaced by the
+      invariant they stood for; both shipped copies of the skill are
+      named; the conventions anchor moves to
+      `OCAML_KERNEL_CONVENTIONS.md` §11.27; the script size and
+      output set are restated as measured.
 
 axiom_link:
   - A0
   - A4
 
 antithesis: |
-  The counter-position considered and rejected: "Drift between
-  `VERSION` and the in-tree skill/install-script references is
-  cosmetic and not worth a dedicated decision — just hand-edit
-  the skill when bumping." The author engaged with this position
-  and rejected it on three grounds: (a) the drift already
-  happened silently once (between v3.0.0.20 and v3.1.0-alpha-final
-  the skill continues to advertise `3.0.0.20` to every user who
-  reads `adoption/SKILL.md`); (b) Phase-1 `install-tooling-2026-10`
-  ships a POSIX-sh `install.sh` that embeds the version in the
-  binary URL, and a hand-edit on every release is the same
-  drift vector at higher frequency; (c) per `OCAML_BEST_PRACTICES`
-  §11.22, the project's existing `drift to avoid` discipline is
-  "version strings drift if not enforced" — this decision closes
-  the loop.
+  The counter-position considered and rejected: drift between `VERSION`
+  and the in-tree skill/install-script references is cosmetic and not
+  worth a dedicated decision -- just hand-edit the skill when bumping.
+  The author engaged with this position and rejected it on three
+  grounds: (a) the drift already happened silently once (between
+  v3.0.0.20 and v3.1.0-alpha-final the skill continued to advertise
+  `3.0.0.20` to every user who read `adoption/SKILL.md`); (b) the
+  install surface embeds the version in the binary URL, and a hand-edit
+  on every release is the same drift vector at higher frequency;
+  (c) per `OCAML_KERNEL_CONVENTIONS.md` §11.27, the project's own
+  trap log now records this pattern -- version strings drift if not
+  enforced -- and this decision is the enforcement.
 
 commitment: |
-  1. `scripts/sync-version.sh` is a POSIX-sh script (~120 lines)
-     that reads `VERSION` and produces two derived points:
-       (a) `adoption/SKILL.md` `compatible_with: mathc@>=<X>` line
-           (semver MAJOR.MINOR.PATCH form, dropping the
-           `-alpha-final` suffix per semver).
-       (b) `adoption/SKILL.md` `MC_VERSION=<X>` line (preserves
-           the full string for `curl | sh` URLs).
-     Plus, when `--write` is passed, it also writes into
-     `scripts/install-tooling/install.sh` `MC_VERSION_DEFAULT=<X>`
-     (this file is created in Phase-1 W2; the sync-version script
-     tolerates its absence by printing a warning and skipping).
+  1. `scripts/sync-version.sh` is a POSIX-sh script (340 lines as
+     measured on 2026-10-31) that reads `VERSION` and produces the
+     derived points:
+       (a) `compatible_with: mathc@>=<X.Y.Z>` -- semver
+           MAJOR.MINOR.PATCH form, dropping any prerelease suffix.
+       (b) `MC_VERSION=<X>` -- the full contents of `VERSION`.
+     Both live in the frontmatter of the skill document, at line 9 and
+     line 10 respectively. The frontmatter layout is the skill's own
+     convention and is restated in the header of `scripts/sync-version.sh`.
 
-  2. `scripts/sync-version.sh --check` is the CI mode: exits 0
-     iff all derived points match `VERSION`. Used by the
-     `process-principles` shell fixture (and a future
-     `tests/cli/sync-version-clean.t` cram fixture).
+  2. THE SKILL DOCUMENT IS SHIPPED TWICE, AND BOTH COPIES ARE DERIVED
+     POINTS. `adoption/SKILL.md` is the canonical copy an adopter reads;
+     `.opencode/skills/math-coding/SKILL.md` is the byte-identical copy
+     the per-user agent skill is installed from. `scripts/sync-version.sh
+     --write` rewrites BOTH and `scripts/sync-version.sh --check` reads
+     BOTH. A version bump that touches one copy and not the other leaves
+     two documents that disagree about which release they are for, and
+     the second one is the one an agent actually loads. The
+     byte-equality of the two copies is itself pinned, by
+     `tests/fixtures/skill-copies-identical.sh`.
 
-  3. `scripts/sync-version.sh --write` is the maintainer mode:
-     rewrites all derived points and exits 0. Idempotent: re-running
-     on a clean tree produces no diff.
+  3. A THIRD derived point, present only when the install surface
+     exists: `scripts/install-tooling/install.sh` carries
+     `MC_VERSION_DEFAULT=<X>`. The sync-version script tolerates its
+     absence by printing a warning and skipping it.
 
-  4. `tests/fixtures/sync-version-clean-passes.sh` is the positive
-     fixture: clean tree, `sync-version.sh --check` exits 0.
+  4. `scripts/sync-version.sh --check` is the read-only mode: exits 0
+     iff every derived point matches `VERSION`. It is the mode the
+     release gate uses.
 
-  5. `tests/fixtures/sync-version-stale-fails.sh` is the negative
-     fixture: simulate drift by editing `adoption/SKILL.md` to a
-     stale `compatible_with`, assert exit 1, restore.
+  5. `scripts/sync-version.sh --write` is the maintainer mode: rewrites
+     every derived point and exits 0. Idempotent: re-running on a clean
+     tree produces no diff.
 
-  6. `OCAML_BEST_PRACTICES.md` gains §11.27 "VERSION drift between
-     skill and binary" trap-log entry, citing this decision.
+  6. The drift is checked by FIXTURES, and the fixtures are what CI
+     runs. `tests/fixtures/sync-version-clean-passes.sh` is the positive
+     fixture (clean tree, `--check` exits 0);
+     `tests/fixtures/sync-version-stale-fails.sh` is the negative fixture
+     (a stale `compatible_with` is detected, exit 1);
+     `tests/fixtures/sync-version-mc-version-drift-fails.sh` is the
+     second negative fixture (a stale `MC_VERSION` is detected);
+     `tests/fixtures/skill-copies-identical.sh` pins that the two
+     shipped copies agree. `scripts/check.sh` runs every fixture under
+     `tests/fixtures/`, and `.github/workflows/ci.yml` runs
+     `./scripts/dev verify`, which runs `scripts/check.sh` at its last
+     stage. The local `scripts/dev ready` gate additionally runs
+     `scripts/sync-version.sh --check` as its own stage.
 
-  7. The `compatible_with` line uses the semver `MAJOR.MINOR.PATCH`
-     form (`>=3.1.0`), not the full prerelease string. This matches
-     the existing convention at `adoption/SKILL.md:9` and what
-     `mathc version` should compare against.
+  7. `OCAML_KERNEL_CONVENTIONS.md` §11.27 (VERSION drift between
+     skill and binary) records the VERSION drift pattern so future
+     agents see the fix path. The conventions file was renamed from
+     `OCAML_BEST_PRACTICES.md`; the entry moved with it.
+
+  8. The `compatible_with` line uses the semver `MAJOR.MINOR.PATCH` form
+     (`>=3.7.4`), not the full prerelease string. This matches the
+     convention in the skill frontmatter and what `mathc version`
+     compares against.
 
   Boundaries (A3 self-application):
 
-  - This decision does not change `lib/`, `bin/`, `spec/`,
-    `schemas/`, or `axioms/`.
-  - This decision does not bump `VERSION`. The current
-    `3.1.0-alpha-final` value is correct for HEAD; the script
-    handles whatever string is in `VERSION`.
+  - This decision does not change `lib/`, `bin/`, `spec/`, `schemas/`,
+    or `axioms/`.
+  - This decision does not bump `VERSION`. The current `3.7.4` value is
+    correct for HEAD; the script handles whatever string is in
+    `VERSION`.
   - This decision does not introduce a pre-commit hook that
-    auto-runs `sync-version.sh`. The maintainer invokes
-    `--write` explicitly; CI runs `--check` passively.
+    auto-runs `sync-version.sh`. The maintainer invokes `--write`
+    explicitly; CI reads passively.
 
 scope:
   capabilities:
@@ -107,11 +155,16 @@ scope:
   paths:
     - VERSION
     - adoption/SKILL.md
+    - .opencode/skills/math-coding/SKILL.md
     - scripts/sync-version.sh
     - tests/fixtures/sync-version-clean-passes.sh
     - tests/fixtures/sync-version-stale-fails.sh
+    - tests/fixtures/sync-version-mc-version-drift-fails.sh
+    - tests/fixtures/skill-copies-identical.sh
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+  # 2026-10-31: the conventions file was renamed to
+  #   OCAML_KERNEL_CONVENTIONS.md; the scope names the file that exists.
   exclusions:
     - lib/***
     - bin/***
@@ -123,62 +176,73 @@ scope:
 outcomes:
   - id: derived-points-in-sync
     statement: |
-      `adoption/SKILL.md` `compatible_with` and `MC_VERSION`
-      lines derive from `VERSION` and are kept in sync by
-      `scripts/sync-version.sh`.
-  - id: ci-asserts-no-drift
+      Every derived version point in the tree -- the `compatible_with`
+      and `MC_VERSION` lines of BOTH shipped copies of the skill, and
+      `MC_VERSION_DEFAULT` in the install script -- is derived from
+      `VERSION` and is kept in sync by `scripts/sync-version.sh`.
+  - id: drift-is-detected
     statement: |
-      `scripts/sync-version.sh --check` runs in CI; a drift
-      between `VERSION` and the in-tree references fails CI.
+      A drift between `VERSION` and any derived point is detected by a
+      fixture under `tests/fixtures/`, and those fixtures are run by
+      `scripts/check.sh`, which `.github/workflows/ci.yml` reaches
+      through `./scripts/dev verify`. The local `scripts/dev ready`
+      gate runs `scripts/sync-version.sh --check` directly.
   - id: trap-log-entry-present
     statement: |
-      `OCAML_BEST_PRACTICES.md` §11.27 records the VERSION drift
-      pattern so future agents see the fix path.
+      `OCAML_KERNEL_CONVENTIONS.md` §11.27 records the VERSION
+      drift pattern so future agents see the fix path.
 
 counterexample: |
-  "Adding a script that auto-edits other files is over-engineering
-  for a one-line version bump." Counterargument: the failure already
-  occurred — the skill advertises `3.0.0.20` while the binary
-  is `3.1.0-alpha-final`. The script is the smallest fix: a
-  `--check` mode that fails CI is the durable enforcement; a
-  `--write` mode that the maintainer runs once per release
-  is the user experience.
+  Adding a script that auto-edits other files is over-engineering for a
+  one-line version bump. Counterargument: the failure already occurred
+  -- the skill advertised `3.0.0.20` while the binary was
+  `3.1.0-alpha-final`. The script is the smallest fix: a `--check` mode
+  that fails CI is the durable enforcement; a `--write` mode that the
+  maintainer runs once per release is the user experience.
 
-  "Why not just write `VERSION` from `git describe` in a hook?"
-  Counterargument: `git describe` is unavailable in release
-  tarballs (no `.git/`). The `VERSION` file is the canonical
-  source by design (`site-version-from-file-2026-10.yaml`).
-  Sync-version.sh reads `VERSION` and emits derived points;
-  it does not produce `VERSION` itself.
+  Why not just write `VERSION` from `git describe` in a hook?
+  Counterargument: `git describe` is unavailable in release tarballs
+  (no `.git/`). The `VERSION` file is the canonical source by design
+  (the archived `site-version-from-file-2026-10` decision). The
+  sync-version script reads `VERSION` and emits derived points; it does
+  not produce `VERSION` itself.
+
+  One file is enough: the adopter copy. Counterargument: the tree ships
+  the skill twice, and the second copy -- the one installed into a
+  per-user agent skill directory -- is byte-identical by construction. A
+  promise that derived one copy would have left the copy that agents
+  read free to drift, and the drift would have been invisible to the
+  adopter-facing check. Both copies are derived points now, and their
+  equality has its own fixture.
 
 assumptions:
   - id: version-file-tracked
     state: assumed
     statement: |
-      The `VERSION` file is committed to the repo (not
-      git-ignored) and is bumped as part of every release
-      commit, per `decisions/site-version-from-file-2026-10.yaml:135-144`.
+      The `VERSION` file is committed to the repo (not git-ignored) and
+      is bumped as part of every release commit. If `VERSION` is
+      missing or empty, `sync-version.sh` exits 2 with a diagnostic
+      (`MC-VERSION-MISSING`).
     owner: human:maintainer
     consequence_if_false: |
-      If `VERSION` is missing or empty, `sync-version.sh` exits 2
-      with a diagnostic (`MC-VERSION-MISSING`); CI rejects the PR.
+      If `VERSION` were generated, the derived points would have no
+      stable source and CI would reject every pull request.
     review_on:
       - signal: version-file-missing
   - id: skill-frontmatter-stable
     state: assumed
     statement: |
-      The skill frontmatter keeps the
-      `compatible_with: mathc@>=<X.Y.Z>` field at line 9
-      and the `MC_VERSION=<X>` line at line 55. Drift in the
-      frontmatter position is a separate deficit that this
-      decision does not guard against.
+      The skill frontmatter keeps the `compatible_with: mathc@>=<X.Y.Z>`
+      field at line 9 and the `MC_VERSION=<X>` line at line 10, in BOTH
+      shipped copies of the document. Drift in the frontmatter
+      position is a separate deficit that this decision does not guard
+      against.
     owner: human:maintainer
     consequence_if_false: |
-      If the frontmatter layout changes (e.g. `compatible_with`
-      moves to line 12 or splits across multiple lines),
-      `sync-version.sh` cannot find the anchor and exits 2.
-      A future cycle would update the script's anchor
-      expectations.
+      If the frontmatter layout changes (e.g. `compatible_with` moves
+      to line 12 or splits across multiple lines), `sync-version.sh`
+      cannot find the anchor and exits 2. A future cycle would update
+      the script anchor expectations.
     review_on:
       - signal: skill-frontmatter-reformatted
 
@@ -186,8 +250,9 @@ obligations:
   - id: version-single-source-of-truth
     claim: |
         `VERSION` is the only place where version strings are
-        authored; `adoption/SKILL.md` derives its
-        `compatible_with` and `MC_VERSION` from `VERSION` via
+        authored; the `compatible_with` and `MC_VERSION` lines of both
+        shipped copies of the skill, and `MC_VERSION_DEFAULT` in the
+        install script, derive from `VERSION` via
         `scripts/sync-version.sh`.
     outcome: acceptance
     acceptance:
@@ -196,26 +261,37 @@ obligations:
         - verifier: tests/fixtures/sync-version-clean-passes.sh
   - id: sync-version-stale-detected
     claim: |
-        When a maintainer hand-edits `adoption/SKILL.md`
-        out of band (introducing drift), CI's
-        `sync-version.sh --check` exits non-zero.
+        When a maintainer hand-edits a derived point out of band
+        (introducing drift), the drift fixture fails: a stale
+        `compatible_with` is caught by
+        `tests/fixtures/sync-version-stale-fails.sh` and a stale
+        `MC_VERSION` by
+        `tests/fixtures/sync-version-mc-version-drift-fails.sh`.
     outcome: acceptance
     acceptance:
       all:
         - verifier: tests/fixtures/sync-version-stale-fails.sh
   - id: sync-version-write-idempotent
     claim: |
-        Running `scripts/sync-version.sh --write` on a tree that
-        is already in sync produces no diff (git status is clean).
+        Running `scripts/sync-version.sh --write` on a tree that is
+        already in sync produces no diff (git status is clean).
     outcome: acceptance
     acceptance:
       all:
         - verifier: tests/fixtures/sync-version-clean-passes.sh
+  - id: both-shipped-copies-agree
+    claim: |
+        The two shipped copies of the skill document are byte-identical,
+        so a derived point cannot be correct in one and wrong in the
+        other.
+    outcome: acceptance
+    acceptance:
+      all:
+        - verifier: tests/fixtures/skill-copies-identical.sh
   - id: trap-log-entry-present
     claim: |
-        `OCAML_BEST_PRACTICES.md` §11.27 records the
-        "VERSION drift between skill and binary" trap,
-        citing this decision.
+      `OCAML_KERNEL_CONVENTIONS.md` §11.27 records the
+      VERSION drift between skill and binary trap, citing this decision.
     outcome: acceptance
     acceptance:
       all:
@@ -224,11 +300,11 @@ obligations:
 reversal:
   - signal: version-sync-reverted
     condition: |
-      A future maintainer decides the script is over-engineered
-      and reverts to hand-editing `adoption/SKILL.md` on each
-      release. Resolution: a follow-up decision can remove
+      A future maintainer decides the script is over-engineered and
+      reverts to hand-editing `adoption/SKILL.md` on each release.
+      Resolution: a follow-up decision can remove
       `scripts/sync-version.sh` and the `tests/fixtures/sync-version-*`
-      shells, and bump this decision's revision to `state: retired`.
+      shells, and bump this decision revision to `state: retired`.
     action: rework
 
 risk:
@@ -236,6 +312,7 @@ risk:
     - skill-frontmatter-reformatted
     - version-file-missing
     - sync-version-script-bug
+    - a-second-skill-copy-is-added-without-a-derived-point
   owner: human:maintainer
 
 relations:
