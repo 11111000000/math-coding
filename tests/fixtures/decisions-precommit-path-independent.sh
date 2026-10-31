@@ -2,7 +2,7 @@
 # tests/fixtures/decisions-precommit-path-independent.sh
 #
 # Verifier for obligation `precommit-gate-is-path-independent` of
-# decisions/gate-truth-mathc-path-2026-10.yaml.
+# archive/decisions/gate-truth-mathc-path-2026-10.yaml.
 #
 # The defect this pins: scripts/check.sh invoked BARE `mathc` inside
 # `nix develop .#test`, where `mathc` is not on PATH. It is not a

@@ -106,7 +106,7 @@
         # FILE'`, a command the shell cannot resolve; on a machine with
         # no stray ~/.local/bin/mathc that advice is a `command not
         # found`. Both banners now name a build path that was verified
-        # to work. See decisions/gate-truth-mathc-path-2026-10.yaml.
+        # to work. See archive/decisions/gate-truth-mathc-path-2026-10.yaml.
         devShells.default = pkgs.mkShell {
           name = "math-coding-dev";
           packages = [
