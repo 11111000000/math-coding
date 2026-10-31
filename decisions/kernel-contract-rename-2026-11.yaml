@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: kernel-contract-rename-2026-11
-revision: 4
+revision: 5
 state: active
 mode: standard
 negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
-body_sha: "sha256:d6222befc713d90d3b78cc92d8c874fd8021dfbe2bd6f6c4fbdd0589d5535276"
-yaml_sha: "sha256:d6222befc713d90d3b78cc92d8c874fd8021dfbe2bd6f6c4fbdd0589d5535276"
+body_sha: "sha256:3bafb9e7a684edb552a0f6104326d4b37cf0b2a6c32b33e45edc5930980d1cdb"
+yaml_sha: "sha256:3bafb9e7a684edb552a0f6104326d4b37cf0b2a6c32b33e45edc5930980d1cdb"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
@@ -66,6 +66,23 @@ intent:
     numbers was wrong: the two copies of the adoption skill carry FOUR
     mentions between them, not six.
 
+    MEASURED AGAIN, after this tranche landed. The numbers above are
+    the BASELINE - the tree at 472918df, before the move - and they
+    are not rewritten: a measurement edited to match its conclusion
+    is not a measurement. What the tranche changed is the number the
+    instrument reads today:
+
+      0  mentions of the old path survive in the live tree, outside
+         the five places the instrument excludes.
+
+    What survives, and where, is the same five places the instrument
+    declares: the archive (48 mentions of either form), the plans
+    (the measurement that counted them), the CHANGELOG (5), this
+    decision, and the instrument itself. The section pointers are at
+    zero as well, outside the contract's own sentence about its own
+    section - the one sentence this tranche leaves alone, because
+    this tranche renames the file and does not reword it.
+
     And 122 section pointers of the form `algebra §N` in lib/, bin/
     and tests/ alone (93 in lib/, 9 in bin/, 20 in tests/). They
     survive a rename as prose, but the sentence still LOOKS like a
@@ -107,6 +124,9 @@ intent:
       rev 4  the normative text: the five axiom pages and
              spec/semantics.md move, in ONE commit that carries this
              decision.
+      rev 5  the instrument: the pointer scan joins the path scan,
+             and every exclusion the instrument declares is exercised
+             by the negative control.
 
 counterexample: |
   The strongest objection against this transition is that it changes
@@ -221,9 +241,12 @@ commitment: |
      that asserts the old text is a fixture that pins a lie.
 
   5. The live decisions follow: the four whose `verifier:` greps the
-     document, the two whose `scope.paths:` names it, the two whose
-     `relations:` name it as a path, and the prose of all twenty-five
-     that mention it. Each edited decision is re-hashed
+     document, the TEN whose `scope.paths:` names it, and the prose of
+     all TWENTY-SEVEN that mention it. (The first draft of this
+     paragraph said two and two; the measurement says ten and none -
+     no decision in the corpus names the file in a `relations:` block,
+     because a relation names a decision, not a file.) Each edited
+     decision is re-hashed
      (`mathc rehash --write FILE`) and re-validated (`mathc validate
      FILE`) after the edit, so a decision whose digest or whose parse
      breaks is caught in the commit that broke it.
@@ -298,11 +321,11 @@ outcomes:
 
   - id: the-machine-followed-references-followed
     statement: |
-      The 22 cram fixtures, the four runtime diagnostics, the five
-      schema descriptions, the four decisions whose `verifier:` greps
-      the document and the two whose `scope.paths:` names it all name
-      the new path, and the fixtures that assert the diagnostics'
-      text assert the new text.
+      The 22 cram fixtures, the four runtime diagnostics, the 26
+      schema descriptions in five schema files, the four decisions
+      whose `verifier:` greps the document and the ten whose
+      `scope.paths:` names it all name the new path, and the fixtures
+      that assert the diagnostics' text assert the new text.
 
   - id: the-section-pointers-are-re-anchored
     statement: |
@@ -358,7 +381,8 @@ obligations:
       `tests/fixtures/kernel-contract-rename-2026-11.sh` greps the
       live tree for both forms of the old path and fails if it finds
       one. The exclusions are the archive (history), the plans (the
-      measurement), this decision and the fixture itself.
+      measurement), the CHANGELOG (the record of what each release
+      shipped), this decision and the fixture itself.
     acceptance:
       all:
         - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
@@ -405,12 +429,18 @@ obligations:
 
   - id: the-section-pointers-name-the-contract
     statement: |
-      No file under lib/, bin/ or tests/ carries a section pointer of
-      the form `algebra §N`; the convention is `kernel contract §N`.
+      No file in the live tree carries a section pointer of the form
+      `algebra §N`; the convention is `kernel contract §N`. The
+      contract's own text is the single exception: this tranche
+      renames the file and does not reword it, and the tranche that
+      rewrites the text is a different decision.
     claim: |
-      `tests/fixtures/kernel-contract-rename-2026-11.sh` greps lib/,
-      bin/ and tests/ for the old pointer shape and fails if it finds
-      one, with the same exclusions it declares for the path.
+      `tests/fixtures/kernel-contract-rename-2026-11.sh` greps the live
+      tree for the old pointer shape and fails if it finds one, with
+      the exclusions it declares for the path plus the contract
+      itself. Its negative control carries a synthetic live pointer
+      AND a synthetic contract, so that both the scan and the
+      exclusion are exercised rather than assumed.
     acceptance:
       all:
         - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
