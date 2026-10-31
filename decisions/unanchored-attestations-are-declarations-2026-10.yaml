@@ -1,10 +1,10 @@
 ---
 schema: math-coding/3.2
 id: unanchored-attestations-are-declarations
-revision: 1
+revision: 2
 state: active
-body_sha: "sha256:bf36d3791fa8bb30bf9bcf6372326a8cf7725829d571bbfd316b5c9916700295"
-yaml_sha: "sha256:bf36d3791fa8bb30bf9bcf6372326a8cf7725829d571bbfd316b5c9916700295"
+body_sha: "sha256:380e34c1bca076a8b102f49246bac4a556e29da3661c9cec44cd6cc22ed0e3ae"
+yaml_sha: "sha256:380e34c1bca076a8b102f49246bac4a556e29da3661c9cec44cd6cc22ed0e3ae"
 axiom_link:
   - A1
   - A2
@@ -12,29 +12,26 @@ axiom_link:
 commitment: |
   After this decision lands:
 
-    (a) No file under `attestations/` is modified, deleted,
+    (a) No file under the attestation store is modified, deleted,
         regenerated or re-signed as a consequence of
-        `candidate-tree-resolves-to-a-commit`. The committed
-        corpus is exactly the 765 files that were committed
-        before that change, byte for byte.
+        `candidate-tree-resolves-to-a-commit`. The historical corpus
+        is exactly the 765 files that were committed before that
+        change, byte for byte, and they stay as history.
 
-    (b) The count of tracked attestations whose
-        `subject.candidate_tree` is not a full object id is
-        pinned at 765 by `tests/attestation_anchor.ml`. The
-        pin may only ever DECREASE, as new anchored
-        attestations are written alongside the old ones. It
-        may never increase.
+    (b) The count of UNANCHORED attestations in the store THE KERNEL
+        READS is pinned by `tests/attestation_anchor.ml`. The pin may
+        only ever DECREASE, as new anchored attestations are written
+        alongside the old ones. It may never increase.
 
-    (c) Every tracked attestation still parses through the
-        production loader (`Attestations.read_one`), pinned by
-        the same test.
+    (c) Every attestation in that store still parses through the
+        production loader (`Attestations.read_one`), pinned by the
+        same test.
 
-    (d) These 765 files are classified in writing, here, as
-        DECLARATIONS: records that an agent asserted an
-        obligation was discharged at some time, with no
-        resolvable claim about which tree that was. They are
-        not anchored observations and must not be read as
-        evidence about any particular commit.
+    (d) The historical corpus is classified in writing, here, as
+        DECLARATIONS: records that an agent asserted an obligation
+        was discharged at some time, with no resolvable claim about
+        which tree that was. They are not anchored observations and
+        must not be read as evidence about any particular commit.
 
 intent: |
   `candidate-tree-resolves-to-a-commit` makes every NEW write
@@ -57,6 +54,33 @@ intent: |
   response to an unfalsifiable body of evidence is to say so
   rather than to launder it. This decision is that statement.
 
+  2026-10-31, REVISION 2: THE PIN MOVED FROM THE ARCHIVE TO THE
+  GENERATED STORE, AND 765 IS NOW A DATE, NOT A COUNT. The store is
+  generated on disk and is not tracked by git
+  (`decisions/store-not-committed-2026-10.yaml`), so the population
+  this decision used to count -- 765 tracked files, measured on
+  2026-10-23 with `git ls-files attestations` -- no longer exists in
+  the tree. What exists is the store the kernel reads, and the pin
+  over THAT population is 0.
+
+  Measured on 2026-10-31:
+
+    - `git ls-files attestations` returns 0 files: the store is not in
+      the index.
+    - the `attestations/` directory is absent in a checkout that has
+      not run the sweep, so the live store holds 0 files here.
+    - `tests/attestation_anchor.ml` pins `pinned_unanchored = 0` and
+      reads the store the KERNEL reads -- the directory itself, per
+      `bin/Mathc.ml::store_keep_for` -- not a git index. When the
+      sweep has not run for this tree the test says so and passes on
+      the empty measurement; it does not fail on a store that was
+      never generated.
+    - `dune test tests/attestation_anchor.ml` exits 0 (2 cases).
+
+  The 765 are therefore a DATED RECORD of the corpus that was
+  committed before the store moved to the working tree, not a live
+  count and not a promise about the store of today.
+
 antithesis: |
   The strongest objection is that classifying the corpus as
   merely "declarations" concedes a store-wide failure and
@@ -66,7 +90,7 @@ antithesis: |
   subjects while admitting that not one of them names a tree.
 
   Counterargument: the gate does not actually treat them as
-  anchored evidence, and says so. KERNEL_AGENTS.md is explicit
+  anchored evidence, and says so. `KERNEL_AGENTS.md` is explicit
   that a `review`-class attestation "is a human declaration,
   not a runtime observation" and that "verdicts reflect the
   kernel's reading of the live attestation store at HEAD; they
@@ -75,15 +99,14 @@ antithesis: |
   read as declarations. What was missing was the explicit
   statement and a number that cannot drift.
 
-  The second objection is that a pin at 765 is theatre: it
-  asserts a fact that will be true until someone updates the
-  constant. But that is precisely its job. The alternative is
-  a number nobody tracks, and a store that can only lose
-  anchoredness silently. A pin that must be deliberately
-  moved is a speed bump on exactly the mass-rewrite this
-  decision forbids -- and it is a speed bump in the
-  direction that matters, because the only way to move it
-  down is to run a real observation.
+  The second objection is that a pin is theatre: it asserts a
+  fact that will be true until someone updates the constant. But
+  that is precisely its job. The alternative is a number nobody
+  tracks, and a store that can only lose anchoredness silently.
+  A pin that must be deliberately moved is a speed bump on
+  exactly the mass-rewrite this decision forbids -- and it is a
+  speed bump in the direction that matters, because the only way
+  to move it down is to run a real observation.
 
   The third objection deserves recording because it is true:
   the pin cannot distinguish a newly ANCHORED attestation
@@ -107,33 +130,39 @@ scope:
 outcomes:
   - id: corpus-is-classified-not-repaired
     statement: |
-      The 765 committed attestations are declared, in this
-      decision, to be unanchored declarations. No reader of
+      The historical corpus of 765 committed attestations is declared,
+      in this decision, to be unanchored declarations. No reader of
       the store can infer from them which tree any observation
       was made against, and no future commit may quietly change
       that.
 
   - id: unanchored-count-is-non-growing
     statement: |
-      The number of tracked attestations with a symbolic
-      `candidate_tree` cannot increase without a test failure
-      naming the new file.
+      The number of attestations in the store the kernel reads whose
+      `candidate_tree` is not a full object id cannot increase without
+      a test failure naming the new file. The pin is 0 on this tree,
+      where the store is generated and holds no tracked file at all.
 
   - id: corpus-remains-loadable
     statement: |
-      All tracked attestations continue to parse through the
-      production loader, so a forward-only change elsewhere can
+      Every attestation in the store the kernel reads continues to parse
+      through the production loader, so a forward-only change elsewhere can
       never render the corpus unreadable.
 
 obligations:
   - id: unanchored-count-is-pinned
     outcome: unanchored-count-is-non-growing
     claim: |
-      `tests/attestation_anchor.ml` counts tracked attestations
+      `tests/attestation_anchor.ml` counts the attestations in the
+      store the kernel reads (the `attestations/` directory itself)
       whose `candidate_tree` is not a full 40-hex or 64-hex
-      object id, and requires the count to be exactly 765.
-      Adding an anchored attestation leaves it at 765; adding
-      an unanchored one raises it and fails the test.
+      object id, and requires the count to be exactly the pinned
+      value, which is 0 on this tree. Adding an anchored attestation
+      leaves it at 0; adding an unanchored one raises it and fails the
+      test. When the store has not been generated for this tree, the
+      test reports that there is nothing to measure and passes on the
+      empty measurement -- an absent store is `unknown`, not a green
+      measurement over a non-empty one.
     acceptance:
       all:
         - verifier: tests/attestation_anchor.ml
@@ -141,9 +170,9 @@ obligations:
   - id: corpus-remains-parseable
     outcome: corpus-remains-loadable
     claim: |
-      Every tracked attestation parses through
-      `Attestations.read_one`, the production decoder, so "all
-      765 still parse" is a statement about the loader the gate
+      Every attestation in the store the kernel reads parses through
+      `Attestations.read_one`, the production decoder, so "the whole
+      store still parses" is a statement about the loader the gate
       actually uses rather than about a parser local to the
       test.
     acceptance:
@@ -164,10 +193,10 @@ assumptions:
     owner: human:maintainer
     consequence_if_false: |
       If the id did not cover the body, the corpus could be
-      re-anchored in place without minting new evidence, and
-      the whole no-repair argument would collapse. This is
-      asserted as fact because it is enforced independently by
-      the id round-trip in `tests/cli/attest-batch-positive.t`.
+      re-anchored in place without minting new evidence, and the
+      whole no-repair argument would collapse. This is asserted
+      as fact because it is enforced independently by the id
+      round-trip in `tests/cli/attest-batch-positive.t`.
     review_on:
       - signal: attestation-id-scheme-changes
 
@@ -183,15 +212,15 @@ assumptions:
     owner: human:maintainer
     consequence_if_false: |
       If some future tool could legitimately re-anchor the
-      corpus, the pin at 765 would become an obstacle to a
+      corpus, the pin would become an obstacle to a
       legitimate repair. The reversal signal below fires in
       that case; the pin is a default, not a prohibition.
     review_on:
       - signal: corpus-re-anchoring-becomes-possible
 
 counterexample: |
-  An auditor reads `attestations/bootstrap-v3-*.json`, sees
-  `result: pass`, and concludes the bootstrap gate passed on
+  An auditor reads an attestation from the store, sees
+  `result: pass`, and concludes the gate passed on
   this commit. Under this decision that conclusion is
   unsupported, and the auditor has no in-band way to learn
   it: the file says `candidate_tree: HEAD`, and HEAD is a
@@ -229,9 +258,9 @@ reversal:
 
   - signal: pin-becomes-a-blocker
     condition: |
-      A legitimate addition of anchored attestrations fails
-      because the pin is expressed as a total count rather
-      than an unanchored count.
+      A legitimate addition of anchored attestations fails
+      because the pin is expressed as a total count rather than
+      an unanchored count.
     action: rework
 
 risk:
