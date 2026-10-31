@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:e167c449b9c97a6c1cef05a36b3e798a8be99da271630192269b7c436903ddbe"
-yaml_sha: "sha256:e167c449b9c97a6c1cef05a36b3e798a8be99da271630192269b7c436903ddbe"
+negative_control: tests/cli/required-attestation.t
+body_sha: "sha256:2d7f3c6295106d8a21f973961ec683bfc14a2bf814c27bae7b28dbd5b3553919"
+yaml_sha: "sha256:2d7f3c6295106d8a21f973961ec683bfc14a2bf814c27bae7b28dbd5b3553919"
 axiom_link:
   - A1
   - A4

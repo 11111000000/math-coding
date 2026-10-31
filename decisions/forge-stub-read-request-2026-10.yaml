@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
 revision: 2
 state: active
-body_sha: "sha256:a205448d932b9fa2c584d50019f6a1b774ec295a0b7bcd272b32d7f524a9522f"
-yaml_sha: "sha256:a205448d932b9fa2c584d50019f6a1b774ec295a0b7bcd272b32d7f524a9522f"
+negative_control: tests/fixtures/forge-stub-read-request.sh
+body_sha: "sha256:b8e04afa0915a50e144f56d1669e4f42ec0902634ed7083054c10e7b426f656c"
+yaml_sha: "sha256:b8e04afa0915a50e144f56d1669e4f42ec0902634ed7083054c10e7b426f656c"
 axiom_link:
   - A0
 intent: |

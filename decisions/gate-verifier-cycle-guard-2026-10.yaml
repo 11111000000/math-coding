@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: gate-verifier-cycle-guard-2026-10
 revision: 1
 state: active
-body_sha: "sha256:b06c2f3e14da57d2a72d645859b264da028584198a898943f3de09089a54b436"
-yaml_sha: "sha256:b06c2f3e14da57d2a72d645859b264da028584198a898943f3de09089a54b436"
+negative_control: tests/cli/gate-cycle-guard.t
+body_sha: "sha256:e8fa36d13e07aa1c8962e905c46baf07ced76730c50319b3fdb9b0daf37ecae7"
+yaml_sha: "sha256:e8fa36d13e07aa1c8962e905c46baf07ced76730c50319b3fdb9b0daf37ecae7"
 
 axiom_link:
   - A1

@@ -4,8 +4,9 @@ id: gate-scoped-default-2026-10
 revision: 3
 state: active
 mode: light
-body_sha: "sha256:ca72e5a2b77ebe35004ebfcbaca93e1e51176b5ef72b8c248fb893c54edd3784"
-yaml_sha: "sha256:ca72e5a2b77ebe35004ebfcbaca93e1e51176b5ef72b8c248fb893c54edd3784"
+negative_control: tests/cli/gate-scoped.t
+body_sha: "sha256:fc7b1ab9af7576278d2963e665723f41fc820620609dacc5f0e2d3008e9ab3e9"
+yaml_sha: "sha256:fc7b1ab9af7576278d2963e665723f41fc820620609dacc5f0e2d3008e9ab3e9"
 
 intent: |
   The gate had two switches and no default. This decision says which

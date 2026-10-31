@@ -4,8 +4,9 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:7a67aa8221365283b8e68f273823dd8259b66ea9dd022912a7a069789d2e76b2"
-yaml_sha: "sha256:7a67aa8221365283b8e68f273823dd8259b66ea9dd022912a7a069789d2e76b2"
+negative_control: tests/cli/validate-sha-match.t
+body_sha: "sha256:41fb32035507b5f0ac6043c82e03bf3e61303c7dd6982654cefa2b7909f15b7c"
+yaml_sha: "sha256:41fb32035507b5f0ac6043c82e03bf3e61303c7dd6982654cefa2b7909f15b7c"
 
 axiom_link:
   - A0

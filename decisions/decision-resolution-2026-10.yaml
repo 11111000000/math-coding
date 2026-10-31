@@ -4,8 +4,9 @@ id: decision-resolution
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:3d5f7722b16b926e0904e59c344f981709473127a0590259f349e90d2d7c9660"
-yaml_sha: "sha256:3d5f7722b16b926e0904e59c344f981709473127a0590259f349e90d2d7c9660"
+negative_control: tests/cli/decision-resolution.t
+body_sha: "sha256:92f3678c40777de34b557a2177ef5719a2f933da1e8d0ec2818fa3590bbd8076"
+yaml_sha: "sha256:92f3678c40777de34b557a2177ef5719a2f933da1e8d0ec2818fa3590bbd8076"
 axiom_link:
   - A0
   - A1

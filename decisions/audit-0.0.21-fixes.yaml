@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: audit-0.0.21-fixes
 revision: 3
 state: active
-body_sha: "sha256:8e9d79afb46911d5673c0ee0de9636b82779e8144c0af4d9df667fc93b3293c3"
-yaml_sha: "sha256:8e9d79afb46911d5673c0ee0de9636b82779e8144c0af4d9df667fc93b3293c3"
+negative_control: tests/cli/self-check-fail.t
+body_sha: "sha256:c097215c429c3892628f5ce840fa817c102270c6d0a1a910b10e5155fc12c780"
+yaml_sha: "sha256:c097215c429c3892628f5ce840fa817c102270c6d0a1a910b10e5155fc12c780"
 intent: |
   Authorise and bound a single cycle of fixes that closes the
   13 specific deficits catalogued in `docs/AUDIT-0.0.21.md`

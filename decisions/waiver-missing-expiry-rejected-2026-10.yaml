@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:32b617dbe479c08579e6ad792284911ebe65b6dc52d98035aa5fbe07b8bfeb69"
-yaml_sha: "sha256:32b617dbe479c08579e6ad792284911ebe65b6dc52d98035aa5fbe07b8bfeb69"
+negative_control: tests/fixtures/waiver-missing-expiry-rejected.sh
+body_sha: "sha256:64aff37140ca399d3f445dd6983c84c479601ca30eac5e055ba480b13b10afed"
+yaml_sha: "sha256:64aff37140ca399d3f445dd6983c84c479601ca30eac5e055ba480b13b10afed"
 
 axiom_link:
   - A0

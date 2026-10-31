@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:4413e72878f6fe72cf86d99e12b81f760ac69604f6e2cb23a14760262dd4f0c5"
-yaml_sha: "sha256:4413e72878f6fe72cf86d99e12b81f760ac69604f6e2cb23a14760262dd4f0c5"
+negative_control: tests/fixtures/self-check-debt-ceiling.sh
+body_sha: "sha256:649cde7c88307f11edb3e0e3f876e49655214b7a3379bb01b217b60b79a65bb6"
+yaml_sha: "sha256:649cde7c88307f11edb3e0e3f876e49655214b7a3379bb01b217b60b79a65bb6"
 
 axiom_link:
   - A0

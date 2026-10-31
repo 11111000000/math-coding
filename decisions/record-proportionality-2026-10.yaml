@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:12e01945da4321a18d8b50668ae895aa6eac0491e132bd53b3eb5c37b516bbfa"
-yaml_sha: "sha256:12e01945da4321a18d8b50668ae895aa6eac0491e132bd53b3eb5c37b516bbfa"
+negative_control: tests/cli/gate-trailer-decision.t
+body_sha: "sha256:1a4f037d8c26d4ed5c5b362bd09597ad58bf096b48e7119eb32809a79bcd500c"
+yaml_sha: "sha256:1a4f037d8c26d4ed5c5b362bd09597ad58bf096b48e7119eb32809a79bcd500c"
 
 axiom_link:
   - A0

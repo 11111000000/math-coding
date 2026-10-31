@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: candidate-tree-resolves-to-a-commit
 revision: 1
 state: active
-body_sha: "sha256:1bbaabbec4d19d03147ece19680e7a27ba09e398c0d87fc82ae3018247143c7b"
-yaml_sha: "sha256:1bbaabbec4d19d03147ece19680e7a27ba09e398c0d87fc82ae3018247143c7b"
+negative_control: tests/cli/candidate-tree.t
+body_sha: "sha256:fd23668c767370246977880006e77163d9d5c2383c5884783e21c75d4bcbd6c3"
+yaml_sha: "sha256:fd23668c767370246977880006e77163d9d5c2383c5884783e21c75d4bcbd6c3"
 axiom_link:
   - A1
   - A2

@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: version-sync-2026-10
 revision: 1
 state: active
-body_sha: "sha256:5c4431fc5ddedcf7143f6fa54c8f275bfe85e33477696480f74b71754d0f711c"
-yaml_sha: "sha256:5c4431fc5ddedcf7143f6fa54c8f275bfe85e33477696480f74b71754d0f711c"
+negative_control: tests/fixtures/sync-version-stale-fails.sh
+body_sha: "sha256:0536d5d62447e1677473eb8ab22aa116f6d0da97c8e4c34bca8312c7a9bf695d"
+yaml_sha: "sha256:0536d5d62447e1677473eb8ab22aa116f6d0da97c8e4c34bca8312c7a9bf695d"
 intent: |
   Close the follow-up cycle announced in
   `decisions/site-version-from-file-2026-10.yaml:76-81`:

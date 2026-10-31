@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: parse-acceptance-diagnostics
 revision: 2
 state: active
-body_sha: "sha256:1f398ed40be1437fbbb77737ca9c3c2f466e0a13a9ba53554e7e3b04860d11ff"
-yaml_sha: "sha256:1f398ed40be1437fbbb77737ca9c3c2f466e0a13a9ba53554e7e3b04860d11ff"
+negative_control: tests/cli/malformed-acceptance.t
+body_sha: "sha256:9718f40f80529a34ae8438b3e3fd07219625cff3584d7d9827a2df5d814c22e4"
+yaml_sha: "sha256:9718f40f80529a34ae8438b3e3fd07219625cff3584d7d9827a2df5d814c22e4"
 intent: |
   Close OCAML_BEST_PRACTICES §9.1: when an obligation's acceptance
   item carries both `verifier` and `review` fields on the same

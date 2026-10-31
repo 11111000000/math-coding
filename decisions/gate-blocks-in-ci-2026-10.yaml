@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:f9ab4ea2dcca3d9e29b8180e60cb7decbd3b410a8983831b032e34c2e1f49389"
-yaml_sha: "sha256:f9ab4ea2dcca3d9e29b8180e60cb7decbd3b410a8983831b032e34c2e1f49389"
+negative_control: scripts/ci-step-exit-sim.sh
+body_sha: "sha256:a7185b976ff6b0593b13c1ce96bf4e5561a63183b2b2a7d4989c14ff713fd650"
+yaml_sha: "sha256:a7185b976ff6b0593b13c1ce96bf4e5561a63183b2b2a7d4989c14ff713fd650"
 
 axiom_link:
   - A0

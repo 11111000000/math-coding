@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:c8696dfd9839bfaa282f699db5ed9918d07a3abf56e6458a8b51b1b3ddb7fe03"
-yaml_sha: "sha256:c8696dfd9839bfaa282f699db5ed9918d07a3abf56e6458a8b51b1b3ddb7fe03"
+negative_control: tests/cli/migrate-malformed.t
+body_sha: "sha256:9c045e88edeb8a0aabb297fa32dcaa22ebca7f80f959074239d036c7249630aa"
+yaml_sha: "sha256:9c045e88edeb8a0aabb297fa32dcaa22ebca7f80f959074239d036c7249630aa"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema

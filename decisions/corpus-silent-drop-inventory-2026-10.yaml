@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: standard
 change_kind: test
-body_sha: "sha256:b54a141a4a0c5ecc82485d3a9ac82b8922a5c567086f89058376526f86bfb37c"
-yaml_sha: "sha256:b54a141a4a0c5ecc82485d3a9ac82b8922a5c567086f89058376526f86bfb37c"
+negative_control: tests/corpus_no_silent_drops/corpus_no_silent_drops.ml
+body_sha: "sha256:0f82f0e69dfe8ea2d690cd90aa13a37e868172fc77f83dd88820252ff073002b"
+yaml_sha: "sha256:0f82f0e69dfe8ea2d690cd90aa13a37e868172fc77f83dd88820252ff073002b"
 
 axiom_link:
   - A0

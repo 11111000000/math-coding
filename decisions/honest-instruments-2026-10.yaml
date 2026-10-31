@@ -5,8 +5,9 @@ revision: 1
 state: active
 mode: light
 
-body_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
-yaml_sha: "sha256:6f72faf79024e79fbccf0d750347ec9ca266e68508664f404be3545e820618df"
+negative_control: tests/fixtures/ceiling-monotonic-check.sh
+body_sha: "sha256:e9efea583eaeea7f3a21ddca2f2ec9f4d8d3a970543d73dc98591cbdc9ecac61"
+yaml_sha: "sha256:e9efea583eaeea7f3a21ddca2f2ec9f4d8d3a970543d73dc98591cbdc9ecac61"
 
 axiom_link:
   - A0

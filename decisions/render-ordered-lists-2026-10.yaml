@@ -6,8 +6,9 @@ state: active
 mode: light
 axiom_link:
   - A4
-body_sha: "sha256:9d28369138f1b246e88a6aa1561ec3d6dccd56b1083beee9aea23557148c3a0e"
-yaml_sha: "sha256:9d28369138f1b246e88a6aa1561ec3d6dccd56b1083beee9aea23557148c3a0e"
+negative_control: tests/render_kernel.ml
+body_sha: "sha256:4ef416d1f9f738e96f335e6371ea027a4360813bf52642206509b766f2d1c025"
+yaml_sha: "sha256:4ef416d1f9f738e96f335e6371ea027a4360813bf52642206509b766f2d1c025"
 intent: |
   The hand-rolled Markdown subset in `lib/render.ml::md_parse`
   previously recognised only `- ` unordered lists. Lines

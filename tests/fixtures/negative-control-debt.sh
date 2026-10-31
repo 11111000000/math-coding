@@ -90,7 +90,9 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   debt that was always meant to reach zero
 # ceiling-fall: 91 -> 73, the uncheckable promises left the debt: the
 #   twenty-one decisions that declare them are in the DECLARED class
-CEILING=73
+# ceiling-fall: 73 -> 37, the decisions that name a control that
+#   catches their own failure named it, and the debt is what is left
+CEILING=37
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
