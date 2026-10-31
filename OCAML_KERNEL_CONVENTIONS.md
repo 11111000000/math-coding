@@ -261,7 +261,7 @@ suffix). The underscore was a wart.
 (`lib/diagnostic.ml:15`). All call sites — `Diagnostic.create`,
 `Diagnostic.ambiguous_acceptance`, `Diagnostic.malformed_acceptance`,
 and the JSON serializer — were updated in the same change. See
-`decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
+`archive/decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
 
 **The original rationale** (kept for historical context): the `_` suffix
 was ugly, propagated to every constructor (`~class_:Input`), and JSON
@@ -778,7 +778,7 @@ the field-name-as-keyword ambiguity makes every pattern match ugly:
 `{ class = Input }` works in records but not in some pattern positions.
 
 We renamed to `class_`, then to `kind` (§2.6). **Status: DONE.** See
-`decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
+`archive/decisions/audit-0.0.21-fixes.yaml` for the conformance evidence.
 
 ### 9.3 `jsonl.ml` fragile indentation
 
@@ -836,7 +836,7 @@ Already discussed (§5). Single biggest residual risk in the kernel. Ship
 
 **Status (v3.0.0.19, commit `d77624b`): DONE.** `tests/digest_vectors.ml`
 covers RFC 6234 §4.1 (`""`, `abc`, 56-byte, 64-byte, 119-byte cases) plus
-the boundary cases listed in `decisions/audit-0.0.21-fixes.yaml`. The
+the boundary cases listed in `archive/decisions/audit-0.0.21-fixes.yaml`. The
 §4.4 1,000,000-byte "a" test is exercised separately as a long-running
 case. The hand-rolled `lib/digest.ml` matches all published vectors.
 This entry remains here as a historical record; D4 is closed.

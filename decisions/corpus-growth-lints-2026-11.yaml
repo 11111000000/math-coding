@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-scheme-allowlist.sh
-body_sha: "sha256:2c59a8510fdae6b4c787cdfeab8954455716f22f3375b35db123b232ce9de998"
-yaml_sha: "sha256:2c59a8510fdae6b4c787cdfeab8954455716f22f3375b35db123b232ce9de998"
+body_sha: "sha256:a7e02513fd31edfa0e6af02ba5a9b461addd6d6308b314acd91770bc533da6d3"
+yaml_sha: "sha256:a7e02513fd31edfa0e6af02ba5a9b461addd6d6308b314acd91770bc533da6d3"
 
 intent: |
   Two ways the corpus grows are invisible to the gate, and both of
@@ -30,7 +30,7 @@ intent: |
   reader does not remove), `decisions/constitution-header-3-3-update-
   2026-10.yaml` (one, a closing double quote that the comment
   stripper removes with the comment), and
-  `decisions/audit-0.0.21-fixes.yaml`,
+  `archive/decisions/audit-0.0.21-fixes.yaml`,
   `decisions/exit-code-symmetry-2026-10.yaml` and
   `decisions/forge-principal-verification-2026-10.yaml` (three
   bespoke schemes the kernel never learned). Six offending strings in

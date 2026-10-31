@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 2
 state: active
-body_sha: "sha256:c5b1d105383fbe310c06b88bc186c21160d6f83a7bd68fa1b4bb21834297b455"
-yaml_sha: "sha256:c5b1d105383fbe310c06b88bc186c21160d6f83a7bd68fa1b4bb21834297b455"
+body_sha: "sha256:e7b5a056dd111dff1f0443c66375d027057f0da80e41898eb24d52fe7b6ae169"
+yaml_sha: "sha256:e7b5a056dd111dff1f0443c66375d027057f0da80e41898eb24d52fe7b6ae169"
 intent: |
   Replace the hand-curated adoption path with a self-installing
   suite: a release-hosted `install.sh` that verifies the SHA-256 of
@@ -288,7 +288,7 @@ scope:
     - "schemas/**"
     - "axioms/**"
     - "decisions/decision.yaml"  # the active policy; read-only reference
-    - "decisions/audit-0.0.21-fixes.yaml"  # read-only reference
+    - "archive/decisions/audit-0.0.21-fixes.yaml"  # read-only reference
 
 outcomes:
   - id: install-sh-publishes-in-release
