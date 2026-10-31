@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # scripts/check-stale-narrative.sh
 #
-# Verifier for decisions/lib-stale-comments-cleanup-2026-10
+# Verifier for archive/decisions/lib-stale-comments-cleanup-2026-10
 # (obligations no-stub-claims-remain and no-v3-0-0-30-claim-remains).
 #
 # Asserts that lib/risk.ml no longer contains "Phase 2E" or
