@@ -1,39 +1,61 @@
 ---
 schema: math-coding/3.2
 id: process-principles
-revision: 5
+revision: 6
 state: active
-body_sha: "sha256:ac7245bd1c21497d6c9ef549aea623f0c71344e9b9ef9867ed592f2991f4fb56"
-yaml_sha: "sha256:ac7245bd1c21497d6c9ef549aea623f0c71344e9b9ef9867ed592f2991f4fb56"
+body_sha: "sha256:db1ad1ac0bf4e898fab65401bf3804f6c7c944e5232f469ec0de4b330a5aeffa"
+yaml_sha: "sha256:db1ad1ac0bf4e898fab65401bf3804f6c7c944e5232f469ec0de4b330a5aeffa"
 intent: |
+  The process principles are recorded obligations, not only prose. The
+  current instrument `tests/process_principles.ml` has eleven passing
+  cases; it structurally checks P1, P2, P5 and P6, exercises the P8
+  stub-lint control, and leaves P3, P4 and P7 as explicit human
+  declarations.
+
+  2026-10-31, REVISION 6: THE CORPUS MOVED AND THE PROMISES BECAME
+  CURRENT. The decision still described a bootstrap-only corpus and
+  said that the principles were documentation-only. The live corpus is
+  under `decisions/`, the protocol document is `KERNEL_AGENTS.md`, and
+  machine cases already exist. This revision keeps P1-P7 as the
+  promised set, distinguishes the machine-checked subset from the
+  declared subset, and updates P5 to the live cram layout.
+
+  History:
+    rev 1: recorded P1-P7 as formal obligations.
+    rev 2: reconciled the obligation ids with the parent policy.
+    rev 3: added the executable checks and manual declarations.
+    rev 4: updated the corpus-walk assumptions.
+    rev 5: kept the machine and manual split explicit.
+    rev 6 (this revision): re-pointed the corpus and protocol paths,
+      described the current eleven-case instrument, and made P5 and P7
+      say what the tree does today; the principle set is unchanged.
+
   Lock down the seven process principles P1-P7 recorded in
   ROADMAP.md §"Process principles (binding on all agents)" as
   formal obligations under the active policy (bootstrap-v3).
-  Today those principles are documentation-only: a new agent can
-  read ROADMAP.md and skip them, because no machine check fires
-  when one is violated. The yaml-block-scalars and priority-drift
+  The yaml-block-scalars and priority-drift
   sessions (D1, D2, D3) showed that principle-drift is a real
   failure mode: decisions were retro-fitted after the kernel
   changed, and a fixture appeared in `tests/fixtures/` without a
-  paired decision in `bootstrap/`. Recording the principles as
+  paired decision in `decisions/`. Recording the principles as
   obligations makes them visible in PACKAGES.md; the checkable
-  subset (P1, P2, P5, P6, P7) is asserted by the OCaml/Alcotest
+  subset (P1, P2, P5 and P6) is asserted by the OCaml/Alcotest
   test `tests/process_principles.ml` (registered with
   `dune runtest` via tests/dune); the non-checkable subset
-  (P3, P4) is recorded as manual-acceptance obligations with
+  (P3, P4 and P7) is recorded as manual-acceptance obligations with
   the explicit acknowledgement that they cannot be machine-checked
-  (per AGENTS.md §"Bootstrap gate" — "Process principles cannot
-  be machine-checked; they are honest declarations of how the
-  human and agents work").
+  (per KERNEL_AGENTS.md §Bootstrap gate).
 
 axiom_link:
   - A0
 commitment: |
   Each of P1-P7 is recorded as a separate obligation in this
-  decision file. For P1, P2, P5, P6, P7 the obligation's
+  decision file. For P1, P2, P5 and P6 the obligation's
   acceptance predicate references the OCaml test
   `tests/process_principles.ml` (one shared test executable;
-  each principle is its own Alcotest case). For P3, P4 the
+  each principle is its own Alcotest case). P7 carries an explicit
+  human-review marker in the same executable; it is not dressed up as
+  a machine assertion. For P3 and P4 the
   obligation carries `evidence: manual-acceptance` and names
   the human maintainer as the reviewer, because the principle
   is a declaration of agent conduct, not a property of the tree.
@@ -52,8 +74,9 @@ scope:
     - "tests/dune"
     - "PACKAGES.md"
     - "docs/AUDIT-0.0.11.md"
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
-  #   bootstrap/process-principles.yaml - no tracked file matches it
+    - "decisions/process-principles.yaml"
+  # 2026-10-31: the decision file moved from bootstrap/ to decisions/;
+  #   the scope names the path that exists.
   exclusions:
     - "ROADMAP.md"
     - "lib/**"
@@ -65,18 +88,24 @@ outcomes:
   - id: principles-recorded-as-obligations
     statement: |
       Each of P1-P7 is a discrete obligation in
-      bootstrap/process-principles.yaml with its own claim,
+      decisions/process-principles.yaml with its own claim,
       countercase (where applicable), and acceptance predicate.
       The obligations are visible in PACKAGES.md under
       "Bootstrap packages (by file)" once that table is updated.
   - id: checkable-principles-asserted-by-fixture
     statement: |
       tests/process_principles.ml asserts P1, P2, P5,
-      P6, P7 by reading the repository state and exits 1 with
-      the principle name on any violation. P3 and P4 are
-      recorded as manual-acceptance obligations and are NOT
+      and P6 by reading the repository state and exits 1 with the
+      principle name on any violation. P7 is represented by an
+      explicit human-review marker in the same executable. P3 and P4
+      are recorded as manual-acceptance obligations and are NOT
       asserted by the fixture, with the rationale recorded
-      alongside the obligation.
+      alongside each obligation.
+  - id: declared-principles-carry-an-owner
+    statement: |
+      P3, P4 and P7 are explicit declarations: each carries a named
+      owner, a review date, and the reason a program cannot decide the
+      principle for itself.
 
 counterexample: |
   "These principles are already documented in ROADMAP.md; the
@@ -84,10 +113,10 @@ counterexample: |
   counterargument fails for three reasons:
   (a) ROADMAP.md is a priority queue and process-norms
       document; it is read once on agent entry and not re-read on
-      every commit. An obligation in `bootstrap/` is read by
+      every commit. An obligation in `decisions/` is read by
       every fixture invocation and surfaced in PACKAGES.md, so a
       principle listed there is visible to every new agent.
-  (b) The checkable subset (P1, P2, P5, P6, P7) is asserted by
+  (b) The checkable subset (P1, P2, P5, P6) is asserted by
       a fixture that runs on every `./scripts/check.sh`; the
       principle is enforced, not just stated.
   (c) ROADMAP.md names the principles but does not bind them
@@ -98,12 +127,12 @@ counterexample: |
 
   "P3 (time-box) and P4 (merge order) cannot be enforced, so
   the decision adds obligations the kernel can never check."
-  The counterargument fails: per AGENTS.md §"Bootstrap gate",
+  The counterargument fails: per KERNEL_AGENTS.md §"Bootstrap gate",
   process principles that are not machine-checkable are
   acceptable as honest declarations of conduct. The decision
   records them with `evidence: manual-acceptance` and names the
   reviewer. This is not a regression; it is the same honesty
-  norm that `bootstrap/decision.yaml` already applies to its
+  norm that `decisions/decision.yaml` already applies to its
   own obligations (e.g., `preserve-v2`, `conformance-coverage`).
 
   "If a fixture must catch every violation, the fixture
@@ -139,9 +168,9 @@ assumptions:
   - id: meta-policy-skipped-by-fixture
     state: assumed
     statement: |
-      bootstrap/decision.yaml (the active policy),
-      bootstrap/obligations.yaml (the cross-reference
-      aggregator), and bootstrap/rationale.md (free-form
+      decisions/decision.yaml (the active policy),
+      decisions/obligations.yaml (the cross-reference
+      aggregator), and decisions/rationale.md (free-form
       rationale prose) are NOT subject to the P1 schema check.
       They carry their own formats (the active policy has no
       `obligations:` block; the aggregator uses a different
@@ -149,19 +178,19 @@ assumptions:
       The fixture skips these by name.
     owner: human:maintainer
     consequence_if_false: |
-      If a new meta-file appears in bootstrap/ without a
+      If a new meta-file appears in decisions/ without a
       schema check exemption, the fixture must be updated to
       either skip the new file or include it in the check.
       This is a maintenance contract, not a bug.
     review_on:
-      - signal: new-bootstrap-meta-file-added
+      - signal: new-decision-meta-file-added
   - id: manual-acceptance-is-honest
     state: assumed
     statement: |
-      For P3 and P4, manual-acceptance is not a euphemism for
+      For P3, P4 and P7, manual-acceptance is not a euphemism for
       "skip"; it means the human maintainer (named in
       `risk.owner`) reviews adherence to the principle on
-      every change. A waiver mechanism for P3/P4 violations
+      every change. A waiver mechanism for these violations
       does not exist (and per A3 self-application, would
       itself require a decision under the current rules).
     owner: human:maintainer
@@ -171,7 +200,7 @@ assumptions:
       either lapses (no enforcement, no acceptance) or the
       kernel-side enforcement must be implemented. A future
       revision can extend the fixture to assert structural
-      proxies for P3/P4 (e.g., commit timestamps for P3,
+      proxies for P3/P4/P7 (e.g., commit timestamps for P3,
       merge-order in commit messages for P4) without
       changing the principle itself.
     review_on:
@@ -254,13 +283,13 @@ obligations:
     outcome: principles-recorded-as-obligations
     claim: |
       A change to `lib/*.ml`, `spec/*.md`, `schemas/*.json`,
-      or `bin/Mathc.ml` ships with a `bootstrap/*.yaml` (or
+      or `bin/Mathc.ml` ships with a `decisions/*.yaml` (or
       `.md`) decision under the active policy. The acceptance
       proxy is structural: every non-meta decision file in
-      `bootstrap/` has the required frontmatter fields
+      `decisions/` has the required frontmatter fields
       (`schema`, `id`, `revision`) and the required body
       sections (`intent`, `commitment`, `scope`, `obligations`,
-      `risk`). A future file added to `bootstrap/` that
+      `risk`). A future file added to `decisions/` that
       omits any required field violates P1 and trips the
       fixture.
     acceptance:
@@ -288,12 +317,12 @@ obligations:
       all:
         - verifier: tests/process_principles.ml
   - id: p3-time-box-on-detailed-work
-    outcome: principles-recorded-as-obligations
+    outcome: declared-principles-carry-an-owner
     claim: |
       If a single change exceeds 10 minutes without a passing
       build, the agent switches to WIP commit + decision-record
       + next task. This principle is an honest declaration of
-      agent conduct (AGENTS.md §"Bootstrap gate"); the kernel
+      agent conduct (KERNEL_AGENTS.md §"Bootstrap gate"); the kernel
       cannot measure wall-clock against a single session.
       Acceptance is manual: the human maintainer reviews
       commit messages and the `git log --since=<session-start>`
@@ -308,10 +337,10 @@ obligations:
       all:
         - verifier: manual-agent-conduct-review
   - id: p4-merge-order-time-budget-kernel
-    outcome: principles-recorded-as-obligations
+    outcome: declared-principles-carry-an-owner
     claim: |
       When multiple parallel agents commit, integration
-      follows the order: bootstrap/*.yaml (decisions) ->
+      follows the order: decisions/*.yaml (decisions) ->
       tests/fixtures (additive) -> lib/ pure helpers ->
       bin/Mathc.ml (dispatcher) -> build artifacts. This
       principle is an honest declaration of agent conduct;
@@ -331,11 +360,12 @@ obligations:
   - id: p5-cram-retired-shell-fixtures-only
     outcome: checkable-principles-asserted-by-fixture
     claim: |
-      `tests/cram/*.t` were retired in `dc78bcd`. New CLI
-      tests go in `tests/fixtures/*.sh`. The acceptance proxy
-      is structural: `tests/cram/*.t` does not exist; the
-      `tests/dune` file documents the cram retirement. A
-      future commit that adds `tests/cram/*.t` violates P5
+      The old `tests/cram/*.t` directory was retired in `dc78bcd`.
+      Live CLI cram tests live in `tests/cli/*.t`; the former
+      per-CLI shell-fixture convention in `tests/fixtures/` was also
+      retired. The acceptance proxy is structural: `tests/cram/*.t`
+      does not exist, while `tests/cli/` carries the live cram
+      suite. A future commit that adds `tests/cram/*.t` violates P5
       and trips the fixture.
     acceptance:
       all:
@@ -354,22 +384,23 @@ obligations:
       all:
         - verifier: tests/process_principles.ml
   - id: p7-honesty-in-fixture-assertions
-    outcome: checkable-principles-asserted-by-fixture
+    outcome: declared-principles-carry-an-owner
     claim: |
       A passing fixture must assert SOMETHING meaningful.
       Self-referential tautologies (e.g., "the fixture exits
       0" asserting on its own exit code, or matching a
       captured failure output verbatim) violate the principle.
-      The acceptance proxy for P7 is meta: this fixture
-      (tests/process_principles.ml) is itself a check, and the
-      other 7 shell fixtures it does not subsume are checked
-      independently by `./scripts/check.sh`. The fixture
-      does NOT assert "this fixture exits 0" as its only
-      statement; it reads repository state and compares it
-      against structural invariants. A future revision that
-      weakens the fixture to a no-op self-check would itself
-      require a new decision (a forbidden self-amendment
-      per A3 self-application).
+      The acceptance proxy for P7 is an explicit human-review marker
+      in `tests/process_principles.ml`; the other shell fixtures it
+      does not subsume are checked independently by `./scripts/check.sh`.
+      P7 is not dressed up as a machine assertion: whether a fixture
+      asserts something meaningful is a review question. A future
+      revision that weakens the marker would itself require a new
+      decision (a forbidden self-amendment per A3 self-application).
+    declared:
+      owner: human:maintainer
+      review_on: 2026-12-15
+      reason: whether a fixture is meaningful is a human judgment, not a predicate the kernel can infer
     acceptance:
       all:
         - verifier: tests/process_principles.ml
