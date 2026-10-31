@@ -18,6 +18,10 @@ intent: |
   audit reviewer a single location to compare the normative
   surface against the runtime surface.
 
+  2026-11: the eight files this decision named under bootstrap/ are
+  the corpus's pre-migration names for the decisions that now live under
+  decisions/. The relations name them where they are.
+
 axiom_link:
   - A0
 commitment: |
@@ -232,12 +236,12 @@ risk:
 
 relations:
   addresses:
-    - bootstrap/validate-and-context.yaml#cli-validate-decision
-    - bootstrap/validate-and-context.yaml#cli-version-preserved
-    - bootstrap/validate-and-context.yaml#cli-context-capsule
-    - bootstrap/adapters.yaml#git-changed-files-adapter
-    - bootstrap/adapters.yaml#junit-attestation-import
-    - bootstrap/time-honesty.yaml
-    - bootstrap/time-honesty-storage.yaml
-    - bootstrap/gate-decision.yaml
+    - decisions/validate-and-context.yaml#cli-validate-decision
+    - decisions/validate-and-context.yaml#cli-version-preserved
+    - decisions/validate-and-context.yaml#cli-context-capsule
+    - decisions/adapters.yaml#git-changed-files-adapter
+    - decisions/adapters.yaml#junit-attestation-import
+    - decisions/time-honesty.yaml
+    - decisions/time-honesty-storage.yaml
+    - decisions/gate-decision.yaml
   superseded_by: []
