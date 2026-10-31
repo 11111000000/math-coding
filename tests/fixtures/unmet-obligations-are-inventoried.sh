@@ -36,7 +36,7 @@ REPORT="docs/unmet-obligations-2026-10.md"
 # regenerated with the report, and it is what the completeness claim
 # is actually about.
 SET="docs/unmet-obligations-2026-10.txt"
-DECISION="decisions/unmet-obligations-inventory-2026-10.yaml"
+DECISION="archive/decisions/unmet-obligations-inventory-2026-10.yaml"
 
 RECOMMENDATIONS="fix-the-verifier needs-a-toolchain declare-it-manual investigate"
 
