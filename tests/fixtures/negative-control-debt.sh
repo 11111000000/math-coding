@@ -92,7 +92,29 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   twenty-one decisions that declare them are in the DECLARED class
 # ceiling-fall: 73 -> 37, the decisions that name a control that
 #   catches their own failure named it, and the debt is what is left
-CEILING=37
+# ceiling-fall: 37 -> 36, the falsified-promise tranche gave
+#   waiver-infrastructure-2026-10 a control that catches its own
+#   failure: tests/cli/self-check-waiver-verdict.t asserts that a
+#   waived gap is reported as open-with-waiver and never as pass
+# ceiling-fall: 36 -> 35, the same tranche gave
+#   forge-principal-verification-2026-10 the control that catches
+#   its own failure: tests/cli/forge-verify.t asserts that an
+#   unreachable forge is unknown and exit 3, never pass and exit 0
+# ceiling-fall: 35 -> 34, the same tranche gave
+#   corpus-final-state-2026-10 the control that catches its own
+#   failure: tests/cli/self-check-unknown.t asserts that an
+#   unevidenced corpus is unknown and exit 3, never pass and exit 0
+# ceiling-fall: 34 -> 33, the same tranche gave
+#   missing-directory-is-not-a-crash-2026-10 a control of its own:
+#   tests/fixtures/missing-directory-is-an-empty-result.sh asserts
+#   that a missing root, store or decisions directory is answered and
+#   not raised, and its negative control proves the detector fires
+# ceiling-fall: 33 -> 32, the same tranche gave
+#   spec-cli-catalog the control that catches its own failure:
+#   tests/fixtures/spec-cli-catalog-gap.sh measures the gap between
+#   the dispatcher and the normative catalog, and its negative
+#   controls require the measurement to move in both directions
+CEILING=32
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls

@@ -1,66 +1,106 @@
 ---
 schema: math-coding/3.2
 id: waiver-infrastructure-2026-10
-revision: 2
+revision: 3
 state: active
+#
+# Rev 3 (2026-11-01): the promise the tree falsified, rewritten as
+# the promise the tree keeps. Rev 2 said the CLI maps
+# `Open_with_waiver` to the verdict string `pass`. The kernel
+# stopped doing that on 2026-10-25 -- the mapping made the JSON
+# report seven subjects as `pass` while listing their unmet causes
+# in the same object, which is the verdict contradicting its own
+# evidence (decisions/self-check-waiver-verdict-coherence-2026-10.yaml).
+# The RULE a waiver stands for -- an explicit, scoped, expiring
+# acceptance of ONE gap -- did not change, and it is now checkable
+# end to end: tests/cli/self-check-waiver-verdict.t asserts the
+# verdict a waived subject gets, and asserts it is not `pass`.
+negative_control: tests/cli/self-check-waiver-verdict.t
+body_sha: "sha256:99592cdb3a98473010ad5a988335ebc6ab519c81b373993089bd2938b2e77443"
 
-body_sha: "sha256:6cc81003ee5e9ab8a1b56b32a8a34387cdd4c3bf23ad57b26043e40b4ada5b5e"
-
-yaml_sha: "sha256:6cc81003ee5e9ab8a1b56b32a8a34387cdd4c3bf23ad57b26043e40b4ada5b5e"
+yaml_sha: "sha256:99592cdb3a98473010ad5a988335ebc6ab519c81b373993089bd2938b2e77443"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
   as a first-class mechanism to mark specific (decision,
   obligation) gaps as scoped, expiring acceptances. The kernel
   (`lib/waiver.ml`) loads them; `bin/Mathc.ml` consults them
-  in `do_self_check`; the CLI maps `Open_with_waiver` to
-  `pass` for the verdict string (existing behaviour at
-  `bin/Mathc.ml:1829-1833`).
+  in `do_self_check`.
 
-  This closes the structural deficit where retired decisions
-  or infrastructure-blocked obligations contribute to
-  `verdict:unknown` indefinitely. The first waiver file is
-  `decisions/waivers/portable-linux-musl-2026-10.yaml`, which
-  covers the 4 structurally-unreachable obligations of
-  `decisions/portable-linux-musl.yaml` until 2027-04-06:
-    - release-yml-alpine-job-present
-    - musl-binary-runs-version
-    - ci-evidence-recorded
-    - glibc-binary-still-works
+  2026-11-01, REVISION 3: THIS PROMISE WAS FALSIFIED, AND THE RULE
+  WAS NOT. Revision 2 of this decision said that the CLI maps
+  `Open_with_waiver` to `pass` for the verdict string, and that the
+  verdict class is preserved in the gate type while only the CLI
+  string is mapped to `pass`. The kernel stopped doing that on
+  2026-10-25. `decisions/self-check-waiver-verdict-coherence-2026-10.yaml`
+  measured the mapping on this repository and found seven subjects
+  printed as `"verdict":"pass"` while the SAME object listed the
+  unmet obligations in `causes[]` -- the verdict contradicting its own
+  evidence -- and the mapping was removed.
 
-  The other 3 obligations of `portable-linux-musl.yaml`
-  (no-fork-in-kernel, docs-name-install, schema-unchanged) are
-  verified by `tests/repo_structure.ml` directly, not via the
-  attestation store; they are not affected by this decision.
+  What the kernel says now (`bin/Mathc.ml::verdict_to_pass_fail_unknown`,
+  and the aggregate a few hundred lines below it):
+
+    `Gate.Open_with_waiver` -> "open-with-waiver", never "pass"
+    a repository in which every subject is passed or waived is
+    reported as `open-with-waiver`, not `pass`
+    the exit code is still 0 -- constitution.md Invariant 14b allows
+    exit 0 for `Open_with_waiver`, and 14c requires the output to
+    name the waiver that produced the green
+
+  What did NOT change, and is the whole reason this decision still
+  exists: a waiver is an explicit, scoped, expiring acceptance of
+  ONE gap. The loader still exposes `load`, `covers` and
+  `effective_at`; a waiver still names one gap, one issuer and one
+  expiry; the gap still stays in the output with its causes and its
+  remedies; and the corpus still has no other way to say "this gap
+  is accepted, by a named person, until a named date".
+
+  What the corpus has NOBODY to waive with: the eight waiver files
+  that used to live under `decisions/waivers/` are gone.
+  `decisions/exit-honesty-waivers-2026-10.yaml` revoked the
+  decision-wide form they relied on -- a waiver that names no gap
+  covers nothing -- and `decisions/waivers/` holds no tracked file
+  today. The mechanism is the mechanism; the corpus currently has
+  nothing to waive, and the first waiver of the new form is written
+  when a gap needs one.
 
   Boundaries (per constitution.md §Self-application):
-    - this commit only wires the loader and the consult step;
-    - `lib/gate.ml` aggregate is unchanged (Unknown still maps
-      to Unknown for unwaived gaps);
-    - the kernel does not change Pass / Fail verdicts based on
-      waivers; only the Unknown -> Open_with_waiver transition
-      is new;
-    - the Open_with_waiver verdict class is preserved in the
-      gate type and only the CLI verdict STRING is mapped to
-      "pass" (the gap list and causes/remedies remain in the
-      JSON output);
+    - this decision does not change `lib/gate.ml`'s aggregate; a
+      decisive fail is never waived;
+    - the kernel does not change Pass / Fail verdicts because of a
+      waiver; only the Unknown -> Open_with_waiver transition is
+      the waiver's;
     - per `constitution.md §Waivers` line 102, the underlying
-      assurance result is NOT changed; the gap is a gap, the
-      waiver is an acknowledgment.
+      assurance result is NOT changed; the gap is a gap, the waiver
+      is an acknowledgment, and the gap is still in the output.
 
 axiom_link:
   - A0
 
 commitment: |
-  `lib/waiver.ml` exposes `load`, `covers`, and `effective_at`.
-  `bin/Mathc.ml`'s `do_self_check` consults the waiver store
-  under `decisions/waivers/`. A waiver-covered subject with
-  only `MissingEvidence` / `StaleEvidence` / `Unknown` gaps
-  produces an `Open_with_waiver` verdict, mapped to `pass` in
-  the JSON output. A subject with a `FailedEvidence` gap is
-  never waived (the decisive-fail -> Block invariant holds).
-  Test coverage is `tests/waiver_test.ml` (15 Alcotest cases)
-  and the `tests/cli/self-check-pass.t` snapshot regen.
+  1. `lib/waiver.ml` exposes `load`, `covers`, and `effective_at`,
+     and a waiver names ONE gap: the decision-wide form (a waiver
+     with no `unverified_obligation`) was revoked on 2026-10-25 and
+     covers nothing.
+  2. A waiver-covered subject whose only gaps are `MissingEvidence`
+     / `StaleEvidence` / `Unknown` produces an `Open_with_waiver`
+     verdict. A subject with a `FailedEvidence` gap is never waived
+     (the decisive-fail -> Block invariant holds).
+  3. The CLI reports that verdict as the string `open-with-waiver`
+     and NEVER as `pass`. A subject whose unmet causes are listed in
+     the same object must not be labelled green, and the aggregate
+     obeys the same rule: a wholly-waived repository is
+     `open-with-waiver`, not `pass`.
+  4. The gap stays in the output. The causes and the remedies of a
+     waived subject are listed, and the `waivers[]` entry names the
+     waiver, its issuer, its dates and the obligations it covers.
+  5. The exit code is 0 for `Open_with_waiver` (constitution.md
+     Invariant 14b) and 3 for `Unknown` (constitution.md:59, `unknown
+     != pass`).
+  6. The coverage is `tests/waiver_test.ml` (the pure loader) and
+     `tests/cli/self-check-waiver-verdict.t` (the verdict, on a
+     synthetic project and on the live corpus).
 
 scope:
   paths:
@@ -84,119 +124,143 @@ outcomes:
   - id: waiver-loader-works
     statement: |
       `lib/waiver.ml` exposes `load`, `covers`, and
-      `effective_at`. The pure parser (`Waiver.parse`) is
-      covered by `tests/waiver_test.ml` (15 cases). The
-      filesystem-touching `load` is covered indirectly by
-      `tests/cli/self-check-pass.t`, which runs the CLI
-      against a real `decisions/waivers/` directory.
-  - id: self-check-uses-waivers
+      `effective_at`; the pure parser (`Waiver.parse`) is covered by
+      `tests/waiver_test.ml`; and a waiver that names no gap covers
+      NOTHING, which is the revocation of the decision-wide form.
+    acceptance:
+      all:
+        - verifier: dune exec --root=. tests/waiver_test.exe
+
+  - id: a-waived-gap-is-reported-not-hidden
     statement: |
-      `mc self-check` emits verdict `pass` for a subject whose
-      only gaps are covered by a waiver. Specifically, at
-      HEAD the live attestation store has no attestations for
-      `portable-linux-musl` (the decision is retired; reversal
-      signal `alpine-ci-build-fails` fired). With the new
-      waiver file, `portable-linux-musl` becomes
-      `Open_with_waiver` (CLI: `pass`), so the live
-      self-check goes from 29/0/2 to 30/0/1.
-  - id: open-with-waiver-preserved
+      A subject whose unmet obligations are all covered by a named,
+      unexpired waiver is reported as `open-with_waiver` and never as
+      `pass`; its causes and remedies stay in the output, and the
+      `waivers[]` entry names the waiver.
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-waiver-verdict.t
+
+  - id: the-verdict-vocabulary-has-four-values
     statement: |
-      The `Open_with_waiver` verdict variant in `lib/gate.ml`
-      is preserved. The CLI maps it to the string "pass" for
-      the verdict field; the gap list and causes/remedies
-      remain in the subjects[] entry. constitution.md §Waivers
-      line 102 is honoured: no fail / unknown / missing is
-      flipped to pass; the gap stays in the output.
+      The verdict vocabulary is `pass` | `open-with-waiver` | `fail` |
+      `unknown`; the spec tabulates the same four values; and the
+      exit table is `Pass`->0, `Open_with_waiver`->0, `Block`->1,
+      `Unknown`->3.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
 
 counterexample: |
-  "Adding a waiver-covering layer silently flips
-  MissingEvidence to Pass, violating constitution.md §Waivers
-  line 102 ('MUST NOT convert fail, unknown or missing into
-  pass')."
+  "The corpus has no waiver files at all, so this decision promises a
+  machinery nobody uses, and the honest answer would be to delete
+  `lib/waiver.ml` and the schema with it."
 
-  Counterargument: the underlying gap is preserved. The CLI
-  output for a waiver-covered subject carries:
-    { "name": "portable-linux-musl",
-      "verdict": "pass",
-      "causes": [ "obligation ... has no attestations in the
-                   store", ... ],
-      "remedies": [ "produce an attestation that names this
-                     decision + obligation", "or add a waiver
-                     under decisions/*.yaml", ... ] }
-  The `causes` and `remedies` lists enumerate every missing
-  obligation; the reader sees the gap. The verdict string
-  "pass" is the CLI's per-decision disposition (a waiver is
-  an open-with-waiver gate disposition per
-  spec/semantics.md §Waiver); it does not launder the gap.
-  constitution.md §Waivers line 102 forbids flipping the
-  *assurance result*; the kernel's verdict (lib/gate.ml:222)
-  still distinguishes Block (decisive fail) from
-  Open_with_waiver (waived gap) from Pass (no gaps). The CLI
-  collapses the latter two for human-readable output, which
-  is the existing convention recorded in the file comment
-  above line 1826.
+  The objection is right about the fact and wrong about what the fact
+  proves. `decisions/waivers/` holds no tracked file today: the eight
+  files that lived there were revoked with the decision-wide form
+  they relied on, and no gap has needed a waiver of the new form
+  since. That is a corpus with nothing to waive, not a corpus where
+  the mechanism is dead: `lib/waiver.ml` is exercised by
+  `tests/waiver_test.ml`, by the conformance fixtures under
+  `fixtures/conformance/waiver/`, and end to end by
+  `tests/cli/self-check-waiver-verdict.t`, which builds a project
+  with two waivers precisely so that the mechanism is known to work
+  when it is used.
 
-  "The active policy `bootstrap-v3@2` does not formally mark
-  retired-subject unknowns as waivable in the gate path
-  (per `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
-  new_assumptions.kernel-waiver-pending). Issuing a waiver
-  anyway is overreach."
+  The cost of the other answer is the one this decision exists to
+  prevent. If a gap that cannot be closed by evidence had no way to
+  be accepted, the only two answers left are red for ever and
+  silence. Red for ever teaches nothing (the plan's own words: "a
+  red gate that is always red teaches nobody anything"), and silence
+  is the paper layer of 2026-10 -- a promise nobody can check, hidden
+  in a field nothing reads. A waiver is neither: it names the gap,
+  the person, the reason and the date, and the DECLARED class in
+  `tests/fixtures/negative-control-debt.sh` is what a promise without
+  a check looks like when it is at least honest about it.
 
-  Counterargument: this decision IS the policy amendment
-  formalising that mark. The previously-pending
-  `kernel-waiver-pending` assumption in
-  `audit-0.0.21-fixes-self-check-waiver-2026-10.yaml` is
-  closed by the present decision landing. The policy
-  bootstrap gate (commit 8fa7fcf) had already authorised
-  the wider pattern of explicit gap-coverage decisions; this
-  decision extends the explicit pattern from
-  decision-of-waiver to a separable file-of-waiver.
+  What would change the verdict: a gap that needs a waiver and cannot
+  get one, because the form is too narrow (obligation-level waivers
+  are the `unknowns:` entry below, and one is not implemented). The
+  trigger for that is in the risk block, and the remedy is a new
+  waiver form with its own decision -- not the silent removal of the
+  mechanism.
+
+antithesis: |
+  The opposite position is that a waiver should not exist at all: a
+  gap that evidence cannot close should stay red until it IS closed,
+  and a dated acceptance of a red gap is a red gap with better
+  manners.
+
+  The position is coherent, it is the corpus's own rule in one of its
+  forms ("a promise is either machine-checked or it is not there"),
+  and it has one advantage this decision cannot match: it leaves no
+  room for an accepted-but-unclosed gap.
+
+  The position is wrong about what a waiver adds, which is the
+  difference between an acceptance and an omission. A waiver names
+  the gap, the issuer, the reason, the issue date and the expiry. An
+  omission names nothing, and the corpus's `DECLARED` class exists
+  precisely because an omission with a name on it is what the corpus
+  learned to write instead of a promise nobody checks. The expiry is
+  what keeps the acceptance honest: a rule nobody has looked at in a
+  year loses its cover, and the gap turns red again on its own.
+
+  The position is also wrong about the size of the class. The corpus
+  has no waiver files today, and that is a fact about the corpus's
+  debt, not about the mechanism: the waivers were revoked because
+  they named no gap, and the fix for a waiver that names no gap is a
+  waiver that names a gap.
 
 unknowns:
   - |
     Whether obligation-level waiver matching (vs. the current
-    subject-level) will be needed for future waivers. The first
-    waiver is subject-level, which is sufficient for
-    `portable-linux-musl` (a single decision retired in toto).
+    subject-level) will be needed for future waivers. The form that
+    survives is the one that names the gap, so a future need here is
+    a need for MORE obligations per waiver, not for the revoked
+    decision-wide form.
 
 obligations:
-  - id: trivial-obligation
-    outcome: documented-limitation
-    claim: |
-      Trivial verification. The kernel honors the
-      decision contents (subcommand dispatch,
-      policy schema, CLI shape, etc.); verified by
-      the existence of the named symbol in the
-      relevant source file.
-    acceptance:
-      all:
-        - verifier: file-exists lib/waiver.ml
-        - verifier: file-exists schemas/waiver.json
-        - verifier: file-exists bin/Mathc.ml
-  - id: waiver-loader-tested
+  - id: waiver-loader-works
     outcome: waiver-loader-works
     claim: |
-      `tests/waiver_test.ml` covers the waiver module
-      directly: `parse`, `covers`, `effective_at`, including
-      the empty/missing/expired edge cases. 15 Alcotest
-      cases pass at HEAD.
+      `tests/waiver_test.ml` covers the waiver module directly:
+      `parse`, `covers`, `effective_at`, including the
+      empty/missing/expired edge cases, and the case that a waiver
+      which names no gap covers nothing.
     acceptance:
       all:
         - verifier: dune exec --root=. tests/waiver_test.exe
-  - id: self-check-emits-pass-with-waiver
-    outcome: self-check-uses-waivers
+
+  - id: a-waived-gap-is-reported-not-hidden
+    outcome: a-waived-gap-is-reported-not-hidden
     claim: |
-      `tests/cli/self-check-pass.t` runs `mathc self-check`
-      against the populated fixture store. The snapshot
-      reflects the new state: 30 pass / 0 fail / 1 unknown
-      (the remaining unknown is `audit-0.0.21-fixes`, whose
-      `self-check-verdict-is-pass` obligation has an
-      inconclusive attestation under
-      `decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`
-      and is explicitly out of scope for this decision).
+      `tests/cli/self-check-waiver-verdict.t` builds a synthetic
+      project with one decision, two obligations, no attestations and
+      two waivers -- one per gap -- and requires the subject verdict
+      to be `open-with-waiver`, the exit code to be 0, and the
+      `waivers[]` entry to name both waivers. It then runs the live
+      self-check and requires the coherence properties: no `pass`
+      subject carries a cause or a remedy, no `pass` subject names a
+      waiver, and every `open-with-waiver` subject names an unexpired
+      waiver that covers at least one obligation. A kernel that
+      collapsed `Open_with_waiver` into `pass` turns this fixture
+      red, which is why it is this decision's negative control.
     acceptance:
       all:
-        - verifier: tests/cli/self-check-pass.t
+        - verifier: tests/cli/self-check-waiver-verdict.t
+
+  - id: the-verdict-vocabulary-has-four-values
+    outcome: the-verdict-vocabulary-has-four-values
+    claim: |
+      `tests/fixtures/verdict-vocabulary-spec-coherence.sh` derives
+      the verdict vocabulary from `lib/gate.ml`, requires the spec to
+      carry a row for every value the kernel can emit, requires the
+      exit table in the spec to match the arms the CLI ships, and
+      fails if a three-value enumeration comes back.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
 
 reversal:
   - signal: waiver-format-changes
@@ -221,7 +285,7 @@ reversal:
 risk:
   declared_triggers:
     - waiver-format-changes
-    - portable-linux-musl-re-enabled
+    - a-waiver-names-no-gap-again
     - constitution-waiver-rule-tightened
   owner: human:maintainer
 
@@ -231,4 +295,3 @@ relations:
     - audit-0.0.21-fixes@1
   supersedes: []
   superseded_by: []
-

@@ -1,13 +1,26 @@
 ---
 schema: math-coding/3.3
 id: corpus-silent-drop-inventory-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 change_kind: test
+#
+# Rev 2 (2026-11-01): the ledger this decision recorded was the
+# ledger of 2026-10-29 (twelve offenders, ten author-malformed, two
+# cosmetic) and the corpus has moved since: four author-malformed,
+# one cosmetic marker, zero kernel holes. The instrument did not
+# rot -- it was paid down, file by file, and this decision's own
+# exact-set rule is what made every repair visible. The numbers in
+# this file are now the numbers the instrument measures.
+#
+# The control that catches this decision's own failure is unchanged:
+# tests/corpus_no_silent_drops/corpus_no_silent_drops.ml asserts the
+# exact set in BOTH directions, so a file that starts losing content
+# and a file that stops losing content are both red.
 negative_control: tests/corpus_no_silent_drops/corpus_no_silent_drops.ml
-body_sha: "sha256:0f82f0e69dfe8ea2d690cd90aa13a37e868172fc77f83dd88820252ff073002b"
-yaml_sha: "sha256:0f82f0e69dfe8ea2d690cd90aa13a37e868172fc77f83dd88820252ff073002b"
+body_sha: "sha256:649ffc24d48c7ffc693de27b7922c86a37f33bc660b16de25f0e0d717de26455"
+yaml_sha: "sha256:649ffc24d48c7ffc693de27b7922c86a37f33bc660b16de25f0e0d717de26455"
 
 axiom_link:
   - A0
@@ -30,27 +43,54 @@ intent: |
   argument that is settled once and never revisited, and that is how
   a defect class gets declared closed while it is still open.
 
-  The test exists because a scan nobody runs is a report. Twelve
-  residual offenders are a known, accepted, owned state only while
-  something holds them at twelve.
+  The test exists because a scan nobody runs is a report. Residual
+  offenders are a known, accepted, owned state only while something
+  holds them at the number.
+
+  2026-11-01, REVISION 2: THE LEDGER MOVED, THE RULE DID NOT. The
+  numbers this decision recorded were the numbers of 2026-10-29:
+  twelve offenders, ten of them files an independent reader also
+  rejects, two of them a stray document marker, and none of them a
+  file a strict reader reads to EOF and the kernel does not. The
+  corpus has been paying that debt down file by file since, and the
+  instrument that made each repair visible is the one this decision
+  installed. Measured on this tree, 2026-11-01:
+
+    scripts/scan-silent-drops.sh            5 of 139 files
+    --validity, kernel's own fault           0
+    --validity, author wrote garbage         4
+    MULTI-DOC (stray `---`, no loss)          1
+    --all (every tracked YAML)                7 of 313
+
+  The five files are `decisions/3-2-cli-catalog.yaml`,
+  `decisions/ci-blocking-list-config.yaml`,
+  `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml` and
+  `decisions/mathc-packages-subcommand.yaml` (all four are files an
+  independent reader rejects too) and
+  `decisions/forge-stub-read-request-2026-10.yaml` (a stray `---`
+  as the last line, so nothing is lost behind it).
+
+  So this decision is not falsified in its RULE -- the exact set in
+  both directions, the zero tolerance on the kernel's own holes, the
+  reproducible scan -- and it is falsified in its NUMBERS, which
+  described a corpus state that no longer exists. What follows is
+  the same decision with the numbers the instrument measures.
 
 counterexample: |
-  Measured against main 42bae29, not against the branch the WIP
-  commit was cut from, and re-measured with this decision added to
-  the corpus -- which is why the denominator below is 216 and not
-  215: this file is the 216th decision, and it reads to EOF, so the
-  offender count is unchanged at 12. The two commits disagree about
-  the corpus and the difference matters:
+  Measured against the tree this revision lands on, and NOT against
+  the branch the WIP commit was cut from -- the two commits used to
+  disagree about the corpus, and the difference mattered:
 
-    scan-silent-drops.sh              12 of 216 files
+    scan-silent-drops.sh              5 of 139 files
     --validity, kernel's own fault      0
-    --validity, author wrote garbage  10
-    MULTI-DOC (stray `---`, no loss)   2
+    --validity, author wrote garbage   4
+    MULTI-DOC (stray `---`, no loss)    1
 
   There is no "5 holes on valid YAML". That number belongs to the
-  state before D4 was merged. On current main every offender is
-  accounted for by something an independent reader also rejects, and
-  this decision records that fact rather than the older, scarier one.
+  state before D4 was merged. On the current tree every offender is
+  accounted for by something an independent reader also rejects (or
+  by a stray marker with nothing behind it), and this decision
+  records that fact rather than the older, scarier one.
 
   Also not claimed: that the test can tell an author's bug from a
   kernel bug on its own. It cannot. The executable has no YAML
@@ -73,22 +113,22 @@ commitment: |
      kernel stopped reading" and "the file could not be read by
      anyone" have different owners:
 
-       author_malformed  10 files `yq` also rejects. Author's debt.
-       cosmetic_marker    2 files whose stray `---` is the last
+       author_malformed  4 files `yq` also rejects. Author's debt.
+       cosmetic_marker    1 file whose stray `---` is the last
                           line. No loss. Asserted to lose nothing,
                           so "cosmetic" cannot quietly become
                           "lossy".
        kernel_holes       0 files. Zero tolerance, the only bucket
                           that is ours to fix, asserted empty on
                           its own so a parser regression is a
-                          no-noise failure while the other ten
-                          entries sit there.
+                          no-noise failure while the four entries
+                          above sit there.
 
   3. Scope is `decisions/**` plus `policies.yaml`. The fixture
      trees hold YAML that is malformed on purpose; `--all` reports
-     14 of 270, the two extra being exactly those fixtures, and
-     scanning them would invite "fixing" a fixture whose job is to
-     be broken.
+     7 of 313 tracked YAML files, the two extra being exactly those
+     fixtures, and scanning them would invite "fixing" a fixture
+     whose job is to be broken.
 
   4. `policies.yaml` is included because `load_yaml_value` reaches
      neither `load_yaml_string_full` nor the MC-UNPARSED-TAIL
@@ -97,10 +137,10 @@ commitment: |
 
   5. The content pins assert what no shape assertion can: a parser
      that consumes every line and then folds them wrongly still
-     satisfies every `leftover = 0` check. `render-module-split-
-     phase1a-2026-10.yaml` is pinned for the two SCHEMA keys that
-     stood behind the D4 tail -- prose would have been cosmetic;
-     `planned_evidence` and `estimated_class` were not.
+     satisfies every `leftover = 0` check. The D4-repaired files
+     are pinned for the two SCHEMA keys that stood behind the D4
+     tail -- prose would have been cosmetic; `planned_evidence` and
+     `estimated_class` were not.
 
   6. Two branches of `fold_seq_item` are reached by nothing in
      `decisions/`: the `is_dash_item` guard and the backslash rule
@@ -163,12 +203,12 @@ obligations:
 
       The three forms, in order: the corpus scan; the same scan with
       an independent reader's verdict in column 1; and the same scan
-      over every tracked YAML including the deliberately-broken
-      fixtures, which reports 14 of 271.
+      over every tracked YAML, which reports 7 of 313.
 
       The command recorded here is the one the corpus argument is
-      settled with. It reports 12 of 216 on this branch; 12 of 215
-      on main 42bae29 before this decision was added.
+      settled with. It reports 5 of 139 on this tree: four files an
+      independent reader rejects too, and one stray document marker
+      with nothing behind it.
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
@@ -190,7 +230,8 @@ obligations:
     claim: |
       `kernel_holes` is asserted equal to the empty list. Every
       offender in the corpus is therefore accounted for by
-      something `yq` also rejects.
+      something `yq` also rejects, or by a stray marker with nothing
+      behind it.
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
@@ -198,9 +239,8 @@ obligations:
   - id: cosmetic-markers-lose-nothing
     outcome: the-inventory-is-pinned-not-frozen
     claim: |
-      Each of the two stray-marker files has no non-empty line
-      after the marker. The "cosmetic" label is checked, not
-      assumed.
+      The stray-marker file has no non-empty line after the marker.
+      The "cosmetic" label is checked, not assumed.
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
@@ -208,7 +248,7 @@ obligations:
   - id: a-wrong-fold-is-caught-not-just-a-wrong-stop
     outcome: kernel-holes-are-zero-tolerance
     claim: |
-      The four D4-repaired files reach EOF AND their `unknowns`
+      The D4-repaired files reach EOF AND their `unknowns`
       counts are correct, and `render-module-split-phase1a-2026-10
       .yaml` still yields `planned_evidence` and
       `estimated_class`. A parser that reads everything and folds
@@ -225,7 +265,8 @@ obligations:
       of which turns this suite red:
 
         A  `fold_seq_item` neutered (D4 reverted)
-           -> offender set + both content pins red; 12 becomes 18
+           -> offender set + both content pins red; the measured
+              set grows
         B  backslash rule dropped from `quote_still_open`
            -> `an escaped quote does not close the scalar` red
         C  `load_yaml_string_full` discards the remainder
@@ -246,7 +287,7 @@ risk:
     - recorded-buckets-are-not-machine-checked
   residual-ledger-rots-when-a-file-is-repaired: |
     Expected, and it is the intended direction. Repairing one of
-    the twelve turns the suite red until the ledger entry is
+    the offenders turns the suite red until the ledger entry is
     struck and its reason updated in the same commit. That is the
     friction doing its job.
   recorded-buckets-are-not-machine-checked: |
@@ -263,7 +304,7 @@ assumptions:
   - id: author-classification-drifts-slowly
     state: assumed
     statement: |
-      The ten `author_malformed` files stay malformed until
+      The four `author_malformed` files stay malformed until
       somebody rewrites their prose, and nobody rewrites them
       into a different defect that still leaves a tail.
     owner: human:maintainer
@@ -272,7 +313,7 @@ assumptions:
       becomes false. The set assertion cannot see it; only
       `scan-silent-drops.sh --validity` can. Wire that command
       into the gate, or into review, before the ledger passes
-      twenty entries.
+      ten entries again.
     review_on:
       - signal: silent-drop-ledger-passes-twenty-entries
 

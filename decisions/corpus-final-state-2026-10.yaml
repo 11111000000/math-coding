@@ -1,12 +1,29 @@
 ---
 schema: math-coding/3.3
 id: corpus-final-state-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
+#
+# Rev 2 (2026-11-01): the promise the claims inventory falsified,
+# rewritten as what the tree does. Rev 1 promised a corpus of about
+# fifty rules with a green gate over it: every obligation executable
+# or covered by a dated acceptance, `mathc self-check` exiting 0, and
+# the CI step that reads it a gate again. Measured on this tree: 140
+# decisions in the corpus, 36 obligations no program can execute,
+# `mathc self-check` exits 3 with verdict `unknown`, and the CI step
+# is an audit. The RULE -- a decision is either a rule the project
+# keeps or a record, and the question is asked one decision at a time
+# -- is untouched, and it is the rule the corpus's other instruments
+# are built on.
+#
+# The control that catches this decision's own failure is
+# tests/cli/self-check-unknown.t: a kernel that collapsed `unknown`
+# into `pass` would make every claim below false at once.
+negative_control: tests/cli/self-check-unknown.t
 
-body_sha: "sha256:d24d834e8198fa2354a0966f73bcbe0ebbc3b023f30a92fb20e23aba3c22cf6a"
-yaml_sha: "sha256:d24d834e8198fa2354a0966f73bcbe0ebbc3b023f30a92fb20e23aba3c22cf6a"
+body_sha: "sha256:2af487b79259f29a434bf6b3accc1ecf5e87fe905031a371717879e2da8e5ff8"
+yaml_sha: "sha256:2af487b79259f29a434bf6b3accc1ecf5e87fe905031a371717879e2da8e5ff8"
 
 axiom_link:
   - A0
@@ -21,60 +38,86 @@ intent: |
   the shortest path from here to there. What it does not say is what
   "there" is for a corpus like this one, and the obvious reading --
   "pass" means every obligation holds fresh evidence -- is a target
-  that this corpus cannot reach. 285 of the obligations are
-  DECLARATIONS: a `manual-` verifier is by definition something the
-  kernel does not execute, so there is no evidence to be had. A gate
-  that demands evidence for promises that are defined as
-  un-evidenced is red for ever, and a red gate that is always red
-  teaches nobody anything. The endlessness was not a discipline
-  failure. It was the consequence of an incoherent target.
+  that this corpus cannot reach. A `manual-` verifier is by
+  definition something the kernel does not execute, so there is no
+  evidence to be had. A gate that demands evidence for promises that
+  are defined as un-evidenced is red for ever, and a red gate that is
+  always red teaches nobody anything. The endlessness was not a
+  discipline failure. It was the consequence of an incoherent
+  target.
 
-  So this decision states a reachable final state, in numbers, and
-  the shape of the corpus that reaches it:
+  2026-11-01, REVISION 2: THE PROMISE WAS FALSIFIED. The four
+  outcomes this decision promised are measured on the tree as it
+  stands, and three of the four are not true:
 
-    THE CORPUS HOLDS RULES, NOT RECORDS.
-      A decision is either a RULE the project keeps, or a RECORD of
-      something that was done once. Records leave the corpus (git
-      keeps them byte for byte); rules stay. The question is ONE per
-      decision: does this still say something the project keeps?
+    "every decision in the corpus is a rule the project keeps"
+      -- the corpus holds records as well: the claims inventory of
+      2026-11-01 classified twenty of them as RECORD, and the
+      census counts 140 decision files, 137 of them active, against
+      the "about fifty rules" this decision itself named.
+    "every obligation is either executable, or declared and covered
+     by an acceptance with an expiry"
+      -- 36 obligations in the live corpus are executable by no
+      program, and the DECLARED class (21 decisions, 39 obligations)
+      carries an owner and a review date, NOT an acceptance with an
+      expiry: the decision-wide waiver form those acceptances used
+      was revoked on 2026-10-25
+      (decisions/exit-honesty-waivers-2026-10.yaml).
+    "`mathc self-check` exits 0, and the CI step that reads it is a
+     gate again"
+      -- it exits 3, with the aggregate verdict `unknown` and all
+      133 subjects `unknown`: the attestation store is generated per
+      run, so a checkout has no evidence to certify. The CI step is
+      an AUDIT step (`.github/workflows/ci.yml`, "mathc self-check
+      (corpus audit)"), and the decision that says so is
+      `decisions/ci-self-check-is-an-audit-2026-10.yaml`.
+    "the number of declared rules is pinned, and the pin may only
+     fall"
+      -- TRUE, and it is the one promise that survived: the debt
+      counter reports three numbers now (CHECKED, DECLARED,
+      UNCHECKED), and the ceiling that may only fall is the UNCHECKED
+      one.
 
-    EVERY OBLIGATION HAS A CLASS, AND BOTH CLASSES ARE HONEST.
-      An obligation is either EXECUTABLE -- a check the kernel can
-      run, and the sweep signs -- or DECLARED: a promise a named
-      human keeps, covered by a DATED ACCEPTANCE.
+  So the final state is not reachable in the form this decision
+  described, and the honest move is to state the state that IS.
+  What the tree does today, and what this decision now promises:
 
-    A DECLARED RULE IS COVERED BY A WAIVER, NOT BY EVIDENCE.
-      One waiver per decision, with an issuer, an issued_at, an
-      expires_at and a reason. The waiver form that covers a whole
-      decision already exists (the decision-wide form, without
-      `unverified_obligation`), so nothing in the schema has to
-      change. The expiry is what makes it honest: a rule nobody has
-      reviewed for a year is a rule nobody reviews.
+    THE CORPUS'S SHAPE IS A NUMBER, AND THE NUMBERS ARE PINNED.
+      The census measures the corpus: how many decisions it holds,
+      how many obligations no program can execute, how many relation
+      targets resolve to nothing, how many scope paths name no
+      file, how many archived decisions still say `state: active`.
+      Each number is a ceiling, and a ceiling may fall and may
+      never rise.
 
-    THE GATE IS GREEN AGAIN, AND GREEN MEANS SOMETHING.
-      `mathc self-check` exits 0 when every executable obligation
-      holds fresh evidence AND every declared rule is covered by a
-      live acceptance. Then the CI step stops being an audit and
-      becomes a gate again, and the corpus can finally hold itself
-      accountable.
+    THE PROMISE DEBT IS THREE NUMBERS, AND THE FOURTH CLASS IS
+    PROMISED BY NOBODY.
+      CHECKED: the decision names a control that can fail.
+      DECLARED: the decision carries a `declared:` block -- an owner
+      and a date it is looked at again -- for a promise no program
+      can check.
+      UNCHECKED: neither. This is the debt, and its ceiling may only
+      fall.
+      The four classes add up to the corpus, and the sum is checked
+      as a sum.
 
-    THE DEBT IS COUNTED AND PINNED, AND IT MAY ONLY FALL.
-      The number of declared rules is a number, it is pinned, and a
-      raise is recorded with its reason (the convention the debt
-      fixtures already follow).
+    THE GATE NEVER CERTIFIES WHAT IT DID NOT CHECK.
+      `mathc self-check` exits 0 only when its verdict is `pass`.
+      With no store it exits 3 with the verdict `unknown`, and
+      `unknown` is never collapsed into `pass`. The CI step that
+      reads it is an audit step with a ratcheted debt ceiling, not a
+      blocking gate -- and an audit step that reads a verdict and
+      reports it is worth more than a gate that is green by
+      construction.
 
-  THE NUMBERS, as of 2026-10-29:
-
-    decisions in the corpus       203   ->  about 50 rules
-    obligations                          ->  about 200
-    executable                          ->  about 150 (the sweep signs them)
-    declared                            ->  about 50 (one waiver each)
-
-  THE PATH, and why it is short. The census reads ONE question per
-  DECISION, not per obligation: 203 questions instead of 762, and
-  they parallelise. A decision that turns out to be a rule keeps its
-  obligations; a decision that turns out to be a record leaves with
-  all of them at once, because a record has no obligations to keep.
+    THE RULES-AND-RECORDS QUESTION IS ASKED ONE DECISION AT A TIME.
+      A decision leaves the corpus when it is a record, and the
+      question is asked of one decision at a time, with the reason
+      recorded. The census prints the distance to the target this
+      decision named and does not fail on it: a count is a symptom,
+      and the question behind it -- is every promise in the corpus
+      true, and is every promise that cannot be true named as such
+      -- is the one worth asking.
 
   2026-11: the scope named decisions/waivers/**, where the waiver
   documents lived. The directory holds no tracked file - the waiver
@@ -83,35 +126,62 @@ intent: |
   archive/decisions/.
 
 commitment: |
-  1. The corpus's final state is the one above: rules only, every
-     obligation either executable or covered by a dated acceptance,
-     the gate green, the declared-rule count pinned and falling.
-  2. A decision leaves the corpus when it is a RECORD. Git keeps it.
-  3. A DECLARED rule is covered by a waiver that names the decision,
-     an issuer, a date and an expiry. A declaration with no expiry
-     is not an acceptance, it is an omission.
-  4. `mathc self-check` exits 0 exactly when every executable
-     obligation holds fresh evidence and every declared rule is
-     covered by an acceptance in force.
-  5. The census is run at the DECISION level, in parallel tranches,
-     with one question per decision.
+  1. The corpus's shape is measured by an instrument, not by prose:
+     `tests/fixtures/redundancy-census.sh` measures the corpus and
+     pins every number it prints as a ceiling that may only fall,
+     and it carries its own negative control, so the bounds are
+     known to bind.
+  2. The promise debt is THREE numbers, not one:
+     `tests/fixtures/negative-control-debt.sh` classifies every
+     decision as CHECKED (it names a control that can fail),
+     DECLARED (it carries a `declared:` block with an owner and a
+     review date) or UNCHECKED (neither), prints the three numbers
+     plus the decisions that make no promise, and requires the four
+     classes to add up to the corpus. The ceiling that may only fall
+     is the UNCHECKED one.
+  3. `mathc self-check` exits 0 exactly when its verdict is `pass`,
+     1 when it is `fail` and 3 when it is `unknown`. `unknown` is
+     never collapsed onto 0: a checkout without a generated
+     attestation store answers `unknown`, and that is the honest
+     reading of a corpus with no evidence.
+  4. The CI step that reads the self-check verdict is an AUDIT step
+     with a ratcheted debt ceiling, not a blocking gate, and the
+     debt it ratchets is the one the kernel measures
+     (`tests/fixtures/self-check-debt-ceiling.sh`).
+  5. A decision leaves the corpus when it is a RECORD, and the
+     question is asked of one decision at a time, with the reason
+     recorded in the same commit that moves the file. The census
+     prints the distance to the target this decision named and does
+     not fail on it.
 
 outcomes:
-  - id: the-corpus-is-rules
+  - id: the-corpus-shape-is-numbered
     statement: |
-      Every decision in the corpus is a rule the project keeps.
-  - id: every-promise-has-a-class-and-a-cover
-    statement: |
-      Every obligation is either executable, or declared and covered
-      by an acceptance with an expiry.
-  - id: the-gate-is-green-and-means-something
-    statement: |
-      `mathc self-check` exits 0, and the CI step that reads it is a
-      gate again.
+      The corpus's shape is a number and not a claim: a fixture
+      measures how many decisions the live corpus holds, how many
+      obligations no program can execute, how many relation targets
+      resolve to nothing and how many scope paths name no file, and
+      pins each of them as a ceiling that may only fall.
   - id: the-debt-falls
     statement: |
-      The number of declared rules is pinned, and the pin may only
-      fall.
+      The promise debt of the corpus is three numbers -- CHECKED,
+      DECLARED and UNCHECKED -- plus the decisions that make no
+      promise; the four add up to the corpus; and the ceiling that
+      may only fall is the UNCHECKED one.
+  - id: the-gate-never-certifies-what-it-did-not-check
+    statement: |
+      `mathc self-check` exits 0 only when its verdict is `pass`,
+      and it exits 3 with the verdict `unknown` when the attestation
+      store is absent. The CI step that reads it is an audit step
+      with a ratcheted debt ceiling, not a blocking gate.
+  - id: the-corpus-is-rules-or-records
+    statement: |
+      Every live decision is classified as a rule the project keeps
+      or as a record of something that was done, one decision at a
+      time, with the reason recorded; a record leaves the corpus and
+      a rule stays; and the census reports the distance between the
+      corpus and the target this decision named without failing on
+      it.
 
 scope:
   paths:
@@ -128,12 +198,71 @@ scope:
 
 obligations:
   - id: the-state-is-measured
+    outcome: the-corpus-shape-is-numbered
     claim: |
-      The worklist reports the corpus's shape, and the declared rules
-      are covered by acceptances in force.
+      `tests/fixtures/redundancy-census.sh` measures the corpus's
+      shape -- the live corpus, the paper layer, the unrecognised
+      verifier schemes, the dangling relation targets, the dead
+      scope paths and the archived decisions that still say `state:
+      active` -- and fails when any of them exceeds its ceiling. The
+      fixture carries its own negative control: a synthetic corpus
+      that exceeds every ceiling must be reported as over it, so the
+      bounds are known to bind rather than merely declared.
     acceptance:
       all:
-        - verifier: tests/fixtures/no-invisible-promises.sh
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-debt-is-three-numbers
+    outcome: the-debt-falls
+    claim: |
+      `tests/fixtures/negative-control-debt.sh` prints CHECKED,
+      DECLARED, UNCHECKED and the decisions that make no promise,
+      requires the four classes to add up to the corpus, and fails
+      when the UNCHECKED class exceeds its ceiling. Its own negative
+      control builds a synthetic corpus with one decision of each
+      kind and requires the instrument to count each of them as the
+      rule says.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-declared-debt-falls
+    outcome: the-debt-falls
+    claim: |
+      `tests/fixtures/self-check-debt-ceiling.sh` counts the
+      obligations the kernel does not execute -- the declared
+      promises -- and fails when that number exceeds its ceiling.
+      The ceiling may only fall, and the count is a property of the
+      corpus rather than of the store, so it is the same number in a
+      swept tree and in a fresh checkout.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/self-check-debt-ceiling.sh
+
+  - id: unknown-is-not-pass
+    outcome: the-gate-never-certifies-what-it-did-not-check
+    claim: |
+      `tests/cli/self-check-unknown.t` runs `mathc self-check`
+      against a store that is absent and requires the aggregate
+      verdict to be `unknown`, every subject to be `unknown` and
+      the exit code to be 3. A kernel that collapsed `unknown` into
+      `pass` turns this fixture red, which is why it is this
+      decision's negative control.
+    acceptance:
+      all:
+        - verifier: tests/cli/self-check-unknown.t
+
+  - id: the-ci-step-is-an-audit
+    outcome: the-gate-never-certifies-what-it-did-not-check
+    claim: |
+      The CI step that reads the self-check verdict is the audit step
+      `.github/workflows/ci.yml` names, and the debt it ratchets is
+      bounded by the ceiling in
+      `tests/fixtures/self-check-debt-ceiling.sh`.
+    acceptance:
+      all:
+        - verifier: scripts/ci-step-exit-sim.sh
+
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/corpus-final-state-2026-10.yaml`
@@ -148,13 +277,13 @@ risk:
       leaves the corpus: the question is one per decision, and the
       evidence for the answer is the decision's own intent and its
       references, not a rule"
-    - "the acceptances are written for rules nobody reads, and the
-      corpus turns green on paper: the expiry is what stops this,
-      and the count of them is pinned"
-    - "the gate goes green and stops being read, because it is
-      green for ever: that is the risk of a gate that is green by
-      construction, and the counter is that a rule whose acceptance
-      lapses turns the gate red again"
+    - "a declared promise is never looked at, and the review date
+      passes: the DECLARED ceiling is the only thing that notices,
+      and it notices late -- a ceiling that stops falling is the
+      signal"
+    - "the audit step is read as a gate, or the gate is read as a
+      green tick: the exit codes are the contract, and the CI step
+      reports the verdict it read"
   owner: human:maintainer
 
 counterexample: |
@@ -165,20 +294,28 @@ counterexample: |
   The objection is the right one to suspect of any plan that ends
   with a smaller corpus, and the answer is in the ORDER of the two
   decisions. This decision does not say what the corpus should
-  contain; it says what the corpus must be ABLE to be, so that the
+  contain; it says what the corpus must be ABLE TO BE, so that the
   question "should this decision stay?" has an answer that is not
   "it is easier to keep it". The enumeration happens under this
   decision, not before it: every rule that leaves is a rule that
   could have stayed, with the reason recorded.
 
-  The second half of the objection is about the green gate. A gate
-  that is green by construction -- the acceptances are written, so
-  the obligations are covered, so the gate is green -- is a gate that
-  measures the writing of acceptances rather than the keeping of
-  rules. The answer is that the acceptance EXPIRES: a rule nobody
-  has looked at in ninety days loses its cover, the gate turns red
-  again, and the corpus asks to be looked at. The green is not a
-  constant; it is a renewable loan against a date.
+  Revision 2 removed the second half of the objection, which was
+  about a gate that is green by construction: the acceptances are
+  written, so the obligations are covered, so the gate is green,
+  and the gate measures the writing of acceptances rather than the
+  keeping of rules. There is no such gate in the tree today. The
+  CI step is an audit step that reads a verdict and reports it, the
+  verdict on a checkout without a generated store is `unknown`, and
+  the exit code is 3. The corpus cannot be green by construction any
+  more, and this decision no longer asks it to be.
+
+  The objection that survives the revision is the one about the
+  enumeration, and it is answered by the measurement rather than by
+  the prose: the ceilings are pinned, they may only fall, and a
+  raise needs a recorded reason next to the number. A census that
+  could be raised on demand would be a census that measured the
+  census.
 
 antithesis: |
   The opposite claim is that the corpus should stay as it is, and
@@ -186,12 +323,23 @@ antithesis: |
   give people the worklist, and let the debt fall at whatever rate
   it falls.
 
-  The claim is right that the debt should fall and wrong about what
-  makes it fall. A permanently red gate is the thing this repository
-  has already tried: every push blocked for the same unrelated
-  reason, for months, and the reason it produced was not patience but
+  The claim is right about the debt and wrong about what makes it
+  fall. A permanently red gate is the thing this repository has
+  already tried: every push blocked for the same unrelated reason,
+  for months, and the reason it produced was not patience but
   abandonment -- the step got ignored, the reports stopped being
   read, and the debt stayed exactly where it was.
+
+  The revision-2 position has to concede that the antithesis
+  describes the corpus as it is: the CI step IS red, the worklist
+  IS `mathc gaps`, and the debt has NOT fallen to zero. What the
+  antithesis leaves out is the difference between a red step nobody
+  reads and a red step that is BOUNDED and CLASSIFIED. The corpus
+  now has a number for the debt (UNCHECKED), a number for the
+  promises that nobody can check but that somebody owns (DECLARED,
+  with a review date), and ceilings on both that may only fall. A
+  red step with a bounded, owned and ratcheting debt is a worklist.
+  A red step with an unbounded one is a mood.
 
   The rate at which debt falls is set by whether a person is asked
   to look at a bounded list of promises with a date on it, or
