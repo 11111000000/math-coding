@@ -61,7 +61,13 @@ defect this plan fixes first: the corpus's shape must be a number.
    were green in one CI run (2026-10-30T14:57:35Z).
 4. **The corpus converges on its declared target.** Records go to the
    archive by the census criterion - nothing in the tree depends on
-   them. Rules stay, and stay executable.
+   them. Rules stay, and stay executable. The target number itself
+   ("about 50 rules") comes from the corpus's own census of 2026-10,
+   which is a record and not a standing requirement; the census
+   instrument therefore measures the distance and does not fail on it.
+   A count is a symptom, and the question behind it - is every promise
+   in the corpus true, and is every promise that cannot be true named
+   as such - is the one that is worth asking.
 5. **The transferable is separated from the project.** The kernel,
    `policies.yaml` and three artifacts are the protocol. The site,
    the plugin, the conformance corpus, the release tooling and the
@@ -163,6 +169,29 @@ The census and the lint agree on 44 - the census asks the kernel, the
 lint parses the corpus, and the two counts coincide. Two instruments
 that measure the same thing and differ are a bug in one of them; here
 they do not differ.
+
+T2.2 is two tranches, because the work is two kinds of work and the
+measurement of the corpus cannot say which decisions are records:
+
+- **T2.2a, mechanical.** The 44 dangling targets and the 20 dead scope
+  paths. Both are counted by an instrument, both have one right answer
+  per case, and the lint's ceiling falls as they are paid. This is the
+  tranche that can be checked by running the instrument.
+- **T2.2b, judgment.** The decisions whose claims no longer hold: read
+  one, decide whether it is a rule that is still true, a rule that
+  must be rewritten, or a record, and act. There is no pattern that
+  finds these - a keyword heuristic over the 142 live decisions
+  catches 77 candidates and misjudges half of them (it offers
+  `enforce-body-sha-digest`, which is a standing rule, and misses
+  `mcp-agent-auto-connect`, which is a record). The count of records
+  cannot be measured by pattern; it can only be decided one at a time,
+  and each decision is cheap to judge.
+
+That is why the corpus's own "about 50 rules" cannot be used as a
+target for T2.2b: it would need a classification that has to be
+judged anyway, and a budget of decisions to be judged is not a
+measurement. The census instrument therefore prints the distance and
+does not fail on it.
 
 #### T2.4, decided (2026-10-31): divide by the nature of the promise
 
