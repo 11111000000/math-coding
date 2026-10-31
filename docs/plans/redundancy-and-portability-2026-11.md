@@ -125,7 +125,7 @@ Order is by dependency, not by preference.
 | T2.1 | archive tranche: the records (one-off events, refactoring notes) move to `archive/decisions/` with `state: retired` and a reason. 120 files sit in `archive/decisions/`, and 104 of them still say `state: active` today | medium |
 | T2.2 | rewrite the stale decisions into statements about the current state, or archive them; fix the 44 dangling relation targets and the 20 dead scope paths | medium |
 | T2.3 | the five quote-broken verifiers: fix the scheme or withdraw the promise. They are signed `pass` in the store, so the store lies about them | low |
-| T2.4 | the class the audit of 2026-10-30 found and this plan names: obligations whose verifier is executable but does not check its own claim. Measured 2026-10-31: 99 decisions name no negative control, against a ceiling of 123 that may only fall | high - a choice: rewrite, declare with an owner and a date, or archive |
+| T2.4 | the class the audit of 2026-10-30 found and this plan names: obligations whose verifier is executable but does not check its own claim. Measured 2026-10-31: 99 decisions name no negative control, against a ceiling of 123 that may only fall. Decided 2026-10-31: divide by the nature of the promise - see below | high - decided |
 
 #### T2.2, measured (the brief, ready to launch)
 
@@ -163,6 +163,45 @@ The census and the lint agree on 44 - the census asks the kernel, the
 lint parses the corpus, and the two counts coincide. Two instruments
 that measure the same thing and differ are a bug in one of them; here
 they do not differ.
+
+#### T2.4, decided (2026-10-31): divide by the nature of the promise
+
+The 99 decisions that name no negative control are not one class. They
+are three, and the corpus has to be able to tell them apart, because
+the difference between "checked" and "asserted" is the whole question
+the census asks.
+
+| class | what it is | what happens to it |
+|---|---|---|
+| checkable | the claim can be falsified by the kernel or by a fixture | rewrite: give it a negative control - a fixture that must fail on a deliberately broken corpus |
+| not checkable | the claim is a process, a judgment, a state of the world | declare: name an owner and a date, and mark it as declared rather than checked |
+| record | the decision records an event that happened | archive it (T2.1) |
+
+The instrument changes with the rule. The debt counter today reports
+one number - "decisions without a negative control" - with a ceiling
+of 123 that may only fall. After this tranche it reports three:
+CHECKED (a control that can fail), DECLARED (an owner and a date, and
+nobody checking) and UNCHECKED (neither). The ceiling that may only
+fall moves to UNCHECKED, because that number has to reach zero.
+DECLARED gets its own, slower ceiling: a declared promise is a
+promise to look at it on a date, and dates slip.
+
+A declared obligation must not look like a checked one to anything
+that reads the corpus. The schema needs a field that says which of
+the two it is, and the census has to count them apart. If declaring
+were allowed to hide in the same field, the corpus would be telling
+the same lie in a new place and the debt would look paid while
+nothing had been checked.
+
+This does contradict section 6, which says a promise is either
+machine-checked or it is not there. The contradiction is real and
+deliberate: the promises that cannot be checked are exactly the ones
+whose absence was hiding a decision the method still needs, and
+deleting them all would have been cheaper and worse. What keeps the
+declared class from becoming the paper layer of 2026-10 is that it is
+a number in the census, it carries a name and a date, and it is a
+class the census reports separately - not a phrase in prose that a
+reader has to notice.
 
 ### T3 - the contract of the kernel (2026-11-30 .. 12-04, A3)
 
@@ -264,15 +303,16 @@ in the relations that are the point of the work.
   The line adopted here is: the promise is checked by something that
   can catch its own lie, or the promise is gone.
 
-## 7. The three choices this plan does not make
+## 7. The choices this plan does not make
 
-1. **T2.4** - what to do with the promises that are executable but do
-   not check their claim: rewrite them, declare them with an owner
-   and a date, or archive the decisions that carry them.
-2. **T3.2** - shrink the normative text to a contract of the kernel,
+1. **T3.2** - shrink the normative text to a contract of the kernel,
    or retire it entirely and rewrite the six references in `axioms/`.
-3. **T4.1** - a separate package for the transferable core, or a
+2. **T4.1** - a separate package for the transferable core, or a
    marked boundary inside this repository.
+
+T2.4 was decided on 2026-10-31: the promises are divided by their
+nature, and the instrument grows three numbers where it had one. The
+decision is written out under T2.4 above.
 
 ## 8. State of the wave (2026-10-31)
 
