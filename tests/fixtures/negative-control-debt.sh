@@ -143,7 +143,10 @@ CEILING=27
 #   promises left the live corpus with the archive tranche
 # ceiling-fall: 19 -> 17, two more records that declared their uncheckable
 #   promises left the live corpus with the archive tranche
-CEILING_DECLARED=17
+# ceiling-raise: 17 -> 18, the-cost-of-the-method declares its three
+#   promises: a dated measurement and two readings that no program here
+#   re-runs
+CEILING_DECLARED=18
 
 SCHEMA="schemas/obligation.json"
 DECISIONS_DIR="${MATH_CODING_DECISIONS_DIR:-decisions}"
