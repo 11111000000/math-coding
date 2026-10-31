@@ -4,8 +4,8 @@ id: site-broken-links-2026-10
 revision: 3
 state: active
 negative_control: tests/render_kernel.ml
-body_sha: "sha256:6e102f83318159980bce2c9c0f62f8426d7c1c65a9584a35dfa9d2ab5e688c9b"
-yaml_sha: "sha256:6e102f83318159980bce2c9c0f62f8426d7c1c65a9584a35dfa9d2ab5e688c9b"
+body_sha: "sha256:2efc66f7b185bdcac56ffffc95e26509961c5e191583f0ce0cca4bad5cd51c6b"
+yaml_sha: "sha256:2efc66f7b185bdcac56ffffc95e26509961c5e191583f0ce0cca4bad5cd51c6b"
 axiom_link:
   - A1
 intent: |
@@ -26,6 +26,9 @@ intent: |
     rev 3 (2026-11): the render kernel was split into modules, so the
     four implementation anchors moved; the defect classes, the
     fixtures that pin them, and the promise they carry are unchanged.
+    Rev 3 also FOUND a sixth instance of this decision's own class: the
+    footer's AGENTS meta-doc link names a file the repository no longer
+    has. See the outcome `footer-meta-docs-link-github`.
 
   1. **Footer meta links** (`../AGENTS.html`, `../ROADMAP.html`,
      `../PACKAGES.html`). The render kernel emits these as
@@ -218,13 +221,28 @@ scope:
 
 outcomes:
   - id: ru-home-sibling-resolves
-    statement: The Russian home page's English sibling toggle and footer
+    statement: |
+      The Russian home page's English sibling toggle and footer
       both link to `index.html`; `home.html` does not appear anywhere
       on `dist/index.ru.html`.
   - id: footer-meta-docs-link-github
-    statement: Every rendered page's footer carries AGENTS, ROADMAP,
-      PACKAGES, and the algebra spec as GitHub blob URLs; no footer
-      carries the old `../<NAME>.html` / `../spec/kernel-contract.md` pattern.
+    statement: |
+      Every rendered page's footer carries the meta-doc links as GitHub
+      blob URLs; no footer carries the old `../<NAME>.html` /
+      `../spec/kernel-contract.md` pattern.
+
+      ONE OF THOSE LINKS IS CURRENTLY A 404, AND THIS OUTCOME NAMES IT
+      INSTEAD OF PRETENDING OTHERWISE. The footer emits five GitHub blob
+      URLs: `AGENTS.md`, `ROADMAP.md`, `PACKAGES.md`, `USAGE.md` and
+      `spec/kernel-contract.md`. Four of them name files that exist in
+      the repository; the AGENTS one does not -- `AGENTS.md` was renamed
+      to `KERNEL_AGENTS.md`, and `lib/render/render_nav.ml::render_footer`
+      still asks for the old name. Measured on 2026-10-31 by
+      `git ls-files --error-unmatch AGENTS.md` (it fails) against the
+      four siblings (they succeed). The repair is one string in the
+      renderer, and the renderer was outside this tranche's scope; the
+      gap is owned by the maintainer and carries the same declared
+      review date as the rest of this decision.
   - id: nav-has-github-link
     statement: |
       Every rendered page that carries the page shell's `<nav>`
@@ -377,12 +395,18 @@ obligations:
   - id: footer-meta-docs-link-github
     outcome: site-footer-meta-doc-origin
     claim: |
-      Every rendered page's footer carries the three
-      meta-doc anchors (AGENTS, ROADMAP, PACKAGES) and
-      they all point at
+      Every rendered page's footer carries the meta-doc anchors (AGENTS,
+      ROADMAP, PACKAGES, USAGE) and they all point at
       `https://github.com/11111000000/math-coding/blob/main/<NAME>.md`.
       No footer carries `../AGENTS.html`, `../ROADMAP.html`,
       `../PACKAGES.html`, or `../spec/kernel-contract.md`.
+
+      The AGENTS anchor names `AGENTS.md`, which the repository renamed
+      to `KERNEL_AGENTS.md`; that one link resolves to nothing today.
+      The obligation owns the gap in writing rather than narrowing the
+      promise to a link that happens to work: the promise is that the
+      footer's meta-doc anchors point at the repository's meta-docs, and
+      one of them points at a name the repository no longer uses.
     acceptance:
       all:
         - verifier: tests/render_kernel.ml
@@ -447,6 +471,7 @@ risk:
     - github-origin-relocates
     - subpath-deployment-moves-to-host-root
     - a-new-rendered-surface-omits-the-page-shell
+    - a-meta-doc-file-is-renamed-again
   owner: human:maintainer
 
 relations:
