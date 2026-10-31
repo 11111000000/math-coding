@@ -59,6 +59,15 @@
 #     releases were cut, and the rename is recorded as a NEW entry in
 #     the Unreleased section, above the history rather than inside it.
 #
+#   - `docs/corpus-claims-inventory-2026-11.md` is THE RECORD OF WHAT
+#     THE CORPUS SAID BEFORE THE MOVE. It quotes three decisions that
+#     named the old path in their own text, because the inventory's
+#     job is to say what each decision CLAIMS; rewriting the quotes
+#     would rewrite the evidence. The same argument as the archive and
+#     the plan, and the same answer: a record is not edited to match
+#     a later conclusion. (Added 2026-11-01, after the inventory was
+#     merged into main - the tranche could not know about it.)
+#
 #   - this decision and this fixture name the old path ON PURPOSE:
 #     they are the record of the move and the instrument that holds
 #     the tree to it. A check that cannot name the thing it forbids
@@ -112,6 +121,7 @@ path_exclude=(
   ':(exclude)archive/decisions/**'
   ':(exclude)docs/plans/**'
   ':(exclude)CHANGELOG.md'
+  ':(exclude)docs/corpus-claims-inventory-2026-11.md'
   ':(exclude)decisions/kernel-contract-rename-2026-11.yaml'
   ':(exclude)tests/fixtures/kernel-contract-rename-2026-11.sh'
 )
@@ -253,6 +263,9 @@ YAML
 cat > "$control/docs/plans/plan.md" <<'MD'
 The plan measured spec/algebra-3.2.md on 2026-10-31.
 MD
+cat > "$control/docs/corpus-claims-inventory-2026-11.md" <<'MD'
+| `algebra-3.2` | `spec/algebra-3.2.md` is the authoritative normative spec. |
+MD
 cat > "$control/CHANGELOG.md" <<'MD'
 ## v3.1.0-alpha
 
@@ -289,6 +302,7 @@ expect_live_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/decisions/live.yam
 expect_archive_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/archive/decisions/record.yaml") ))
 expect_plan_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/docs/plans/plan.md") ))
 expect_changelog_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/CHANGELOG.md") ))
+expect_inventory_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/docs/corpus-claims-inventory-2026-11.md") ))
 expect_decision_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/decisions/kernel-contract-rename-2026-11.yaml") ))
 expect_fixture_path=$(( $(count_in "$OLD_MD|$OLD_HTML" "$control/tests/fixtures/kernel-contract-rename-2026-11.sh") ))
 expect_contract_pointer=$(( $(count_in "$OLD_POINTER" "$control/spec/kernel-contract.md") ))
@@ -306,7 +320,7 @@ else
 fi
 
 if [ "$control_live" -eq "$expect_live_path" ]; then
-  ok "negative control: the live-tree scan catches the synthetic LIVE file and spares the archive, the plan, the CHANGELOG, the decision and the instrument"
+  ok "negative control: the live-tree scan catches the synthetic LIVE file and spares the archive, the plan, the CHANGELOG, the inventory, the decision and the instrument"
 else
   bad "negative control: the live-tree scan saw $control_live synthetic mention(s) and expected exactly $expect_live_path - the exclusion list is wrong in one direction or the other"
 fi
