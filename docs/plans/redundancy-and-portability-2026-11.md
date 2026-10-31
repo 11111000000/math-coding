@@ -87,7 +87,7 @@ defect this plan fixes first: the corpus's shape must be a number.
 | BROKEN | obligations whose verifier scheme the kernel does not recognise | 5 |
 | DANGLING | relation targets that resolve to nothing | 44 |
 | DEAD | scope paths matching no tracked file | 20 |
-| CORPUS | decisions in the live corpus | 141 |
+| CORPUS | decisions in the live corpus | 144 |
 | ARCHIVE_ACTIVE | archived decisions still saying `state: active` | 104 |
 
 Each ceiling may fall and may never rise; raising one is an explicit,
@@ -191,3 +191,43 @@ in the relations that are the point of the work.
    or retire it entirely and rewrite the six references in `axioms/`.
 3. **T4.1** - a separate package for the transferable core, or a
    marked boundary inside this repository.
+
+## 8. State of the wave (2026-10-31)
+
+Merged into `main`, each with its own decision and its own evidence:
+
+| tranche | branch | what it changed | evidence |
+|---|---|---|---|
+| T0.1 | `feat/redundancy-census-2026-11` | the census, this plan, `decisions/redundancy-census-2026-11.yaml` | the instrument's own negative control |
+| T0.1a | `fix/census-measurement-precision-2026-11` | the census stopped mirroring the kernel: PAPER is the kernel's answer over an empty store, BROKEN is the kernel's own `MC-VERIFIER-SCHEME-UNKNOWN`, ARCHIVE_ACTIVE counts only files carrying a `math-coding/3.x` schema | 46 -> 44 paper obligations; 104 archives counted as decisions instead of 112 |
+| T0.1b | `fix/census-ceiling-markers-2026-11` | the marker a ceiling raise must carry, in the format `scripts/ceiling-monotonic.sh` reads | the checker caught my own wrong marker and made me fix it |
+| T0.2 | `feat/instruments-repair-2026-11` | the `MC_VERSION` check back in both copies of the skill, `tests/fixture_coverage.ml` measuring levels instead of existence, `tests/cli/attest-batch-signature.t` exercising `--manifest` | 77 cram fixtures measured: 0 without an accepting case, 51 without a rejecting one |
+| T1.2 + T1.3b | `feat/protected-paths-and-empty-diff-2026-11` | one protected-path list in `scripts/protected-paths.txt` with two matchers that check each other, and a gate that answers `unknown` instead of `pass` on an empty diff | the gate's own output on an empty diff |
+| T0.3 | `feat/corpus-growth-lints-2026-11` | two lints so the corpus cannot grow back: a verifier scheme outside the canonical list, a relation target that resolves to nothing | both fixtures, each with a synthetic corpus that must be caught |
+| - | `feat/skill-single-source-2026-10` | the skill has one owner for the applicability rule (section 28); the corpus checks that the surfaces agree instead of grepping for a phrase | `scripts/check-applicability-agreement.sh` |
+
+Running now, one branch each, three agents on the second minimax
+account (the first one ran out of tokens mid-session):
+
+| tranche | branch | owns |
+|---|---|---|
+| T2.3 | `feat/corpus-tranche-broken-schemes-2026-11` | five decisions with an unexecutable verifier scheme, `lib/diagnostic.ml`, three new fixtures |
+| T1.1 + T1.3a | `feat/risk-and-scaffold-honesty-2026-11` | `lib/risk.ml`, `lib/policy.ml`, `lib/new_decision/`, `spec/algebra-3.2.md` section 2, one new cram fixture |
+| T2.1 | `feat/corpus-tranche-archive-records-2026-11` | fourteen records to `archive/decisions/` |
+
+Two things about how the wave ran, written down because both cost a
+session:
+
+- The heavy check is `dune build @runtest`, and four agents running it
+  at once on four cores killed three of them. The instructions now say:
+  build, run the cram files the tranche touches, and leave the whole
+  suite to the orchestrator after the merge.
+- The minimax token plan ran out mid-session and took the unfinished
+  work with it. Everything is committed at the end of every item now,
+  so a session that dies leaves a checkpoint in history instead of a
+  gap.
+
+The merge order is the orchestrator's, not the agents': each branch is
+reviewed file by file, the ceilings are lowered to what was measured,
+and `main` is checked with the fixtures before the next branch lands.
+
