@@ -308,7 +308,7 @@ let[@warning "-32"] build_pages ~package_html ~decisions_data ~policy_id ~config
     axioms_data;
 
   (* Per-spec pages (English-only). The spec source under `spec/`
-     is normative (algebra-3.2, constitution, domain, semantics);
+     is normative (kernel contract, constitution, domain, semantics);
      each page is forced to `enable_mathjax:true` regardless of
      `config.enable_mathjax` so MathJax 3 is always available for
      `$..$` / `$$..$$` formulas at runtime. The `(name, body)`

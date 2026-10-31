@@ -99,9 +99,9 @@ let[@warning "-32"] nav_groups_en : nav_group list =
         [
           { key = "packages"; label = "Packages"; href = "packages.html" };
           {
-            key = "spec/algebra-3.2";
+            key = "spec/kernel-contract";
             label = "Algebra";
-            href = "spec/algebra-3.2.html";
+            href = "spec/kernel-contract.html";
           };
         ];
     };
@@ -168,9 +168,9 @@ let[@warning "-32"] nav_groups_ru : nav_group list =
         [
           { key = "packages"; label = "Пакеты"; href = "packages.html" };
           {
-            key = "spec/algebra-3.2";
+            key = "spec/kernel-contract";
             label = "Алгебра";
-            href = "spec/algebra-3.2.html";
+            href = "spec/kernel-contract.html";
           };
         ];
     };
@@ -181,7 +181,7 @@ let[@warning "-32"] nav_groups_ru : nav_group list =
    when `--lang=zh|all` is passed. The per-decision, per-axiom
    and per-spec pages remain EN-only (they were EN-only for RU
    already, see `build_pages`'s per-decision loop), so links
-   under "spec/algebra-3.2" and the per-decision sibling toggles
+   under "spec/kernel-contract" and the per-decision sibling toggles
    use the EN URL — this matches what the dispatcher does for
    the Russian home page. *)
 let[@warning "-32"] nav_groups_zh : nav_group list =
@@ -233,9 +233,9 @@ let[@warning "-32"] nav_groups_zh : nav_group list =
         [
           { key = "packages"; label = "数据包"; href = "packages.zh.html" };
           {
-            key = "spec/algebra-3.2";
+            key = "spec/kernel-contract";
             label = "代数";
-            href = "spec/algebra-3.2.html";
+            href = "spec/kernel-contract.html";
           };
         ];
     };
@@ -299,7 +299,7 @@ let[@warning "-32"] sibling_translation_href ~lang ~page_key ~sibling_langs =
 
 (* The canonical upstream GitHub origin. Footer and nav links
    point here for meta-docs (AGENTS.md, ROADMAP.md, PACKAGES.md,
-   spec/algebra-3.2.md) and the bare repository URL, so the
+   spec/kernel-contract.md) and the bare repository URL, so the
    site does not depend on the math-coding HTTP deployment to
    host these references. The previous footer emitted
    `../AGENTS.html`, `../ROADMAP.html`, `../PACKAGES.html`,
@@ -434,8 +434,8 @@ let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
      `<a>` per non-source sibling. The order is the natural
      alternation order built by `sibling_langs_for`: RU first
      (canonical alternate), then ZH, then EN. The meta-doc
-     anchors (AGENTS.md, ROADMAP.md, PACKAGES.md) and the algebra
-     spec link point at the canonical GitHub blob URL — the
+     anchors (AGENTS.md, ROADMAP.md, PACKAGES.md) and the kernel
+     contract link point at the canonical GitHub blob URL — the
      GitHub UI renders the markdown so a visitor lands on a
      rendered page, not raw source. *)
   let lang_link =
@@ -456,16 +456,16 @@ let[@warning "-32"] render_footer ~lang ~version ~page_key ~sibling_langs =
   let agents_href = github_blob ~path:"AGENTS.md" in
   let roadmap_href = github_blob ~path:"ROADMAP.md" in
   let packages_href = github_blob ~path:"PACKAGES.md" in
-  let algebra_href = github_blob ~path:"spec/algebra-3.2.md" in
+  let contract_href = github_blob ~path:"spec/kernel-contract.md" in
   let site_meta =
     Printf.sprintf
       "<p class=\"site-meta\">%s &middot; <a href=\"%s\">AGENTS.md</a> \
        &middot; <a href=\"%s\">ROADMAP.md</a> &middot; <a \
        href=\"%s\">PACKAGES.md</a> &middot; <a \
-       href=\"%s\">spec/algebra-3.2.md</a>%s%s</p>\n"
+       href=\"%s\">spec/kernel-contract.md</a>%s%s</p>\n"
       (html_escape version) (html_escape agents_href) (html_escape roadmap_href)
       (html_escape packages_href)
-      (html_escape algebra_href)
+      (html_escape contract_href)
       (if lang_link = "" then "" else " &middot; ")
       lang_link
   in

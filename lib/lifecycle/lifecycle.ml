@@ -20,7 +20,7 @@
    Decision (lifecycle-commands-2026-10): the user-facing
    names "obsolete" and "archive" are explicitly NOT accepted
    here. The 4-state enum in lib/codec.ml is normative per
-   algebra §7; widening it for a single use case sets a
+   kernel contract §7; widening it for a single use case sets a
    precedent that grows unbounded. The CLI translates the
    user-facing idea to `Retired` / `Superseded` internally. *)
 
@@ -62,7 +62,7 @@ let validate_id id =
 
 (* --- input parsing --------------------------------------------- *)
 
-(* The four-state enum (algebra §7). The user-facing name
+(* The four-state enum (kernel contract §7). The user-facing name
    "obsolete" maps to Retired and "archive" to Superseded, but
    the CLI surface rejects those aliases (see the file
    preamble). The dispatcher only accepts `active | draft |

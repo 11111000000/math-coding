@@ -1,4 +1,4 @@
-(* lib/forge.ml — forge principal verification (algebra-3.2 §13,
+(* lib/forge.ml — forge principal verification (kernel contract §13,
    decision forge-principal-verification-2026-10).
 
    Thin HTTP wrapper around the GitHub v3 teams-membership
@@ -14,7 +14,7 @@
    `team_member` reads `MATH_CODING_FORGE_API` (same env as
    `lib/rebuttal.ml`). When unset or empty, every membership check
    returns `false` (the no-forge-installed fallback per
-   spec/algebra-3.2.md §13). When set, the function issues:
+   spec/kernel-contract.md §13). When set, the function issues:
 
      GET <api>/orgs/<org>/teams/<team>/memberships/<user>
 

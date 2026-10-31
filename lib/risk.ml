@@ -1,6 +1,6 @@
 (* lib/risk.ml — math-coding 3.2-ideal risk function.
  *
- * Implements spec/algebra-3.2.md §2:
+ * Implements spec/kernel-contract.md §2:
  *
  *   risk(c) = impact(c) · probability(c) · irreversibility(c)
  *
@@ -13,7 +13,7 @@
  *
  * `policy_override_probability` and `mode_floor` are wired to
  * `lib/policy.ml` (per-path policy parsing, union + transitive
- * composition per algebra §9); see decision
+ * composition per kernel contract §9); see decision
  * `risk-policy-driven-floor-2026-10`. Probability is the spec
  * default (0.5) and mode_floor is the policy default
  * (`policies.yaml` at the repo root).
@@ -67,7 +67,7 @@ let path_contains_segment hay needle =
   in
   loop 0
 
-(* ---------- classify (algebra §2, 12-entry taxonomy) ---------- *)
+(* ---------- classify (kernel contract §2, 12-entry taxonomy) ---------- *)
 
 (* classify: 𝓟 → [0, 1].
    Order matters: more-specific prefixes must be tested before
@@ -102,7 +102,7 @@ let impact files =
 (* ---------- probability ---------- *)
 
 (* policy_override_probability(c) ∈ [-1, 1] from policies.yaml,
-   algebra §2. Default 0 ⇒ probability(c) = 0.5. Backed by
+   kernel contract §2. Default 0 ⇒ probability(c) = 0.5. Backed by
    `Policy.policy_override_of_files` (per decision
    `risk-policy-driven-floor-2026-10`). *)
 let policy_override_probability files =
@@ -110,7 +110,7 @@ let policy_override_probability files =
 
 let probability files = 0.5 +. (0.5 *. policy_override_probability files)
 
-(* ---------- irreversibility (algebra §2) ---------- *)
+(* ---------- irreversibility (kernel contract §2) ---------- *)
 
 (* Path-level irreversibility marker. Returns the marker value if
    `path` carries an irreversibility annotation, else None.
@@ -155,7 +155,7 @@ let irreversibility files =
 (* ---------- mode_floor ---------- *)
 
 (* mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪
-                       transitive_paths(c)}, algebra §2. Backed by
+                       transitive_paths(c)}, kernel contract §2. Backed by
    `Policy.mode_floor_of_cached` (per decision
    `risk-policy-driven-floor-2026-10`). *)
 let mode_floor (files : string list) : Domain.mode =
@@ -208,6 +208,6 @@ let risk files =
 (* ---------- mode ---------- *)
 
 (* mode(c) = max(risk_to_mode(risk(c)), mode_floor(c)),
-   algebra §2. *)
+   kernel contract §2. *)
 let mode (files : string list) : Domain.mode =
   max_mode (risk_to_mode (risk files)) (mode_floor files)

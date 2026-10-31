@@ -320,7 +320,7 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
   create ~code:"MC-INVALID-AXIOM-LINK" ~kind:Deficit ~severity:Block
     ~path:[ "axiom_link" ]
     ~policy_rule:
-      (Some "spec/algebra-3.2.md §17 + lib/decision.ml:is_axiom_token")
+      (Some "spec/kernel-contract.md §17 + lib/decision.ml:is_axiom_token")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
 (* MC-COUNTEREXAMPLE-MISSING: emitted when a decision has an
@@ -330,7 +330,7 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
        When absent, the diagnostic is a Warn and the verdict
        stays `accept` (counterexample is a dialectical slot,
        not a hard requirement, so legacy decisions without it
-       stay valid per spec/algebra-3.2.md §11).
+       stay valid per spec/kernel-contract.md §11).
      - mode in {standard, strict, exhaustive}: counterexample is
        REQUIRED. When absent, the diagnostic is a Block and
        the verdict is `reject` with exit code 1. The rule was
@@ -364,7 +364,7 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
           \  A known failing case that would falsify this commitment.\n\
           \  Resolution: name the strongest objection to the decision."
           (if decision_id = "" then "<decision-id>" else decision_id) );
-      ("edit", "spec/algebra-3.2.md §11 (dialectical slots)");
+      ("edit", "spec/kernel-contract.md §11 (dialectical slots)");
     ]
   in
   let actions =
@@ -374,7 +374,7 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
     match severity with
     | Block ->
         Some
-          "spec/algebra-3.2.md §11 + \
+          "spec/kernel-contract.md §11 + \
            decisions/plan-2026-10-improvements/t6-2.yaml"
     | Warn | Info -> None
   in
@@ -385,7 +385,7 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
    `lib/decision.ml::parse_decision`) when a decision with
    `mode >= standard` carries no antithesis. Mirrors
    `mc_counterexample_missing` for the antithesis slot. The contract
-   is set by spec/algebra-3.2.md §11 (v3 dialectic method) and
+   is set by spec/kernel-contract.md §11 (v3 dialectic method) and
    introduced by `decisions/dialectic-method-v3-2026-10.yaml`.
    Distinct from counterexample: antithesis is the coherent
    counter-position the author considered; counterexample is the
@@ -407,7 +407,7 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
           \  strongest objection the kernel surfaces to a future reader\n\
           \  regardless of what the author considered."
           (if decision_id = "" then "<decision-id>" else decision_id) );
-      ("edit", "spec/algebra-3.2.md §11 (dialectic slots)");
+      ("edit", "spec/kernel-contract.md §11 (dialectic slots)");
     ]
   in
   let actions =
@@ -417,7 +417,7 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
     match severity with
     | Block ->
         Some
-          "spec/algebra-3.2.md §11 + decisions/dialectic-method-v3-2026-10.yaml"
+          "spec/kernel-contract.md §11 + decisions/dialectic-method-v3-2026-10.yaml"
     | Warn | Info -> None
   in
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
@@ -482,7 +482,7 @@ let mc_declared_result_acceptance = declared_result_acceptance
 (* MC-AXIOM-LINK-MISSING: emitted by `mathc validate` (via
    `lib/decision.ml::parse_decision`) when a decision carries
    `state: active` with an empty `axiom_link` list. The
-   contract is set by spec/algebra-3.2.md §7 ("A decision must
+   contract is set by spec/kernel-contract.md §7 ("A decision must
    name the axiom(s) it addresses via `axiom_link`") and
    enforced by the parser-level check (lib/decision.ml:794).
    Draft, Retired, and Superseded decisions are exempt; only
@@ -496,14 +496,14 @@ let axiom_link_missing ?(decision_id = "") () =
   in
   let msg =
     Printf.sprintf
-      "%sdecision has state=active but empty axiom_link: spec/algebra-3.2.md \
+      "%sdecision has state=active but empty axiom_link: spec/kernel-contract.md \
        §7 requires every active decision to name the axiom(s) it addresses via \
        the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision \
        front-matter"
       prefix
   in
   create ~code:"MC-AXIOM-LINK-MISSING" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/algebra-3.2.md §7")
+    ~policy_rule:(Some "spec/kernel-contract.md §7")
     ~next_actions:
       [
         ("add", "axiom_link: [A0]");
@@ -513,7 +513,7 @@ let axiom_link_missing ?(decision_id = "") () =
 
 (* MC-SHA-MISMATCH: emitted when a Decision carries both
    `body_sha` and `yaml_sha` and the two values disagree. Per
-   spec/algebra-3.2.md §7 ("if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅
+   spec/kernel-contract.md §7 ("if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅
    then D.body_sha = D.yaml_sha") and the schema contract in
    schemas/decision.json (both fields share the pattern
    `^sha256:[0-9a-f]{64}$`). The check is parser-side:
@@ -523,7 +523,7 @@ let axiom_link_missing ?(decision_id = "") () =
    makes the invariant vacuously true (no mismatch is possible) and
    no diagnostic is emitted. Author remediation: run
    `mathc rehash <path>` to recompute BOTH fields from the
-   placeholder-substitution algorithm (algebra §7.1; kernel
+   placeholder-substitution algorithm (kernel contract §7.1; kernel
    implementation `lib/decision.ml::body_canonical_sha256`, reference
    implementation `scripts/axiom-link-seed.py:133-169`). This
    block-level emit is called from
@@ -537,7 +537,7 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
   let yaml = if yaml_sha = "" then "<absent>" else yaml_sha in
   let msg =
     Printf.sprintf
-      "%sbody_sha (%s) and yaml_sha (%s) disagree: spec/algebra-3.2.md §7 \
+      "%sbody_sha (%s) and yaml_sha (%s) disagree: spec/kernel-contract.md §7 \
        requires both hashes to be equal when both are present. Recompute via \
        the placeholder-substitution algorithm (sha256 of the decision with \
        both fields replaced by 'sha256:' + 64 zeros); see \
@@ -557,7 +557,7 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-SHA-MISMATCH" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/algebra-3.2.md §7") ~next_actions:actions msg
+    ~policy_rule:(Some "spec/kernel-contract.md §7") ~next_actions:actions msg
 
 (* MC-SHA-DIGEST-STALE: emitted when `body_sha` and `yaml_sha` agree
    with each other but the shared value is not the digest of the file
@@ -579,7 +579,7 @@ let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
   let msg =
     Printf.sprintf
       "%sstored digest (%s) is not the digest of this file (%s): \
-       spec/algebra-3.2.md §7.1 defines body_sha as sha256 of the file with \
+       spec/kernel-contract.md §7.1 defines body_sha as sha256 of the file with \
        both digest fields replaced by 'sha256:' + 64 zeros, so an edit to the \
        body that was not accompanied by a recompute leaves the stored value \
        stale. The body of this decision changed under a digest that still \
@@ -596,7 +596,7 @@ let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-SHA-DIGEST-STALE" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/algebra-3.2.md §7.1") ~next_actions:actions msg
+    ~policy_rule:(Some "spec/kernel-contract.md §7.1") ~next_actions:actions msg
 
 (* MC-BODY-SHA-PATTERN-VIOLATION: body_sha or yaml_sha is present but
    does not match the documented pattern `^sha256:[0-9a-f]{64}$`.
@@ -1427,7 +1427,7 @@ let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
          block to silence the warning — that deletes the\n\
          promises the author wrote. After editing, recompute\n\
          `body_sha` / `yaml_sha` (`lib/decision.ml::\n\
-         body_canonical_sha256`, spec/algebra-3.2.md §7.1) and\n\
+         body_canonical_sha256`, spec/kernel-contract.md §7.1) and\n\
          bump `revision` if the file declares one, then re-run\n\
          `mathc validate <file>`.\n\n\
          See `decisions/duplicate-mapping-keys-silent-drop-\n\
@@ -1468,7 +1468,7 @@ let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
          mode in {tiny, light}: counterexample is OPTIONAL;\n\
          mode in {standard, strict, exhaustive}: counterexample\n\
          is REQUIRED (Block severity, reject). The rule is\n\
-         codified in spec/algebra-3.2.md §11 and enforced by\n\
+         codified in spec/kernel-contract.md §11 and enforced by\n\
          `bin/Mathc.ml::validate_with_counts::counterexample_violation`\n\
          and `lib/decision.ml::parse_decision` (parser-level\n\
          reject for mode >= standard).\n\n\
@@ -1500,7 +1500,7 @@ let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
       Some
         "### Definition\n\
          A `state: active` decision carries an empty\n\
-         `axiom_link` field. Spec/algebra-3.2.md §7 requires\n\
+         `axiom_link` field. Spec/kernel-contract.md §7 requires\n\
          every active decision to name the axiom(s) it\n\
          addresses via the `axiom_link` field (e.g.\n\
          `axiom_link: [A0]`).\n\n\
@@ -1549,7 +1549,7 @@ let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
       Some
         "### Definition\n\
          A Decision carries BOTH `body_sha` and `yaml_sha` and\n\
-         the two values disagree. Spec/algebra-3.2.md §7\n\
+         the two values disagree. Spec/kernel-contract.md §7\n\
          requires `if D.body_sha ≠ ∅ ∧ D.yaml_sha ≠ ∅ then\n\
          D.body_sha = D.yaml_sha`. Either field alone is\n\
          permitted (the invariant is vacuously satisfied); the\n\
@@ -1581,7 +1581,7 @@ let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :
         "### Definition\n\
          A Decision's `body_sha` and `yaml_sha` agree with each\n\
          other, and both are wrong: their shared value is not the\n\
-         digest of the file they live in. Spec/algebra-3.2.md §7.1\n\
+         digest of the file they live in. Spec/kernel-contract.md §7.1\n\
          defines `body_sha` as the sha256 of the file's own bytes\n\
          with both digest fields replaced by the placeholder\n\
          `sha256:` + 64 zeros, so an edit to the body that was not\n\

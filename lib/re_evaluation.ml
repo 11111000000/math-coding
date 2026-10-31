@@ -1,4 +1,4 @@
-(* lib/re_evaluation.ml — re-evaluation oracle per spec/algebra-3.2.md §17.
+(* lib/re_evaluation.ml — re-evaluation oracle per spec/kernel-contract.md §17.
  *
  * Implements the §17 "Inline axiom change" oracle: given a candidate
  * decision and a candidate axiom revision, classify the impact as
@@ -76,7 +76,7 @@ type status =
  * files. `old_forbidden_patterns` and `new_forbidden_patterns` are
  * the substrings that, if mentioned by a decision obligation's
  * claim, indicate the claim was written against the OLD axiom and
- * may no longer hold (algebra §17 re_evaluate rule 1). *)
+ * may no longer hold (kernel contract §17 re_evaluate rule 1). *)
 type axiom_revision = {
   axiom_id : string;
   old_sha : string;
@@ -129,7 +129,7 @@ let[@warning "-32"] gate_verdict = function
 (* --- Verifier kind classification --- *)
 
 (* Classify an obligation's acceptance shape into a verifier
- * category per algebra §17:
+ * category per kernel contract §17:
  *   - `Test     : verifier id starts with "tests/" — runnable
  *   - `BuiltIn  : verifier id starts with a kernel built-in
  *                 prefix ("mathc-", "kernel:") — invocable in-process
@@ -191,7 +191,7 @@ let[@warning "-32"] claim_references_any claim patterns =
 
 (* evaluate_obligation : Obligation × AxiomRevision → status
  *
- * Per algebra §17 (T1.2 expansion):
+ * Per kernel contract §17 (T1.2 expansion):
  *   ∀ ob ∈ d.obligations:
  *     - ob.claim references A_old.forbidden_patterns → StaleClaim
  *     - ob.acceptance.verifier is test-style, no run → Incompatible
@@ -285,7 +285,7 @@ let[@warning "-32"] evaluate_obligation_after_run (ob : Domain.obligation) rev :
 
 (* re_evaluate : Decision × AxiomRevision → status
  *
- * The pure, no-run oracle. Per algebra §17 (T1.2 expansion):
+ * The pure, no-run oracle. Per kernel contract §17 (T1.2 expansion):
  *   ∀ ob ∈ d.obligations:
  *     - ob.claim references A_old.forbidden_patterns → StaleClaim
  *     - ob.acceptance.verifier is test-style → Incompatible
@@ -331,7 +331,7 @@ let[@warning "-32"] re_evaluate_after_run (decisions : Domain.decision list)
  *
  * Returns the subset of decisions whose relations.addresses list
  * contains `axiom_id` (i.e. they directly reference the axiom
- * being changed). Per algebra §17:
+ * being changed). Per kernel contract §17:
  *   impact-list(d) = {d' : A ∈ d'.referenced_axioms ∨ ...}
  * `referenced_axioms` is realised here as `relations.addresses`
  * (the §7 field that "implements one or more axioms"). *)
@@ -349,7 +349,7 @@ let[@warning "-32"] impact_list (decisions : Domain.decision list)
  *
  * Extends impact_list with decisions whose `depends_on` list names
  * one of the directly-impacted decisions. This is the operational
- * approximation of algebra §17's
+ * approximation of kernel contract §17's
  *   "A ∈ transitive_referenced_axioms(d')"
  * for the relation graph the kernel actually carries (depends_on,
  * not raw axiom-id transitive closure). *)

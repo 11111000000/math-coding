@@ -22,7 +22,7 @@ let take_object pairs key =
 
 (* take_number: read a JSON number (int or float) into a float.
    Returns None for non-numeric values. Used by policy parser for
-   `override_probability` (algebra §2: ∈ [-1, 1]). *)
+   `override_probability` (kernel contract §2: ∈ [-1, 1]). *)
 let take_number pairs key =
   match List.assoc_opt key pairs with
   | Some (Jsonl.Float f) -> Some f

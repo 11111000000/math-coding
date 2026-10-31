@@ -288,7 +288,7 @@ let[@warning "-32"] install_ci_workflow ~root : bool =
     true
   end
 
-(* --- applicability envelope (spec/algebra-3.2.md §28) -------------- *)
+(* --- applicability envelope (spec/kernel-contract.md §28) -------------- *)
 
 (* The envelope is default-on per decision `solo-default-on-2026-10@1`:
    `mathc init` installs the kernel for any project expected to outlive
@@ -302,7 +302,7 @@ let[@warning "-32"] install_ci_workflow ~root : bool =
    kernel falls back to `default_policy.mode_floor = Tiny`. *)
 let print_applicability_envelope () : unit =
   print_endline
-    "  applicability envelope (spec/algebra-3.2.md \xC2\xA728, default-on):\n\
+    "  applicability envelope (spec/kernel-contract.md \xC2\xA728, default-on):\n\
     \    path: Path A. Installed by default, a single maintainer included.\n\
     \      To skip, the project must be throwaway \xE2\x80\x94 prototype,\n\
     \      MVP, spike, one-day hackathon \xE2\x80\x94 and the rationale goes\n\

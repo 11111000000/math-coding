@@ -409,7 +409,7 @@ let build_precommit (params : Jsonl.value option) :
 (* `mathc/graph` — walk the relations graph starting from a
    decision id. The MCP caller passes `decision_id` (the
    root id, optionally suffixed `@<rev>`; the kernel strips
-   the suffix per algebra §7). Returns JSON (the JSON form
+   the suffix per kernel contract §7). Returns JSON (the JSON form
    is the only one consumable by an MCP caller; the DOT form
    is a CLI-only surface). *)
 let build_graph (params : Jsonl.value option) :

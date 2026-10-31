@@ -1,7 +1,7 @@
 (* lib/policy.ml — multi-policy per path with union + transitive
    + hierarchical composition.
 
-   Implements spec/algebra-3.2.md §9 (Multi-policy per path).
+   Implements spec/kernel-contract.md §9 (Multi-policy per path).
    The algebra names three composition axes (decision
    `multi-policy-hierarchy-2026-10`):
 
@@ -17,7 +17,7 @@
          (else parent's). See `resolve_policy` below.
 
 
-  Algebra §9 formulation:
+  Kernel contract §9 formulation:
 
     policy(p) = declared(p) if exists else default-policy
     direct_obligations(c) = ⋃{obligations(policy(p)) : p ∈ c.files}
@@ -51,7 +51,7 @@
   is not needed by the gate (§15) at compose-time, only by the
   per-obligation attestation lookup, which lives outside this module.
 
-  Mode ordering (algebra §3): tiny < light < standard < strict <
+  Mode ordering (kernel contract §3): tiny < light < standard < strict <
   exhaustive. `mode_floor_of` returns the maximum mode_floor across
   the direct AND transitive policies. `default_policy.mode_floor`
   is `Tiny`, so paths that match no declared policy default to the
@@ -244,7 +244,7 @@ let policy_of policies path =
 
 (* data_flow_targets: transitive closure of `source → target` edges
    declared in `policies.data_flow_edges`, starting from `files`.
-   `data_flow_targets*({a}) = ⋃ₙ data_flow_targetsⁿ(a)` (algebra §9):
+   `data_flow_targets*({a}) = ⋃ₙ data_flow_targetsⁿ(a)` (kernel contract §9):
    the result always contains `files` itself plus every path reachable
    via one or more imports/exports edges.
    Cycle detection: the closure stops when no new target is found;
@@ -270,7 +270,7 @@ let[@warning "-32"] data_flow_targets policies files =
 
 (* compose: union of direct + transitive obligations for a list of
    files. Both direct and transitive paths are passed through
-   `policies_of` so multi-policy overlap is unioned (algebra §9: the
+   `policies_of` so multi-policy overlap is unioned (kernel contract §9: the
    obligations of every applicable policy are joined). The result
    is deduplicated by (kind, namespace). *)
 let compose policies files =
@@ -282,7 +282,7 @@ let compose policies files =
   dedup_refs (direct @ transitive)
 
 (* mode_floor_of: maximum mode_floor across the direct AND
-   transitive policies (algebra §2 mode_floor(c) =
+   transitive policies (kernel contract §2 mode_floor(c) =
    max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c)}).
    Falls back to `Tiny` when no policy matches. *)
 let mode_floor_of policies files =
@@ -296,7 +296,7 @@ let mode_floor_of policies files =
    all policies whose `scope_paths` match at least one file in the
    input list, clamped to [-1, 1].
 
-   Algebra §2: probability(c) = 0.5 + 0.5 · policy_override_probability(c)
+   Kernel contract §2: probability(c) = 0.5 + 0.5 · policy_override_probability(c)
    The override lives in [-1, 1] so probability stays in [0, 1].
    Multiple policies that match the same file sum linearly; the
    clamp is the kernel's invariant (OCAML_BEST_PRACTICES §11.25).
@@ -632,7 +632,7 @@ let parse_policies content =
 
 (* load_policies_from_file: read a policies file from disk using
    `In_channel.with_open_text`. Returns `(policies, errors)`. The
-   empty list and no error is the "no policy declared" case — algebra
+   empty list and no error is the "no policy declared" case — kernel contract
    §9 `policy(p) = default-policy` — and a MISSING file is that same
    case, not an error: the absence of a policies file is a project
    that declared no floors, which the kernel reads as the silent
@@ -658,7 +658,7 @@ let load_policies_from_file path =
 
 (* Loaded policies cache (populated lazily by load_policies).
    The kernel reads this once at startup; mutations are
-   not supported post-load (algebra §9 is a pure value). *)
+   not supported post-load (kernel contract §9 is a pure value). *)
 let cached_policies : policy list ref = ref []
 
 (* load_policies: read from `default_policies_path` (or an

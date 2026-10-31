@@ -1,7 +1,7 @@
 (* lib/attestations/attestations.ml — filesystem-backed attestation
  * store for the kernel gate evaluator + 3.2-ideal algebra
  * extensions for substrate fingerprinting and multi-CI
- * aggregation (algebra §13, §14).
+ * aggregation (kernel contract §13, §14).
  *
  * The store loader walks a directory of JSON files matching
  * `schemas/attestation.json` (or its current incarnation) and
@@ -32,7 +32,7 @@
  *
  *   val load : reader:(string -> string) -> root:string -> t
  *
- * 3.2-ideal algebra additions (algebra §13, §14):
+ * 3.2-ideal algebra additions (kernel contract §13, §14):
  *   - compute_substrate_digest / compute_substrate_fingerprint
  *   - parse_environment_class_level / parse_environment_class_label
  *   - parse_iso8601_to_float
@@ -46,19 +46,19 @@ type attestation = Domain.attestation
 type t = attestation list
 
 (* -----------------------------------------------------------------
- * Substrate fingerprint (algebra §13, §16).
+ * Substrate fingerprint (kernel contract §13, §16).
  *
  *   substrate_digest = sha256(kernel.ver || ocaml.ver || dep.digests)
  *   substrate_fingerprint = 𝓢.id, a human-readable identifier
  *                           built from dependency names.
  *
  * The substrate fingerprint is consumed by the gate evaluator
- * to decide whether two attestations are comparable (algebra §14).
+ * to decide whether two attestations are comparable (kernel contract §14).
  * Both helpers are pure: they take pre-composed inputs and
  * return deterministic strings. *)
 
 (* -------------------------------------------------------------------------
- * Compute substrate digest per algebra §13.
+ * Compute substrate digest per kernel contract §13.
  *
  * Input: combined string of (kernel.ver || ocaml.ver || dep.digests).
  * Output: hex SHA-256 of the combined string.
@@ -69,7 +69,7 @@ type t = attestation list
 let compute_substrate_digest combined = Digest.sha256_hex combined
 
 (* -------------------------------------------------------------------------
- * Compute substrate fingerprint id per algebra §13.
+ * Compute substrate fingerprint id per kernel contract §13.
  *
  * Input: list of dependency names (e.g. ["ocaml-5.5"; "dune-3.23"]).
  * Output: human-readable id, names joined with "+".
@@ -79,7 +79,7 @@ let compute_substrate_digest combined = Digest.sha256_hex combined
 let compute_substrate_fingerprint deps = String.concat "+" deps
 
 (* -----------------------------------------------------------------
- * Environment-class parsers (algebra §13).
+ * Environment-class parsers (kernel contract §13).
  *
  * Per the schema (`schemas/common.json#/definitions/...`):
  *   environment_class_level : integer 0..4
@@ -119,7 +119,7 @@ let[@warning "-32"] parse_environment_class_label v =
   | _ -> None
 
 (* -----------------------------------------------------------------
- * ISO-8601 timestamp parsing (algebra §14).
+ * ISO-8601 timestamp parsing (kernel contract §14).
  *
  * Per `schemas/common.json#/definitions/timestamp`:
  *   "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$"
@@ -171,7 +171,7 @@ let[@warning "-32"] parse_iso8601_to_float s =
     with _ -> None
 
 (* -----------------------------------------------------------------
- * Multi-CI aggregation (algebra §14).
+ * Multi-CI aggregation (kernel contract §14).
  *
  *   current(a)    ≔ a.issued_at ≤ now ≤ a.valid_until
  *   decisive(a,p) ≔ a.environment_class_level ≥ p.decisive_threshold(ob)
@@ -211,7 +211,7 @@ type ci_aggregation =
   | Inconclusive
 
 (* -------------------------------------------------------------------------
- * current(a, now) per algebra §14.
+ * current(a, now) per kernel contract §14.
  *
  * Returns true iff `issued_at <= now` and `now <= valid_until`.
  * A missing `valid_until` is treated as +infinity: an attestation
@@ -230,7 +230,7 @@ let[@warning "-32"] current_at (a : Domain.attestation) now =
   match issued with None -> false | Some i -> i <= now && now <= valid_until
 
 (* -------------------------------------------------------------------------
- * decisive(a, threshold) per algebra §14.
+ * decisive(a, threshold) per kernel contract §14.
  *
  * Returns true iff `a.environment_class_level >= threshold`.
  * An attestation without a recorded environment_class_level
@@ -245,7 +245,7 @@ let[@warning "-32"] decisive_for (a : Domain.attestation) threshold =
  * aggregate_obligation : list of attestations for an obligation ->
  *                       four-state ci_aggregation.
  *
- * Per algebra §14:
+ * Per kernel contract §14:
  *   - All_blocking_passed iff every attestation is current and Pass.
  *   - Some_blocking_failed iff not all-pass and at least one
  *     attestation is current, Fail, and decisive.
@@ -330,7 +330,7 @@ let[@warning "-32"] attestations_by_ci attestations ci_name =
 (* -------------------------------------------------------------------------
  * Default list of blocking CIs.
  *
- * The kernel waits for all blocking CIs by default (algebra §14
+ * The kernel waits for all blocking CIs by default (kernel contract §14
  * default). For the math-coding CI farm this list is
  * "payments-ci", "orders-ci", and "integration-ci". Custom
  * projects override this list via the

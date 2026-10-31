@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: kernel-contract-rename-2026-11
-revision: 1
+revision: 2
 state: active
 mode: standard
 negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
-body_sha: "sha256:984a8f0f42dfc0400e6764508e9f62c8da441dec17edb3bed4eadd459f378da5"
-yaml_sha: "sha256:984a8f0f42dfc0400e6764508e9f62c8da441dec17edb3bed4eadd459f378da5"
+body_sha: "sha256:423816c4c7691386278879ef2a901982e5fcbc8a92fa1179b976bb025eff1961"
+yaml_sha: "sha256:423816c4c7691386278879ef2a901982e5fcbc8a92fa1179b976bb025eff1961"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
@@ -69,6 +69,14 @@ intent:
     section pointers that name the contract's sections are re-anchored
     in the same commit. Every normative-text edit of this tranche
     lands in ONE commit, under THIS decision, and nowhere else.
+
+    HISTORY OF THIS TRANSITION (each step is one commit, and each
+    step is revertable on its own):
+
+      rev 1  the file is renamed; this decision and its instrument
+             land with it.
+      rev 2  the kernel and the CLI: the four runtime diagnostics and
+             the 122 section pointers name the new path.
 
 counterexample: |
   The strongest objection against this transition is that it changes

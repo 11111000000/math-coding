@@ -1,9 +1,9 @@
-(* lib/rebuttal.ml — hybrid rebuttal mechanism (algebra-3.2 §10).
+(* lib/rebuttal.ml — hybrid rebuttal mechanism (kernel contract §10).
  *
  * Pure module: file I/O is confined to the load functions
  * (`load_rebuttals`); the rest are total transformations.
  *
- * The algebra §10 contract is:
+ * The kernel contract §10 contract is:
  *
  *   rebuttals(c) = rebuttals_yaml(c) ⊕ forge_mirror(c).comments
  *   rebuttals_yaml(c) ≔ rebuttals/<commit-sha>.yaml if exists
@@ -24,7 +24,7 @@
  * empty list and is the seam where `forge_api.comments_for` will
  * be called once the forge adapter lands. *)
 
-(* --- outcome (algebra §10) --- *)
+(* --- outcome (kernel contract §10) --- *)
 
 type outcome =
   | Pending
@@ -61,7 +61,7 @@ type rebuttal = {
   timestamp : string;
 }
 
-(* --- trust helpers (algebra §12) --- *)
+(* --- trust helpers (kernel contract §12) --- *)
 
 let[@warning "-32"] trust_rank = function
   | `Untrusted -> 0
@@ -69,7 +69,7 @@ let[@warning "-32"] trust_rank = function
   | `Delegated -> 2
   | `Authoritative -> 3
 
-(* Authority floor per mode (algebra §10 binding).
+(* Authority floor per mode (kernel contract §10 binding).
    Tiny/Light/Standard accept any authenticated rebutter;
    Strict demands Delegated; Exhaustive demands Authoritative. *)
 let[@warning "-32"] authority_required = function
@@ -194,7 +194,7 @@ let[@warning "-32"] to_json r =
   in
   Jsonl.Object pairs
 
-(* --- binding check (algebra §10) --- *)
+(* --- binding check (kernel contract §10) --- *)
 
 (* is_binding trust domain:
    a rebuttal whose rebutter carries `trust` and whose
@@ -217,7 +217,7 @@ let[@warning "-32"] any_binding rs domain =
 let[@warning "-32"] filter_outcome wanted rs =
   List.filter (fun r -> r.outcome = wanted) rs
 
-(* --- statistics (algebra §12) --- *)
+(* --- statistics (kernel contract §12) --- *)
 
 type rebuttal_stats = {
   total : int;
@@ -256,11 +256,11 @@ let[@warning "-32"] stats rs =
 (* --- loaders (file I/O confined here) --- *)
 
 (* rebuttals_path: where to find a sibling rebuttal artifact for a
-   commit. Per algebra §10: rebuttals/<commit-sha>.yaml. *)
+   commit. Per kernel contract §10: rebuttals/<commit-sha>.yaml. *)
 let rebuttals_path sha = "rebuttals/" ^ sha ^ ".yaml"
 
 (* load_rebuttals: read `rebuttals/<sha>.yaml` if it exists.
-   Missing file or parse failure → empty list (algebra §10:
+   Missing file or parse failure → empty list (kernel contract §10:
    ∃ rebuttal ∀ c, mode(c) ≥ strict; rebuttal list may be empty).
    All errors are caught at the boundary; this function is total. *)
 let[@warning "-32"] load_rebuttals sha =
@@ -280,7 +280,7 @@ let[@warning "-32"] load_rebuttals sha =
           | None -> [])
       | _ -> []
 
-(* forge_mirror: hybrid rebuttal seam (algebra §10).
+(* forge_mirror: hybrid rebuttal seam (kernel contract §10).
    Reads `MATH_CODING_FORGE_API`. When unset or empty, returns
    `[]` (the §10 fallback for an unintegrated forge). When set,
    issues `GET <api>/comments?commit=<sha>` via `curl

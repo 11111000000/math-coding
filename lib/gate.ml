@@ -831,7 +831,7 @@ let[@warning "-32"] aggregate_with_waivers (waivers : Waiver.t list)
       else (Unknown, [])
 
 (* T3.1: v3.0 evaluate path now consults `Risk.mode files` and
- * surfaces rebuttal obligations for `mode >= strict`, per algebra
+ * surfaces rebuttal obligations for `mode >= strict`, per kernel contract
  * §10:
  *
  *   ∀ c, mode(c) ≥ strict: rebuttals(c) may exist (not required)
@@ -1065,13 +1065,13 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed ~store ~rebuttals
  * math-coding 3.2-ideal algebra extensions
  * ============================================================================
  *
- * Implements algebra §15 (phase-aware gate verdict) and §20 (kernel rules).
+ * Implements kernel contract §15 (phase-aware gate verdict) and §20 (kernel rules).
  * Additive on top of the v3.0 gate; the existing `evaluate` continues to
  * work unchanged for v3.0 callers. New callers should use the v3.2
  * `gate_v32` and `apply_rule` functions.
  *)
 
-(* Kernel rule kinds (algebra §20) *)
+(* Kernel rule kinds (kernel contract §20) *)
 type kernel_rule = PreTemporalPrecedence | CoCommitDecision | CoCommitFixture
 
 (* Commit info (minimal subset for rule application) *)
@@ -1102,7 +1102,7 @@ let empty_commit_info =
   }
 
 (* The trailer citations that name a decision the corpus holds.
-   Algebra §5 and §20 both require the reference to RESOLVE:
+   Kernel contract §5 and §20 both require the reference to RESOLVE:
    `resolve(ref, parent(c)) ≠ ∅`. The old implementation accepted any
    `Refs: decision:<id>@<rev>` line, resolvable or not, so a citation
    of a decision that does not exist satisfied the rule. *)
@@ -1135,17 +1135,17 @@ let[@warning "-32"] touches_protected_path ~protected_paths files =
 let obligation_has_verifier _ob = true
 let obligation_has_review _ob = true
 
-(* Apply a kernel rule (algebra §20) *)
+(* Apply a kernel rule (kernel contract §20) *)
 let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
   match rule with
   | PreTemporalPrecedence -> (
-      (* algebra §5: tiny/light exempt, sibling_yaml suffices, a
+      (* kernel contract §5: tiny/light exempt, sibling_yaml suffices, a
          trailer reference that RESOLVES suffices *)
       match c.mode with
       | `Tiny | `Light -> true
       | _ -> c.has_sibling_yaml || resolved_trailer_refs c <> [])
   | CoCommitDecision ->
-      (* algebra §5: protected paths require a decision to be
+      (* kernel contract §5: protected paths require a decision to be
          COMMITTED WITH THE CHANGE. The spec names two ways: the
          decision is added or edited in the same tree, OR the commit
          cites it by trailer. The implementation had only the first
@@ -1158,7 +1158,7 @@ let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
       || c.has_sibling_yaml
       || resolved_trailer_refs c <> []
   | CoCommitFixture ->
-      (* algebra §15: every obligation needs verifier or review *)
+      (* kernel contract §15: every obligation needs verifier or review *)
       true (* obligation check happens in gate_v32 below *)
 
 (* Parse git-style trailer `Refs: decision:<id>@<rev>, decision:<id>@<rev>`
@@ -1202,7 +1202,7 @@ let[@warning "-32"] parse_trailer_refs body =
 (* Detect whether a decision file is part of the changed files.
    The commit_info.has_sibling_yaml flag tells apply_rule whether
    the author paired the kernel change with a decisions/*.yaml
-   edit (per algebra §5). *)
+   edit (per kernel contract §5). *)
 let[@warning "-32"] has_sibling_yaml files =
   List.exists
     (fun f ->
@@ -1247,7 +1247,7 @@ let[@warning "-32"] any_failed_attestation (obs_list : Domain.obligation list)
   in
   List.exists f obs_list
 
-(* Extended gate verdict for 3.2-ideal (algebra §15) *)
+(* Extended gate verdict for 3.2-ideal (kernel contract §15) *)
 let[@warning "-32"] gate_v32 (c : commit_info)
     (obligations : Domain.obligation list) (binding_rebuttals : bool)
     (re_eval_status : Re_evaluation.status) (rules : kernel_rule list) ~store
@@ -1288,7 +1288,7 @@ let[@warning "-32"] gate_v32 (c : commit_info)
   else if any_failed then Block
   else Pass
 
-(* 3 gate phases from algebra §15 *)
+(* 3 gate phases from kernel contract §15 *)
 type gate_phase = Merge | Release | Monitor
 
 (* Release gate verdict: blocking on pre_merge + pre_release obligations *)

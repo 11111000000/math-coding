@@ -1,7 +1,7 @@
 (* lib/graph/graph.ml — relations-graph projection for `mathc graph`.
  *
  * Pure module. Operates on a `Domain.decision list` (the
- * full record with the 9-field `relations` per algebra §7)
+ * full record with the 9-field `relations` per kernel contract §7)
  * and produces two projections:
  *
  *   1. `to_dot ~decision_id decisions`:
@@ -50,7 +50,7 @@
  *
  * The DOT output is unescaped for label strings (Graphviz
  * accepts raw id tokens; the decision id format per
- * algebra §7 is `lower_snake_case` optionally suffixed
+ * kernel contract §7 is `lower_snake_case` optionally suffixed
  * `@<rev>`, which contains no metacharacters).
  *
  * Reference: decisions/graph-viewer-2026-10@1. *)
@@ -89,7 +89,7 @@ let[@warning "-32"] mem_str (needle : string) (haystack : string list) : bool =
   List.exists (fun s -> String.equal s needle) haystack
 
 (* Strip the optional `@<rev>` suffix from a decision
-   reference per algebra §7. The kernel stores ids
+   reference per kernel contract §7. The kernel stores ids
    verbatim (no @rev stripping) in `Domain.decision.id`,
    but relations in the same record carry `@<rev>` for
    pinned references. The graph walker canonicalises both
