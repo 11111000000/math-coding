@@ -232,7 +232,8 @@
                   }
                 ]
               },
-              "phase": {"enum": ["pre_merge", "pre_release", "post_release"]}
+              "phase": {"enum": ["pre_merge", "pre_release", "post_release"]},
+              "declared": {"$ref": "obligation.json#/properties/declared"}
             }
           }
         ]
