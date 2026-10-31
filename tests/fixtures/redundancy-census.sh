@@ -133,7 +133,10 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #
 # ceiling-fall: 38 -> 36, two more promises that named a verifier the
 #   kernel could not execute now name one it can
-CEILING_PAPER=36
+# ceiling-fall: 36 -> 35, the stale-form tranche rewrote a promise that
+#   named a manual verifier into one that names the cram case that
+#   measures it, and the count followed the truth down
+CEILING_PAPER=35
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -175,7 +178,9 @@ CEILING_DEAD=0
 # ceiling-raise: 139 -> 140, the declared-promises decision is in the corpus it counts
 # ceiling-raise: 140 -> 141, the falsified-promises-repaired decision is in
 #   the corpus it counts
-CEILING_CORPUS=141
+# ceiling-raise: 141 -> 142, the corpus-tranche-stale-form-1 decision is in
+#   the corpus it counts
+CEILING_CORPUS=142
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
