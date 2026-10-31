@@ -92,7 +92,11 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   twenty-one decisions that declare them are in the DECLARED class
 # ceiling-fall: 73 -> 37, the decisions that name a control that
 #   catches their own failure named it, and the debt is what is left
-CEILING=37
+# ceiling-fall: 37 -> 36, the falsified-promise tranche gave
+#   waiver-infrastructure-2026-10 a control that catches its own
+#   failure: tests/cli/self-check-waiver-verdict.t asserts that a
+#   waived gap is reported as open-with-waiver and never as pass
+CEILING=36
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
