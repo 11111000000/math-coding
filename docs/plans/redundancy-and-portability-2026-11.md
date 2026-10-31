@@ -171,6 +171,51 @@ they do not differ.
 | T3.1 | `spec/algebra-3.2.md` becomes `spec/kernel-contract.md`, content unchanged; the four fixtures that mirror the document (`risk-bucketing.t`, `body-vs-wrapper-canonical.t`, `applicability-envelope.t`, `render-mathjax-spec.t`) compare constants directly instead of grepping the text; 13 runtime strings and 26 schema descriptions follow | medium |
 | T3.2 | one decision supersedes `decisions/algebra-3.2.yaml` and shrinks 1 002 lines to about 100: what the kernel enforces (rule, code, test) and what is declared but unchecked. The six references in `axioms/**` move in the same protected transition | high - human review |
 
+#### T3.1, measured (the rename is bigger than the row above says)
+
+The row was written before anyone counted. Measured on 2026-10-31,
+`spec/algebra-3.2.md` is named **322 times in 120 tracked files**:
+
+| where | files | what it is |
+|---|---|---|
+| `decisions/` | 23 | records: four of them carry a live obligation that greps the file, the rest are history |
+| `archive/decisions/` | 19 | history |
+| `tests/cli/` | 22 | fixtures that grep the document for constants - these break |
+| `lib/` | 9 | comments, and four runtime diagnostics whose message quotes the path |
+| `schemas/` | 5 | descriptions |
+| `docs/plans/`, `site/`, `scripts/`, `tests/fixtures/` | 21 | prose and links |
+| `USAGE.md`, `docs/` | 3 | prose |
+
+Plus 93 `algebra §N` section pointers in `lib/` and `bin/` and 13 in
+`tests/`: they survive a rename as prose, but the anchor they name
+stops existing, so a comment that says "algebra §13" ends up pointing
+nowhere. That is the kind of sentence that looks like a reference and
+is not one.
+
+So the plan's "four fixtures, 13 runtime strings, 26 schema
+descriptions" was wrong by an order of magnitude, and the correction
+changes the shape of the tranche:
+
+- **What is machine-followed must move**: 22 test files, four runtime
+  diagnostics (the `MC-COUNTEREXAMPLE-MISSING` and
+  `mode-considered-no-antithesis-demo` messages, whose text appears in
+  five cram fixtures), five schema files, four decisions whose
+  `verifier:` greps the document, and two whose `scope.paths:` names it
+  (a renamed file makes a scope path dead, and the dead-path count is
+  a number the census bounds).
+- **What is a record keeps its history**: the 19 archived files and the
+  19 decisions that only mention the path in prose say what was true
+  when they were written. Rewriting them would be lying about the past,
+  and it would cost 322 edits to buy nothing.
+- **What is a comment gets the new name**: 93 section pointers move to
+  the new file's sections, and the fixture that checks them stops
+  grepping the prose and compares the constants instead.
+
+The rename is a mechanical move with a real blast radius, so it gets
+its own tranche with its own decision, and the ceiling on dead scope
+paths is checked after it: a rename that turns 2 live scope paths into
+dead ones must pay them back in the same tranche.
+
 ### T4 - portability (2026-12-07 .. 12-18)
 
 | step | what | risk |
