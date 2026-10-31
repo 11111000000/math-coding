@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: render-kernel-fixes-2026-10
 revision: 1
 state: active
-body_sha: "sha256:2489e12f8244b9e01142f21a38e2f9d5f8e21ab0e9e4f9392bc91f296162119e"
-yaml_sha: "sha256:2489e12f8244b9e01142f21a38e2f9d5f8e21ab0e9e4f9392bc91f296162119e"
+body_sha: "sha256:f234bc397ec8cd7e2eb3e478589e4701732fdffae4b0465f6b742ea2688b1dde"
+yaml_sha: "sha256:f234bc397ec8cd7e2eb3e478589e4701732fdffae4b0465f6b742ea2688b1dde"
 intent: |
   Close the ten concrete render-kernel defects catalogued in
   `analysis/site-render-defects.md` (commit-diagnostic branch
@@ -174,7 +174,7 @@ assumptions:
       only (`\(`…`\)` and `\[`…`\]`), so a literal `$` in prose
       is never typeset as math and the default does not regress
       any rendered page. Algebra 3.2 excerpts that show math
-      (e.g., `spec/algebra-3.2.md`) are not yet published to
+      (e.g., `spec/kernel-contract.md`) are not yet published to
       `site/`.
     owner: human:maintainer
     consequence_if_false: |

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:cfe19fdf15cac0fc3a64b3aaf41d356d18443f129e8678899f6c8012f3d2c97f"
-yaml_sha: "sha256:cfe19fdf15cac0fc3a64b3aaf41d356d18443f129e8678899f6c8012f3d2c97f"
+body_sha: "sha256:ec61a22c73862d3e8fc55f0e092d04acbcde3db99f9fe325d653040cb5e5731e"
+yaml_sha: "sha256:ec61a22c73862d3e8fc55f0e092d04acbcde3db99f9fe325d653040cb5e5731e"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -14,7 +14,7 @@ intent: |
   raise the gate above what the impact classifier alone would
   suggest.
 
-  The algebra §2 risk function
+  The kernel contract §2 risk function
 
     mode(c) = max(⌈risk(c)⌉, mode_floor(c))
 
@@ -47,7 +47,7 @@ intent: |
       `algebra-3.2-notation-flag-2026-10`); the implementation
       continues to use `risk_to_mode` thresholds.
     - This cycle does not implement transitive data-flow
-      composition (algebra §9 step 2); the kernel only uses
+      composition (kernel contract §9 step 2); the kernel only uses
       direct path matching for now. Transitive composition is
       a follow-up.
     - This cycle does not add a `lib/policy_modes` file; the
@@ -148,7 +148,7 @@ counterexample: |
   Counterargument: that change is the intended behaviour. The
   axiom path is axiom-touching per the policy; the prior
   `standard` output was the stub returning the wrong floor.
-  The new behaviour is what algebra §2 mandates. The floor is
+  The new behaviour is what kernel contract §2 mandates. The floor is
   pinned by the `tests/risk_kernel.ml::mode_floor_*` fixtures,
   and the `mathc mode` CLI path is exercised by the cram
   fixture `tests/cli/mode.t`, with the decision recorded in
@@ -183,7 +183,7 @@ scope:
     - "lib/codec.ml"
     - "lib/jsonl.ml"
     - "lib/gate.ml"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "spec/constitution.md"
     - "schemas/**"
     - "decisions/decision.yaml"

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 negative_control: tests/fixtures/protected-paths-single-source.sh
-body_sha: "sha256:49f1b0a84cdf389371e0a0889ed0e1e1e52b892885c47b9bfb1b05ad6bf2c957"
-yaml_sha: "sha256:49f1b0a84cdf389371e0a0889ed0e1e1e52b892885c47b9bfb1b05ad6bf2c957"
+body_sha: "sha256:b537fca0ef3f2040eb51b6ade0c62377022e9714f308be7c2a5b27503af13f33"
+yaml_sha: "sha256:b537fca0ef3f2040eb51b6ade0c62377022e9714f308be7c2a5b27503af13f33"
 
 intent:
   source: "plan:redundancy-and-portability-2026-11:T1.2,T1.3b"
@@ -38,7 +38,7 @@ intent:
       lib/dune                          yes       NO          yes
       bin/Mathc.ml                      yes      yes          yes
       bin/mathc_mcp.ml                   NO       NO          yes
-      spec/algebra-3.2.md               yes      yes           NO
+      spec/kernel-contract.md           yes      yes           NO
       schemas/decision.json             yes      yes           NO
       axioms/index.md                   yes       NO           NO
       scripts/install-tooling/install.sh NO       NO          yes
@@ -46,7 +46,7 @@ intent:
 
     So the gate asked for a decision next to a change to
     `lib/attestations/evidence.mli` and the hook did not; the hook
-    asked for one next to a change to `spec/algebra-3.2.md` and the
+    asked for one next to a change to `spec/kernel-contract.md` and the
     release gate did not fire for it at all; the release gate fired
     for `scripts/install-tooling/install.sh` and nothing else did;
     and `axioms/index.md` was protected by exactly one of the three.
