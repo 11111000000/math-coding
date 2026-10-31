@@ -2,9 +2,10 @@
 schema: math-coding/3.2
 id: install-tooling-default-tag-edge
 revision: 1
-state: active
-body_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
-yaml_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
+state: retired
+# Archived by T2.1: a completed default-tag change record with no live dependency.
+body_sha: "sha256:d65803a1ff7b4778eccc08f29a4ea3ab8e375fb784db9aa4407b1bccca8d1932"
+yaml_sha: "sha256:d65803a1ff7b4778eccc08f29a4ea3ab8e375fb784db9aa4407b1bccca8d1932"
 
 intent: |
   Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
@@ -97,7 +98,7 @@ scope:
     - "scripts/install-tooling/install.sh"
     - "tests/cli/install.t"
     - "PACKAGES.md"
-    - "decisions/install-tooling-default-tag-edge-2026-10.yaml"
+    - "archive/decisions/install-tooling-default-tag-edge-2026-10.yaml"
   exclusions:
     - "lib/**"
     - "bin/**"
