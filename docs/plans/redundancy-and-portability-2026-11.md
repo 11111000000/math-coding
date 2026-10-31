@@ -125,7 +125,7 @@ Order is by dependency, not by preference.
 | T2.1 | archive tranche: the records (one-off events, refactoring notes) move to `archive/decisions/` with `state: retired` and a reason. 120 files sit in `archive/decisions/`, and 104 of them still say `state: active` today | medium |
 | T2.2 | rewrite the stale decisions into statements about the current state, or archive them; fix the 44 dangling relation targets and the 20 dead scope paths | medium |
 | T2.3 | the five quote-broken verifiers: fix the scheme or withdraw the promise. They are signed `pass` in the store, so the store lies about them | low |
-| T2.4 | the class the audit of 2026-10-30 found and this plan names: obligations whose verifier is executable but does not check its own claim. 13 decisions carry no negative control; the debt is 98 against a ceiling of 123, and the ceiling may only fall | high - a choice: rewrite, declare with an owner and a date, or archive |
+| T2.4 | the class the audit of 2026-10-30 found and this plan names: obligations whose verifier is executable but does not check its own claim. Measured 2026-10-31: 99 decisions name no negative control, against a ceiling of 123 that may only fall | high - a choice: rewrite, declare with an owner and a date, or archive |
 
 #### T2.2, measured (the brief, ready to launch)
 
