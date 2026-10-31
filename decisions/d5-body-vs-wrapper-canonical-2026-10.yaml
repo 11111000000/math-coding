@@ -4,17 +4,17 @@ id: d5-body-vs-wrapper-canonical-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:247a62dc1455c900b35e7359a5e1368a9e850114c37b226b3391cc4e4286b366"
-yaml_sha: "sha256:247a62dc1455c900b35e7359a5e1368a9e850114c37b226b3391cc4e4286b366"
+body_sha: "sha256:3e73b7d1abf95e2a2988f2f9e21c67feb0d48c74a83fb989d3a4354b21dcadfc"
+yaml_sha: "sha256:3e73b7d1abf95e2a2988f2f9e21c67feb0d48c74a83fb989d3a4354b21dcadfc"
 axiom_link:
   - A0
   - A3
 intent: |
   Adopt a formal byte-range and canonicalisation for `body_sha` and
-  `yaml_sha` in `spec/algebra-3.2.md` §7, covering the single-file
+  `yaml_sha` in `spec/kernel-contract.md` §7, covering the single-file
   authoring case (the case every active decision uses today) and
   explicitly deferring the dual-authored sibling-YAML case
-  (algebra §6) to a follow-up decision.
+  (kernel contract §6) to a follow-up decision.
 
   Today the algorithm is the placeholder-substitution sweep in
   `scripts/axiom-link-seed.py:105-123`: replace each embedded
@@ -27,7 +27,7 @@ intent: |
   normative location, and freezes the boundary conditions (UTF-8
   encoding, LF line endings, no trailing newline normalisation).
 
-  The dual-authored case (algebra §6 sibling YAML) has zero live
+  The dual-authored case (kernel contract §6 sibling YAML) has zero live
   consumers; the spec anticipates it but no decision file in
   `decisions/` uses it. This decision records the formal
   reservation of the byte-range semantics for that case without
@@ -49,7 +49,7 @@ intent: |
 
   Background:
     The 2026-10-05 audit (`docs/AUDIT-0.0.20.md` D5) recorded
-    that `spec/algebra-3.2.md` §7 declares the equality
+    that `spec/kernel-contract.md` §7 declares the equality
     invariant but does not specify the exact byte-range the
     hash covers. The implementation in
     `scripts/axiom-link-seed.py:105-123` and the 72 decisions
@@ -79,7 +79,7 @@ intent: |
   - `lib/decision.ml`: the `sha_match_check` function is NOT
     modified; the comment block above it (lines 1-20) gains
     a reference to this decision and to the new
-    `spec/algebra-3.2.md` §7 sub-section that names the
+    `spec/kernel-contract.md` §7 sub-section that names the
     algorithm.
   - `lib/canonical.ml`: NOT modified. `lib/canonical.ml` is
     RFC 8785 JCS (used for JSON canonicalisation, not for
@@ -91,7 +91,7 @@ intent: |
     no field is added in this decision (the future
     `authoring: single | dual` discriminator is explicitly
     deferred).
-  - `spec/algebra-3.2.md` §7: a new sub-section (call it
+  - `spec/kernel-contract.md` §7: a new sub-section (call it
     §7.1 "Byte-range and canonicalisation") is appended. The
     existing §7 Decision entity definition is unchanged; the
     new section names the algorithm. Section §6 is unchanged
@@ -106,7 +106,7 @@ intent: |
   - The 5 modes (tiny/light/standard/strict/exhaustive) are
     unchanged.
 commitment: |
-  1. `spec/algebra-3.2.md` §7 gains a new sub-section §7.1
+  1. `spec/kernel-contract.md` §7 gains a new sub-section §7.1
      "Byte-range and canonicalisation" that formally names the
      algorithm:
 
@@ -145,7 +145,7 @@ commitment: |
   2. `lib/decision.ml:1-20` (the comment block above
      `sha_match_check`) is updated to:
      - reference this decision by id;
-     - reference the new `spec/algebra-3.2.md` §7.1;
+     - reference the new `spec/kernel-contract.md` §7.1;
      - name the algorithm in one sentence (the placeholder-
        substitution sweep from
        `scripts/axiom-link-seed.py:105-123`).
@@ -203,7 +203,7 @@ commitment: |
      script is the existing reference implementation; this
      decision names it formally).
 
-  7. The dual-authored case (algebra §6) is formally
+  7. The dual-authored case (kernel contract §6) is formally
      DEFERRED. A new field on the Decision entity (likely
      `authoring: single | dual`) is anticipated, but NOT
      added by this decision. A follow-up decision
@@ -225,7 +225,7 @@ commitment: |
     `lib/attestations/attestations.ml`: NOT modified.
   - `bin/Mathc.ml`: NOT modified.
   - `schemas/decision.json`: NOT modified.
-  - `spec/algebra-3.2.md` §6: NOT modified (the dual case
+  - `spec/kernel-contract.md` §6: NOT modified (the dual case
     remains anticipated but not yet formalised here).
   - `axioms/`: NOT modified (A0-A4 preserved verbatim).
   - `site/`, `scripts/`, `.github/`: NOT modified.
@@ -241,7 +241,7 @@ scope:
     - sha-match-validation
     - algebraic-spec-clarification
   paths:
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "lib/decision.ml"
     - "tests/body_canonical_test.ml"
     - "tests/cli/body-vs-wrapper-canonical.t"
@@ -272,7 +272,7 @@ scope:
 outcomes:
   - id: spec-formalises-byte-range
     statement: |
-      `spec/algebra-3.2.md` §7.1 (NEW) names the
+      `spec/kernel-contract.md` §7.1 (NEW) names the
       placeholder-substitution algorithm in a normative
       sub-section. The `D.body_sha = D.yaml_sha` invariant
       (when both are present) is a COROLLARY of the
@@ -297,7 +297,7 @@ outcomes:
       failure.
   - id: dual-case-deferred
     statement: |
-      The dual-authored case (algebra §6 sibling YAML)
+      The dual-authored case (kernel contract §6 sibling YAML)
       is formally DEFERRED. A follow-up decision
       `d5-dual-authored-canonical-2026-XX` is anticipated
       with `reversal.signal: first-dual-authored-decision-drafted`.
@@ -319,10 +319,10 @@ counterexample: |
   from `scripts/axiom-link-seed.py:105-123` (a Python
   helper in `scripts/`, not a kernel reference) or invent
   a divergent one. Pinning the algorithm to
-  `spec/algebra-3.2.md` §7.1 is cheaper than re-deriving
+  `spec/kernel-contract.md` §7.1 is cheaper than re-deriving
   it in code.
 
-  "The dual case (algebra §6) is the interesting one; the
+  "The dual case (kernel contract §6) is the interesting one; the
   trivial case is just one file. Defer THIS decision until
   the dual case is also defined."
 
@@ -366,7 +366,7 @@ antithesis: |
   drift: agents reading the spec will see "byte-range" in
   §7.1 and assume the dual case is also defined, when
   it is in fact anticipated-but-not-yet-formalised
-  (algebra §6). A future kernel refactor would have to
+  (kernel contract §6). A future kernel refactor would have to
   either copy the §7.1 algorithm and extend it to the
   dual case (an unstated extension) or invent a new
   algorithm. The author's counter-position is: "wait
@@ -385,7 +385,7 @@ antithesis: |
   production case, defer the speculative case with a
   reversal signal that fires when a real consumer
   appears. This is consistent with the v3 dialectic
-  method (algebra §11): the antithesis is a coherent
+  method (kernel contract §11): the antithesis is a coherent
   position (wait) that the author considered and
   rejected on maturity-coupling grounds, distinct from
   the counterexample which is the strongest objection
@@ -444,7 +444,7 @@ assumptions:
     state: assumed
     statement: |
       No active decision file uses the sibling-YAML
-      authoring form (algebra §6). The 72 active decisions
+      authoring form (kernel contract §6). The 72 active decisions
       are all single-file. Verified by
       `ls decisions/ decisions/plan-2026-10-improvements/
       decisions/waivers/ | grep -E '\.wrapper\.yaml$'`
@@ -468,13 +468,13 @@ assumptions:
 obligations:
   - id: spec-formalises-byte-range
     statement: |
-      `spec/algebra-3.2.md` §7.1 (NEW) names the algorithm:
+      `spec/kernel-contract.md` §7.1 (NEW) names the algorithm:
       `body_sha(D) = yaml_sha(D) = "sha256:" + sha256_hex(
       canonicalise(file_bytes(D)))` where `canonicalise`
       is the placeholder-substitution sweep.
     claim: |
       A `git grep -n "canonicalise\|placeholder-substitution"`
-      against `spec/algebra-3.2.md` returns at least one
+      against `spec/kernel-contract.md` returns at least one
       hit; the §7.1 sub-section is reachable from the
       existing §7 Decision entity.
     acceptance:
@@ -485,7 +485,7 @@ obligations:
     statement: |
       `lib/decision.ml:1-20` (the comment block above
       `sha_match_check`) names this decision by id and
-      references the new `spec/algebra-3.2.md` §7.1.
+      references the new `spec/kernel-contract.md` §7.1.
     claim: |
       `rg -n 'd5-body-vs-wrapper-canonical-2026-10'
       lib/decision.ml` returns a non-empty hit; the
@@ -519,7 +519,7 @@ obligations:
       `tests/cli/body-vs-wrapper-canonical.t` (NEW cram
       fixture) asserts the comment-block update in
       `lib/decision.ml:1-20` and the spec change in
-      `spec/algebra-3.2.md` §7.1.
+      `spec/kernel-contract.md` §7.1.
     claim: |
       `dune build` succeeds; `dune runtest` runs the cram
       suite; the four labelled cases pass
@@ -561,7 +561,7 @@ reversal:
   - signal: first-dual-authored-decision-drafted
     condition: |
       The first decision file in `decisions/` uses the
-      sibling-YAML authoring form (algebra §6). The
+      sibling-YAML authoring form (kernel contract §6). The
       `authoring: single | dual` discriminator must be
       added, the `sha_match_check` relaxed per
       discriminator, and a new decision
@@ -589,7 +589,7 @@ relations:
   superseded_by: []
 verdict_diff:
   pre_decision:
-    - subject: spec/algebra-3.2.md::§7-byte-range
+    - subject: spec/kernel-contract.md::§7-byte-range
       verdict: unknown
       reason: |
         The 2026-10-05 audit (D5) recorded that §7
@@ -600,7 +600,7 @@ verdict_diff:
         but the spec does not name the algorithm; this
         is structurally inconclusive (unknown).
   post_decision:
-    - subject: spec/algebra-3.2.md::§7-byte-range
+    - subject: spec/kernel-contract.md::§7-byte-range
       verdict: pass
       reason: |
         The new §7.1 sub-section names the algorithm
@@ -615,7 +615,7 @@ verdict_diff:
         remains unknown (explicitly deferred to
         `d5-dual-authored-canonical-2026-XX`).
   changed:
-    - spec/algebra-3.2.md::§7 — gains §7.1 sub-section
+    - spec/kernel-contract.md::§7 — gains §7.1 sub-section
       (byte-range and canonicalisation).
     - lib/decision.ml:1-20 — comment block updated
       (decision-id reference + §7.1 anchor); no code
@@ -648,7 +648,7 @@ prior_authorization:
   revision: 3
   rationale: |
     The active policy is `bootstrap-v3@3`. The
-    change affects `spec/algebra-3.2.md` §7, which
+    change affects `spec/kernel-contract.md` §7, which
     is normative for the kernel; per
     `spec/constitution.md` §Self-application, this is
     a protected policy transition. Authorization is
@@ -663,7 +663,7 @@ recovery_path:
   forward: |
     If this decision is rejected by the human
     review, the spec change is reverted (a single
-    `git revert` against `spec/algebra-3.2.md` §7.1
+    `git revert` against `spec/kernel-contract.md` §7.1
     insertion + the helper removal in
     `lib/decision.ml` + the test removal in
     `tests/body_canonical_test.ml`). The comment

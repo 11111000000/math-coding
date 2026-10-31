@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:1f043907301f167403fce8b70938da3ef7a1a85263e936be4dfe359e162b789e"
-yaml_sha: "sha256:1f043907301f167403fce8b70938da3ef7a1a85263e936be4dfe359e162b789e"
+body_sha: "sha256:1db0d2af06207090b1038b1209b7ef31c977c1b101a001f5aba8be45ee4a5135"
+yaml_sha: "sha256:1db0d2af06207090b1038b1209b7ef31c977c1b101a001f5aba8be45ee4a5135"
 
 intent: |
   Revision 2 continues the same archive tranche T2.1 whose first
@@ -84,7 +84,7 @@ intent: |
       walk only the live decisions directory. Both find fixtures
       require this decision and its obligation to be present in the
       live corpus. That is a live dependency, not an ID mention.
-    - `algebra-3.2-notation-flag-2026-10`: spec/algebra-3.2.md:143
+    - `algebra-3.2-notation-flag-2026-10`: spec/kernel-contract.md:143
       names its path in normative text. Changing that pointer is an
       A3-protected transition, so the decision cannot move in this
       tranche. re-evaluate.t also uses it as a live subject.
@@ -340,7 +340,7 @@ obligations:
     outcome: two-live-dependencies-kept
     claim: |
       algebra-3.2-notation-flag-2026-10 stays in decisions/ because
-      normative spec/algebra-3.2.md names its path and changing that
+      normative spec/kernel-contract.md names its path and changing that
       pointer requires an A3-protected transition.
     acceptance:
       all:

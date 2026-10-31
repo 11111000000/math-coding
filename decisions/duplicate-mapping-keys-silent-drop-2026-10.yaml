@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:da3b92a497b374b893ea2ae236e4baa53a785ee164d9edc03a7288548d85603c"
-yaml_sha: "sha256:da3b92a497b374b893ea2ae236e4baa53a785ee164d9edc03a7288548d85603c"
+body_sha: "sha256:be4eed0e59133de3d2524cc2bf641314f1a5b6374cd8b8bee8f9f4a891caca3e"
+yaml_sha: "sha256:be4eed0e59133de3d2524cc2bf641314f1a5b6374cd8b8bee8f9f4a891caca3e"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -112,7 +112,7 @@ commitment: |
      into one list holding every obligation from both, and the
      multi-line scalars that stopped the loader are rewritten as
      `|` block scalars. `body_sha` / `yaml_sha` are recomputed with
-     the algorithm of spec/algebra-3.2.md §7.1, and `revision` is
+     the algorithm of spec/kernel-contract.md §7.1, and `revision` is
      bumped.
 
   7. `decisions/{disable-hanging-alcotest-tests-2026-10,
@@ -171,7 +171,7 @@ counterexample: |
   broken output and only turned red when the detector landed.
 
   Third: `lib/decision.ml::body_canonical_sha256` does not
-  implement spec/algebra-3.2.md §7.1. The spec replaces the matched
+  implement spec/kernel-contract.md §7.1. The spec replaces the matched
   `body_sha: "sha256:<64hex>"` with `body_sha: "` + placeholder;
   the OCaml helper emits `prefix` (which already ends in
   `sha256:`) followed by `placeholder` (which begins with
@@ -394,7 +394,7 @@ assumptions:
     state: assumed
     statement: |
       `body_sha` / `yaml_sha` are recomputed with the algorithm in
-      spec/algebra-3.2.md §7.1, which is the normative text and is
+      spec/kernel-contract.md §7.1, which is the normative text and is
       pinned by `tests/cli/body-vs-wrapper-canonical.t`. The OCaml
       helper `lib/decision.ml::body_canonical_sha256` emits the
       placeholder prefix twice and therefore disagrees with the
@@ -437,7 +437,7 @@ risk:
     is not claimed.
   digest-direction-ambiguity: |
     `lib/decision.ml::body_canonical_sha256` and
-    spec/algebra-3.2.md §7.1 disagree, and the corpus contains
+    spec/kernel-contract.md §7.1 disagree, and the corpus contains
     files matching each. This decision follows the spec. If the
     kernel helper is later corrected to match, every digest written
     from here on follows automatically; the ones written here need
