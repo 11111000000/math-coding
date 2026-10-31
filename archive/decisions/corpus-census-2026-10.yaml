@@ -2,11 +2,12 @@
 schema: math-coding/3.2
 id: corpus-census-2026-10
 revision: 1
-state: active
+state: retired
+# Archived by T2.1: a completed census record with no live dependency.
 mode: light
 
-body_sha: "sha256:5366c864f601edfa90eecb6f37fa3e0d8093de98ad072f1fb489676759abae77"
-yaml_sha: "sha256:5366c864f601edfa90eecb6f37fa3e0d8093de98ad072f1fb489676759abae77"
+body_sha: "sha256:45a5c618b367c2ac9f5a31aea296b797e1059ab3b0b391b025c182f95d7146b5"
+yaml_sha: "sha256:45a5c618b367c2ac9f5a31aea296b797e1059ab3b0b391b025c182f95d7146b5"
 
 axiom_link:
   - A0
@@ -83,7 +84,7 @@ scope:
   paths:
     - "decisions/**"
     - "archive/decisions/**"
-    - "decisions/corpus-census-2026-10.yaml"
+    - "archive/decisions/corpus-census-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "_build/**"
@@ -98,11 +99,11 @@ obligations:
         - verifier: tests/fixtures/precommit-covers-subdirectories.sh
   - id: this-decision-validates
     claim: |
-      `mathc validate decisions/corpus-census-2026-10.yaml` returns
+      `mathc validate archive/decisions/corpus-census-2026-10.yaml` returns
       exit 0.
     acceptance:
       all:
-        - verifier: mathc validate decisions/corpus-census-2026-10.yaml
+        - verifier: mathc validate archive/decisions/corpus-census-2026-10.yaml
 
 risk:
   declared_triggers:
