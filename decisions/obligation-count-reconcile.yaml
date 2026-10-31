@@ -3,8 +3,9 @@ schema: math-coding/3.2
 id: obligation-count-reconcile
 revision: 3
 state: active
-body_sha: "sha256:894486fac2a03dc991aa88dc1be2cff82f76944464d137cc2f8d8fb1499242a9"
-yaml_sha: "sha256:894486fac2a03dc991aa88dc1be2cff82f76944464d137cc2f8d8fb1499242a9"
+negative_control: tests/fixtures/aggregator-matches-parent.sh
+body_sha: "sha256:d3f2c8728bd7ccb15780577520cb90945d949974409b948af3ee39fc0663399b"
+yaml_sha: "sha256:d3f2c8728bd7ccb15780577520cb90945d949974409b948af3ee39fc0663399b"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:
@@ -50,17 +51,24 @@ scope:
   paths:
     - "decisions/obligations.yaml"
     - "decisions/obligation-count-reconcile.yaml"
+    - "tests/fixtures/aggregator-matches-parent.sh"
+    - "tests/fixtures/decision-packges-spelling.sh"
 
 outcomes:
   - id: aggregator-matches-parent
-    statement: obligations.yaml lists exactly the seven obligations of
-      decisions/decision.yaml@2 with identical ids in the same order.
+    statement: |
+      obligations.yaml lists exactly the obligation ids that
+      decisions/decision.yaml carries, with identical ids in the same
+      order, and names the parent decision it aggregates.
   - id: assumption-ids-spelled-correctly
-    statement: Every assumption id and review_on signal in this
-      decision file is spelled correctly. The "packages" word
-      carries the canonical spelling across the project; the
-      misspelling "packges" is not allowed anywhere in
-      decisions/*.yaml.
+    statement: |
+      Every assumption id and review_on signal in this decision file
+      is spelled correctly. The "packages" word carries the canonical
+      spelling across the project; the misspelling "packges" is not
+      allowed as a LIVE identifier anywhere in decisions/*.yaml. It
+      appears in this file's own history text, which is where the
+      rename is recorded - a claim that names the misspelling cannot
+      say the file does not contain it.
 
 assumptions:
   - id: packages-obs-unaffected
@@ -80,29 +88,49 @@ obligations:
   - id: aggregator-7-of-7
     outcome: aggregator-matches-parent
     claim: |
-      decisions/obligations.yaml@2 lists exactly the seven
-      obligations of decisions/decision.yaml@2 with identical
-      ids, in the same order. The aggregator's revision field
-      reads `revision: 2`.
+      decisions/obligations.yaml lists EXACTLY the obligation ids that
+      decisions/decision.yaml carries, with identical ids in the same
+      order, and names the parent decision it aggregates.
+
+      The revision-2 claim named the parent's revision
+      (`decisions/decision.yaml@2`). The parent is now at revision 3,
+      and it has been revised WITHOUT changing its obligation set:
+      the two files still agree on seven ids. The revision the
+      aggregator records is the revision it was reconciled against,
+      not the parent's current one - which is why the pointer is not
+      what this claim holds.
+
+      The revision-2 check was
+      `shell-grep decisions/obligations.yaml revision: 2`: it asked
+      whether the aggregator's TEXT still contained a revision
+      string, which says nothing about whether the two lists agree.
+      A fixed-string search cannot compare two files; the check below
+      does.
     acceptance:
       all:
-        - verifier: "shell-grep decisions/obligations.yaml revision: 2"
-        - verifier: file-exists decisions/obligation-count-reconcile.yaml
-
+        - verifier: tests/fixtures/aggregator-matches-parent.sh
   - id: corrected-spelling-contract
     outcome: assumption-ids-spelled-correctly
     claim: |
-      This decision file (revision: 2) does not contain the
-      misspelling "packges" anywhere. The assumption id is
-      `packages-obs-unaffected` and the review_on signal is
-      `packages-audit-tool-defined`. No other file in decisions/
-      carries the misspelling either (verified by `grep -rn
-      'packges' decisions/*.yaml`).
+      This decision file declares no LIVE identifier with the
+      misspelling "packges": the assumption id reads
+      `packages-obs-unaffected`, the review_on signal reads
+      `packages-audit-tool-defined`, and the header comment of
+      decisions/obligations.yaml uses the corrected spelling.
+
+      The revision-2 claim was stronger and false: it said the file
+      "does not contain the misspelling 'packges' ANYWHERE" - and the
+      file contains it, in the history text that records the rename
+      this decision made. A claim that names the misspelling cannot
+      say the file does not contain it; what it can say is that no
+      live identifier carries it, and that is what the check below
+      asks. The two `manual-text-scan-*` declarations that carried
+      the old claim were a human's word about a check nobody ran;
+      the fixture that does the check already existed.
     acceptance:
       all:
         - verifier: file-exists decisions/obligation-count-reconcile.yaml
-        - verifier: manual-text-scan-no-packges-misspelling
-        - verifier: manual-text-scan-contains-packages-spelling
+        - verifier: tests/fixtures/decision-packges-spelling.sh
 
 reversal:
   - signal: aggregator-id-drift

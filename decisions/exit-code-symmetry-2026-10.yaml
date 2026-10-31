@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: exit-code-symmetry
 revision: 1
 state: active
-body_sha: "sha256:7265eab0898bd6610fdaa249831dc1647bf0c305ae61b5f312e9320e34a9d4ba"
-yaml_sha: "sha256:7265eab0898bd6610fdaa249831dc1647bf0c305ae61b5f312e9320e34a9d4ba"
+body_sha: "sha256:9a81774c8ed83e9119466d8b931bf9ea30433b30090166d22ffb5e0584563e38"
+yaml_sha: "sha256:9a81774c8ed83e9119466d8b931bf9ea30433b30090166d22ffb5e0584563e38"
 axiom_link:
   - A0
   - A1
@@ -71,6 +71,8 @@ scope:
     - "bin/Mathc.ml"
     - "spec/constitution.md"
     - "tests/cli/gate-unknown-exit-3.t"
+    - "tests/cli/self-check-pass.t"
+    - "tests/cli/self-check-unknown.t"
     - "CHANGELOG.md"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   OCAML_BEST_PRACTICES.md - no tracked file matches it
@@ -235,15 +237,27 @@ obligations:
   - id: self-check-still-pass
     outcome: gate-exit-unknown-is-3
     claim: |
-      `mathc self-check` against a populated store continues to
-      report `pass` for every subject the store covers, and the
-      aggregate stays `unknown` while the corpus is uncovered. The
-      change to `verdict_to_exit` does NOT affect the
-      `do_self_check` exit-code mapping.
+      `mathc self-check` against a populated store reports `pass`
+      for every subject the store covers, and the aggregate refuses
+      to certify the uncovered remainder: the uncovered subjects
+      report `unknown`, the aggregate verdict is `unknown`, and the
+      exit code is 3. Against an absent store every subject is
+      `unknown` and the exit code is 3 as well. The change to
+      `verdict_to_exit` does NOT affect the `do_self_check` exit-code
+      mapping.
+
+      The revision-2 check `mathc-self-check-verdict-pass` named no
+      scheme the kernel knows: it was never a scheme, so the kernel
+      could not run it, and the `all:` list absorbed the check that
+      never ran under the one that did - the obligation reported
+      `pass` while half of it was unexecuted. `mathc self-check` is
+      not a usable verifier either: the kernel reads exit 3 as a
+      failure, and an obligation verified by the health of the corpus
+      it is part of is a self-reference.
     acceptance:
       all:
         - verifier: tests/cli/self-check-pass.t
-        - verifier: mathc-self-check-verdict-pass
+        - verifier: tests/cli/self-check-unknown.t
 
 reversal:
   - signal: gate-was-not-scaffold

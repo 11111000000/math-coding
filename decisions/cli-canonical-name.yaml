@@ -3,10 +3,11 @@ schema: math-coding/3.2
 id: cli-canonical-name
 revision: 4
 state: active
+negative_control: tests/fixtures/decisions-have-no-mc-prefix.sh
 
-body_sha: "sha256:dfafb8eea3d692a5e344884e0a6493f266a9c7f72ddfd699c576a4aeaf0cfe5a"
+body_sha: "sha256:6fd97c1710d65d0ab41088bc319a99ef99d385ccced837a01dbd2a127387ec83"
 
-yaml_sha: "sha256:dfafb8eea3d692a5e344884e0a6493f266a9c7f72ddfd699c576a4aeaf0cfe5a"
+yaml_sha: "sha256:6fd97c1710d65d0ab41088bc319a99ef99d385ccced837a01dbd2a127387ec83"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -82,10 +83,11 @@ outcomes:
       renamed to `verifier: mathc-*`.
   - id: decision-ids-renamed
     statement: |
-      Decision files whose `id:` starts with `mathc-` are renamed to
-      `mathc-`. The on-disk filename matches the new `id:`. Internal
-      `addresses:` / `supersedes:` references are updated atomically.
-      Each renamed decision is bumped to a new revision.
+      Decision files whose `id:` started with the retired `mc-`
+      prefix were renamed to `mathc-`. The on-disk filename matches
+      the new `id:`. Internal `addresses:` / `supersedes:` references
+      were updated atomically. Each renamed decision was bumped to a
+      new revision.
   - id: site-classes-renamed
     statement: |
       CSS class selectors and HTML `data-mathc-*` attributes in
@@ -176,15 +178,35 @@ obligations:
   - id: decisions-renamed
     outcome: decision-ids-renamed
     claim: |
-      No `decisions/*.yaml` file uses the retired `mc-` prefix
-      as a verifier prefix or as part of its `id:` field. The
-      renames are atomic: file path, `id:`, and any internal
-      `addresses:` / `supersedes:` references are updated
-      together. Each renamed decision's revision is bumped by 1.
+      No decision file in `decisions/` uses the retired `mc-` prefix
+      as the SCHEME token of a verifier, and no decision's `id:`
+      field starts with `mc-`.
+
+      The prefix survives in the corpus as PROSE only: in this
+      decision, which names the retired prefix in order to say what
+      was retired, and in decisions/render-kernel-fixes-2026-10.yaml,
+      which records the class-name drift the rename fixed. Prose is
+      neither a scheme nor an id, so the check does not look at it.
+      Nor is the `mathc-` prefix a retired one - it CONTAINS the
+      letters `mc-`, and `id: mathc-counters-subcommand` is a live
+      id, so the test is a PREFIX test on the scheme token and on the
+      id and never a substring test on a file.
+
+      The check is
+      `tests/fixtures/decisions-have-no-mc-prefix.sh` and not a
+      `shell-grep-absent`, because a fixed-string search cannot state
+      this claim: the text it would have to search for is the text it
+      would have to write down, so the file carrying the check
+      carries the pattern and the check can never be green. The
+      revision-2 check was unsatisfiable for that reason and for one
+      more: the YAML reader leaves the single quotes of
+      `'shell-grep-absent ...'` in place, so the kernel read a scheme
+      named `'shell-grep-absent`, a scheme in no allowlist, and the
+      obligation was reported `skipped` - a promise nobody could
+      keep, carried by the corpus as a promise.
     acceptance:
       all:
-        - verifier: 'shell-grep-absent decisions "- verifier: mc-"'
-        - verifier: 'shell-grep-absent decisions "id: mc-"'
+        - verifier: tests/fixtures/decisions-have-no-mc-prefix.sh
   - id: site-classes-renamed
     outcome: site-classes-renamed
     claim: |

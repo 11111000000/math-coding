@@ -655,7 +655,8 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
    `decisions/verifier-scheme-convention-2026-11.yaml`. The
    canonical allowlist is:
 
-     exact:   file-exists, dir-exists, bash, mathc, shell-grep, dune
+     exact:   file-exists, dir-exists, bash, mathc, shell-grep,
+              shell-grep-absent, dune
      prefix:  text-scan-, tests/, dune-, scripts/, manual-*
 
    The split is: scheme = first whitespace-delimited token of
@@ -674,8 +675,8 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
 
    Author remediation: replace the scheme token with one of
    the canonical tokens (`file-exists`, `dir-exists`, `bash`,
-   `mathc`, `shell-grep`, `dune`) or use a known prefix
-   (`text-scan-*`, `tests/*`, `dune-*`, `scripts/*`,
+   `mathc`, `shell-grep`, `shell-grep-absent`, `dune`) or use a
+   known prefix (`text-scan-*`, `tests/*`, `dune-*`, `scripts/*`,
    `manual-*`). For an unknown scheme that is in active use
    (e.g., a hex-tag identifier like
    `verifier: mathc-validate-runs-on-fixture`), the
@@ -732,9 +733,9 @@ let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
   let msg =
     Printf.sprintf
       "%sverifier scheme %S is not in the canonical list (file-exists, \
-       dir-exists, bash, mathc, shell-grep, dune, text-scan-*, tests/, dune-*, \
-       scripts/, manual-*); convention documented in \
-       decisions/verifier-scheme-convention-2026-11.yaml"
+       dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, \
+       text-scan-*, tests/, dune-*, scripts/, manual-*); convention documented \
+       in decisions/verifier-scheme-convention-2026-11.yaml"
       prefix scheme
   in
   let _ = verifier in
@@ -1227,8 +1228,9 @@ let explain (code : string) : string option =
          with a scheme token that is NOT in the canonical allowlist\n\
          documented in `decisions/verifier-scheme-convention-2026-11.yaml`.\n\
          Canonical exact schemes: `file-exists`, `dir-exists`, `bash`,\n\
-         `mathc`, `shell-grep`, `dune`. Canonical prefixes (the scheme may\n\
-         have any suffix): `text-scan-`, `tests/`, `dune-`,\n\
+         `mathc`, `shell-grep`, `shell-grep-absent`, `dune`. Canonical\n\
+         prefixes (the scheme may have any suffix): `text-scan-`,\n\
+         `tests/`, `dune-`,\n\
          `scripts/`, `manual-`. The verifier string is\n\
          whitespace-split; the FIRST token is the scheme.\n\n\
          ### Occurs when\n\
@@ -1246,8 +1248,9 @@ let explain (code : string) : string option =
          ### Remediation\n\
          Replace the scheme token with a canonical one. For\n\
          shell-style predicates that need a custom check, prefer\n\
-         `bash` + a sandboxed subcommand or `shell-grep` + needle.\n\
-         For in-process fixtures, use `file-exists` / `dir-exists`.\n\
+         `shell-grep` + needle (the needle is PRESENT) or\n\
+         `shell-grep-absent` + needle (the needle is ABSENT). For\n\
+         in-process fixtures, use `file-exists` / `dir-exists`.\n\
          For cross-binary invocations, use `mathc <subcmd>` where\n\
          `<subcmd>` is in the read-only allowlist (validate, assess,\n\
          find, self-check, explain, explain-diagnostic, context,\n\

@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: parser-risk-owner-default
 revision: 2
 state: active
-body_sha: "sha256:3e2a21a08eceb00a87e7a9af1e931ea2648687e20bb63438c06582894f4d626f"
-yaml_sha: "sha256:3e2a21a08eceb00a87e7a9af1e931ea2648687e20bb63438c06582894f4d626f"
+body_sha: "sha256:e44e08cf09d8cdbe08de4aa313bacdc1f5dbfbbe58d11e1881d85c89f51a2222"
+yaml_sha: "sha256:e44e08cf09d8cdbe08de4aa313bacdc1f5dbfbbe58d11e1881d85c89f51a2222"
 intent: |
   Document a kernel parse bug surfaced by the 2026-10-05 audit
   cycle, record the in-tree workaround, and bound the proper
@@ -59,15 +59,21 @@ scope:
 outcomes:
   - id: bootstrap-policy-validates
     statement: |
-      `mathc validate decisions/decision.yaml` exits 0 with the
-      workaround owner field. Without the workaround the file
-      would fail parse_decision with Match_failure (observed in
-      session 2026-10-06).
+      `mathc validate decisions/decision.yaml` exits 0. The file's
+      risk block declares no `owner:`, and the kernel accepts it:
+      the owner default landed in lib/decision.ml, so a risk block
+      without an owner is a valid risk block. Without that default
+      the file would fail parse_decision with Match_failure
+      (observed in session 2026-10-06).
   - id: workaround-documented
     statement: |
-      The `owner: human:maintainer` line at
-      decisions/decision.yaml:121 is referenced in the
-      counterexample and intent of this decision.
+      The workaround this decision recorded is GONE, and the default
+      that replaced it is in the kernel: lib/decision.ml gives a
+      risk block without `owner:` the schema default
+      `human:maintainer`. The `owner: human:maintainer` line that
+      remains in decisions/decision.yaml belongs to its ASSUMPTION
+      block, not to its risk block - which is why the revision-2
+      check could not tell the two apart.
 
 assumptions:
   - id: kernel-fix-deferrable
@@ -91,20 +97,37 @@ obligations:
   - id: bootstrap-validates
     outcome: bootstrap-policy-validates
     claim: |
-      `mathc validate decisions/decision.yaml` exits 0 with the
-      workaround. Without the workaround, parse_decision raises
-      Match_failure and the file is rejected.
+      `mathc validate decisions/decision.yaml` exits 0, although the
+      file's risk block declares no `owner:` at all. The revision-2
+      claim was "exits 0 WITH the workaround"; the workaround is
+      gone, and what the check now proves is the rule the workaround
+      used to stand in for.
+
+      The revision-2 check was `tests/cli/validate-positive.t`, which
+      validates a conformance fixture and not this file at all: a
+      green check that asked a different question.
     acceptance:
       all:
-        - verifier: tests/cli/validate-positive.t
-  - id: workaround-line-present
+        - verifier: mathc validate decisions/decision.yaml
+  - id: owner-default-replaces-the-workaround
     outcome: workaround-documented
     claim: |
-      The line `owner: human:maintainer` appears in
-      decisions/decision.yaml at the risk block.
+      lib/decision.ml gives a risk block that declares no `owner:`
+      the schema default `human:maintainer`, so the kernel's rule
+      replaced the workaround this decision recorded.
+
+      The revision-2 claim was that the line
+      `owner: human:maintainer` appears in decisions/decision.yaml
+      AT THE RISK BLOCK. It does not, and it did not: the line the
+      file carries is in the ASSUMPTION block, and the check that
+      claimed the risk block could not tell the two apart - it
+      searched the whole file for a string, so it was green for the
+      wrong reason. What the claim holds now is the rule the
+      workaround stood in for, and the check below reads that rule
+      out of the kernel's own source.
     acceptance:
       all:
-        - verifier: "shell-grep decisions/decision.yaml owner: human:maintainer"
+        - verifier: shell-grep lib/decision.ml human:maintainer
 
 reversal:
   - signal: kernel-default-owner-landed

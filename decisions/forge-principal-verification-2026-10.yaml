@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-principal-verification
 revision: 1
 state: active
-body_sha: "sha256:486b61c3ac70a30111c5af7932c655717d04d067416e35d85496753470e6c208"
-yaml_sha: "sha256:486b61c3ac70a30111c5af7932c655717d04d067416e35d85496753470e6c208"
+body_sha: "sha256:aed4185bf2960b1e82110b6db56c5458644251974e25036aa87f1e3d9f87d97e"
+yaml_sha: "sha256:aed4185bf2960b1e82110b6db56c5458644251974e25036aa87f1e3d9f87d97e"
 axiom_link:
   - A1
   - A4
@@ -177,11 +177,14 @@ obligations:
       `tests/cli/forge-verify.t` asserts that the JSON shape is
       `verdict`/`forge_queried`/`matched?`/`org`/`team`/`user`/
       `fail_mode`/`reason`, and that the verdict follows the
-      fail-mode contract.
+      fail-mode contract. This decision's own record is read by the
+      same kernel that runs the test: `mathc validate` on it exits 0
+      with no diagnostic, so the promise is not carried by a file the
+      kernel cannot read.
     acceptance:
       all:
         - verifier: tests/cli/forge-verify.t
-        - verifier: mathc-validate
+        - verifier: mathc validate decisions/forge-principal-verification-2026-10.yaml
 
   - id: fail-open-default
     outcome: fail-open-default
