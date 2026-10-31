@@ -33,10 +33,15 @@
 # THE VOCABULARY, since the three were named as if they were one
 # thing:
 #
-#   master policy   the protocol's document, ONE source:
+#   master policy   the protocol's document: the decision a project
+#                   starts from (`id: bootstrap-v3`). ONE source IN
+#                   THIS REPOSITORY:
 #                   `templates/master-policy.yaml`. Every copy of it
 #                   is GENERATED (scripts/sync-master-policy.sh) and
 #                   checked (tests/fixtures/master-policy-one-source.sh).
+#                   An exported core (scripts/export-core.sh) carries
+#                   the master policy inside the binary instead, and
+#                   `mathc init` writes it.
 #   active policy   a project's instance of the master policy: the
 #                   file the kernel reads, located by id
 #                   (`bootstrap-v3`). In this repository it is

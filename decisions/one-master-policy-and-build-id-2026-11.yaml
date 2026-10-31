@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 negative_control: tests/fixtures/master-policy-one-source.sh
-body_sha: "sha256:42b10baddc2bdf4a3a56abf62aef7fd8b3e668f139c05d85a9df45c5884c4d85"
-yaml_sha: "sha256:42b10baddc2bdf4a3a56abf62aef7fd8b3e668f139c05d85a9df45c5884c4d85"
+body_sha: "sha256:daf83406ae736524b4150922a26f6758fd200493d9f2e538c009abb29974a3a4"
+yaml_sha: "sha256:daf83406ae736524b4150922a26f6758fd200493d9f2e538c009abb29974a3a4"
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T4.2)"
   text: |
@@ -229,6 +229,24 @@ commitment: |
     the same script, and the script's output is the file, so nothing
     had to change -- but the next change to the master policy will
     touch `lib/init/init.ml`, and that tranche needs `lib/` free.
+  - It does not change the EXPORTED core. Tranche T4.1
+    (`decisions/exportable-core-boundary-2026-11.yaml`) cut the
+    transferable core with an allowlist: the kernel, `policies.yaml`,
+    the three artifact locations and the skill. The master policy is
+    not in that allowlist, and the export copies `policies.yaml` byte
+    for byte -- so the exported tree carries the master policy inside
+    the BINARY (`lib/init/init.ml` is exported with the kernel) and
+    `mathc init` writes it, which is right for the adopter, while
+    the exported `policies.yaml` names a source file that is not in
+    the export. T4.1's decision carries this as a declared trigger
+    ("if T4.2 changes policies.yaml or the master-policy layout, the
+    exported policy can describe a layout the adopter no longer
+    has"), and the trigger FIRED. The follow-up belongs to T4.1:
+    adding `templates/master-policy.yaml` to the export allowlist
+    changes that decision's script, its fixture and its scope, and
+    this tranche does not touch another tranche's boundary. The
+    header of `policies.yaml` says which of its sentences hold in
+    this repository and which hold in an exported core.
 
 axiom_link:
   - A0
