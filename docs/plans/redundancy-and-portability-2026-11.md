@@ -373,38 +373,55 @@ decision is written out under T2.4 above.
 
 Merged into `main`, each with its own decision and its own evidence:
 
-| tranche | branch | what it changed | evidence |
-|---|---|---|---|
-| T0.1 | `feat/redundancy-census-2026-11` | the census, this plan, `decisions/redundancy-census-2026-11.yaml` | the instrument's own negative control |
-| T0.1a | `fix/census-measurement-precision-2026-11` | the census stopped mirroring the kernel: PAPER is the kernel's answer over an empty store, BROKEN is the kernel's own `MC-VERIFIER-SCHEME-UNKNOWN`, ARCHIVE_ACTIVE counts only files carrying a `math-coding/3.x` schema | 46 -> 44 paper obligations; 104 archives counted as decisions instead of 112 |
-| T0.1b | `fix/census-ceiling-markers-2026-11` | the marker a ceiling raise must carry, in the format `scripts/ceiling-monotonic.sh` reads | the checker caught my own wrong marker and made me fix it |
-| T0.2 | `feat/instruments-repair-2026-11` | the `MC_VERSION` check back in both copies of the skill, `tests/fixture_coverage.ml` measuring levels instead of existence, `tests/cli/attest-batch-signature.t` exercising `--manifest` | 77 cram fixtures measured: 0 without an accepting case, 51 without a rejecting one |
-| T1.2 + T1.3b | `feat/protected-paths-and-empty-diff-2026-11` | one protected-path list in `scripts/protected-paths.txt` with two matchers that check each other, and a gate that answers `unknown` instead of `pass` on an empty diff | the gate's own output on an empty diff |
-| T0.3 | `feat/corpus-growth-lints-2026-11` | two lints so the corpus cannot grow back: a verifier scheme outside the canonical list, a relation target that resolves to nothing | both fixtures, each with a synthetic corpus that must be caught |
-| - | `feat/skill-single-source-2026-10` | the skill has one owner for the applicability rule (section 28); the corpus checks that the surfaces agree instead of grepping for a phrase | `scripts/check-applicability-agreement.sh` |
-
-Running now, one branch each, three agents on the second minimax
-account (the first one ran out of tokens mid-session):
-
-| tranche | branch | owns |
+| tranche | what it changed | evidence |
 |---|---|---|
-| T2.3 | `feat/corpus-tranche-broken-schemes-2026-11` | five decisions with an unexecutable verifier scheme, `lib/diagnostic.ml`, three new fixtures |
-| T1.1 + T1.3a | `feat/risk-and-scaffold-honesty-2026-11` | `lib/risk.ml`, `lib/policy.ml`, `lib/new_decision/`, `spec/algebra-3.2.md` section 2, one new cram fixture |
-| T2.1 | `feat/corpus-tranche-archive-records-2026-11` | fourteen records to `archive/decisions/` |
+| T0.1 | the census, this plan, `decisions/redundancy-census-2026-11.yaml` | the instrument's own negative control |
+| T0.1a | the census stopped mirroring the kernel: PAPER is the kernel's answer over an empty store, BROKEN is the kernel's own `MC-VERIFIER-SCHEME-UNKNOWN`, ARCHIVE_ACTIVE counts only files carrying a `math-coding/3.x` schema | 46 -> 44 paper obligations; 104 archives counted as decisions instead of 112 |
+| T0.1b | the marker a ceiling raise must carry, in the format `scripts/ceiling-monotonic.sh` reads | the checker caught my own wrong marker and made me fix it |
+| T0.1c | the census prints the ITEMS behind its counts (`--list`), because a number nobody can act on is a number, not a measurement | my own reconstruction counted 576 dead paths; the instrument knew 20 |
+| T0.2 | the `MC_VERSION` check back in both copies of the skill, `tests/fixture_coverage.ml` measuring levels instead of existence, `tests/cli/attest-batch-signature.t` exercising `--manifest` | 77 cram fixtures measured: 0 without an accepting case, 51 without a rejecting one |
+| T1.2 + T1.3b | one protected-path list in `scripts/protected-paths.txt` with two matchers that check each other, and a gate that answers `unknown` instead of `pass` on an empty diff | the gate's own output on an empty diff |
+| T0.3 | two lints so the corpus cannot grow back: a verifier scheme outside the canonical list, a relation target that resolves to nothing | both fixtures, each with a synthetic corpus that must be caught |
+| T1.1 + T1.3a | the risk function's dead branches, an unknown `mode_floor` named instead of silently downgraded, and a scaffold that a strict parser can read | `tests/fixtures/risk-dead-branches-gone.sh`, `tests/cli/policy-unknown-mode-floor.t`, `tests/cli/new-decision-scaffold.t` |
+| T2.3 | eight promises that named a verifier the kernel could not execute, or one that did not check its own claim; the diagnostic prints the list the kernel owns | BROKEN 5 -> 0, PAPER 44 -> 38 |
+| T2.1 | twelve records moved to `archive/decisions/` with `state: retired`; two stayed for reasons that are not taste | the corpus criterion, and the pointer repairs each move needed |
+| T2.2a | the corpus's relation and scope debt paid: 44 dangling targets and 20 dead scope paths, both zero now | both instruments report zero, and the census lists no item |
 
-Two things about how the wave ran, written down because both cost a
-session:
+The numbers after the wave (2026-10-31):
 
-- The heavy check is `dune build @runtest`, and four agents running it
-  at once on four cores killed three of them. The instructions now say:
-  build, run the cram files the tranche touches, and leave the whole
-  suite to the orchestrator after the merge.
-- The minimax token plan ran out mid-session and took the unfinished
-  work with it. Everything is committed at the end of every item now,
-  so a session that dies leaves a checkpoint in history instead of a
-  gap.
+| number | before | now |
+|---|---|---|
+| CORPUS - decisions in the live corpus | 144 | 136 |
+| PAPER - obligations the kernel cannot execute | 44 | 36 |
+| BROKEN - verifier schemes the kernel does not know | 5 | 0 |
+| DANGLING - relation targets that resolve to nothing | 44 | 0 |
+| DEAD - scope paths matching no tracked file | 20 | 0 |
+| ARCHIVE_ACTIVE - archived decisions still saying `state: active` | 104 | 104 |
 
-The merge order is the orchestrator's, not the agents': each branch is
-reviewed file by file, the ceilings are lowered to what was measured,
-and `main` is checked with the fixtures before the next branch lands.
+Three things the wave cost, written down because they were not
+obvious:
 
+- **The corpus is a mechanism, not a filing cabinet.** A record that
+  the corpus's own machinery names is entangled with that machinery:
+  its verifier, its relations, a hook that points at it. The first
+  pass of the archive tranche moved one file of fourteen because the
+  brief said "nothing names it"; the plan says "nothing depends on
+  it", and with the difference made explicit eleven of the remaining
+  thirteen moved.
+- **A mention is not a dependency, and a path is not an id.** Nineteen
+  of the corpus's files carry an `id:` that differs from the file's
+  stem, and the revision is part of a reference - so a relation
+  written against the file name resolves to nothing. Half of the
+  corpus's dangling targets were that habit and nothing else.
+- **Five sessions died and the work did not.** Four of them on the
+  shared SQLite file every opencode session writes to (the fix: one
+  agent per provider), one on the token plan of the first minimax
+  account (the fix: the second account). Everything now ends in a
+  commit, and the wave's own rule is that a tranche is checked by the
+  instruments rather than by the reader of a diff.
+
+What is left, in the plan's order: T2.2b (the decisions whose claims
+no longer hold - judgment, one at a time, not a pattern), T2.4 (the
+debt counter grows three numbers where it had one), T3 (the contract
+of the kernel: 322 references to the spec in 120 files), T4 (the
+portable core), T5 (the measurement and the book).
