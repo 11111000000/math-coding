@@ -14,10 +14,10 @@ unknown-scheme-flagged-obligation, one on obligation
 mixed-known-and-unknown-obligation). The verdict is still parse-ok.
 
   $ $INSIDE_DUNE/bin/mathc.exe validate fixtures/conformance/decision/positive-verifier-scheme-unknown.json
-  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "mathc-foo-impl-runs-on-fixture" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/, dune-*, scripts/, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
-  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "binary-exists" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/, dune-*, scripts/, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
-  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "brew-tap-installed" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/, dune-*, scripts/, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
-  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation mixed-known-and-unknown-obligation: verifier scheme "mathc-bogus-impl-runs" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/, dune-*, scripts/, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
+  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "mathc-foo-impl-runs-on-fixture" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/*, dune-*, scripts/*, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
+  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "binary-exists" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/*, dune-*, scripts/*, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
+  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation unknown-scheme-flagged-obligation: verifier scheme "brew-tap-installed" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/*, dune-*, scripts/*, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
+  [warn] input/MC-VERIFIER-SCHEME-UNKNOWN: obligation mixed-known-and-unknown-obligation: verifier scheme "mathc-bogus-impl-runs" is not in the canonical list (file-exists, dir-exists, bash, mathc, shell-grep, shell-grep-absent, dune, text-scan-*, tests/*, dune-*, scripts/*, manual-*); convention documented in decisions/verifier-scheme-convention-2026-11.yaml
   parse-ok: fixtures/conformance/decision/positive-verifier-scheme-unknown.json
     decision: verifier-scheme-unknown-demo
     revision: rev:cafe02
@@ -38,7 +38,7 @@ mathc explain-diagnostic resolves the new code to its
 three-section body (Definition, Occurs when, Remediation):
 
   $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-VERIFIER-SCHEME-UNKNOWN | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
-  {"code":"MC-VERIFIER-SCHEME-UNKNOWN","def_len":481,"occ_len":640,"rem_len":632}
+  {"code":"MC-VERIFIER-SCHEME-UNKNOWN","def_len":486,"occ_len":778,"rem_len":632}
 
 The unknown-code error path in mathc explain-diagnostic now lists
 MC-VERIFIER-SCHEME-UNKNOWN in the supported-codes envelope:

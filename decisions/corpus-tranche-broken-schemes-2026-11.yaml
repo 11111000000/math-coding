@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
-body_sha: "sha256:22c3931b29a36a72c3f82a57e053b3d5bda1bcef542d6816ff4664b9663f6c96"
-yaml_sha: "sha256:22c3931b29a36a72c3f82a57e053b3d5bda1bcef542d6816ff4664b9663f6c96"
+body_sha: "sha256:1b62957e99f7e71de75427740b8ccdfcbb7f3269eab56045071a17e9a05c90f9"
+yaml_sha: "sha256:1b62957e99f7e71de75427740b8ccdfcbb7f3269eab56045071a17e9a05c90f9"
 
 intent: |
   Five obligations in five decisions named a verifier scheme the
@@ -99,6 +99,10 @@ intent: |
     diagnostic called non-canonical, and told an author that
     `shell-grep-absent` was a broken verifier - which is why the
     decision that used it wrapped it in single quotes to begin with.
+    This tranche removes the copy instead of correcting it: the
+    diagnostic now RENDERS the kernel's two bindings, so the list
+    the message prints is the list the kernel holds, and a scheme
+    the kernel learns is in the message the moment it learns it.
 
     The census's BROKEN counter measured 5 verifier strings whose
     first character is a quote. After this tranche it measures 0,
@@ -130,13 +134,16 @@ commitment: |
      is left naming a scheme outside the allowlist, and the corpus's
      BROKEN counter is 0.
 
-  2. The canonical allowlist is stated in ONE form: the kernel's
-     binding, the diagnostic that reports membership in it, and the
-     decision that documents it name the same seven exact schemes
-     and the same five prefixes. The kernel's own behaviour is the
-     authority, and it is asked: the fixture reads the list out of
-     the diagnostic and asks the kernel about every entry, so a
-     list that names a scheme the kernel does not accept is caught.
+  2. The canonical allowlist is stated in ONE place: the kernel's
+     own binding (`canonical_verifier_schemes` and
+     `canonical_verifier_prefixes` in bin/Mathc.ml). The diagnostic
+     that reports membership in it RENDERS that binding - it keeps
+     no copy of its own - and the convention decision names the
+     binding as the authority instead of restating it. The kernel's
+     own behaviour is the authority, and it is asked: the fixture
+     reads the list out of the diagnostic and asks the kernel about
+     every entry, so a list that names a scheme the kernel does not
+     accept is caught.
 
   3. A claim states what its verifier checks. Two claims that were
      false - the retired `owner:` workaround and the aggregator's
@@ -294,9 +301,10 @@ outcomes:
       declarations.
   - id: the-allowlist-is-honest
     statement: |
-      Every scheme the diagnostic names as canonical is a scheme the
-      kernel accepts, and the list the diagnostic names is the list
-      the convention decision documents.
+      The diagnostic names the schemes the kernel accepts, because
+      it renders the kernel's own binding instead of keeping a copy
+      of it, and the convention decision names that binding as the
+      authority instead of restating it.
   - id: the-promises-state-what-their-checks-check
     statement: |
       The two claims that were false state the facts that hold, and
@@ -307,11 +315,18 @@ obligations:
     outcome: the-allowlist-is-honest
     claim: |
       Every scheme the kernel's diagnostic names as canonical is a
-      scheme the kernel accepts, and the list the diagnostic names is
-      the list `decisions/verifier-scheme-convention-2026-11.yaml`
+      scheme the kernel accepts, and the list the diagnostic names
+      is the list `decisions/verifier-scheme-convention-2026-11.yaml`
       documents. The list is read OUT of the kernel's own diagnostic
       definition and asked about one scheme at a time, so this
       fixture cannot hold a stale copy of the kernel's answers.
+
+      The diagnostic holds no copy either: it renders the kernel's
+      two bindings, so the list it prints cannot drift from the
+      list the kernel executes. That is what the corpus's own
+      history demands - the copy that used to live there named six
+      exact schemes and omitted the seventh, and the omission is
+      what put a quoted `shell-grep-absent` into the corpus.
     acceptance:
       all:
         - verifier: tests/fixtures/verifier-schemes-are-canonical.sh
