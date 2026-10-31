@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:f31f70a776090b6ed790b6c5562c73bb768d537a747a983f4053012c1f67aac2"
-yaml_sha: "sha256:f31f70a776090b6ed790b6c5562c73bb768d537a747a983f4053012c1f67aac2"
+body_sha: "sha256:cba40f6784899c53757bf391badc2eea191e4ac9bd5528b2ca8e9cd4276105a2"
+yaml_sha: "sha256:cba40f6784899c53757bf391badc2eea191e4ac9bd5528b2ca8e9cd4276105a2"
 
 axiom_link:
   - A0
@@ -48,6 +48,10 @@ intent: |
   the corpus INTENDS not to keep by machine, and they belong to the
   census of promises, not to a spelling.
 
+  2026-11: the four plan tranches this scope named moved from
+  decisions/plan-2026-10-improvements/ to docs/plans/, and the scope names
+  them where they are.
+
 commitment: |
   1. A verifier string names a scheme and its arguments, and nothing
      else: the prose around a check belongs in the claim.
@@ -71,10 +75,10 @@ outcomes:
 
 scope:
   paths:
-    - "decisions/plan-2026-10-improvements/t3-2.yaml"
-    - "decisions/plan-2026-10-improvements/t4-1.yaml"
-    - "decisions/plan-2026-10-improvements/t6-2.yaml"
-    - "decisions/plan-2026-10-improvements/t1-2.yaml"
+    - "docs/plans/t3-2.yaml"
+    - "docs/plans/t4-1.yaml"
+    - "docs/plans/t6-2.yaml"
+    - "docs/plans/t1-2.yaml"
     - "decisions/paren-balance-fix-2026-10.yaml"
     - "decisions/process-principles.yaml"
     - "decisions/site-redesign-2026-10.yaml"

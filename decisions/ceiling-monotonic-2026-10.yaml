@@ -5,8 +5,8 @@ revision: 2
 state: superseded
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
-body_sha: "sha256:b2ef21bb835d2ce2c124c5890eb9a2b4d3eaba099f0d41ded2977a39a08985d6"
-yaml_sha: "sha256:b2ef21bb835d2ce2c124c5890eb9a2b4d3eaba099f0d41ded2977a39a08985d6"
+body_sha: "sha256:a9fa54ead32d4aedaf3153327382b66d7677072fba005262dc9ef2403e0c64e2"
+yaml_sha: "sha256:a9fa54ead32d4aedaf3153327382b66d7677072fba005262dc9ef2403e0c64e2"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -48,6 +48,13 @@ intent: |
   keep it could not see either failure: a silent raise leaves the
   number alone, and a deleted comparison leaves the number alone.
   Both are invisible to a reader who looks at the number.
+
+  2026-11: the decision this one addressed under
+  "scope-invalidation-breadth-2026-10" was deleted from the corpus on
+  2026-10-29, and its relation entry is gone with it. The record of
+  what happened to the breadth measurement it pinned is
+  decisions/corpus-meta-layer-2026-10.yaml, which took the fixture
+  with it.
 
 axiom_link:
   - A0
@@ -255,7 +262,6 @@ relations:
   addresses:
     - legacy-attestation-debt-2026-10@1
     - executed-evidence-census-2026-10@1
-    - scope-invalidation-breadth-2026-10@1
     - negative-control-required-2026-10@1
   supersedes: []
   superseded_by:

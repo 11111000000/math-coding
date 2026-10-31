@@ -1,0 +1,378 @@
+---
+schema: math-coding/3.3
+id: corpus-relations-and-scope-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/redundancy-census.sh
+body_sha: "sha256:5b2c93fe7216216454f1fd5c03f45332ad0c57f5667609cd17a80f68929d2e6d"
+yaml_sha: "sha256:5b2c93fe7216216454f1fd5c03f45332ad0c57f5667609cd17a80f68929d2e6d"
+
+intent: |
+  THE CORPUS NAMED THINGS IT DOES NOT HAVE, AND NOTHING SAID SO.
+
+  Measured on 2026-10-31 at main 971f6f80, with the two instruments
+  the corpus owns:
+
+    tests/fixtures/relation-targets-resolve.sh
+      201 relation targets in the live corpus, over the 9 relation
+      kinds schemas/decision.json declares and 2 the corpus adds.
+      44 of them resolve to nothing:
+        33  name a decision that exists neither live nor archived
+        10  name a file that does not exist
+         1  names a decision that exists and an obligation inside it
+            that does not (attestation-store-fill@2::ci-block-set)
+       2  name an AXIOM where the schema declares a relation
+          between decisions
+       1  sits under a relation key (amends) the schema does not
+          have
+
+    tests/fixtures/redundancy-census.sh
+      DANGLING 44   (its own split: 34 read as an id, 10 as a path)
+      DEAD     20   scope paths that match no tracked file
+      CORPUS  145   decision files in the live corpus
+
+  The two numbers are the same SIZE and not the same SET, and the
+  difference is five entries in five places:
+
+    - the census counts `addresses: A1` and `addresses: A3` as
+      dangling; the lint has a class of its own for them, because
+      they resolve to an AXIOM and not to nothing.
+    - the census counts `addresses:
+      ROADMAP.md#process-principles-binding-on-all-agents` as
+      dangling; it reads the whole target as an id, while the file
+      ROADMAP.md exists.
+    - the lint sees two targets the census cannot: the census spells
+      the relation kind `refines` as `revines`, and the corpus has
+      twelve targets under `refines:`.
+    - the lint sees one target the census resolves: the fragment
+      `attestation-store-fill@2::ci-block-set`, whose decision
+      exists and whose obligation inside it does not.
+
+  TWO HABITS PRODUCE ALL OF IT, AND THEY ARE ONE HABIT SEEN TWICE.
+
+  (1) THE NAME IN THE RELATION IS NOT A NAME IN THE CORPUS. The
+  corpus is keyed by id, and a relation is written against the
+  file's stem: 19 of the corpus's files carry an id that differs from
+  their stem (`exit-code-symmetry-2026-10.yaml` declares
+  `id: exit-code-symmetry`; `ceiling-monotonic-2026-10.yaml`
+  declares `id: ceiling-monotonic`). The same habit in the path
+  direction: when the corpus moved, the names stayed behind. Eight
+  targets named `bootstrap/*.yaml` after the migration to
+  `decisions/`; five named plan tranches under
+  `decisions/plan-2026-10-improvements/` after they moved to
+  `docs/plans/`; five scope paths named `AGENTS.md` after that file
+  was renamed `KERNEL_AGENTS.md`.
+
+  (2) THE RELATION IS A CLAIM ABOUT A HISTORY THE CORPUS DOES NOT
+  HAVE. The cull of 2026-10-29 (commit 9a1e23cbf) took 45 decisions
+  out of the corpus, and the relations that named them stayed: a
+  deleted decision leaves behind a link that resolves to nothing and
+  reads exactly like a link to something that exists. A plan tranche
+  was never a decision. And a promise that was REFUSED reads exactly
+  like a promise that was forgotten: install-tooling-2026-10 promised
+  an automatic per-user skill update, and the record that had
+  deferred it said why it should never happen.
+
+  WHY NOBODY NOTICED. The kernel resolves no relation target at all:
+  `mathc mark-superseded --by=<id>@<rev>` validates the SHAPE of a
+  reference (lib/lifecycle/lifecycle.ml::parse_by) and never asks
+  whether the decision exists, and no command walks the relation
+  blocks. The corpus's own rendered view of itself believed the dead
+  names, which the corpus's lint decision measured and recorded
+  (decisions/corpus-growth-lints-2026-11.yaml):
+  `mathc graph --decision=corpus-meta-layer-2026-10` drew three
+  nodes that are not in the corpus. A scope path has the same silence
+  and worse consequences: a scope that names nothing contributes
+  nothing to the materials digest, and an empty digest is the
+  freshness wildcard - the attestation stays fresh for every tree,
+  for ever.
+
+  AFTER THIS DECISION: zero relation targets that resolve to
+  nothing, zero scope paths that match no tracked file, and the
+  axiom class falls from 2 to 0. The one target under an undeclared
+  relation key is left alone on purpose: `amends` is not a broken
+  link, it is a vocabulary question, and the corpus's own lint gives
+  it a ceiling of its own for exactly that reason.
+
+commitment: |
+  After this decision closes:
+
+  1. Every relation target in the live corpus names something that
+     exists: a decision id, live or archived, or a file in the tree.
+     A path form names a path an instrument can recognise as a path
+     - it carries a slash, or it ends in an extension the instrument
+     reads as a file - because a bare name with no extension is read
+     as an id, and an id the corpus does not hold resolves to
+     nothing.
+
+  2. A relation that is REMOVED leaves a line in the decision's own
+     text saying what became of the promise. The line sits in the
+     intent, or in the scope comment where a scope path is pruned,
+     and it says one of three things: the promise was kept by
+     something that still exists, the promise was REFUSED, or the
+     record it named was deleted from the corpus on a named date.
+
+  3. Every scope path in the live corpus matches a tracked file. A
+     scope path that names nothing contributes nothing to the
+     materials digest, and an empty digest is the freshness
+     wildcard.
+
+  4. The two instruments report zero. The lint reports zero
+     relation targets that resolve to nothing; the census reports
+     zero dead scope paths. The axiom class falls from two to zero,
+     because an axiom belongs in axiom_link and not in the relation
+     block. The undeclared class stays at one and is NOT paid here.
+
+  5. The corpus-count ceiling of the census is raised by the change
+     that lands this decision, from 145 to 146, carrying the marker
+     the ratchet reads: a decision that measures the corpus is in the
+     corpus it counts. The same precedent stands at
+     decisions/corpus-growth-lints-2026-11.yaml, which raised it
+     from 144 to 145 for the same reason.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A3
+
+counterexample: |
+  The strongest objection is the one this decision's own rule risks
+  committing: DELETING A RELATION IS A QUIET PROMISE THAT STOPPED
+  EXISTING, AND THE READER OF THE DECISION DOES NOT LEARN THAT THE
+  PROMISE IS GONE.
+
+  It is partly true, and the part that is true is the limit of this
+  decision.
+
+  The answer is the second clause of the commitment: every removal
+  leaves a line in the decision that carried it. Thirteen decisions
+  dropped something - a relation target, a scope path, or an axiom
+  that sat in the relation block - and each says in its own text what
+  happened to it: kept by something that still exists, refused on
+  purpose, or deleted from the corpus on 2026-10-29. A reader of
+  corpus-meta-layer-2026-10 learns that the two decisions it
+  superseded are gone; a reader of install-tooling-2026-10 learns
+  that the Alpine image shipped as a file and that the automatic
+  per-user skill update was refused on purpose.
+
+  What the objection names correctly is that the line is PROSE.
+  Nothing checks that a removed relation left a line, and the
+  instruments cannot see it: the census counts targets, not
+  explanations. So this decision adds a rule that a program cannot
+  enforce, and the corpus has learned that a rule a program cannot
+  enforce is a rule that decays. The honest form of the risk is in
+  the assumptions below: the rule holds only as long as the
+  decisions that carry it are read.
+
+  Two weaker objections, and their answers.
+
+  (a) "ARCHIVE THE DECISIONS INSTEAD OF REPAIRING THEIR LINKS. A
+  link that names nothing is a symptom; the cure is to delete the
+  decision that carries it." True for the decisions that are
+  records, and it is the job of the tranche running in parallel with
+  this one. It does not help the decisions that stay: 44 dangling
+  targets and 20 dead scope paths were spread over 34 decisions,
+  most of them rules the project still keeps. And a link repaired
+  costs one line; a decision deleted costs the corpus its memory
+  of why the rule exists.
+
+  (b) "THE TWO INSTRUMENTS DISAGREE IN FIVE PLACES, SO NEITHER
+  NUMBER IS THE TRUTH." The disagreement is real and it is not
+  settled here: the fixtures belong to the orchestrator, and the
+  census's relation-key list still spells `refines` as `revines`.
+  What this decision settles is the corpus, not the instruments: the
+  corpus now satisfies BOTH readings, so the disagreement between the
+  instruments no longer hides a single dangling target. The next
+  corpus that grows one will be seen by the census AND by the lint,
+  and the five-entry gap between them will be a disagreement about
+  vocabulary rather than about what is broken.
+
+antithesis: |
+  The opposite claim is that this tranche is the wrong repair: the
+  corpus is too big for its links to be worth fixing, and the honest
+  response is to let the lints report the numbers and to spend the
+  effort on the kernel instead.
+
+  The claim identifies a real cost. This tranche touched 35
+  decisions, and every one of them is a decision somebody wrote
+  about something else; a reader of the corpus now has to read a
+  repair in the middle of a rule. The effort is not free and the
+  corpus did not ask for it.
+
+  It is rejected on what the numbers are. The corpus's own plan
+  (docs/plans/redundancy-and-portability-2026-11.md, T2.2a) asks for
+  exactly this work, and the reason it asks for it is that the
+  alternative - a corpus with 44 dangling targets and 20 dead scope
+  paths - is a corpus whose OWN VIEW OF ITSELF is wrong. The
+  corpus's graph command draws decisions that are not there; a scope
+  that names nothing is a digest of nothing, and a digest of
+  nothing keeps an attestation fresh against every tree for ever.
+  Those are not bookkeeping nuisances. They are the two ways the
+  corpus can say a thing is true when nothing has been checked.
+
+  And the claim inverts the cost. The repair was 35 decisions and
+  one measurement per edit; the repair NOT made leaves a number that
+  grows by one every time a decision is written, and every future
+  audit of this corpus begins by reading 146 files because nothing
+  can tell a reader which of them are about the corpus's own shape.
+  The census and the lint already exist; the corpus they read does
+  not.
+
+  What the opposite claim gets right, and what this decision
+  accepts, is that a repair is not a cure. The corpus will grow
+  links again, and the instruments report rather than block. The
+  ceilings are the standing answer: they may only fall, and when
+  they reach zero the two instruments can become a gate. Until
+  then, the corpus pays this repair once and the instruments keep
+  the distance visible.
+
+outcomes:
+  - id: the-relation-targets-resolve
+    statement: |
+      Every relation target in the live corpus names a decision that
+      exists, live or archived, or a file that exists. The lint
+      reports zero of them resolving to nothing.
+  - id: the-scope-paths-match-a-tracked-file
+    statement: |
+      Every scope path in the live corpus matches a tracked file, so
+      every decision's materials digest is a digest of something. The
+      census reports zero dead scope paths.
+  - id: the-removals-are-explained
+    statement: |
+      Every relation and scope path this tranche removed left a line
+      in the decision that carried it, saying whether the promise was
+      kept, refused, or deleted with the corpus.
+  - id: the-instruments-agree-about-the-corpus
+    statement: |
+      The census and the lint report zero over the same corpus, so
+      the five-entry disagreement between their resolution rules no
+      longer hides a broken target.
+
+scope:
+  paths:
+    - "decisions/**"
+    - "tests/fixtures/redundancy-census.sh"
+    - "tests/fixtures/relation-targets-resolve.sh"
+    - "scripts/ceiling-monotonic.sh"
+    - "decisions/corpus-relations-and-scope-2026-11.yaml"
+  exclusions:
+    - "attestations/**"
+    - "_build/**"
+
+obligations:
+  - id: the-relation-targets-resolve
+    claim: |
+      tests/fixtures/relation-targets-resolve.sh reports zero relation
+      targets in the live corpus that resolve to neither a decision id
+      nor an existing file, and zero that name an axiom.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: the-scope-paths-match-a-tracked-file
+    claim: |
+      tests/fixtures/redundancy-census.sh reports zero scope paths in
+      the live corpus that match no tracked file.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-ceilings-may-only-fall
+    claim: |
+      scripts/ceiling-monotonic.sh compares every ceiling in the
+      fixture files with its value at the base commit and fails when
+      one grows, so the number this tranche paid cannot be paid back.
+    acceptance:
+      all:
+        - verifier: scripts/ceiling-monotonic.sh
+
+  - id: this-decision-validates
+    claim: |
+      mathc validate decisions/corpus-relations-and-scope-2026-11.yaml
+      exits 0 with verdict parse-ok.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-relations-and-scope-2026-11.yaml
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a relation target is added that names a decision the corpus does not hold, and the class grows again"
+    - "the corpus-count ceiling of the redundancy census is raised to accommodate a decision that measures the corpus, without the marker the ratchet reads"
+    - "a scope path is pruned without a line saying why, and a reader cannot tell a moved file from a forgotten promise"
+    - "one of the two instruments changes its resolution rule and the corpus is judged by the rule that is stricter"
+  the-corpus-count-ceiling-must-rise-with-this-decision: |
+    Expected, and the same thing happened at
+    decisions/corpus-growth-lints-2026-11.yaml, which raised the
+    ceiling from 144 to 145 because its own decision was in the
+    corpus it counts. The raise is an explicit edit of the fixture
+    with the marker scripts/ceiling-monotonic.sh reads, and it lands
+    with this decision rather than after it.
+  a-removed-relation-without-a-line: |
+    The rule that a removed relation leaves a line is prose, and
+    nothing checks it. The instruments count targets, not
+    explanations. The exposure is bounded by the size of the repair -
+    35 decisions - and by the fact that each of them says in its own
+    text what happened to the promise.
+
+assumptions:
+  - id: the-corpus-is-keyed-by-id
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A decision is named by the id it declares, not by the name of
+      the file it lives in. The kernel reads the top-level id
+      (lib/memory.ml::decision_document_id) and both instruments
+      resolve against it, so a relation that names a file's stem
+      names nothing.
+    consequence_if_false: |
+      If the corpus were keyed by file name, the 19 files whose id
+      differs from their stem would have been resolvable all along,
+      and this tranche would have deleted eight relations that
+      pointed at things that exist. The two instruments would then
+      be the wrong authority, and the corpus-growth-lints decision
+      that introduced them would have to be re-read.
+    review_on:
+      - signal: the-kernel-resolves-a-relation-by-file-name
+  - id: a-removed-relation-must-leave-a-word
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A relation removed without a line in the decision is a promise
+      that stopped existing silently, so the line is part of the
+      repair and not a courtesy. This is the one rule in this
+      decision that no program enforces.
+    consequence_if_false: |
+      The corpus fills up with decisions whose relation blocks are
+      shorter than they were, with nothing to say why. The reader
+      who needs the trail - the one asking which decision promised
+      the thing that is not there - finds silence, and the corpus
+      returns to the state this tranche measured, with a smaller
+      number of links and no more truth.
+    review_on:
+      - signal: a-removed-relation-is-noticed-with-no-line-beside-it
+  - id: the-instruments-are-the-authority-on-what-resolves
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The rule for what a relation target resolves to lives in the two
+      fixtures, and it is read rather than copied: the relation kinds
+      out of schemas/decision.json, the rule for what a decision is
+      out of lib/memory.ml. The corpus satisfies both readings, so
+      the five entries where the two rules disagree cost nothing.
+    consequence_if_false: |
+      A corpus that satisfies one rule can still break under the
+      other, and the reader has to know which rule the number came
+      from before the number means anything. The fix is a change to
+      the fixtures, which are the orchestrator's, and not to the
+      corpus.
+    review_on:
+      - signal: a-fixture-changes-its-resolution-rule
+
+relations:
+  addresses:
+    - corpus-growth-lints-2026-11@1
+    - redundancy-census-2026-11@1
+    - corpus-meta-layer-2026-10@2

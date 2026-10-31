@@ -4,8 +4,8 @@ id: re-evaluation-is-not-a-check
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:783cb65f1c1a14d95ea039024d6bccf655d92deee709036e5cd26cc55966948a"
-yaml_sha: "sha256:783cb65f1c1a14d95ea039024d6bccf655d92deee709036e5cd26cc55966948a"
+body_sha: "sha256:5da725f42f0df33ab06b98191baaeaef22d24528b9a563b7c6dd1684e5c3a016"
+yaml_sha: "sha256:5da725f42f0df33ab06b98191baaeaef22d24528b9a563b7c6dd1684e5c3a016"
 intent: |
   Stop the re-evaluation oracle from writing evidence it never
   gathered.
@@ -81,7 +81,7 @@ risk:
 relations:
   addresses:
     - honest-attestation-emission-2026-10@1
-    - unanchored-attestations-are-declarations-2026-10@1
+    - unanchored-attestations-are-declarations@1
   supersedes: []
   superseded_by: []
 counterexample: |

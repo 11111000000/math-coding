@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: yaml-block-scalars
 revision: 6
 state: active
-body_sha: "sha256:0e8356fd444c01b4f60523529a56876aa75e46c18fbbdec6e2796eb73978a8ce"
-yaml_sha: "sha256:0e8356fd444c01b4f60523529a56876aa75e46c18fbbdec6e2796eb73978a8ce"
+body_sha: "sha256:a0c3a55944c5b9aec5c31c6a1195fc4206c2beed561f4c1783b543cb93d25d70"
+yaml_sha: "sha256:a0c3a55944c5b9aec5c31c6a1195fc4206c2beed561f4c1783b543cb93d25d70"
 intent: |
   Close deficit D1 and D2 from docs/AUDIT-0.0.11.md by extending
   lib/codec.ml's hand-rolled YAML loader to recognise `|` and
@@ -14,8 +14,9 @@ intent: |
   uses and what the existing bootstrap files require.
 
   Revision 3 implements the loader. The deferral
-  (`yaml-block-scalars-impl-pending.yaml@1`) recorded the
-  priority and risk rationale for delaying past v0.0.12. The
+  (`yaml-block-scalars-impl-pending.yaml@1`, deleted from the
+  corpus on 2026-10-29) recorded the priority and risk rationale for
+  delaying past v0.0.12. The
   implementation is added in v0.0.19. The reversal signal
   `yaml-block-scalars-impl-pending-resolved` triggers; the
   deferral decision is superseded.
@@ -29,6 +30,12 @@ intent: |
   acceptance behaviour and fixture files are unchanged. This
   closes the pre-existing `tests/process_principles.ml` P2
   failure on main HEAD `085f4e3`.
+
+  2026-11: the deferral record this decision superseded, and named in
+  its scope, was deleted from the corpus on 2026-10-29. The superseding
+  relation and the scope path that named it are gone with it; what this
+  decision carries is the loader in lib/codec.ml, and the rationale for
+  the deferral is in git history.
 
 axiom_link:
   - A0
@@ -58,7 +65,6 @@ scope:
     - "docs/AUDIT-0.0.11.md"
     - "docs/AUDIT-0.0.19.md"
     - "decisions/yaml-block-scalars.yaml"
-    - "decisions/yaml-block-scalars-impl-pending.yaml"
     - "fixtures/conformance/decision/positive-block-scalars.yaml"
     - "fixtures/conformance/decision/negative-block-scalars.yaml"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
@@ -280,6 +286,5 @@ relations:
   addresses:
     - docs/AUDIT-0.0.11.md#D1
     - docs/AUDIT-0.0.11.md#D2
-  supersedes:
-    - yaml-block-scalars-impl-pending@1
+  supersedes: []
   superseded_by: []

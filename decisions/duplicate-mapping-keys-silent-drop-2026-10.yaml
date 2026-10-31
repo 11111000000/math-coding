@@ -3,8 +3,8 @@ schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
 revision: 1
 state: active
-body_sha: "sha256:9378b5dc5e30d19964d5645fffe4b93e779f23a482c4d3327aac5988325e1bd2"
-yaml_sha: "sha256:9378b5dc5e30d19964d5645fffe4b93e779f23a482c4d3327aac5988325e1bd2"
+body_sha: "sha256:da3b92a497b374b893ea2ae236e4baa53a785ee164d9edc03a7288548d85603c"
+yaml_sha: "sha256:da3b92a497b374b893ea2ae236e4baa53a785ee164d9edc03a7288548d85603c"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -70,6 +70,12 @@ intent: |
   Measured with the kernel as the oracle (`mathc validate` per
   file over `decisions/**/*.yaml`, 235 files): 28 files affected,
   30 diagnostics. Not 9.
+
+  2026-11: three scope paths named decisions the cull of 2026-10-29
+  deleted - the MCP server implementation, the YAML block-scalar deferral
+  and the decision that disabled the hanging alcotest tests. A scope path
+  that names no file is a digest of nothing, so the three are gone from the
+  scope; the decisions they named live in git history.
 
 commitment: |
   After this commit lands on its branch:
@@ -196,12 +202,9 @@ scope:
     - decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml
     - decisions/cli-canonical-name.yaml
     - decisions/mathc-explain-subcommand.yaml
-    - decisions/mcp-server-impl-2026-10.yaml
     - archive/decisions/site-version-from-file-2026-10.yaml
     - decisions/waiver-infrastructure-2026-10.yaml
-    - decisions/yaml-block-scalars-impl-pending.yaml
     - decisions/yaml-block-scalars.yaml
-    - decisions/disable-hanging-alcotest-tests-2026-10.yaml
     - decisions/mathc-counters-subcommand-2026-10.yaml
     - decisions/parser-risk-owner-default.yaml
 

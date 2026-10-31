@@ -4,8 +4,8 @@ id: solo-default-on-2026-10
 revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:208a58d675e27bb31bbfb04dd56a811b70ca0513b76b38222f4b6ebecdcfa52b"
-yaml_sha: "sha256:208a58d675e27bb31bbfb04dd56a811b70ca0513b76b38222f4b6ebecdcfa52b"
+body_sha: "sha256:b9e607d4ae1938120bddc3740aa084b32267482f7263f8713662751a86c51ac1"
+yaml_sha: "sha256:b9e607d4ae1938120bddc3740aa084b32267482f7263f8713662751a86c51ac1"
 intent: |
   The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
   maintainer that the protocol was not for them. The normative text
@@ -38,6 +38,11 @@ intent: |
   the CLI (what a human sees at deploy time). Changing only the first
   would leave the observed bug untouched; changing only the second
   would leave the protocol contradicting itself.
+
+  2026-11: the two records this decision named - the adoption-doc
+  freshening and the repo-tracked skill - were deleted from the corpus on
+  2026-10-29. The work they described is owned by version-sync-2026-10 and
+  by skill-single-source-2026-10, and the relations name those.
 
 axiom_link:
   - A0
@@ -235,7 +240,7 @@ obligations:
   - id: adoption-doc-fresh
     claim: |
       The adoption docs keep the schema-string and install-URL pins
-      that `ux-3-adoption-doc-freshen-2026-10` asserts; rewriting
+      that `version-sync-2026-10@1` asserts; rewriting
       the applicability section did not drop them.
     outcome: acceptance
     acceptance:
@@ -276,7 +281,7 @@ risk:
 relations:
   addresses:
     - bootstrap-v3@3
-    - ux-3-adoption-doc-freshen-2026-10@1
-    - ux-3-repo-tracked-opencode-skill-2026-10@1
+    - version-sync-2026-10@1
+    - skill-single-source-2026-10@1
   supersedes: []
   superseded_by: []

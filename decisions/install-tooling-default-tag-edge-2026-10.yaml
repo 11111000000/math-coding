@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-default-tag-edge
 revision: 1
 state: active
-body_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
-yaml_sha: "sha256:16f7f4f10a39f5f4933846c3ba839294dc61bb0cfcbb518c1fbeef2d086c3752"
+body_sha: "sha256:5267dd1b70d86530708d5f6dd714ccfcac77a24bc7674ef35f0cd253a884bbd6"
+yaml_sha: "sha256:5267dd1b70d86530708d5f6dd714ccfcac77a24bc7674ef35f0cd253a884bbd6"
 
 intent: |
   Change `MC_VERSION_DEFAULT` in `scripts/install-tooling/install.sh`
@@ -32,6 +32,13 @@ intent: |
   `MC_TARBALL_NAME` constants are unchanged. Only the literal
   default value at `install.sh:35` and the corresponding usage
   example at `install.sh:61` are touched.
+
+  2026-11: the decision that superseded this one - the flip of the
+  default tag from "edge" to "latest" - was deleted from the corpus on
+  2026-10-29, so the relation that named it is gone. The default tag
+  is since a pinned release version, written into
+  scripts/install-tooling/install.sh, whose scope is owned by
+  install-tooling-2026-10.
 
 axiom_link:
   - A0
@@ -227,5 +234,4 @@ relations:
     - install-tooling-2026-10@1
     - version-sync-2026-10@1
   supersedes: []
-  superseded_by:
-    - install-tooling-default-tag-stable-2026-10@1
+  superseded_by: []

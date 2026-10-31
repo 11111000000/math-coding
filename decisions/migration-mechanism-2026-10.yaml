@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: migration-mechanism
 revision: 2
 state: active
-body_sha: "sha256:3184e1caf60b9c345f88b9f18ceb05d10afc08ab6a2091194afc62537ff8d7b5"
-yaml_sha: "sha256:3184e1caf60b9c345f88b9f18ceb05d10afc08ab6a2091194afc62537ff8d7b5"
+body_sha: "sha256:c8696dfd9839bfaa282f699db5ed9918d07a3abf56e6458a8b51b1b3ddb7fe03"
+yaml_sha: "sha256:c8696dfd9839bfaa282f699db5ed9918d07a3abf56e6458a8b51b1b3ddb7fe03"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
   way to migrate decisions/*.yaml between minor versions of the schema
@@ -46,6 +46,12 @@ intent: |
     - the schema-string in any future YAML MAY be bumped (e.g. to
       `math-coding/3.2.1`); the kernel accepts any string as long
       as the decision file passes `mathc validate`.
+
+  2026-11: the axiom this decision implements was carried in the
+  relation block, which is for decisions; it is carried by this
+  decision's axiom_link block, where the corpus puts an axiom. The scope
+  path that named the agent guide named the file this repository no
+  longer has: AGENTS.md was renamed to KERNEL_AGENTS.md.
 
 axiom_link:
   - A0
@@ -119,7 +125,7 @@ scope:
     - "tests/cli/migrate-dry-run.t"
     - "tests/cli/migrate-no-changes.t"
     - "tests/cli/migrate-malformed.t"
-    - "AGENTS.md"
+    - "KERNEL_AGENTS.md"
     - "ROADMAP.md"
     - "PACKAGES.md"
     - "CHANGELOG.md"
@@ -290,8 +296,7 @@ antithesis: |
 relations:
   implements:
     - bootstrap-v3
-  addresses:
-    - A1
+  addresses: []
   refines:
     - process-principles
 

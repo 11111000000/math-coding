@@ -4,8 +4,8 @@ id: ci-gate-exit-honesty-2026-10
 revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:7f7ad7477faaa73b65908e8eac8b5fd3ead2734ac2cadd5abff081857b2e0261"
-yaml_sha: "sha256:7f7ad7477faaa73b65908e8eac8b5fd3ead2734ac2cadd5abff081857b2e0261"
+body_sha: "sha256:bac7454cabd320404e6ebe278c0a2187b18847aeb39f15e023df63529ece08c6"
+yaml_sha: "sha256:bac7454cabd320404e6ebe278c0a2187b18847aeb39f15e023df63529ece08c6"
 
 intent: |
   Make the two gates that the project's central claim rests on
@@ -47,6 +47,17 @@ intent: |
   repairing its coverage), `tests/**`, `lib/**`, `bin/**`, and
   `ROADMAP.md` (whose three "blocking CI" claims become true as of
   this commit, so no edit is needed there).
+
+  2026-11: two relation targets of this decision named things the
+  corpus does not have. The fragment "attestation-store-fill@2::
+  ci-block-set" named an obligation that decision does not have - it
+  carries outcomes and no obligations - so the relation names the
+  decision instead; the subject is the same, because the store behind
+  this gate has to be populated or an honest gate exits 3. The decision
+  that disabled the hanging alcotest tests was deleted from the corpus
+  on 2026-10-29; the upstream defect it recorded lives in
+  docs/upstream-bugs/dune-3.23.1-rpc-hang.md, which is what the relation
+  names now.
 
 commitment: |
   After this commit lands on its branch:
@@ -93,7 +104,7 @@ commitment: |
   3. `scripts/dev verify` stage 2 no longer treats a `dune test`
      timeout as a pass. It falls back to `scripts/dev-fast-test
      --reset` — the per-binary runner that
-     `decisions/disable-hanging-alcotest-tests-2026-10.yaml` names
+     the deleted "disable-hanging-alcotest-tests-2026-10" named
      as the workaround — and passes ONLY when that runner reports
      the suite green AND a coverage cross-check shows it ran every
      built test binary that is not on the documented
@@ -151,7 +162,7 @@ antithesis: |
 
   Second counter-position, on N2: "just make a `dune test`
   timeout a hard failure." Rejected as a standalone fix: per
-  `decisions/disable-hanging-alcotest-tests-2026-10.yaml` the
+  `docs/upstream-bugs/dune-3.23.1-rpc-hang.md` the
   hang is an upstream dune defect (issue #12900, fixed by PR
   #12979) that reproduces in this environment, so a hard failure
   would make `verify` unusable rather than honest. The chosen path
@@ -340,8 +351,8 @@ reversal:
 
 relations:
   addresses:
-    - attestation-store-fill@2::ci-block-set
-    - disable-hanging-alcotest-tests-2026-10@1
+    - attestation-store-fill@3
+    - docs/upstream-bugs/dune-3.23.1-rpc-hang.md
   refines:
     - ci-blocking-list-config@2
   contradicts: []

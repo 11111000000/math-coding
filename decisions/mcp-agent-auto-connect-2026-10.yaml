@@ -4,8 +4,8 @@ id: mcp-agent-auto-connect-2026-10
 revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:b70fcc7d2f75840b0b661f1cb6914aff4dfcc3a37adeb0e105d7178a15b6cf2c"
-yaml_sha: "sha256:b70fcc7d2f75840b0b661f1cb6914aff4dfcc3a37adeb0e105d7178a15b6cf2c"
+body_sha: "sha256:41a3ee221d284b8a44ecfd8ab36fcccc5ec730e451cfc663cfab58bf3ae87ede"
+yaml_sha: "sha256:41a3ee221d284b8a44ecfd8ab36fcccc5ec730e451cfc663cfab58bf3ae87ede"
 
 intent: |
   Document the documented-but-not-yet-wired path that lets
@@ -15,9 +15,8 @@ intent: |
   through a `bash` shell call to the mathc binary.
 
   The MCP server (`bin/mathc_mcp.ml` + `lib/mcp/`) is
-  already implemented and ships 11 methods (7 read-only
-  in `mcp-server-impl-2026-10@1`, plus 4 read-write in
-  `ux-3-mcp-read-write-2026-10@1`). It speaks JSON-RPC 2.0
+  already implemented and ships 11 methods (7 read-only,
+  plus 4 read-write). It speaks JSON-RPC 2.0
   over stdio: one request per line on stdin, one response
   per line on stdout. The mathc binary is auto-resolved
   via `Sys.executable_name` so an installed `mathc_mcp`
@@ -30,6 +29,14 @@ intent: |
   `adoption/SKILL.md` §"MCP integration" so a fresh
   opencode session can `mathc::validate` etc. without a
   shell round-trip.
+
+  2026-11: the two records this decision named - the MCP server's own
+  implementation decision and the one that opened its read-write surface -
+  were deleted from the corpus on 2026-10-29. This decision is the
+  corpus's living record of the MCP integration, and the implementation it
+  describes is bin/mathc_mcp.ml with lib/mcp/. The repo-tracked skill is
+  owned by skill-single-source-2026-10, which is what the relation names
+  now.
 
 axiom_link:
   - A0
@@ -65,7 +72,7 @@ commitment: |
 
   D2. The `.opencode/skills/math-coding/SKILL.md` is
       byte-synced with `adoption/SKILL.md` (per
-      `ux-3-repo-tracked-opencode-skill-2026-10@1`).
+      `skill-single-source-2026-10@1`).
 
   D3. `USAGE.md` §"AI agents" is updated to reference
       the MCP integration section.
@@ -130,8 +137,8 @@ assumptions:
   - id: mcp-server-stable
     state: assumed
     statement: |
-      The MCP server (`mcp-server-impl-2026-10@1` +
-      `ux-3-mcp-read-write-2026-10@1`) ships in every
+      The MCP server (`bin/mathc_mcp.ml` +
+      `lib/mcp/`) ships in every
       release as `bin/mathc_mcp`.
     owner: human:maintainer
     consequence_if_false: |
@@ -188,8 +195,6 @@ risk:
 relations:
   addresses:
     - install-tooling-2026-10@1
-    - mcp-server-impl-2026-10@1
-    - ux-3-mcp-read-write-2026-10@1
-    - ux-3-repo-tracked-opencode-skill-2026-10@1
+    - skill-single-source-2026-10@1
   supersedes: []
   superseded_by: []

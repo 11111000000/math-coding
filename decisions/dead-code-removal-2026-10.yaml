@@ -5,8 +5,8 @@ revision: 2
 state: active
 mode: standard
 
-body_sha: "sha256:5168ee60c59eb76aff238937df78a517e05fcabcfdcf663fa15c9eac2dd3f1b8"
-yaml_sha: "sha256:5168ee60c59eb76aff238937df78a517e05fcabcfdcf663fa15c9eac2dd3f1b8"
+body_sha: "sha256:eda4f3703518f326b7fad25aa47d9a22600544338f29e79045a2846309f37754"
+yaml_sha: "sha256:eda4f3703518f326b7fad25aa47d9a22600544338f29e79045a2846309f37754"
 
 axiom_link:
   - A0
@@ -49,6 +49,12 @@ intent: |
   prose. One copy of a rule, and one reader of it, is the only shape
   in which "the kernel enforces this" is a checkable claim.
 
+  2026-11: the four paths this decision REMOVED - lib/schema_embedded.ml,
+  scripts/fix-attr.sh, scripts/dev-fast and .work/report.json - are named in
+  the intent above and are not in the scope: a scope path that names no file
+  is a digest of nothing. The decision that introduced the embedded
+  schemas was archived, so its path names the archive where it now lives.
+
 commitment: |
   1. `lib/schema_embedded.ml` is gone, and `lib/dune` no longer
      lists it. `decisions/negative-control-required-2026-10.yaml`
@@ -82,7 +88,6 @@ outcomes:
 
 scope:
   paths:
-    - "lib/schema_embedded.ml"
     - "lib/schema.ml"
     - "lib/digest.ml"
     - "lib/forge.ml"
@@ -91,13 +96,10 @@ scope:
     - "lib/templates_embedded.ml"
     - "lib/dune"
     - "bin/Mathc.ml"
-    - "scripts/fix-attr.sh"
-    - "scripts/dev-fast"
-    - ".work/report.json"
     - ".gitignore"
     - "tests/cli/embedded-schemas.t"
     - "tests/cli/init-defaults.t"
-    - "decisions/ux-3-minimal-pollution-2026-10.yaml"
+    - "archive/decisions/ux-3-minimal-pollution-2026-10.yaml"
     - "decisions/negative-control-required-2026-10.yaml"
     - "decisions/dead-code-removal-2026-10.yaml"
   exclusions:

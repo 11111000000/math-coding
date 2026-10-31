@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: algebra-3.2
 revision: 2
 state: active
-body_sha: "sha256:e266307a473f41f12e679ccac3fab4afeef6c85eb1aea898fcb0bdc06f163778"
-yaml_sha: "sha256:e266307a473f41f12e679ccac3fab4afeef6c85eb1aea898fcb0bdc06f163778"
+body_sha: "sha256:98476da9758595127a3d6b0167bc09976eb3c26cbb4430fadfb1fb12479da802"
+yaml_sha: "sha256:98476da9758595127a3d6b0167bc09976eb3c26cbb4430fadfb1fb12479da802"
 intent: |
   Adopt `spec/algebra-3.2.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)
@@ -72,7 +72,7 @@ scope:
     - "tests/repo_structure.ml"
     - "tests/cli/*.t"
     - "tests/conformance.ml"
-    - "AGENTS.md"
+    - "KERNEL_AGENTS.md"
     - "ROADMAP.md"
     - "PACKAGES.md"
     - "CHANGELOG.md"
@@ -81,6 +81,8 @@ scope:
     - ".github/workflows/release.yml"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   \"lib/attestations/attestations.ml\" - malformed: a comment inside the quoted path
+  # 2026-11: AGENTS.md was renamed to KERNEL_AGENTS.md; the scope names
+  #   the file that exists.
   exclusions:
     - "axioms/**"            # axioms are immutable per A3 Self-Application
     - "spec/constitution.md" # I1-I14 preserved verbatim

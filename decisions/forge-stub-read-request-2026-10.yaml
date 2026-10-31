@@ -3,13 +3,16 @@ schema: math-coding/3.2
 id: forge-stub-read-request-2026-10
 revision: 2
 state: active
-body_sha: "sha256:2d8ffdcb0ed9697871b4e0f127388901d6096a6fde547cd968b72c587e348a5f"
-yaml_sha: "sha256:2d8ffdcb0ed9697871b4e0f127388901d6096a6fde547cd968b72c587e348a5f"
+body_sha: "sha256:a205448d932b9fa2c584d50019f6a1b774ec295a0b7bcd272b32d7f524a9522f"
+yaml_sha: "sha256:a205448d932b9fa2c584d50019f6a1b774ec295a0b7bcd272b32d7f524a9522f"
 axiom_link:
   - A0
 intent: |
   Close the "Tier 2G" item that
-  `decisions/ci-green-batch1-2026-10@1` recorded as out of scope
+  `decisions/ci-green-batch1-2026-10.yaml` recorded as out of scope
+  (that record was deleted from the corpus on 2026-10-29; its four
+  checks live in `tests/fixtures/ci-green-batch1-fixes.sh`, which is what
+  the relation names now)
   and promised to a `decisions/<TBD>.yaml`: this file is that
   decision. Two independent defects in
   `tests/support/forge_stub/forge_stub.ml` kept the suite
@@ -131,7 +134,7 @@ outcomes:
   - id: forge-mirror-suite-green
     statement: |
       `tests/rebuttal_forge_stub.ml` passes 5/5, so the four
-      obligations of `plan-2026-10-improvements/t1-1@1` that name
+      obligations of `docs/plans/t1-1.yaml` that name
       its cases are verified by a suite that can actually reach
       its assertions.
 obligations:
@@ -285,8 +288,8 @@ relations:
   depends_on: []
   conflicts_with: []
   addresses:
-    - ci-green-batch1-2026-10@1
+    - tests/fixtures/ci-green-batch1-fixes.sh
   implements: []
   verifies:
-    - plan-2026-10-improvements/t1-1@1
+    - docs/plans/t1-1.yaml
 ---

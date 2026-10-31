@@ -5,8 +5,8 @@ revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
-body_sha: "sha256:7a102226a2043ba832ee14e066094a8b8e01140ed2ee2d9692e78c25ea9fc93a"
-yaml_sha: "sha256:7a102226a2043ba832ee14e066094a8b8e01140ed2ee2d9692e78c25ea9fc93a"
+body_sha: "sha256:2f04f107c4360e1c9de409c5354844118213d20e98cdd595fbace54d63a44664"
+yaml_sha: "sha256:2f04f107c4360e1c9de409c5354844118213d20e98cdd595fbace54d63a44664"
 axiom_link:
   - A0
 intent: |
@@ -381,6 +381,6 @@ risk:
 relations:
   addresses:
     - algebra-3.2@2
-    - policy-driven-floor-2026-10@1
+    - risk-policy-driven-floor-2026-10@1
   supersedes: []
   superseded_by: []

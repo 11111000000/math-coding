@@ -7,8 +7,8 @@ negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:8ab1706f42d3b8fcd1328631f8f983be08e8069b1c337216722fd77d312a6a60"
-yaml_sha: "sha256:8ab1706f42d3b8fcd1328631f8f983be08e8069b1c337216722fd77d312a6a60"
+body_sha: "sha256:7969cb156bbb114705d9087199e16cb78cc5ff11e824195f6d2c123cc9f4c943"
+yaml_sha: "sha256:7969cb156bbb114705d9087199e16cb78cc5ff11e824195f6d2c123cc9f4c943"
 
 axiom_link:
   - A0
@@ -898,9 +898,9 @@ risk:
 relations:
   addresses:
     - self-check-waiver-verdict-coherence-2026-10@1
-    - exit-code-symmetry-2026-10@1
+    - exit-code-symmetry@1
     - path-probe-anchoring-2026-11@2
   depends_on:
-    - exit-code-symmetry-2026-10@1
+    - exit-code-symmetry@1
     - self-check-waiver-verdict-coherence-2026-10@1
   supersedes: []

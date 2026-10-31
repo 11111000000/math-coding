@@ -4,8 +4,8 @@ id: exit-honesty-waivers
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:b7cdad6160dc6d760f4b51709f9a1bdcd74f99fcf068aed52d45ea36a4aa29e9"
-yaml_sha: "sha256:b7cdad6160dc6d760f4b51709f9a1bdcd74f99fcf068aed52d45ea36a4aa29e9"
+body_sha: "sha256:9dbbe6ed12f1260b68997c6b0b2f5268b38c87f6d665b3a6666c56d800cc03e1"
+yaml_sha: "sha256:9dbbe6ed12f1260b68997c6b0b2f5268b38c87f6d665b3a6666c56d800cc03e1"
 axiom_link:
   - A0
   - A1
@@ -390,9 +390,9 @@ risk:
 relations:
   addresses:
     - self-check-waiver-verdict-coherence-2026-10@1
-    - exit-code-symmetry-2026-10@1
+    - exit-code-symmetry@1
     - forge-principal-verification@1
-    - plan-2026-10-improvements@1
+    - docs/plans/t3-2.yaml
   supersedes: []
   superseded_by: []
 counterexample: |
