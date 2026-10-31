@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:955a01426ff6a2178c043d8ed420f6ced0bd540f8145cda2e131d650193c49f0"
-yaml_sha: "sha256:955a01426ff6a2178c043d8ed420f6ced0bd540f8145cda2e131d650193c49f0"
+body_sha: "sha256:e001875e43b43c431e29a304c967c348f267d91f40c2e5d4cb2c0ac58dcb05e4"
+yaml_sha: "sha256:e001875e43b43c431e29a304c967c348f267d91f40c2e5d4cb2c0ac58dcb05e4"
 axiom_link:
   - A1
 intent: |
@@ -40,7 +40,7 @@ commitment: |
      stale figures ("eight principles", "23 subjects", "29 active
      decisions") no longer ship.
   3. Adds the spec surface to the top navigation as a single entry
-     pointing at the algebra-3.2 page, the most-visited spec.
+     pointing at the kernel contract page, the most-visited spec.
   4. Renders every per-decision page with the full YAML body —
      intent, commitment, scope, outcomes, obligations-with-claims,
      counterexample, risk, relations — between the page title and

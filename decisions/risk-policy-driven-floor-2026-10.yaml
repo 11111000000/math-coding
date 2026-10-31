@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: risk-policy-driven-floor-2026-10
 revision: 1
 state: active
-body_sha: "sha256:ec61a22c73862d3e8fc55f0e092d04acbcde3db99f9fe325d653040cb5e5731e"
-yaml_sha: "sha256:ec61a22c73862d3e8fc55f0e092d04acbcde3db99f9fe325d653040cb5e5731e"
+body_sha: "sha256:d4426766c20ed13636e517b6df2c29a9244e3e37265ef5832c52db5c33db25e9"
+yaml_sha: "sha256:d4426766c20ed13636e517b6df2c29a9244e3e37265ef5832c52db5c33db25e9"
 intent: |
   Wire `lib/policy.ml` into `lib/risk.ml` so the risk classifier
   honors declared policies instead of returning constant
@@ -42,7 +42,7 @@ intent: |
       fixtures for the policy-driven mode.
 
   Boundaries:
-    - This cycle does not change the algebra-3.2 spec text. The
+    - This cycle does not change the kernel contract text. The
       `⌈risk(c)⌉` notation remains ambiguous (decision
       `algebra-3.2-notation-flag-2026-10`); the implementation
       continues to use `risk_to_mode` thresholds.
