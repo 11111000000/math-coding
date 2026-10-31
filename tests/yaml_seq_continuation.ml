@@ -23,8 +23,8 @@
  *
  *   decisions/cli-cram-tests.yaml
  *   decisions/p8-hook-deficit-2026-10.yaml
- *   decisions/render-module-split-phase1-2026-10.yaml
- *   decisions/render-module-split-phase1-2026-10.yaml
+ *   archive/decisions/render-module-split-phase1-2026-10.yaml
+ *   archive/decisions/render-module-split-phase1-2026-10.yaml
  *
  * The load-bearing assertion in every case is `leftover = []`.
  * Asserting on the recovered TEXT is what makes a mutation of
@@ -398,7 +398,7 @@ let corpus_cases =
   [
     ("decisions/cli-cram-tests.yaml", "unknowns", 2);
     ("decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
-    ("decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
+    ("archive/decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
   ]
 
 let test_corpus_files_are_read_to_eof () =

@@ -2,11 +2,12 @@
 schema: math-coding/3.3
 id: render-module-split-phase1-2026-10
 revision: 1
-state: active
+state: retired
+# Archived by T2.1: a completed refactor record with no live dependency.
 mode: light
 change_kind: implementation
-body_sha: "sha256:42ee32b8a4c9e1e184b0216f903506b86cf04abd11bcb37b4ee3bdd753dbe9ce"
-yaml_sha: "sha256:42ee32b8a4c9e1e184b0216f903506b86cf04abd11bcb37b4ee3bdd753dbe9ce"
+body_sha: "sha256:4656041799dc27f60640088001ac9b973292aca335565b76cc7033e4e5ed846f"
+yaml_sha: "sha256:4656041799dc27f60640088001ac9b973292aca335565b76cc7033e4e5ed846f"
 
 intent: |
   Реализовать Phase 1+ из решения `render-module-split@1`: разбить
