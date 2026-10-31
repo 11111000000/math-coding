@@ -1,0 +1,417 @@
+---
+schema: math-coding/3.3
+id: corpus-growth-lints-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/verifier-scheme-allowlist.sh
+body_sha: "sha256:e0cb09a7d00ab4310b827cd5096fdd3311d87e2f55a84662babc535446bb65de"
+yaml_sha: "sha256:e0cb09a7d00ab4310b827cd5096fdd3311d87e2f55a84662babc535446bb65de"
+
+intent: |
+  Two ways the corpus grows are invisible to the gate, and both of
+  them are invisible in the same way: the kernel KNOWS, and says
+  nothing that a program can count.
+
+  (1) THE VERIFIER SCHEME. An obligation names a verifier; the
+  kernel can execute some names and not others. The scheme of a
+  verifier string is its first whitespace-delimited token, and the
+  kernel executes the string only when that token is in
+  `canonical_verifier_schemes` or begins with one of
+  `canonical_verifier_prefixes` (bin/Mathc.ml::known_verifier_scheme).
+  The kernel DOES notice a scheme it does not know: `mathc validate`
+  emits one Warn-level MC-VERIFIER-SCHEME-UNKNOWN per offending
+  string (decisions/verifier-scheme-convention-2026-11.yaml). That is
+  a warning per FILE. Nothing aggregated the warnings over the
+  corpus, so the corpus could grow offenders one file at a time and
+  nothing anywhere said so. MEASURED 2026-10-31: five obligations in
+  the live corpus carry a verifier the kernel cannot run -
+  `decisions/cli-canonical-name.yaml` (two, a YAML single quote the
+  reader does not remove), `decisions/constitution-header-3-3-update-
+  2026-10.yaml` (one, a closing double quote that the comment
+  stripper removes with the comment), and
+  `decisions/audit-0.0.21-fixes.yaml`,
+  `decisions/exit-code-symmetry-2026-10.yaml` and
+  `decisions/forge-principal-verification-2026-10.yaml` (three
+  bespoke schemes the kernel never learned). Six offending strings in
+  five obligations.
+
+  (2) THE RELATION TARGET. A decision may name other decisions:
+  `supersedes`, `addresses`, `depends_on` and the rest
+  (spec/algebra-3.2.md §7). Each name is a claim about the corpus's
+  history. The kernel checks the SHAPE of such a claim and nothing
+  else - `mathc mark-superseded --by=<id>@<rev>` parses the reference
+  and never asks whether the decision exists
+  (lib/lifecycle/lifecycle.ml::parse_by) - and no command RESOLVES a
+  relation target. So a relation whose target was deleted stays in the
+  corpus as a claim about a decision that is not there, and the
+  corpus's own rendered view of itself believes it:
+  `mathc graph --decision=corpus-meta-layer-2026-10` prints THREE
+  nodes that are not in the corpus - `ceiling-monotonic-2026-10`,
+  `scope-invalidation-breadth-2026-10` and
+  `self-check-fixture-coverage-honest-2026-10` - and draws six edges
+  to them. The first of the three names a decision that exists under
+  a DIFFERENT id (`decisions/ceiling-monotonic-2026-10.yaml` declares
+  `id: ceiling-monotonic`); the other two name decisions that are not
+  in the corpus at all. Nothing says so, because nothing checks.
+  MEASURED 2026-10-31: 44 relation targets in the live corpus resolve
+  to nothing (33 name a decision that does not exist, live or
+  archived; 10 name a file that does not exist; 1 names a decision
+  that exists and an obligation inside it that does not), 2 name an
+  AXIOM where the schema declares a relation between decisions, and 1
+  sits under a relation key (`amends`) the schema does not have.
+
+  WHY NOW. Tranche T2 of the plan
+  (docs/plans/redundancy-and-portability-2026-11.md, on the branch
+  `feat/redundancy-census-2026-11`) is about to rewrite the corpus.
+  A rewrite that is not measured cannot be checked: the writer needs
+  a number to move and the reader needs a number to check. And a
+  REPORT is not enough. A report tells the reader what is there; a
+  CEILING tells the reader that the number must go DOWN, that the
+  direction is the contract, and that the day it reaches zero the
+  check can become blocking. Tranche T0.3 of the plan asks for
+  exactly these two lints, and says that their first day must run as
+  reports, not as errors - which is what a ceiling above the current
+  value is: the number is printed, the comparison is made, and the
+  exit code says whether the corpus grew.
+
+  WHAT THESE TWO ARE NOT. They are not a second census.
+  tests/fixtures/redundancy-census.sh is a REPORT of the corpus's
+  shape over six numbers, led by the orchestrator, and it is
+  deliberately coarse: it answers "how much of which is there". These
+  two instruments answer a narrower question per class - "is this
+  corpus's count of THIS shape of defect under its ceiling" - and
+  they answer it with three things the census does not have: a
+  resolution rule written down line by line, a vocabulary READ from
+  the code rather than copied into it, and a negative control per
+  instrument. The difference is spelled out in the counterexample
+  below, including the part where the duplication is real and which
+  of the two numbers should go if the corpus ever has to choose.
+
+commitment: |
+  After this decision closes:
+
+  1. `tests/fixtures/verifier-scheme-allowlist.sh` measures how many
+     obligations in the live corpus carry a verifier whose scheme the
+     kernel does not know, and pins that number as a CEILING. The
+     scheme list is READ OUT OF `bin/Mathc.ml` on every run - the
+     `canonical_verifier_schemes` and `canonical_verifier_prefixes`
+     bindings - and is never copied into the fixture. If the
+     bindings cannot be read, the fixture says "unknown" and exits 3:
+     a fixture that cannot tell a check from a declaration must not
+     report a number, least of all a zero.
+
+  2. `tests/fixtures/relation-targets-resolve.sh` measures how many
+     relation targets in the live corpus resolve to neither a decision
+     id nor an existing file, and pins that number as a CEILING. The
+     relation kinds are READ OUT OF `schemas/decision.json` and the
+     rule for what a decision IS is READ OUT OF `lib/memory.ml`
+     (`non_decision_schema_prefixes`); neither is copied. The
+     resolution rule - how a target string is split into a reference,
+     a revision and a fragment, and how a path form differs from an
+     id form - is written down in the fixture, because the kernel has
+     no such rule to read.
+
+  3. The two instruments each report the two forms of the defect
+     SEPARATELY. A path form (`archive/decisions/foo.yaml`) breaks
+     when a file moves; an id form (`foo@1`) breaks when a decision is
+     archived or renamed under a new id. The remedy is different in
+     each case, so one number for both would hide the remedy.
+
+  4. The scheme instrument CROSS-CHECKS ITSELF against the kernel: it
+     asks `mathc validate` over the same corpus how many
+     MC-VERIFIER-SCHEME-UNKNOWN it emits, and REFUSES to conclude
+     when the two counts differ. It reports "unknown" and exits 3
+     then. A fixture that classifies differently from the thing it
+     censuses measures the wrong thing, and this one says so instead
+     of picking a winner.
+
+  5. Each number is a CEILING. It may FALL and may never RISE.
+     Raising one is an explicit, reviewable edit of the fixture, with
+     the reason written down beside it.
+
+  6. Each instrument has a NEGATIVE CONTROL: a synthetic corpus that
+     exceeds the ceiling must be reported as over it, and a synthetic
+     corpus whose targets all resolve must measure zero. A bound that
+     has never been observed to bind is not known to bind, and a lint
+     that flags everything is not a lint.
+
+  7. Each instrument has an UNKNOWN CONTROL: with the vocabulary
+     unreadable, the measurement must report "unknown" and exit 3,
+     never zero and a pass.
+
+  8. Exit codes follow the house convention: 0 measured and held, 1
+     measured and broken, 3 nothing was measured - unknown, not pass.
+
+  9. These instruments are NOT YET A GATE. They are the form a gate
+     will take when the ceilings reach zero; the debt they measure is
+     paid by tranche T2.2 (the relation targets) and T2.3 (the quote-
+     broken verifiers) of the plan. When the ceilings are zero, this
+     decision is revisited to say so.
+
+axiom_link:
+  - A0
+  - A1
+  - A2
+  - A3
+
+outcomes:
+  - id: the-scheme-debt-is-numbered
+    statement: |
+      A fixture reports how many obligations in the live corpus carry
+      a verifier the kernel cannot execute, reads the list of schemes
+      the kernel can execute out of the kernel's own source, and pins
+      the number as a ceiling.
+  - id: the-relation-debt-is-numbered
+    statement: |
+      A fixture reports how many relation targets in the live corpus
+      resolve to nothing, separates the path form from the id form,
+      separates the targets that name an axiom from the targets that
+      name nothing, and pins each number as a ceiling.
+  - id: the-ceilings-have-teeth
+    statement: |
+      A synthetic corpus over the ceiling is reported as over it, and a
+      synthetic corpus under it is reported as under it, by each
+      instrument and - for the scheme instrument - by the kernel.
+  - id: nothing-measured-is-unknown
+    statement: |
+      With the vocabulary unreadable, each instrument reports
+      "unknown" and exits 3, and never reports zero.
+
+scope:
+  paths:
+    - "tests/fixtures/verifier-scheme-allowlist.sh"
+    - "tests/fixtures/relation-targets-resolve.sh"
+    - "decisions/corpus-growth-lints-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "decisions/redundancy-census-2026-11.yaml"
+    - "tests/fixtures/redundancy-census.sh"
+
+obligations:
+  - id: the-scheme-debt-is-numbered
+    claim: |
+      `tests/fixtures/verifier-scheme-allowlist.sh` measures the
+      obligations whose verifier scheme is outside the canonical list
+      of the kernel, reads that list out of `bin/Mathc.ml` rather
+      than carrying a copy of it, and fails when the number exceeds
+      its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-scheme-allowlist.sh
+
+  - id: the-relation-debt-is-numbered
+    claim: |
+      `tests/fixtures/relation-targets-resolve.sh` measures the
+      relation targets that resolve to neither a decision id nor an
+      existing file, distinguishes the path form from the id form,
+      and fails when any of its numbers exceeds its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: the-ceilings-have-teeth
+    claim: |
+      Each instrument reports a synthetic corpus that exceeds its
+      ceiling as over it, and reports a synthetic corpus whose
+      targets all resolve as under it. The scheme instrument's
+      synthetic corpus is also seen by the kernel, which emits one
+      MC-VERIFIER-SCHEME-UNKNOWN per offending string over it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-scheme-allowlist.sh
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: nothing-measured-is-unknown
+    claim: |
+      With the vocabulary unreadable - the kernel's source for the
+      scheme list, the schema for the relation kinds - each instrument
+      reports "unknown" and exits 3. Neither reports zero.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-scheme-allowlist.sh
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+counterexample: |
+  Four counter-positions. The first is the one that matters, and it
+  is not fully rejected.
+
+  (a) "THIS IS THE CENSUS AGAIN, WITH THE NUMBERS SPLIT. The census
+  already measures a quote-broken verifier count and a dangling
+  relation count; these two fixtures measure them again." PARTLY
+  TRUE, and the duplication is real: the census's QUOTED and DANGLING
+  are PROXIES of exactly these two classes. Measured against this
+  corpus, the two instruments and the census agree on the SIZE and
+  disagree on the SET, and the disagreements are where the census is
+  loose:
+
+    - The census's QUOTED (5) counts raw verifier strings that BEGIN
+      with a quote. It cannot tell a quoting ACCIDENT from a sound
+      double-quoted string: two of its five are sound - the closing
+      double quote survives and the reader strips it - so the census
+      counts two obligations that the kernel executes perfectly well.
+      And it cannot see the three offenders that are not quoting
+      accidents at all (`mathc-self-check-verdict-pass` twice,
+      `mathc-validate` once): a bespoke scheme is not a quote.
+      This instrument counts the CONSEQUENCE (the kernel cannot execute
+      the string), which is five obligations and six strings.
+
+    - The census's DANGLING (44) and this instrument's DANGLING (44)
+      are the same size and NOT the same set. They share 41 entries.
+      The census has three this instrument does not count as
+      dangling: `addresses: A1` and `addresses: A3` (they resolve to
+      an AXIOM, and they have their own ceiling here), and
+      `addresses: ROADMAP.md#process-principles-binding-on-all-agents`
+      (the census reads the whole target as an id; the file ROADMAP.md
+      exists). This instrument has three the census cannot see: two
+      under `refines`, a relation kind the schema declares and the
+      spec names and the census's key list omits, and one
+      (`attestation-store-fill@2::ci-block-set`) whose DECISION
+      exists and whose OBLIGATION inside it does not.
+
+    The difference that matters is not the number. It is what each
+    instrument is FOR. The census is a REPORT over six numbers, read
+    by the orchestrator, and it has no moment at which it becomes
+    blocking. These two are CEILINGS: a direction a program compares,
+    each with a written resolution rule, a vocabulary read from the
+    code, and a negative control that has been observed to bind. When
+    the ceilings reach zero, they can become a gate; the census has no
+    such moment, because it measures six things at once and none of
+    the six is a rule.
+
+    AND THE HONEST PART: if the corpus ever has to choose, ONE of the
+    two numbers must go, and it should be the census's DANGLING and
+    QUOTED - they are the two this pair covers more precisely. This
+    is recorded here so the choice is made on purpose and not by
+    accident after both numbers have been quoted in two places.
+
+  (b) "A CEILING OF 44 CANNOT BLOCK ANYTHING FOR EIGHTEEN MONTHS, SO
+  IT IS A RED LIGHT THAT TEACHES THE READER TO IGNORE RED LIGHTS."
+  Rejected on the same grounds as the six ceilings the corpus already
+  carries: a ceiling that may only fall is a DIRECTION, not a gate.
+  Its job today is to make the number visible and to make its growth
+  loud; the job of blocking arrives when the number is zero, and the
+  plan that pays the debt (T2.2, T2.3) is written down. And if the
+  plan does NOT pay the debt, the honest outcome is that this
+  decision was wrong and the ceiling should be REMOVED - not raised.
+
+  (c) "A FIXTURE PER CLASS IS TOO MUCH MACHINERY." Rejected: the
+  corpus already carries seven shell fixtures of this kind, and each
+  one costs a file and one number. The cost that matters is a number
+  nobody measures, and that cost is paid by every reader who has to
+  open 139 files to find out what changed.
+
+  (d) "THE FIXTURE OWNS A RESOLUTION RULE, AND A SECOND RULE DRIFTS
+  FROM THE FIRST." True of the rule; the fixture answers it for the
+  LISTS and not for the rule. The relation kinds are read out of
+  `schemas/decision.json` and the non-decision families out of
+  `lib/memory.ml`, and the scheme list out of `bin/Mathc.ml`: the
+  fixture copies no list, so a list the kernel changes cannot leave
+  the fixture behind. The RESOLUTION RULE - how a target string is
+  split into reference, revision and fragment, and how a path form
+  differs from an id form - has no counterpart in the kernel to read,
+  so the fixture writes it down and pins it with a negative control.
+  A future kernel rule must REPLACE that rule, not sit beside it.
+
+antithesis: |
+  The opposite claim is that the corpus's SHAPE is not this
+  repository's business, that the five instruments that measure the
+  STORE are enough, and that a lint whose debt the corpus cannot pay
+  for a year is a red light that dulls the reader's eye rather than
+  sharpening it.
+
+  The claim identifies a real hazard - a repository accumulates
+  instruments, and each one is a place where a future change can be
+  blocked by a threshold nobody chose deliberately - and the answer is
+  the one the other ceilings already give: a ceiling that may only
+  fall is a direction, and the plan that closes the distance is the
+  plan that pays it down. The alternative is the state this corpus
+  was in - 44 relation targets and five unexecutable verifiers, with
+  nothing anywhere saying so, for four weeks of growth.
+
+  The claim also understates the second cost, which is the one that
+  bites: an UNMEASURED number is not a neutral thing. Every audit of
+  this corpus began by reading 139 files, because the corpus's shape
+  was prose in a plan rather than a number a program could print. A
+  lint that prints the number is cheaper than an audit that reads
+  the files, and the two instruments together cost two files.
+
+  What the claim gets right, and what this decision accepts, is the
+  possibility that the instrument outlives its debt. When the
+  ceilings reach zero, a lint that reports zero forever is an
+  instrument with nothing left to say, and the honest move then is to
+  retire it or to fold it into the gate - not to keep it running for
+  the comfort of the reader who likes the line it prints.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a ceiling is raised without a decision recording why"
+    - "the corpus-count ceiling of the redundancy census is raised to accommodate this decision, because a decision that measures the corpus is in the corpus it counts"
+    - "the resolution rule drifts from the kernel's own notion of a relation and the fixture's numbers become a lie nobody notices"
+    - "the lint is read as a verdict on the quality of the commitments it counts, rather than on the state of the corpus"
+    - "the corpus shrinks the numbers by archiving decisions whose obligations the gate still asks about"
+
+assumptions:
+  - id: the-kernel-scheme-list-is-the-authority
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The canonical verifier schemes are the ones the kernel's own
+      `canonical_verifier_schemes` and `canonical_verifier_prefixes`
+      bindings name, and "a scheme the kernel cannot execute" is
+      decided by `known_verifier_scheme`. The instrument reads both
+      bindings on every run and cross-checks its count against the
+      kernel's own MC-VERIFIER-SCHEME-UNKNOWN diagnostic, so a change
+      in the rule is noticed rather than absorbed.
+    consequence_if_false: |
+      The instrument would classify the corpus differently from the
+      thing that executes it, and its number would be a number about
+      something else. The cross-check is what catches that; if the
+      cross-check stops running, nothing catches it.
+    review_on:
+      - signal: the-kernel-adds-a-verifier-scheme
+      - signal: the-kernel-changes-how-a-scheme-is-read
+  - id: the-relation-vocabulary-is-the-schema
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The relation kinds are the ones `schemas/decision.json` declares,
+      and a document is a decision when it declares a top-level `id:`
+      and its schema family is not one of the non-decision families
+      `lib/memory.ml` names. Both are read from their source on every
+      run, so the corpus's own rule about what a decision is stays in
+      one place.
+    consequence_if_false: |
+      The instrument would resolve targets against a vocabulary the
+      kernel does not use: a relation the kernel ignores would be
+      counted, and a relation the kernel honours would not be. The
+      number would then be a number about the fixture's idea of the
+      corpus.
+    review_on:
+      - signal: the-schema-changes-the-relation-block
+      - signal: the-kernel-learns-to-resolve-a-relation-target
+  - id: a-reference-to-nothing-is-a-defect
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A relation that names nothing is a defect worth bounding rather
+      than a style to be tolerated, and a verifier the kernel cannot
+      execute is a promise the corpus cannot keep. Both are claims
+      about things the corpus has, and the corpus does not have them.
+    consequence_if_false: |
+      The two ceilings would be pinning a quantity nobody considers
+      worth fixing, and the instruments would be the sixth and seventh
+      red lights - the failure mode the antithesis above names. The
+      remedy is to remove the instrument, not to raise the ceiling.
+    review_on:
+      - signal: a-ceiling-is-raised-without-a-reason
+      - signal: the-plan-does-not-pay-the-debt
+
+relations:
+  addresses:
+    - verifier-scheme-convention-2026-11@1
