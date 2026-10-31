@@ -316,6 +316,7 @@ dead ones must pay them back in the same tranche.
 |---|---|---|
 | T4.1 | the transferable core becomes its own package: kernel, `policies.yaml`, three artifacts, the skill. The site, plugin, conformance corpus, release tooling and book stay here and are marked "not part of the protocol" | medium - a choice of packaging |
 | T4.2 | one master policy instead of three (the one embedded in `mathc init`, the disconnected template in `scripts/install-tooling/templates/active-policy.yaml`, whose `MC_TEMPLATE_REMOTE_PATH` is a dead variable, and `decisions/decision.yaml`); `QUICKSTART.md` tells the reader what `mathc init` actually creates; the installer stamps a build id, because two binaries answer `3.7.4` and the older one writes a scaffold the kernel rejects | low |
+| T5.1 | the cost of the method, measured where it can be measured: the whole corpus audit costs about 2.4 s of machine time and the adopter's path about 6 ms; the defect the old 3-4x was blamed on is closed; and NO new ratio is published, because publishing one without the harness that produced the old figure would be a number without a method | the three corpus commands and the three adopter commands, in the decision, re-runnable |
 | (the wave's own debt, second time) | a red fixture that a green suite could not see: `dune build @runtest` does not run the sixty-five shell fixtures (`scripts/check.sh` does), and dune caches a cram result whose inputs did not change. The two copies of the OpenCode skill had diverged since 68e406bf; the installer was shipping the old document | `scripts/check.sh` 65 passed, 0 failed; `dune build @runtest --force` exits 0 |
 | T4.3 | the project's own strings leave the core: `lib/gate.ml:1016`, `lib/capsule.ml:171-176`, `lib/decision.ml:1664-1667`, the sixteen pointers in `lib/diagnostic.ml`, and the read of a file that does not exist (`lib/memory.ml:592`) | medium |
 
@@ -414,6 +415,7 @@ Merged into `main`, each with its own decision and its own evidence:
 | T2.2b-2 (tranche 1 of 3) | twelve decisions whose claim was still true and whose FORM had gone stale: the paths that moved, the counts that changed, the anchors that no longer pointed where they did, and the four files that lost their YAML tail | the instruments, and one promise found false as written - the CLI catalog never listed every dispatched subcommand - re-scoped to what the decision actually promised, with the whole-surface claim left where it lives, in `spec-cli-catalog`, under its ceiling |
 | T2.2b-2 (tranche 2 of 3) | eleven more decisions rewritten the same way; the debt fell, because two promises that had no control now name one that can fail | CHECKED 85 -> 87, UNCHECKED 32 -> 31, the sum invariant holds |
 | T2.2b-2 (tranche 3 of 3) | the last eleven stale-form decisions, rewritten the same way; two live defects found and named rather than papered over: the site's footer links to a file this repository renamed, and the manifesto claims eight obligation packets while the master policy carries seven | the renderer's own measurement of the site, and the tree's counts |
+| T5.1 | the cost of the method, measured where it can be measured: the whole corpus audit costs about 2.4 s of machine time and the adopter's path about 6 ms; the defect the old 3-4x was blamed on is closed; and NO new ratio is published, because publishing one without the harness that produced the old figure would be a number without a method | the three corpus commands and the three adopter commands, in the decision, re-runnable |
 | (the wave's own debt, second time) | a red fixture that a green suite could not see: `dune build @runtest` does not run the sixty-five shell fixtures (`scripts/check.sh` does), and dune caches a cram result whose inputs did not change. The two copies of the OpenCode skill had diverged since 68e406bf; the installer was shipping the old document | `scripts/check.sh` 65 passed, 0 failed; `dune build @runtest --force` exits 0 |
 | T4.3 | the project's own strings leave the core: seven instances the plan did not name, including a table that mapped decision ids to this repository's paths and a read of a file the repository renamed. The values live in `scripts/project-strings.txt` now, and the kernel parses them the way it already parses the protected paths | the exported core contains zero of this repository's names; `exportable-core-boundary.sh` PASS |
 | (the wave's own debt) | two red cram fixtures, both of them mine, found because the suite is now judged by its exit code and not by a grep for `FAIL` | `dune build @runtest` exits 0; the gate trailer now declares its own protected paths, as the design says a project must, and the legacy init expects the kernel to say what it read |
@@ -422,8 +424,8 @@ The numbers after the wave (2026-10-31):
 
 | number | before | now |
 |---|---|---|
-| CORPUS - decisions in the live corpus | 144 | 137 |
-| PAPER - obligations the kernel cannot execute | 44 | 34 |
+| CORPUS - decisions in the live corpus | 144 | 132 |
+| PAPER - obligations the kernel cannot execute | 44 | 29 |
 | BROKEN - verifier schemes the kernel does not know | 5 | 0 |
 | DANGLING - relation targets that resolve to nothing | 44 | 0 |
 | DEAD - scope paths matching no tracked file | 20 | 0 |
@@ -451,12 +453,12 @@ obvious:
   commit, and the wave's own rule is that a tranche is checked by the
   instruments rather than by the reader of a diff.
 
-What is left, in the plan's order: T2.2b-2 (the 34 claims that are
-still true and whose FORM went stale, and the 20 records - judgment,
-one decision at a time, not a pattern), T3.2 (the contract of the
-kernel: the normative text is already renamed and now has to shrink),
-T4.3 (the project's own strings leave the core), T5.1 (the cost of
-the method, measured against the binary it replaces).
+What is left, in the plan's order: T3.2 (the contract of the kernel -
+PREPARED and waiting for the human's review, because an A3 transition
+may not merge without one) and the two records that wait for it
+(`gate-decision` and `kernel-fixes-found-bugs-2026-10`, both named by
+the normative text). Everything else in the wave is merged: T2.2b-2's
+thirty-four stale forms and sixteen records, T4.3, T5.1.
 
 ## 9. Wave 3 (2026-11-01 .. 11-08)
 
@@ -547,7 +549,8 @@ list of the same thing:
 | 3d-2 | 6.13-6.23 (11) | DONE 2026-11-01: the same, including the debt fixtures that count a store the repository does not track |
 | 3d-3 | 6.24-6.34 (11) | DONE 2026-11-01: the same, including the site claims |
 | 3e-1 | 7.1-7.8, 7.10 (9) | DONE 2026-11-01: nine records to the archive, with the pointer repairs each move needed. Four ceilings fell: corpus 145 -> 137, paper 35 -> 34, unchecked 31 -> 29, declared 21 -> 19 |
-| 3e-2 | 7.11-7.20 (7) | RUNNING: seven records; three need test redirects first; four stay (two manifests, two named by the normative text) |
+| 3e-2 | 7.11-7.20 (7) | DONE 2026-11-01: seven records; three had their test redirects first. One stayed because the normative text still names it - measured, not assumed. Corpus 137 -> 131, paper 34 -> 28 |
+| T3.2 | the contract | PREPARED, awaiting the human's review (A3): 1016 lines -> 229, 31 rules each naming its code and its test, nine sections that no program enforces now say so and point at the declared list with its owner and date, and a new section that says what the document no longer carries. The four fixtures that mirrored the document compare constants with the code now |
 | 3e-1 | 7.1-7.10 (10) | ten records to the archive, with the pointer repairs each move needs |
 | 3e-2 | 7.11-7.20 (10) | ten records; two of them are operational manifests and stay, because a manifest is an input and not a rule |
 
