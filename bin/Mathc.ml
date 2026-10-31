@@ -1216,8 +1216,13 @@ let emit (format : output_format) path
 
 (* `mathc version` prints the live project version. The string is
    read from `./VERSION` at runtime so `scripts/release.sh` and
-   the build pipeline only need to update one file. *)
-let[@warning "-32"] read_cli_version () =
+   the build pipeline only need to update one file.
+
+   `read_cli_version_opt` answers None when there is no VERSION file
+   in reach: the caller decides what to say about it. The wrapper
+   keeps the historical fallback ("math-coding") for the callers that
+   compare a version against a tag. *)
+let[@warning "-32"] read_cli_version_opt () : string option =
   let dune_root =
     match Sys.getenv_opt "DUNE_SOURCEROOT" with
     | Some p -> Some (Filename.concat p "VERSION")
@@ -1244,13 +1249,122 @@ let[@warning "-32"] read_cli_version () =
     else None
   in
   let rec loop = function
-    | [] -> "math-coding"
-    | p :: rest -> ( match try_one p with Some v -> v | None -> loop rest)
+    | [] -> None
+    | p :: rest -> ( match try_one p with Some v -> Some v | None -> loop rest)
   in
   loop candidates
 
+let[@warning "-32"] read_cli_version () : string =
+  match read_cli_version_opt () with Some v -> v | None -> "math-coding"
+
+(* --- the build id ----------------------------------------------------
+ *
+ * Two binaries that answer "3.7.4" are the same RELEASE and not the
+ * same BUILD: the older one writes a scaffold the kernel rejects
+ * (decision `one-master-policy-and-build-id-2026-11`). A version
+ * cannot tell the two apart, because the version is what the release
+ * decided and the build is what the compiler produced.
+ *
+ * The build id is a short digest of the running binary's OWN BYTES.
+ * It travels with the file, so the same file always answers the same
+ * and two different files never answer the same -- which is exactly
+ * the property a build id has to have, and the one a source
+ * identifier does not have (two builds of one source are two files).
+ * The question it answers is "which binary is this", not "which
+ * commit was it cut from"; the answer to the second question is the
+ * release tag the installer was pointed at.
+ *
+ * The installer stamps the digest it verified next to the binary it
+ * installed (`mathc.build-id`, next to the executable), so the answer
+ * is CHECKABLE: the stamp says what was installed, the binary says
+ * what it is, and a stamp that does not match the bytes is a
+ * tampering that the version command names. *)
+let[@warning "-32"] executable_real_path () : string option =
+  if Sys.executable_name = "" then None
+  else
+    Some
+      (try Unix.realpath Sys.executable_name
+       with Unix.Unix_error _ -> Sys.executable_name)
+
+(* The full SHA-256 of the running binary, or None when the file
+   cannot be read (a stripped environment, a deleted binary). *)
+let[@warning "-32"] self_sha256 () : string option =
+  match executable_real_path () with
+  | None -> None
+  | Some path ->
+      (try
+         let ic = open_in_bin path in
+         let n = in_channel_length ic in
+         let s = really_input_string ic n in
+         close_in ic;
+         Some (Digest.sha256_hex s)
+       with _ -> None)
+
+(* The short form: twelve hex characters of the digest above. *)
+let[@warning "-32"] build_id_short () : string option =
+  match self_sha256 () with
+  | None -> None
+  | Some hex -> Some (String.sub hex 0 12)
+
+(* The stamp the installer writes next to the binary it installed.
+   Two lines: `version=<X>` and `build=<sha256>`. The stamp is the
+   installer's record; the binary's own digest is the truth. *)
+let[@warning "-32"] build_stamp_path () : string option =
+  match executable_real_path () with
+  | None -> None
+  | Some path ->
+      Some (Filename.concat (Filename.dirname path) "mathc.build-id")
+
+let[@warning "-32"] read_build_stamp () : (string * string) option =
+  match build_stamp_path () with
+  | None -> None
+  | Some path ->
+      if not (Sys.file_exists path) then None
+      else
+        (try
+           let ic = open_in path in
+           let version = ref "" in
+           let build = ref "" in
+           (try
+              while true do
+                let line = input_line ic in
+                let key, value =
+                  match String.index_opt line '=' with
+                  | Some i ->
+                      (String.sub line 0 i, String.sub line (i + 1)
+                                     (String.length line - i - 1))
+                  | None -> (line, "")
+                in
+                if key = "version" then version := value
+                else if key = "build" then build := value
+              done
+            with End_of_file -> ());
+           close_in ic;
+           if !version = "" || !build = "" then None
+           else Some (!version, !build)
+         with _ -> None)
+
 let[@warning "-32"] print_version () =
-  Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
+  let stamp = read_build_stamp () in
+  match stamp with
+  | None ->
+      Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
+  | Some (version, stamped_build) ->
+      (* The stamp describes the INSTALLED artifact, so its version is
+         the one to print: the VERSION file the file lookup may find
+         belongs to whatever tree the operator happens to stand in. *)
+      let id =
+        match build_id_short () with
+        | Some id -> id
+        | None -> String.sub stamped_build 0 (min 12 (String.length stamped_build))
+      in
+      Printf.printf "math-coding %s: bootstrap (build %s)\n" version id;
+      (match self_sha256 () with
+       | Some hex when hex <> stamped_build ->
+           Printf.eprintf
+             "mathc version: the installed stamp says %s but this binary hashes to %s\n"
+             stamped_build hex
+       | _ -> ())
 
 let print_usage oc =
   Printf.fprintf oc
@@ -1258,7 +1372,8 @@ let print_usage oc =
      commands:\n\
     \  version [--check]                print the bootstrap hello (with --check,\n\
     \                                   exit 1 + newer version on stdout when an\n\
-    \                                   upgrade is available)\n\
+    \                                   upgrade is available; with --build-id,\n\
+    \                                   the build id of this binary)\n\
     \  validate FILE [--format=...]     parse FILE as a decision\n\
     \  verify FILE [--format=...]       walk acceptance.all[*].verifier\n\
     \                                   strings in FILE and execute them in\n\
@@ -2060,16 +2175,34 @@ let[@warning "-32"] do_version () =
     exit 0
   end;
   let check = ref false in
+  let build_id = ref false in
   (try
      Arg.parse
-       [ ("--check", Arg.Set check, " compare with the latest stable release") ]
+       [
+         ("--check", Arg.Set check, " compare with the latest stable release");
+         ( "--build-id",
+           Arg.Set build_id,
+           " print the build id of this binary (a digest of its own bytes)" );
+       ]
        (fun s ->
          Printf.fprintf stderr "mathc version: unexpected argument: %s\n" s;
          exit 2)
-       "usage: mathc version [--check]"
+       "usage: mathc version [--check] [--build-id]"
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc version: %s\n" m;
      exit 2);
+  if !build_id then begin
+    (* The build id is a MEASUREMENT: when the binary cannot be read,
+       the answer is "unknown" (exit 3), not a guess. *)
+    match build_id_short () with
+    | Some id ->
+        print_endline id;
+        exit 0
+    | None ->
+        Printf.eprintf
+          "mathc version: the build id of this binary could not be measured\n";
+        exit 3
+  end;
   if !check then
     begin match update_fetch_latest_tag () with
     | None -> exit 0

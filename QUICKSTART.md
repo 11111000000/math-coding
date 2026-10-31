@@ -69,8 +69,8 @@ Greenfield:
 
 ```sh
 cd /path/to/new-project
-mathc init . --no-install
-mathc validate decisions/decision.yaml
+mathc init . --no-install   # .math-coding/{policy.yaml,decisions/,attestations/}
+mathc validate .math-coding/policy.yaml
 ```
 
 Brownfield (existing MADR / adr-tools / arc42):

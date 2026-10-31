@@ -163,13 +163,16 @@ CEILING_DANGLING=0
 # ceiling-fall: 20 -> 0, every scope path in the live corpus names a tracked file
 CEILING_DEAD=0
 
-#   CORPUS 136 - decision files in the live corpus. A measurement,
+#   CORPUS 138 - decision files in the live corpus. A measurement,
 #     not a verdict: the "about 50 rules" of the 2026-10 census is a
 #     record, not a standing requirement, and this ceiling bounds the
 #     count from above so that growth is visible.
 #
 # ceiling-fall: 145 -> 136, eleven records moved to the archive
-CEILING_CORPUS=136
+# ceiling-raise: 136 -> 137, the exportable-core-boundary decision is in
+#   the corpus it counts
+# ceiling-raise: 137 -> 138, the one-master-policy decision is in the corpus it counts
+CEILING_CORPUS=138
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
@@ -550,7 +553,17 @@ obligations:
 YAML
   i=$((i + 1))
 done
-control_paper="$(cd "$work" && "$bin" gaps --format=json 2>/dev/null | python3 -c '
+# The control must measure ITS OWN corpus. An inherited MATH_CODING_ROOT
+# (or MATH_CODING_DECISIONS_DIR) points the kernel at the LIVE corpus, and
+# then the control measures the live corpus and reports a false alarm: on
+# 2026-11-01 the census failed with "the synthetic corpus measured 35 paper
+# obligations, not above the ceiling 36 - the ceiling cannot bind" while the
+# live corpus was not in question at all. The environment is cleared here, and
+# the count is checked against the number of synthetic decisions that were
+# created - a control that cannot prove it measured its own corpus is not a
+# control.
+control_paper="$(cd "$work" && env -u MATH_CODING_ROOT -u MATH_CODING_DECISIONS_DIR \
+  -u MATH_CODING_ATTESTATIONS_DIR -u MATH_CODING_STORE "$bin" gaps --format=json 2>/dev/null | python3 -c '
 import json, sys
 try:
     d = json.load(sys.stdin)
@@ -558,7 +571,10 @@ except Exception:
     print(0); raise SystemExit(0)
 print(((d.get("counts") or {}).get("by_class") or {}).get("not-a-check", 0))
 ')"
-if [ "${control_paper:-0}" -gt "$CEILING_PAPER" ]; then
+synthetic_paper=$((CEILING_PAPER + 5))
+if [ "${control_paper:-0}" -lt "$synthetic_paper" ]; then
+  bad "negative control: the synthetic corpus measured ${control_paper:-0} paper obligations, but it carries $synthetic_paper - the control did not measure its own corpus"
+elif [ "${control_paper:-0}" -gt "$CEILING_PAPER" ]; then
   ok "negative control: a synthetic corpus measures ${control_paper:-0} paper obligations, above the ceiling $CEILING_PAPER"
 else
   bad "negative control: the synthetic corpus measured ${control_paper:-0} paper obligations, not above the ceiling $CEILING_PAPER - the ceiling cannot bind"

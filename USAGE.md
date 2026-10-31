@@ -119,9 +119,8 @@ What `mathc init` does (v3.4 default layout):
 - creates `.math-coding/decisions/` and `.math-coding/attestations/`
   (one folder instead of three at the repo root)
 - writes `.math-coding/policy.yaml` with the active policy
-  (a verbatim copy of
-  `scripts/install-tooling/templates/active-policy.yaml`,
-  which is `math-coding/3.2`)
+  (a verbatim copy of `templates/master-policy.yaml`, the ONE source
+  of the master policy; the schema is `math-coding/3.2`)
 - installs `.githooks/pre-commit` (unless `--no-install`) that
   runs `mathc validate` on staged decisions and `mathc self-check`
 - **refuses** on `docs/arc42/`, `docs/adr/`, or `adr/` presence

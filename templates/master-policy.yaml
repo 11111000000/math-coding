@@ -1,0 +1,58 @@
+schema: math-coding/3.2
+id: bootstrap-v3
+revision: 1
+state: active
+intent: |
+  Master policy for this project. Edit `scope.paths[]` below to
+  match the source tree under version control. The shipped
+  `mathc` binary uses this file as the active policy when
+  running `mathc self-check` and `mathc gate`.
+axiom_link:
+  - A0
+  - A3
+commitment: |
+  Replace the placeholder paths in `scope.paths` with the
+  directories that hold your source, and point the obligation
+  below at one of them. The kernel is offline and
+  side-effect-free; everything outside `scope.paths` is untracked
+  by `mathc self-check`.
+counterexample: |
+  TODO(adopter): state the strongest plausible case where this
+  policy is wrong, and what would change your verdict. One
+  paragraph. An empty slot means a reader sees the commitment
+  without its counterweight.
+scope:
+  paths:
+    - "src/**"
+    - "tests/**"
+    - "docs/**"
+    - "scripts/**"
+    - "schemas/**"
+    - "site/**"
+  exclusions:
+    - "**/.git/**"
+outcomes:
+  - id: master-policy-active
+    statement: |
+      This file is the active policy; `mathc self-check`
+      reads it on every invocation.
+obligations:
+  - id: scope-names-this-tree
+    claim: |
+      The path this obligation names -- the first entry of
+      `scope.paths` -- exists in this project, so the kernel
+      watches the code that changes here. If your source lives
+      elsewhere, change that entry and this verifier to the same
+      path.
+    acceptance:
+      all:
+        - verifier: file-exists src
+risk:
+  declared_triggers:
+    - bootstrap-template-not-edited
+    - kernel-changed-without-self-application
+  owner: human:maintainer
+relations:
+  addresses: []
+  supersedes: []
+  superseded_by: []

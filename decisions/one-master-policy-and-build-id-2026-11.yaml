@@ -1,0 +1,550 @@
+---
+schema: math-coding/3.3
+id: one-master-policy-and-build-id-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/master-policy-one-source.sh
+body_sha: "sha256:c989ea0251f4be751b9e501984ac4fed6e78c970ab48b60ed5c99fe42ccdc8d0"
+yaml_sha: "sha256:c989ea0251f4be751b9e501984ac4fed6e78c970ab48b60ed5c99fe42ccdc8d0"
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T4.2)"
+  text: |
+    Tranche T4.2 of the redundancy-and-portability plan: one master
+    policy instead of three, and a binary that says which build it is.
+
+    WHAT WAS MEASURED (2026-11-01), because the plan's row -- "one
+    master policy instead of three" -- was written before anyone
+    counted, and the count is not what the row says.
+
+    FOUR documents answered "what is the policy?", in THREE kinds:
+
+    1. `policies.yaml` (repository root) -- a policy SEQUENCE: five
+       records (`math-coding-kernel`, `math-coding-protocol`,
+       `math-coding-support`, `math-coding-docs`, `math-coding-
+       corpus`), seventeen `scope_paths` in all (2 + 3 + 8 + 2 + 2),
+       `mode_floor: standard` on two of them and `light` on three,
+       and NO obligations in any of them. `schemas/policy.json` says
+       a policy record's `obligations` has `minItems: 1`, so the
+       canonical policy file does not satisfy the schema that names
+       it. (The kernel does not check: `lib/policy.ml` parses the
+       records and reads the floors.)
+
+    2. `scripts/install-tooling/templates/active-policy.yaml` -- NOT
+       a policy sequence: a DECISION document (`schema:
+       math-coding/3.2`, `id: bootstrap-v3`, `revision: 1`), with
+       ONE obligation (`policy-file-present`, verifier
+       `mathc-validate`) and an EMPTY `scope.paths[]`. Its own
+       counterexample admits the consequence: "the new repo's first
+       `mathc self-check` will report `unknown` because no
+       obligations are scoped to anything". The counterexample it
+       carries is a paragraph arguing against adopting math-coding,
+       written by the kernel, about a project the kernel cannot see.
+
+    3. `lib/init/init.ml::master_policy_template` -- a DECISION
+       document too, with the SAME id and the SAME revision
+       (`bootstrap-v3`, `revision: 1`), and a different body: six
+       PLACEHOLDER scope paths (`src/**`, `tests/**`, `docs/**`,
+       `scripts/**`, `schemas/**`, `site/**`), one exclusion
+       (`**/.git/**`), one obligation (`scope-names-this-tree`,
+       verifier `file-exists src`), and a counterexample that is a
+       TODO for the adopter instead of an argument. This is the copy
+       `mathc init` writes -- the one an adopter actually receives.
+
+    4. `decisions/decision.yaml` -- THIS repository's instance of the
+       same id (`bootstrap-v3`, `revision: 3`): seven scope paths
+       (this repository's), seven obligations (four of them
+       `manual-*`, i.e. paper), five outcomes, one assumption and a
+       reversal. It is a DECISION, not a policy sequence, and it is
+       not a copy of anything: it is what this project committed to.
+
+    The two documents that both claim `id: bootstrap-v3, revision: 1`
+    differ by 172 diff lines. Two documents with the same id and the
+    same revision and different content is not a convention, it is a
+    resolution bug waiting for a reader.
+
+    AND THE THIRD SOURCE WAS DEAD. `MC_TEMPLATE_REMOTE_PATH` was
+    defined at `scripts/install-tooling/install.sh:54` and read
+    nowhere: the installer never fetched the template, and the
+    release never published it (`.github/workflows/release.yml`
+    publishes `SHA256SUMS`, `install.sh`, `install.ps1`,
+    `dist-adoption.tar.gz` and the `mathc-*` binaries -- no
+    template). A variable that names a file and is never read is a
+    promise that nothing reads.
+
+    WHAT `decisions/decision.yaml` IS REFERENCED BY, since the plan
+    asks that the decision about it be taken on what really depends
+    on it: the kernel resolves the active policy by PATH
+    (`lib/path_config.ml:39`, the legacy layout's
+    `decisions/decision.yaml`) and by ID (`lib/capsule.ml:171`,
+    `bin/Mathc.ml:2269` -- `bootstrap-v3` maps to that file),
+    `lib/packages.ml` excludes it from the corpus listing, and 50
+    live decisions name `bootstrap-v3`. It therefore CANNOT
+    disappear: `mathc self-check` and `mathc gate` read it. What it
+    can stop being is "the policy" in the prose of the tree, because
+    it is a DECISION -- this repository's instance of the master
+    policy -- and three kinds of document were being called one
+    thing.
+
+    THE SECOND HALF: A VERSION IS NOT A BUILD. `VERSION` says 3.7.4
+    and the installer installs `MC_VERSION_DEFAULT="3.7.4"`, and the
+    version changed EIGHTEEN times between 2026-10-07 and 2026-10-25
+    (`git log --oneline -- VERSION`). Two different binaries answer
+    `3.7.4`, so the user cannot say which one is on their PATH, and
+    the plan names the consequence: "the older one writes a scaffold
+    the kernel rejects".
+
+    Measured about the local tree, because the obvious demo does not
+    work: `_build/install/default/bin/mathc` is a SYMLINK to
+    `_build/default/bin/mathc.exe`, so the two paths are ONE file
+    with one digest (`sha256:e722f594...`) and any id derived from
+    the bytes MUST answer the same for both. The two different
+    binaries appear when the file is COPIED (an installation, a
+    tarball, a container image) or REBUILT.
+
+    And the answer an installed binary gave before this tranche was
+    worse than "3.7.4": the version string is read from `./VERSION`
+    at runtime, an installed binary has no VERSION file in reach,
+    and the fallback printed the literal string "math-coding" into
+    the version slot:
+
+        $ cd /tmp && ~/.local/bin/mathc version
+        math-coding math-coding: bootstrap
+
+    `scripts/install-tooling/install.sh --check` greps for
+    "math-coding <version>:", so that check could not pass against a
+    real installation.
+
+    Two cram fixtures pin the banner BYTE (`tests/cli/version.t`
+    compares it with `cmp`; `tests/cli/update.t` compares the line
+    after a `sed`), so the build id could not be folded into the
+    banner without editing `tests/cli/**` -- which this tranche is
+    not allowed to touch. The build id is therefore a FLAG on
+    `mathc version`, and the banner of an unstamped (source) build
+    is unchanged byte for byte.
+
+commitment: |
+  After this decision closes:
+
+  1. There is ONE master policy document in the tree:
+     `templates/master-policy.yaml`. It is the blank form a project
+     starts from -- `id: bootstrap-v3`, `revision: 1`, placeholder
+     scope paths, one obligation that names the adopter's own tree --
+     and it is byte-identical to what `mathc init` writes.
+
+  2. Every copy of it is GENERATED, and the generation is checked:
+
+     - `scripts/install-tooling/templates/active-policy.yaml` is a
+       verbatim copy. It stays a DECISION document, because the
+       kernel validates it (`tests/cli/install.t`, obligation
+       `install-template-validates` of
+       `decisions/install-tooling-2026-10.yaml`) and a policy
+       sequence would not validate.
+     - the string literal in `lib/init/init.ml` is the copy the
+       binary embeds. `scripts/sync-master-policy.sh --write`
+       regenerates it BYTE FOR BYTE: the file is unchanged by this
+       tranche because the generator's output IS the file, which is
+       the strongest form the claim can take.
+
+     `scripts/sync-master-policy.sh --check` compares both, and
+     `tests/fixtures/master-policy-one-source.sh` runs the check,
+     proves the generator is faithful (it regenerates the literal in
+     a COPY of `lib/init/init.ml` and requires the copy to come out
+     unchanged), and carries the NEGATIVE CONTROL: it breaks each
+     derived copy in a throwaway copy of the tree and requires the
+     checker to refuse it.
+
+  3. The three kinds are named, and the tree stops calling them one
+     thing:
+
+     - MASTER POLICY: the protocol's document,
+       `templates/master-policy.yaml`. ONE source.
+     - ACTIVE POLICY: a project's instance of it -- the file the
+       kernel reads, located by id (`bootstrap-v3`). In this
+       repository: `decisions/decision.yaml` (`bootstrap-v3@3`).
+     - POLICY SEQUENCE: `policies.yaml` -- the per-path floors. A
+       different artifact, and the only one in the tree that
+       declares policy records.
+
+     `policies.yaml` says so in its own header, and the fixture
+     checks it: no other file in the live tree declares a
+     `policy_id`, and `decisions/decision.yaml` has an `id` and no
+     `policy_id` -- it is a decision, not a policy sequence.
+
+  4. `MC_TEMPLATE_REMOTE_PATH` is GONE from the installer. It named
+     a file and was read nowhere; the master policy travels inside
+     the binary, and `mathc init` writes it.
+
+  5. The quickstart tells the truth about `mathc init`. It said
+     `mathc validate decisions/decision.yaml`; the command writes
+     `.math-coding/policy.yaml` (measured by running it in an empty
+     directory), so the quickstart named a file the command does not
+     create. The command block now names the file that IS created and
+     says what `mathc init` writes, and `USAGE.md` -- which has no
+     length limit -- says it in full. The quickstart's line count is
+     pinned by `tests/cli/quickstart-md-exists.t` (at most 100 lines,
+     and the expected transcript names the count), so the sentence
+     about `mathc init` went into the command block it describes
+     rather than into a new paragraph.
+
+  6. The binary answers which build it is:
+
+     - `mathc version --build-id` prints twelve hex characters: the
+       SHA-256 of the running binary's OWN BYTES. It exits 3
+       ("unknown, not pass") when it cannot measure them.
+     - the property that makes the id an id: two DIFFERENT binaries
+       answer differently, and the SAME binary answers the same --
+       at any path, in any copy. `tests/fixtures/build-id-
+       distinguishes.sh` measures exactly that, on copies of the
+       real binary, and proves the check can go red against two fake
+       binaries that answer a constant.
+
+  7. The installer stamps what it installed. The digest it verified
+     (the one the release's `SHA256SUMS` carries) goes into
+     `mathc.build-id` next to the binary, with the version it
+     installed. An installed binary prints the build id in its
+     banner -- "math-coding 3.7.4: bootstrap (build e722f594c2f6)" --
+     and the banner of a SOURCE build is unchanged byte for byte,
+     because a source build has no stamp next to it.
+
+  8. A stamp that does not match the bytes is NAMED, not believed:
+     the banner always shows the digest of the file that is running,
+     and the mismatch goes to stderr. `scripts/install-tooling/
+     install.sh --check` refuses an installation whose stamp
+     disagrees with the binary on disk.
+
+  WHAT THIS DECISION DOES NOT DO, said here so that nobody has to
+  guess:
+
+  - It does not give an adopter a `policies.yaml`. `mathc init`
+    writes the master policy and the two directories; it does not
+    write a policy sequence, so an adopter's floors are the silent
+    baseline (`Tiny`) until they declare their own. That gap is
+    named by the counterexample below and is NOT closed here: the
+    floors of this repository are this repository's.
+  - It does not touch the 136 live decisions. One of them --
+    `decisions/install-tooling-2026-10.yaml` -- says the install
+    template is "a verbatim copy of `decisions/decision.yaml`",
+    which was FALSE when this tranche started (the file was
+    `bootstrap-v3@1` with an empty scope) and is still false now:
+    the copy is of the SCAFFOLD, and the reason it is a scaffold and
+    not this repository's instance is the counterexample below.
+    Repairing that sentence belongs to the corpus tranche (T2.2b),
+    which rewrites the decisions whose claims no longer hold.
+  - It does not change `lib/**`. The embedded copy is regenerated by
+    the same script, and the script's output is the file, so nothing
+    had to change -- but the next change to the master policy will
+    touch `lib/init/init.ml`, and that tranche needs `lib/` free.
+  - It does not change the EXPORTED core. Tranche T4.1
+    (`decisions/exportable-core-boundary-2026-11.yaml`) cut the
+    transferable core with an allowlist: the kernel, `policies.yaml`,
+    the three artifact locations and the skill. The master policy is
+    not in that allowlist, and the export copies `policies.yaml` byte
+    for byte -- so the exported tree carries the master policy inside
+    the BINARY (`lib/init/init.ml` is exported with the kernel) and
+    `mathc init` writes it, which is right for the adopter, while
+    the exported `policies.yaml` names a source file that is not in
+    the export. T4.1's decision carries this as a declared trigger
+    ("if T4.2 changes policies.yaml or the master-policy layout, the
+    exported policy can describe a layout the adopter no longer
+    has"), and the trigger FIRED. The follow-up belongs to T4.1:
+    adding `templates/master-policy.yaml` to the export allowlist
+    changes that decision's script, its fixture and its scope, and
+    this tranche does not touch another tranche's boundary. The
+    header of `policies.yaml` says which of its sentences hold in
+    this repository and which hold in an exported core.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+counterexample: |
+  The strongest objection against this decision is that the
+  installer's template and the master policy are DIFFERENT THINGS on
+  purpose: the template is for a newcomer and is deliberately
+  simpler, and to make them one is to force the newcomer to accept
+  the floors of this repository.
+
+  The objection is right about the floors and right about the
+  consequence, and it is wrong about which documents are being
+  merged.
+
+  The floors are NOT part of the master policy. They are the policy
+  SEQUENCE (`policies.yaml`), a different artifact with a different
+  schema, and this decision does not ship them to anybody: the
+  master policy travels inside the binary and `mathc init` writes
+  the master policy, not a floor declaration. A newcomer who adopts
+  this protocol still has to declare their own floors, and until they
+  do, their `mathc mode` answers the silent baseline. That gap is
+  REAL and it is NAMED here -- it is the "no policies.yaml here, so
+  the kernel uses its lowest rung (Tiny)" that `mathc init` prints
+  in its applicability envelope -- and closing it is a different
+  decision with a different design (a template of floors that the
+  adopter edits is a THIRD kind of document, and this tranche
+  deliberately did not invent one).
+
+  What is wrong in the objection is the premise that the installer's
+  template and the master policy are two documents. They are one
+  document that was copied by hand twice: the file under
+  `scripts/install-tooling/templates/` and the literal in
+  `lib/init/init.ml` both said `id: bootstrap-v3, revision: 1`, and
+  they said DIFFERENT things -- 172 diff lines, an empty
+  `scope.paths[]` against six placeholders, `mathc-validate` against
+  `file-exists src`, a paragraph written for nobody against a TODO
+  for the adopter. Unifying them does not make the newcomer's
+  policy richer or poorer; it makes ONE document exist instead of
+  two that disagree about what a newcomer receives. And the one that
+  survives is the one `mathc init` actually writes -- the blank form
+  with the placeholder paths -- so the adopter is not given this
+  repository's obligations, and the copy in the tree is not this
+  repository's instance (`decisions/decision.yaml`, `bootstrap-v3@3`,
+  seven obligations, four of them paper).
+
+  A second objection, and it is the one that decides the shape of
+  the build id: a digest of the binary's own bytes identifies the
+  ARTIFACT, not the SOURCE. Two builds of one commit are two files
+  and answer differently, and a user who wants to know "is my
+  binary older than the repository I am working in?" has to compare
+  the id with the repository's -- which is a different question, and
+  the one the release tag answers. The objection is correct that the
+  id does not say which commit was cut, and the decision says so
+  plainly rather than pretending otherwise: the id answers "which
+  binary is this", and it answers it exactly, which is the property
+  the plan asked for ("two different binaries must give different
+  strings, and the same one the same -- otherwise the build
+  identifies nothing"). A source id would satisfy the second half
+  and break the first: two builds of one source are different
+  binaries.
+
+  What would change the verdict: a decision that the protocol's
+  master policy is THIS repository's instance rather than the blank
+  form. Then the canonical file would be `decisions/decision.yaml`,
+  the installer's copy would carry seven obligations of which four
+  are `manual-*` and none of which mean anything in a newcomer's
+  repository, and the copy would be worse for the adopter than the
+  blank form it replaces. The trigger is in the risk block.
+
+antithesis: |
+  The opposite position is that the three documents are three
+  different things and need no unification at all: the risk floors
+  are a policy sequence, the installer's template is a legacy path
+  that nobody uses any more, and `decisions/decision.yaml` is this
+  repository's own business. "One master policy instead of three"
+  would then be a category error, and the plan's row would be the
+  plan being wrong in the way its rows usually are -- written before
+  anyone counted.
+
+  The position is RIGHT about the kinds, and that is why this
+  decision names them (master policy, active policy, policy
+  sequence) instead of merging them into one. It is wrong about the
+  drift, and the drift is the part that costs.
+
+  Two documents carrying the same id and the same revision with
+  different bodies is a resolution bug, not a convention: a reader
+  that resolves `bootstrap-v3@1` by id has two answers, and the
+  installer template -- the one nobody reads -- is the one that says
+  the newcomer inherits an EMPTY scope and a `mathc validate`
+  obligation, while the copy the binary writes says the newcomer
+  inherits six placeholders and an obligation against their own
+  tree. The tree cannot say which is the truth, because nothing
+  checks.
+
+  The position is also wrong about the dead variable being harmless.
+  `MC_TEMPLATE_REMOTE_PATH` was not a leftover of a finished
+  migration; it was a promise that the install path ships the master
+  policy to the adopter, and the install path did not ship it. A
+  promise that is not kept is worse than no promise, because the
+  decision that made it (`install-tooling-2026-10`, commitment 3)
+  still says the template "ships in the same tarball as install.sh"
+  and the release publishes no template.
+
+  And the position has no answer to the plan's actual question. Two
+  binaries that answer `3.7.4` are the same release and not the same
+  build; the version changed eighteen times in eighteen days; the
+  older binary writes a scaffold the kernel rejects. A tree that
+  knows this and has no way to say which binary is running cannot
+  answer a support question about its own users.
+
+outcomes:
+  - id: one-master-policy-one-source
+    statement: |
+      The master policy has one source (`templates/master-policy.yaml`)
+      and every copy of it in the tree is generated from it. The
+      generator reproduces the embedded copy byte for byte, and the
+      check refuses a drift in either copy.
+
+  - id: the-kinds-are-named
+    statement: |
+      The tree says which document is which: the master policy (one
+      source), a project's active policy (an instance, located by
+      id), and the policy sequence (the floors). No file in the live
+      tree but `policies.yaml` declares policy records, and
+      `decisions/decision.yaml` is a decision.
+
+  - id: the-dead-variable-is-gone
+    statement: |
+      The installer names no variable it does not read, and the
+      master policy reaches an adopter through the binary.
+
+  - id: the-build-id-is-a-measurement
+    statement: |
+      `mathc version --build-id` answers a digest of the running
+      binary: two different binaries answer differently, the same one
+      answers the same, and an unmeasurable answer is exit 3 rather
+      than a guess.
+
+  - id: the-installer-stamps-the-build
+    statement: |
+      An installation carries the digest the installer verified, the
+      installed binary prints it, and a stamp that does not match the
+      bytes is named instead of believed.
+
+  - id: the-quickstart-tells-the-truth
+    statement: |
+      `QUICKSTART.md` names the files `mathc init` creates.
+
+scope:
+  paths:
+    - "templates/master-policy.yaml"
+    - "templates/README.md"
+    - "scripts/sync-master-policy.sh"
+    - "scripts/install-tooling/templates/active-policy.yaml"
+    - "scripts/install-tooling/install.sh"
+    - "policies.yaml"
+    - "QUICKSTART.md"
+    - "USAGE.md"
+    - "bin/Mathc.ml"
+    - "lib/init/init.ml"
+    - "tests/fixtures/master-policy-one-source.sh"
+    - "tests/fixtures/build-id-distinguishes.sh"
+    - "decisions/one-master-policy-and-build-id-2026-11.yaml"
+  exclusions:
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "decisions/decision.yaml"
+    - "tests/cli/**"
+    - "docs/plans/**"
+
+obligations:
+  - id: the-policy-copies-are-generated
+    claim: |
+      Every copy of the master policy in the tree is byte-identical to
+      `templates/master-policy.yaml`, and the literal embedded in
+      `lib/init/init.ml` DECODES to it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/master-policy-one-source.sh
+
+  - id: the-policy-check-can-go-red
+    claim: |
+      The check refuses a drift: the fixture breaks each derived copy
+      in a throwaway copy of the tree and requires the checker to
+      refuse it, and it proves the generator is faithful by
+      regenerating the literal in a copy of `lib/init/init.ml` and
+      requiring the copy to come out unchanged.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/master-policy-one-source.sh
+
+  - id: one-policy-sequence-in-the-live-tree
+    claim: |
+      `policies.yaml` is the only file in the live tree that declares
+      policy records, and `decisions/decision.yaml` is a decision --
+      it has an `id` and no `policy_id`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/master-policy-one-source.sh
+
+  - id: the-build-id-distinguishes
+    claim: |
+      `mathc version --build-id` answers a digest of the running
+      binary, two different binaries answer differently, the same one
+      answers the same at any path, and the check can go red against
+      two binaries that answer a constant.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/build-id-distinguishes.sh
+
+  - id: the-installer-stamps-the-build
+    claim: |
+      The installer writes the digest it verified next to the binary
+      it installed, the installed binary prints the build id in its
+      banner, and a stamp that does not match the bytes is named
+      instead of believed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/build-id-distinguishes.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the master policy changes and lib/ is still owned by another tranche"
+    - "the protocol's master policy is decided to be this repository's instance rather than the blank form"
+    - "a second place starts copying the master policy by hand"
+    - "the build id is asked to name a source commit instead of an artifact"
+    - "the banner of `mathc version` is changed while tests/cli/ is out of bounds"
+    - "the installer stops stamping what it installs"
+
+assumptions:
+  - id: the-blank-form-is-the-protocols-master-policy
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The protocol's master policy is the blank form a project starts
+      from (`templates/master-policy.yaml`), and a project's
+      `decisions/decision.yaml` is an INSTANCE of it -- this
+      repository's is `bootstrap-v3@3`, with this repository's
+      obligations. The two are not copies of each other and must not
+      become copies of each other.
+    consequence_if_false: |
+      If the master policy is this repository's instance, the
+      canonical file is `decisions/decision.yaml` and the file the
+      adopter receives carries seven obligations of which four are
+      `manual-*` and none of which mean anything in a newcomer's
+      repository. The installer's copy would then be worse for the
+      adopter than the blank form it replaces, and the decision's
+      counterexample would be the one that is right.
+    review_on:
+      - signal: master-policy-becomes-a-repo-instance
+
+  - id: the-embedded-copy-is-generated-not-maintained
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The literal in `lib/init/init.ml` is the generator's output.
+      Measured on 2026-11-01: `scripts/sync-master-policy.sh --write`
+      rewrites the file with no change at all, byte for byte, and the
+      fixture proves it by regenerating the literal in a copy and
+      requiring the copy to come out unchanged.
+    consequence_if_false: |
+      If a future edit to the master policy is made in the literal
+      rather than in the canonical file, the two copies diverge and
+      the adopter receives one policy while the tree ships another.
+      The fixture catches it (`--check` compares the DECODED literal
+      with the source), so the divergence is visible rather than
+      silent -- but the next change to the master policy has to touch
+      `lib/`, and `lib/` is owned by another tranche until it is not.
+    review_on:
+      - signal: master-policy-changes
+
+  - id: the-build-id-answers-which-binary
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The question the build id answers is "which binary is this",
+      not "which commit was it cut from". The id is a digest of the
+      running file's own bytes; two builds of one commit are two
+      files and answer differently, and the release tag answers the
+      other question.
+    consequence_if_false: |
+      If the id is expected to name a source commit, the artifact
+      digest is the wrong instrument: it cannot tell two builds of
+      one source apart, and a user comparing it against a commit will
+      read a difference where there is none. The instrument would
+      have to become a compile-time source id, which the kernel does
+      not carry today (the build is offline and the version is read
+      from `./VERSION` at runtime).
+    review_on:
+      - signal: build-id-asked-for-a-commit
