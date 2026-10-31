@@ -278,6 +278,9 @@ verify_sha256() {
     darwin) actual=$(shasum -a 256 "$binary" | awk '{print $1}') ;;
     *)      actual=$(sha256sum "$binary" | awk '{print $1}') ;;
   esac
+  # The digest of the artifact this script verified. It is what the
+  # build stamp records (see write_build_stamp below).
+  verified_sha256="$actual"
   # SHA256SUMS lists the relative path (e.g. dist-bin/mathc-linux-x86_64);
   # install.sh names the binary by basename (e.g. mathc-linux-x86_64).
   # Match by basename suffix: strip any leading path-prefix.
@@ -545,6 +548,44 @@ DOCKER
   fi
 }
 
+# --- the build stamp ----------------------------------------------------
+#
+# Two binaries that answer the same version are the same RELEASE and
+# not the same BUILD: the older one writes a scaffold the kernel
+# rejects (decision `one-master-policy-and-build-id-2026-11`). The
+# stamp is what tells them apart: it records the digest of the
+# artifact this script verified, next to the binary it installed, and
+# `mathc version` prints the build id and checks the stamp against
+# its own bytes.
+#
+# The stamp lives NEXT TO the binary and not inside it: the download
+# is a released artifact whose bytes the release's SHA256SUMS fix,
+# while the stamp says what THIS installation put on THIS machine.
+# The file is two lines:
+#
+#     version=<X>
+#     build=<sha256 of the installed artifact>
+#
+# Args: $1=install_dir, $2=sha256 of the verified artifact,
+#       $3=version. Returns 0 on success, 1 when the stamp could not
+# be written (a warning, never a fatal error: the binary is
+# installed either way).
+write_build_stamp() {
+  dir="$1"
+  digest="$2"
+  version="$3"
+  stamp="$dir/mathc.build-id"
+  if ! {
+    printf 'version=%s\n' "$version"
+    printf 'build=%s\n' "$digest"
+  } > "$stamp" 2>/dev/null; then
+    echo "install.sh: warning: cannot write the build stamp at $stamp" >&2
+    return 1
+  fi
+  echo "install.sh: build stamp: $stamp"
+  return 0
+}
+
 # --- Install the binary to a directory ------------------------------------
 # Args: $1=temp_binary, $2=install_dir.
 # Returns 0 on success, 2 on filesystem error.
@@ -722,6 +763,19 @@ check_installed() {
       *"math-coding $version:"*) echo "ok: $binary at version $version" ;;
       *) echo "install.sh: --check: $binary present but reports a different version" >&2; rc=1 ;;
     esac
+    # The build stamp must agree with the bytes on disk. A stamp that
+    # does not is a binary that was replaced after the install, and
+    # that is exactly what the stamp is there to catch.
+    stamp="$install_dir/mathc.build-id"
+    if [ -f "$stamp" ]; then
+      stamped=$(sed -n 's/^build=//p' "$stamp" 2>/dev/null | head -1)
+      sha_tool=$(pick_sha_tool "$os")
+      actual=$($sha_tool "$binary" 2>/dev/null | awk '{print $1}')
+      if [ -n "$stamped" ] && [ -n "$actual" ] && [ "$stamped" != "$actual" ]; then
+        echo "install.sh: --check: the build stamp does not match the installed binary" >&2
+        rc=1
+      fi
+    fi
   fi
   if [ "$install_user_skill" = "1" ]; then
     skill_dir=$(pick_skill_dir)
@@ -884,6 +938,12 @@ main() {
   if [ "$?" != "0" ]; then
     return 2
   fi
+
+  # The build stamp: what was installed, and which build it is. A
+  # failure to write it is a warning -- the binary is installed and
+  # usable, and `mathc version --build-id` still answers from the
+  # binary's own bytes.
+  write_build_stamp "$install_dir" "${verified_sha256:-unknown}" "$version" || true
 
   # Optional skill install.
   if [ "$install_user_skill" = "1" ]; then

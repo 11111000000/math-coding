@@ -169,7 +169,8 @@ CEILING_DEAD=0
 #     count from above so that growth is visible.
 #
 # ceiling-fall: 145 -> 136, eleven records moved to the archive
-CEILING_CORPUS=136
+# ceiling-raise: 136 -> 137, the one-master-policy decision is in the corpus it counts
+CEILING_CORPUS=137
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
