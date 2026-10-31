@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 2
 state: active
-body_sha: "sha256:e7b5a056dd111dff1f0443c66375d027057f0da80e41898eb24d52fe7b6ae169"
-yaml_sha: "sha256:e7b5a056dd111dff1f0443c66375d027057f0da80e41898eb24d52fe7b6ae169"
+body_sha: "sha256:65ef6c05a95d4d7eb3669ef279e45418f6a6a39528653a3a74f318f364af1796"
+yaml_sha: "sha256:65ef6c05a95d4d7eb3669ef279e45418f6a6a39528653a3a74f318f364af1796"
 intent: |
   Replace the hand-curated adoption path with a self-installing
   suite: a release-hosted `install.sh` that verifies the SHA-256 of
@@ -52,7 +52,7 @@ intent: |
 
   2026-11: the three futures this decision promised are settled,
   and the list above now names only the one that was kept. The MCP
-  server is decisions/mcp-agent-auto-connect-2026-10.yaml. The Alpine
+  server is archive/decisions/mcp-agent-auto-connect-2026-10.yaml. The Alpine
   image shipped as the file Dockerfile.alpine, which no decision owns:
   the record that had promised it, docker-alpine-impl-pending, was
   deleted from the corpus on 2026-10-29. The automatic per-user
