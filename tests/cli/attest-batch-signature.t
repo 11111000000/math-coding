@@ -252,6 +252,69 @@ be invalidated is not a declaration; it is a decoration.
   > "
   12 review attestations, scope digest, named producer
 
+The manifest branch is the OTHER half of `attest-batch`, and until now
+this fixture exercised only `--from=decisions`. The obligation that
+names this fixture -- `runtime-kind-without-run-is-refused` in
+decisions/attest-per-obligation-2026-10.yaml -- is a claim about
+`mathc attest-batch --manifest=FILE`, and it was standing on a fixture
+that never ran the code it was about. A verifier that exercises one
+branch cannot vouch for the other.
+
+A manifest is a TSV: one row per obligation to sign,
+`decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity`. The
+producer is part of the ROW, so a manifest needs no `--producer` --
+that is the point of the manifest form, and it is the one place where
+the identity is not a flag on the command line.
+
+  $ printf 'bulk-a\tobl-1\treview\thuman:manifest-fixture\n' > "$tmpdir/manifest-review.tsv"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$tmpdir/manifest-review.tsv" --out="$tmpdir/manifest-attestations" 2> manifest-review.log; echo "EXIT=$?"
+  EXIT=0
+  $ grep -c '^wrote ' manifest-review.log
+  1
+  $ ls -1 "$tmpdir/manifest-attestations" | sort
+  bulk-a-obl-1.json
+
+The attestation carries the producer the ROW named -- not a default,
+and not whoever happened to run the command.
+
+  $ python3 -c "
+  > import json
+  > r = json.load(open('$tmpdir/manifest-attestations/bulk-a-obl-1.json'))
+  > assert r['kind_'] == 'review', r['kind_']
+  > assert r['producer']['identity'] == 'human:manifest-fixture', r['producer']
+  > assert r['subject']['decision'] == 'bulk-a', r['subject']
+  > assert r['subject']['obligation'] == 'obl-1', r['subject']
+  > print('the row signed itself: ' + r['producer']['identity'])
+  > "
+  the row signed itself: human:manifest-fixture
+
+A row that declares a RUNTIME kind with no `--run` behind it is
+refused, and the refusal names the kind. The row claims that something
+ran; nothing ran; and the command would print `result: pass` for it
+anyway. Naming the kind is what tells the operator WHICH row to fix.
+
+  $ printf 'bulk-b\tobl-2\ttest\tci:manifest-fixture\n' > "$tmpdir/manifest-runtime.tsv"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$tmpdir/manifest-runtime.tsv" --out="$tmpdir/manifest-attestations" > /dev/null 2> manifest-runtime.log; echo "EXIT=$?"
+  EXIT=2
+  $ cat manifest-runtime.log
+  mathc attest-batch: the manifest declares test attestation(s), and a test attestation claims something ran. Without --run=<command> this command would print `result: pass` for a run that never happened, for every such row. Use --run="dune runtest" (or whatever command produces the artefact) or declare those rows as `review`.
+
+And nothing was written for the refused row: a refusal that signs the
+row anyway is a refusal in name only.
+
+  $ ls -1 "$tmpdir/manifest-attestations" | grep -c 'bulk-b' || true
+  0
+
+The preview path is a preview. `--dry-run` prints what it WOULD write
+and writes nothing -- here a row for an obligation that has no file in
+the store yet, so the count cannot move.
+
+  $ printf 'bulk-b\tobl-1\treview\thuman:manifest-fixture\n' > "$tmpdir/manifest-dry.tsv"
+  $ $INSIDE_DUNE/bin/mathc.exe attest-batch --manifest="$tmpdir/manifest-dry.tsv" --dry-run | wc -l
+  1
+  $ ls -1 "$tmpdir/manifest-attestations" | wc -l
+  1
+
 Cleanup.
 
   $ cd /
