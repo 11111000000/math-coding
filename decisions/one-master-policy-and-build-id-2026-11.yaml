@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 negative_control: tests/fixtures/master-policy-one-source.sh
-body_sha: "sha256:daf83406ae736524b4150922a26f6758fd200493d9f2e538c009abb29974a3a4"
-yaml_sha: "sha256:daf83406ae736524b4150922a26f6758fd200493d9f2e538c009abb29974a3a4"
+body_sha: "sha256:c989ea0251f4be751b9e501984ac4fed6e78c970ab48b60ed5c99fe42ccdc8d0"
+yaml_sha: "sha256:c989ea0251f4be751b9e501984ac4fed6e78c970ab48b60ed5c99fe42ccdc8d0"
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T4.2)"
   text: |
@@ -175,11 +175,17 @@ commitment: |
      a file and was read nowhere; the master policy travels inside
      the binary, and `mathc init` writes it.
 
-  5. `QUICKSTART.md` says what `mathc init` actually creates. It
-     said `mathc validate decisions/decision.yaml`; the command
-     writes `.math-coding/policy.yaml` (measured by running it in an
-     empty directory), so the quickstart named a file the command
-     does not create.
+  5. The quickstart tells the truth about `mathc init`. It said
+     `mathc validate decisions/decision.yaml`; the command writes
+     `.math-coding/policy.yaml` (measured by running it in an empty
+     directory), so the quickstart named a file the command does not
+     create. The command block now names the file that IS created and
+     says what `mathc init` writes, and `USAGE.md` -- which has no
+     length limit -- says it in full. The quickstart's line count is
+     pinned by `tests/cli/quickstart-md-exists.t` (at most 100 lines,
+     and the expected transcript names the count), so the sentence
+     about `mathc init` went into the command block it describes
+     rather than into a new paragraph.
 
   6. The binary answers which build it is:
 
@@ -407,6 +413,7 @@ scope:
     - "scripts/install-tooling/install.sh"
     - "policies.yaml"
     - "QUICKSTART.md"
+    - "USAGE.md"
     - "bin/Mathc.ml"
     - "lib/init/init.ml"
     - "tests/fixtures/master-policy-one-source.sh"
