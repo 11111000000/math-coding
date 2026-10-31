@@ -1,12 +1,21 @@
 ---
 schema: math-coding/3.2
 id: spec-cli-catalog
-revision: 2
+revision: 3
 state: active
+#
+# Rev 3 (2026-11-01): the promise the claims inventory falsified --
+# "the normative section lists every command the dispatcher has" --
+# rewritten as the promise the tree can keep. The spec documents 18
+# commands and the dispatcher answers 39; 21 are implemented and
+# undocumented. The gap is now MEASURED and bounded by a ceiling that
+# may only fall:
+# tests/fixtures/spec-cli-catalog-gap.sh.
+negative_control: tests/fixtures/spec-cli-catalog-gap.sh
 intent: |
   Close the docs/AUDIT-0.0.11.md "Promote `mathc validate`, `mathc
   context`, `mathc assess`, `mathc attest` in `spec/semantics.md`" gap
-  (recommendation §Process improvements item 13) by adding a
+  (recommendation section Process improvements item 13) by adding a
   normative "CLI subcommands" section to spec/semantics.md that
   lists every mathc subcommand the 3.0-alpha kernel ships at HEAD,
   with synopsis, input arguments, output shape, exit code, and the
@@ -22,24 +31,68 @@ intent: |
   the corpus's pre-migration names for the decisions that now live under
   decisions/. The relations name them where they are.
 
+  2026-11-01, REVISION 3: THE CATALOG NEVER DID LIST EVERY COMMAND,
+  AND THE PROMISE SAID IT DID. The section this decision added
+  documents the TEN bootstrap subcommands (version, validate,
+  context, assess, attest, gate, session-start, record, stats,
+  time-estimate) and the subcommands that came with them later
+  (explain, mode, rebuttals, re-evaluate, self-check, gaps,
+  packages, render) -- 18 rows in all. The dispatcher answers 39
+  names. Twenty-one of them are implemented and undocumented,
+  including verify, update, explain-diagnostic, init, migrate,
+  doctor and rehash.
+
+  The promise "the catalog lists every command the dispatcher has"
+  has been false for as long as it has been written, and a promise
+  that has been false for a month is worse than no promise: it
+  teaches the reader that this corpus's promises are decoration.
+  So the promise is replaced by the one the tree can keep:
+
+    THE GAP IS MEASURED, AND IT IS BOUNDED.
+      A fixture reads the dispatcher's own match arms out of
+      `bin/Mathc.ml` and the rows out of `spec/semantics.md`, counts
+      the commands that are implemented and undocumented, and pins
+      that number as a ceiling that may only fall. Today the number
+      is 21. A corpus that grows the CLI without growing the spec
+      pushes the number over the ceiling and the fixture goes red.
+
+    THE CATALOG IS STILL NORMATIVE FOR WHAT IT DOCUMENTS.
+      The rows that are there describe the commands they name: their
+      synopsis, their arguments, their output shape, their exit code
+      and the bootstrap obligation each one discharges. The
+      bootstrap ten are still all dispatched and still all
+      documented.
+
+    THE REMAINING TWENTY-ONE ARE A NAMED GAP, NOT A SILENCE.
+      They are listed by the fixture, one per line, next to the
+      number. The plan that closes the gap is tranche T3.2 of
+      `docs/plans/redundancy-and-portability-2026-11.md`, which
+      replaces the whole normative text with a contract of about a
+      hundred lines -- a different shape of document, decided
+      there and not here.
+
 axiom_link:
   - A0
 commitment: |
-  spec/semantics.md gains a "CLI subcommands" section placed
-  BEFORE the existing "Context-prioritisation" section. The new
-  section enumerates every mathc subcommand that exists in
-  bin/Mathc.ml at HEAD: version, validate, context, assess,
-  attest, gate, session-start, record, stats, time-estimate.
-  Each subcommand is described by five fields: synopsis (one
-  line), input arguments, output shape (text vs JSON and the
-  field set), exit code (per OCAML_BEST_PRACTICES §4.3: 0/1/2/3),
-  and the bootstrap obligation it satisfies. The section is
-  normative: an implementation MUST NOT silently add a new
-  subcommand without first adding a row here, and an
-  implementation MUST NOT change a subcommand's documented exit
-  code without a corresponding spec edit. The header comment in
-  bin/Mathc.ml is the implementation summary; the spec is the
-  authoritative contract.
+  spec/semantics.md keeps its "CLI subcommands" section, placed
+  BEFORE the existing "Context-prioritisation" section, and every
+  row it carries describes the command it names: the synopsis, the
+  input arguments, the output shape (text vs JSON and the field
+  set), the exit code (per OCAML_BEST_PRACTICES section 4.3: 0/1/2/3),
+  and the bootstrap obligation that justifies the subcommand's
+  existence. The section is normative for the commands it names.
+
+  The section does NOT cover every command the dispatcher answers,
+  and this decision does not claim that it does. The gap is
+  measured instead: `tests/fixtures/spec-cli-catalog-gap.sh` reads
+  the dispatcher's match arms out of `bin/Mathc.ml` and the rows out
+  of `spec/semantics.md`, prints the number of implemented and
+  undocumented commands, and fails when that number exceeds its
+  ceiling (21, measured 2026-11-01). The ceiling may only fall.
+
+  The header comment in `bin/Mathc.ml` remains the implementation
+  summary; the spec remains the authoritative contract for what it
+  documents. bin/Mathc.ml is NOT modified by this decision.
 
 scope:
   capabilities:
@@ -47,6 +100,7 @@ scope:
   paths:
     - "spec/semantics.md"
     - "tests/repo_structure.ml"
+    - "tests/fixtures/spec-cli-catalog-gap.sh"
     - "docs/AUDIT-0.0.11.md"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   bootstrap/spec-cli-catalog.yaml - no tracked file matches it
@@ -68,13 +122,19 @@ scope:
 outcomes:
   - id: cli-subcommands-listed-in-spec
     statement: |
-      spec/semantics.md contains a "CLI subcommands" section that
-      lists every mathc subcommand present in bin/Mathc.ml at
-      HEAD: version, validate, context, assess, attest, gate,
-      session-start, record, stats, time-estimate. Each entry
-      names the synopsis, input arguments, output shape, exit
-      code, and the bootstrap obligation that justifies the
-      subcommand's existence.
+      spec/semantics.md contains a normative "CLI subcommands"
+      section whose rows describe the commands they name -- the
+      bootstrap ten (version, validate, context, assess, attest,
+      gate, session-start, record, stats, time-estimate) and the
+      eight that came with the kernel after them -- with the
+      synopsis, the arguments, the output shape, the exit code and
+      the bootstrap obligation each one discharges.
+  - id: the-catalog-gap-is-measured
+    statement: |
+      The number of commands the dispatcher answers and the
+      normative catalog does not document is measured by a fixture,
+      printed with the names of the undocumented commands, and pinned
+      as a ceiling that may only fall.
   - id: spec-precedes-implementation
     statement: |
       The CLI subcommands section is placed BEFORE the existing
@@ -86,14 +146,10 @@ outcomes:
       `mathc context` emits).
   - id: implementation-remains-unchanged
     statement: |
-      bin/Mathc.ml is NOT modified by this decision. The
-      subcommand dispatch in `dispatch ()` (lines 1389-1412 of
-      the v0.0.12 source) stays as-is. The header comment in
-      bin/Mathc.ml (lines 1-43) stays as the implementation
-      summary; the spec table is the normative contract. If the
-      CLI does something not in the spec, the spec is
-      incomplete; the CLI is unchanged until a separate
-      obligation covers that.
+      bin/Mathc.ml is NOT modified by this decision. The header
+      comment in bin/Mathc.ml stays as the implementation summary;
+      the spec table is the normative contract for the commands it
+      names.
 
 counterexample: |
   Why not put the CLI subcommand list in bin/Mathc.ml's header
@@ -152,24 +208,35 @@ assumptions:
       spec?" audit question.
     review_on:
       - signal: cli-addition-without-spec-row
-  - id: bin-matches-spec-today
+  - id: the-bootstrap-ten-are-still-dispatched
     state: assumed
     statement: |
-      bin/Mathc.ml at v0.0.12 implements exactly the ten
-      subcommands named in this decision. No subcommand
-      implemented in bin/ is missing from the spec's new
-      catalog; no spec row is dangling without a bin/ handler.
-      A future commit that adds a subcommand MUST add a spec
-      row in the same commit, and vice versa.
+      The ten subcommands this decision named are still dispatched
+      by `bin/Mathc.ml` and still documented by the catalog, and no
+      spec row is dangling without a bin/ handler. The OTHER
+      commands the dispatcher answers -- 21 of them on
+      2026-11-01 -- are NOT documented, and this decision does not
+      pretend otherwise: their number is the ceiling in
+      `tests/fixtures/spec-cli-catalog-gap.sh`.
+
+      REVISION 3: the older form of this assumption said "no
+      subcommand implemented in bin/ is missing from the spec's new
+      catalog". That was false when it was written and it has been
+      false ever since; a promise that is false on the day it is
+      written is not an assumption, it is a decoration. The form
+      above is the one the tree can keep: the bootstrap ten are
+      whole, and the rest of the CLI surface is a number with a
+      ceiling and a plan (tranche T3.2 of
+      `docs/plans/redundancy-and-portability-2026-11.md`).
     owner: human:maintainer
     consequence_if_false: |
-      If bin/ gains a subcommand the spec does not describe,
-      the spec is incomplete (a follow-up Decision closes the
-      gap). If the spec lists a subcommand bin/ does not
-      implement, the kernel is incomplete (a follow-up
-      implementation commit closes the gap).
+      If the dispatcher drops one of the ten the catalog documents,
+      the spec is describing a command that no longer exists, and
+      the fixture's measurement would report it as a row without a
+      command. If the gap grows, the ceiling catches it.
     review_on:
-      - signal: bin-and-spec-subcommand-set-diverges
+      - signal: catalog-gap-ceiling-is-exceeded
+      - signal: a-bootstrap-command-leaves-the-dispatcher
   - id: catalog-stays-acronym-free
     state: assumed
     statement: |
@@ -192,16 +259,15 @@ obligations:
     outcome: cli-subcommands-listed-in-spec
     claim: |
       spec/semantics.md contains a section titled "CLI
-      subcommands" (or equivalent normative heading) that lists
-      every mathc subcommand present in bin/Mathc.ml at HEAD:
-      version, validate, context, assess, attest, gate,
-      session-start, record, stats, time-estimate. For each
-      subcommand the spec names the synopsis, input arguments,
-      output shape, exit code (per OCAML_BEST_PRACTICES §4.3),
-      and the bootstrap obligation that justifies the
-      subcommand. The section appears BEFORE the existing
-      "Context-prioritisation" section so the reader encounters
-      the CLI surface before the priority semantics that
+      subcommands" (or equivalent normative heading) that lists the
+      bootstrap subcommands it names -- version, validate, context,
+      assess, attest, gate, session-start, record, stats,
+      time-estimate -- and, for each of them, the synopsis, the
+      input arguments, the output shape, the exit code (per
+      OCAML_BEST_PRACTICES section 4.3) and the bootstrap obligation
+      that justifies the subcommand. The section appears BEFORE the
+      existing "Context-prioritisation" section so the reader
+      encounters the CLI surface before the priority semantics that
       depend on it.
     acceptance:
       all:
@@ -220,6 +286,22 @@ obligations:
     acceptance:
       all:
         - verifier: dune test --root . tests/repo_structure.exe
+
+  - id: the-catalog-gap-is-measured
+    outcome: the-catalog-gap-is-measured
+    claim: |
+      `tests/fixtures/spec-cli-catalog-gap.sh` reads the command
+      names out of the dispatcher's match arms in `bin/Mathc.ml` and
+      the catalog rows out of `spec/semantics.md`, prints how many
+      dispatcher commands have no normative row, lists them, and
+      fails when that number exceeds its ceiling -- 21 on
+      2026-11-01, of 39 dispatched commands and 18 documented ones.
+      Its own negative controls require the measurement to report a
+      synthetic gap over the ceiling, a synthetic gap of zero, and
+      `unknown` for a spec that cannot be read.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/spec-cli-catalog-gap.sh
 
 reversal:
   - signal: cli-surface-becomes-templated

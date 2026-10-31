@@ -109,7 +109,12 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   tests/fixtures/missing-directory-is-an-empty-result.sh asserts
 #   that a missing root, store or decisions directory is answered and
 #   not raised, and its negative control proves the detector fires
-CEILING=33
+# ceiling-fall: 33 -> 32, the same tranche gave
+#   spec-cli-catalog the control that catches its own failure:
+#   tests/fixtures/spec-cli-catalog-gap.sh measures the gap between
+#   the dispatcher and the normative catalog, and its negative
+#   controls require the measurement to move in both directions
+CEILING=32
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
