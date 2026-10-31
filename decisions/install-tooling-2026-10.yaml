@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: install-tooling-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3ad2ff38ea54f3fc669bcdcbf746c9f2c2dcfe146d483aa37b6c1c15df90ce9b"
-yaml_sha: "sha256:3ad2ff38ea54f3fc669bcdcbf746c9f2c2dcfe146d483aa37b6c1c15df90ce9b"
+body_sha: "sha256:73ba9bdeefefd6757726f902a12179c1b5b5453a54e4045d1ce5fedd167e8500"
+yaml_sha: "sha256:73ba9bdeefefd6757726f902a12179c1b5b5453a54e4045d1ce5fedd167e8500"
 intent: |
   Replace the hand-curated `wget | chmod` adoption path in
   `adoption/SKILL.md:55-60` with a self-installing suite. The
@@ -55,6 +55,16 @@ intent: |
       install-tooling-2026-10 work; closes the follow-up at
       site-version-from-file-2026-10.yaml:76-81 and ships
       four install channels.
+
+  2026-11: the three futures this decision promised are settled,
+  and the list above now names only the one that was kept. The MCP
+  server is decisions/mcp-agent-auto-connect-2026-10.yaml. The Alpine
+  image shipped as the file Dockerfile.alpine, which no decision owns:
+  the record that had promised it, docker-alpine-impl-pending, was
+  deleted from the corpus on 2026-10-29. The automatic per-user
+  skill update was REFUSED rather than forgotten - the per-user skill is
+  refreshed by running the installer again with --upgrade, and the
+  deferral record that said so is gone from the corpus too.
 
 axiom_link:
   - A0
@@ -508,8 +518,6 @@ relations:
     - cli-canonical-name@2
     - cli-cram-tests@1
   addresses-future:
-    - mcp-server-2026-10
-    - docker-alpine-2026-10
-    - per-user-skill-auto-update-2026-10
+    - mcp-agent-auto-connect-2026-10@1
   supersedes: []
   superseded_by: []

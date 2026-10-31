@@ -3,10 +3,10 @@ schema: math-coding/3.2
 id: stub-lint-real-2026-10
 revision: 1
 state: active
-body_sha: "sha256:39f004dc2426fbe8979e1362f454726f8c580e3aee5557fa21c89aac819a7cfd"
-yaml_sha: "sha256:39f004dc2426fbe8979e1362f454726f8c580e3aee5557fa21c89aac819a7cfd"
+body_sha: "sha256:142bda9bbb81a00e5c78ef9358ec0b9e607a547338d7bab60c496e6ff419e3c1"
+yaml_sha: "sha256:142bda9bbb81a00e5c78ef9358ec0b9e607a547338d7bab60c496e6ff419e3c1"
 intent: |
-  Strengthen the P8 stub-lint (decisions/plan-2026-10-improvements/t6-1)
+  Strengthen the P8 stub-lint (docs/plans/t6-1.yaml)
   from "lint-once with a synthetic-fixture proof" to "lint-on-real-diff":
   for every new stub marker added to `lib/**` or `bin/Mathc.ml`, a paired
   `decisions/<id>.yaml` whose `scope.paths` includes the affected file
@@ -33,7 +33,7 @@ commitment: |
   synthetic fixture, so the strengthening is additive.
 
 counterexample: |
-  "P8 stub-lint already exists (decisions/plan-2026-10-improvements/t6-1);
+  "P8 stub-lint already exists (docs/plans/t6-1.yaml);
   this decision duplicates the same check." The counterargument fails
   for two reasons. (a) The existing lint scans the on-disk files and
   exits 1 on the current main: there are 3 untracked Phase stubs in
@@ -179,6 +179,6 @@ relations:
   addresses:
     - bootstrap-v3
     - process-principles@3
-    - plan-2026-10-improvements@1
+    - docs/plans/t6-1.yaml
   supersedes: []
   superseded_by: []
