@@ -5,9 +5,9 @@ revision: 4
 state: active
 negative_control: tests/fixtures/decisions-have-no-mc-prefix.sh
 
-body_sha: "sha256:6fd97c1710d65d0ab41088bc319a99ef99d385ccced837a01dbd2a127387ec83"
+body_sha: "sha256:1c418cb3eca97bd6fc24e65743ea4cfff4f00a27fa66c88591887b6f61f2de5d"
 
-yaml_sha: "sha256:6fd97c1710d65d0ab41088bc319a99ef99d385ccced837a01dbd2a127387ec83"
+yaml_sha: "sha256:1c418cb3eca97bd6fc24e65743ea4cfff4f00a27fa66c88591887b6f61f2de5d"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short

@@ -4,8 +4,8 @@ id: obligation-count-reconcile
 revision: 3
 state: active
 negative_control: tests/fixtures/aggregator-matches-parent.sh
-body_sha: "sha256:d3f2c8728bd7ccb15780577520cb90945d949974409b948af3ee39fc0663399b"
-yaml_sha: "sha256:d3f2c8728bd7ccb15780577520cb90945d949974409b948af3ee39fc0663399b"
+body_sha: "sha256:1fd8aa868ae38d59d65b66dc22e71076a4620cbc00821dc61c3ca3942f170ce3"
+yaml_sha: "sha256:1fd8aa868ae38d59d65b66dc22e71076a4620cbc00821dc61c3ca3942f170ce3"
 intent: |
   Reconcile the obligation-count drift across four normative
   documents in the read-first set. At HEAD `9a16751`:

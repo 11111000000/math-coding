@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
-body_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
-yaml_sha: "sha256:0000000000000000000000000000000000000000000000000000000000000000"
+body_sha: "sha256:22c3931b29a36a72c3f82a57e053b3d5bda1bcef542d6816ff4664b9663f6c96"
+yaml_sha: "sha256:22c3931b29a36a72c3f82a57e053b3d5bda1bcef542d6816ff4664b9663f6c96"
 
 intent: |
   Five obligations in five decisions named a verifier scheme the
@@ -105,7 +105,9 @@ intent: |
     and the ceiling may fall from 5 to 0.
 
   The numbers, measured before and after (the census fixture and
-  the kernel's own audit, both at the same tree):
+  the kernel's own audit, both at the same tree - ef2b95b3 before,
+  5daf5757 after; the trees between them carry this tranche and
+  nothing else):
 
     PAPER (obligations the kernel cannot execute)   44 -> 38
     BROKEN (verifier strings a YAML quote broke)      5 -> 0
@@ -116,7 +118,10 @@ intent: |
   carried now names the fixture that was already written to do the
   work. The corpus grows by one - this decision - and the census's
   CORPUS ceiling is the orchestrator's to lower, as are the
-  ceilings this tranche lowers.
+  ceilings this tranche lowers. The CORPUS ceiling was ALREADY
+  exceeded before this tranche (141 against a ceiling of 140), and
+  this tranche is not what made it red; it adds one file to a
+  corpus that was one over the line.
 
 commitment: |
   1. Every obligation whose verifier named a scheme the kernel
@@ -140,7 +145,13 @@ commitment: |
      checks that can: a program that compares two files, and a
      program that reads a field.
 
-  4. The census's BROKEN ceiling may fall from 5 to 0. The
+  4. A fixture that measured NOTHING says so. The three fixtures
+     this tranche adds answer "unknown" (exit 3) when the thing
+     they measure is not there - no kernel to ask, no list to read,
+     no corpus to scan, no ids to compare - and never report a
+     green zero over an empty measurement.
+
+  5. The census's BROKEN ceiling may fall from 5 to 0. The
      orchestrator lowers it at merge; this decision does not touch
      the instrument that owns it.
 
@@ -330,3 +341,27 @@ obligations:
       all:
         - verifier: tests/fixtures/aggregator-matches-parent.sh
         - verifier: tests/fixtures/decisions-have-no-mc-prefix.sh
+  - id: a-fixture-that-measured-nothing-says-so
+    outcome: the-promises-state-what-their-checks-check
+    claim: |
+      Each of the three fixtures this tranche adds answers
+      "unknown" - exit 3 - when the thing it measures is not there:
+      no kernel to ask the list, no corpus to scan, no obligation id
+      to compare. A fixture that measured nothing and reported a
+      clean result would be a green light for a question nobody
+      asked, and the three fixtures prove their own unknown path by
+      asking themselves in a child process.
+
+      The control is inside the fixture, and it is not decoration:
+      a promise no check can reach is not a promise, and the exit-3
+      path of a fixture is exactly such a promise until something
+      runs it.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/verifier-schemes-are-canonical.sh
+        - verifier: tests/fixtures/aggregator-matches-parent.sh
+        - verifier: tests/fixtures/decisions-have-no-mc-prefix.sh
+
+relations:
+  addresses:
+    - verifier-scheme-convention-2026-11@1

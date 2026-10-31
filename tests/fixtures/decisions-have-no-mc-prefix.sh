@@ -47,6 +47,12 @@
 # check that cannot fail is not a check, and this one has to be able
 # to go red before its green is worth anything.
 #
+# WHAT IT ANSWERS WHEN IT CANNOT ANSWER. There is no corpus to scan:
+# the directory is not there, or it holds no decision file. A scan
+# that found nothing and reported "the retired prefix is not in use"
+# would be reporting on nothing, so the answer is "unknown"
+# (exit 3), never a green zero.
+#
 # Exit codes, following the house convention:
 #   0  measured, the corpus is clean
 #   1  measured, the retired prefix is in use
@@ -58,6 +64,10 @@ cd "$(dirname "$0")/../.."
 fail=0
 ok() { printf 'ok: %s\n' "$1"; }
 bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
+
+# This script's own path, resolved before the `cd` below: the
+# unknown control runs it again as a child.
+self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 # The retired prefix. A leading dash, so it can only ever match at
 # the START of a token.
@@ -140,6 +150,18 @@ if [ ! -d "$decisions_dir" ]; then
   exit 3
 fi
 
+# An empty corpus is not a clean corpus. The scan below would find
+# no violation in a directory with no decision in it, and would
+# report that the retired prefix is not in use - a statement about
+# nothing.
+scanned="$(find "$decisions_dir" -name '*.yaml' -o -name '*.yml' 2>/dev/null | wc -l | tr -d ' ')"
+if [ "${scanned:-0}" -eq 0 ]; then
+  ok "no decision file in $decisions_dir: nothing was measured, and a measurement of nothing is not a measurement"
+  echo
+  echo "decisions-have-no-mc-prefix: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
+fi
+
 # --- 1. measure ----------------------------------------------------------
 violations="$(scan "$decisions_dir")"
 if [ -n "$violations" ]; then
@@ -190,7 +212,27 @@ else
   bad "negative control: the synthetic corpus was not reported (ids $control_ids, schemes $control_schemes) - the check cannot fail, so its green means nothing"
 fi
 
-# --- 3. verdict ----------------------------------------------------------
+# --- 3. the unknown path, proven ----------------------------------------
+#
+# A check that cannot answer "unknown" answers "the retired prefix
+# is not in use" over a corpus that holds no decision at all, and
+# that is the failure this guard is for. The fixture asks itself, in
+# a child process, what it answers when the corpus is empty: the
+# answer must be exit 3, never a green zero. The child is told not
+# to run the guard again, so the guard cannot recurse.
+if [ "${MATH_CODING_FIXTURE_SELFTEST:-0}" != "1" ]; then
+  mkdir -p "$work/empty-corpus"
+  child_out="$(MATH_CODING_FIXTURE_SELFTEST=1 \
+    MATH_CODING_DECISIONS_DIR="$work/empty-corpus" bash "$self" 2>&1)"
+  child_rc=$?
+  if [ "$child_rc" -eq 3 ]; then
+    ok "unknown control: with a corpus that holds no decision the fixture answers unknown (exit 3), not a zero"
+  else
+    bad "unknown control: with a corpus that holds no decision the fixture answered exit $child_rc, not 3 - it would report a green zero over nothing"
+  fi
+fi
+
+# --- 4. verdict ----------------------------------------------------------
 echo
 if [ "$fail" -ne 0 ]; then
   echo "decisions-have-no-mc-prefix: FAIL"

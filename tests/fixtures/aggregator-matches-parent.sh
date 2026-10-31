@@ -38,6 +38,12 @@
 # must be reported as disagreeing. A check that cannot fail is not a
 # check.
 #
+# WHAT IT ANSWERS WHEN IT CANNOT ANSWER. The two lists ARE the
+# measurement. If either file declares no obligation id, there is
+# nothing to compare, and a check that reports "they agree" over two
+# empty lists has measured nothing - so the answer is "unknown"
+# (exit 3), never a green agreement.
+#
 # Exit codes, following the house convention:
 #   0  measured, the two lists agree
 #   1  measured, they do not
@@ -49,6 +55,10 @@ cd "$(dirname "$0")/../.."
 fail=0
 ok() { printf 'ok: %s\n' "$1"; }
 bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
+
+# This script's own path, resolved before the `cd` below: the
+# unknown control runs it again as a child.
+self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 parent="${1:-decisions/decision.yaml}"
 aggregator="${2:-decisions/obligations.yaml}"
@@ -119,7 +129,10 @@ compare() {
   fi
 
   # the parent the aggregator names
-  if [ -n "$a_id" ] && [ "$a_id" != "$p_id" ]; then
+  if [ -z "$a_id" ]; then
+    bad "$label: the aggregator names no parent"
+    problems=$((problems + 1))
+  elif [ "$a_id" != "$p_id" ]; then
     bad "$label: the aggregator names parent '$a_id', the file it aggregates is '$p_id'"
     problems=$((problems + 1))
   else
@@ -171,12 +184,31 @@ if [ ! -f "$parent" ] || [ ! -f "$aggregator" ]; then
   exit 3
 fi
 
+# The lists ARE the measurement. An empty list is not a list that
+# agrees with another empty list; it is nothing to compare.
+if [ -z "$(ids_of "$parent")" ] || [ -z "$(ids_of "$aggregator")" ]; then
+  ok "the parent or the aggregator declares no obligation id: nothing to compare, and a comparison of nothing is not a comparison"
+  echo
+  echo "aggregator-matches-parent: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
+fi
+
 compare "$parent" "$aggregator" "the live corpus"
 
 # --- 2. the check must be able to fail ------------------------------------
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 mkdir -p "$work"
+# A parent with no obligation id: the measurement itself is
+# impossible, which is what the unknown control below asks about.
+cat >"$work/no-ids.yaml" <<'YAML'
+---
+schema: math-coding/3.3
+id: bootstrap-v3
+revision: 3
+state: active
+obligations: []
+YAML
 cat >"$work/parent.yaml" <<'YAML'
 ---
 schema: math-coding/3.3
@@ -217,7 +249,26 @@ else
   ok "negative control: the synthetic corpus is reported as disagreeing (the same ids in a different order) - the check can go red"
 fi
 
-# --- 3. verdict ----------------------------------------------------------
+# --- 3. the unknown path, proven ----------------------------------------
+#
+# A check that cannot answer "unknown" answers "they agree" over
+# two empty lists, and that is the failure this guard is for. The
+# fixture asks itself, in a child process, what it answers when the
+# parent declares no obligation id: the answer must be exit 3, never
+# a green agreement. The child is told not to run the guard again,
+# so the guard cannot recurse.
+if [ "${MATH_CODING_FIXTURE_SELFTEST:-0}" != "1" ]; then
+  child_out="$(MATH_CODING_FIXTURE_SELFTEST=1 \
+    bash "$self" "$work/no-ids.yaml" "$aggregator" 2>&1)"
+  child_rc=$?
+  if [ "$child_rc" -eq 3 ]; then
+    ok "unknown control: with a parent that declares no obligation id the fixture answers unknown (exit 3), not a green agreement"
+  else
+    bad "unknown control: with a parent that declares no obligation id the fixture answered exit $child_rc, not 3 - it would report agreement over nothing"
+  fi
+fi
+
+# --- 4. verdict ----------------------------------------------------------
 echo
 if [ "$fail" -ne 0 ]; then
   echo "aggregator-matches-parent: FAIL"

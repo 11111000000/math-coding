@@ -34,6 +34,13 @@
 # commitment checkable, and it asks the kernel the question rather
 # than keeping a copy of the kernel's answers.
 #
+# WHAT IT ANSWERS WHEN IT CANNOT ANSWER. A fixture that measured
+# NOTHING and reported "no offenders" would be a green light for a
+# question nobody asked: no kernel to ask, no list to read, no
+# corpus to scan - all three are cases where the honest answer is
+# "unknown", and the house convention puts that at exit 3. A
+# measurement of nothing is not a measurement.
+#
 # Exit codes, following the house convention:
 #   0  measured, every claim held
 #   1  measured, a claim did not hold
@@ -46,20 +53,26 @@ fail=0
 ok() { printf 'ok: %s\n' "$1"; }
 bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 
-bin=""
-for c in _build/default/bin/mathc.exe _build/install/default/bin/mathc; do
-  if [ -x "$c" ]; then bin="$PWD/$c"; break; fi
-done
+# This script's own path, resolved before the `cd` below: the
+# unknown control runs it again as a child.
+self="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
+
+bin="${MATH_CODING_FIXTURE_KERNEL:-}"
+if [ -z "$bin" ]; then
+  for c in _build/default/bin/mathc.exe _build/install/default/bin/mathc; do
+    if [ -x "$c" ]; then bin="$PWD/$c"; break; fi
+  done
+fi
 if [ -z "$bin" ]; then
   for c in mathc mathc.exe; do
     if command -v "$c" >/dev/null 2>&1; then bin="$(command -v "$c")"; break; fi
   done
 fi
-if [ -z "$bin" ]; then
-  bad "no mathc binary found (looked in _build/default/bin/, _build/install/default/bin/ and on PATH)"
+if [ -z "$bin" ] || [ ! -x "$bin" ]; then
+  ok "no mathc binary found (looked in $MATH_CODING_FIXTURE_KERNEL, _build/default/bin/, _build/install/default/bin/ and on PATH): nothing was measured, and a measurement of nothing is not a measurement"
   echo
-  echo "verifier-schemes-are-canonical: FAIL"
-  exit 1
+  echo "verifier-schemes-are-canonical: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
 fi
 
 work="tests/fixtures/scheme-probe-tmp"
@@ -132,7 +145,11 @@ fi
 checked=0
 liars=0
 IFS=$'\n'
-for entry in $(printf '%s,%s' "$exact" "$prefixes" | tr -d '`' | tr ',' '\n' | sed -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*//' -e 's/\.$//'); do
+# The entries are printed by the kernel's own diagnostic. A prefix
+# is printed with a `*` ("tests/*"), because that is how a prefix
+# reads; the probe asks the kernel about the prefix itself
+# ("tests/"), which is the string the kernel holds.
+for entry in $(printf '%s,%s' "$exact" "$prefixes" | tr -d '`' | tr ',' '\n' | sed -e 's/[[:space:]]*$//' -e 's/^[[:space:]]*//' -e 's/\.$//' -e 's/\*$//'); do
   [ -n "$entry" ] || continue
   probe="$entry"
   mk_decision "$work/probe.yaml" "$probe argument"
@@ -168,6 +185,12 @@ while IFS= read -r file; do
     dirty=$((dirty + 1))
   fi
 done < <(find "$decisions_dir" -name '*.yaml' -o -name '*.yml' 2>/dev/null | sort)
+if [ "$counted" -eq 0 ]; then
+  ok "no decision file in $decisions_dir: nothing was measured, and a measurement of nothing is not a measurement"
+  echo
+  echo "verifier-schemes-are-canonical: SKIPPED (nothing was measured - unknown, not pass)"
+  exit 3
+fi
 if [ "$dirty" -eq 0 ]; then
   ok "no decision in $decisions_dir names a scheme outside the canonical list ($counted files asked, by the kernel)"
 else
@@ -183,7 +206,27 @@ else
   bad "negative control: a synthetic decision with a scheme the kernel does not know is NOT reported - the check cannot fail, so its green means nothing"
 fi
 
-# --- 4. verdict ----------------------------------------------------------
+# --- 4. the unknown path, proven ----------------------------------------
+#
+# A check that cannot answer "unknown" answers "clean" over an
+# empty measurement, and that is the failure this guard is for. The
+# fixture asks itself, in a child process, what it answers when the
+# kernel it reads the list from is not there: the answer must be
+# exit 3, never a green zero. The child is told not to run the
+# guard again, so the guard cannot recurse.
+if [ "${MATH_CODING_FIXTURE_SELFTEST:-0}" != "1" ]; then
+  child_out="$(MATH_CODING_FIXTURE_SELFTEST=1 \
+    MATH_CODING_FIXTURE_KERNEL=/nonexistent/mathc.exe \
+    bash "$self" 2>&1)"
+  child_rc=$?
+  if [ "$child_rc" -eq 3 ]; then
+    ok "unknown control: with the kernel the list is read from made unreadable, the fixture answers unknown (exit 3), not a zero"
+  else
+    bad "unknown control: with the kernel the list is read from made unreadable the fixture answered exit $child_rc, not 3 - it would report a green zero over nothing"
+  fi
+fi
+
+# --- 5. verdict ----------------------------------------------------------
 echo
 if [ "$fail" -ne 0 ]; then
   echo "verifier-schemes-are-canonical: FAIL"
