@@ -138,7 +138,9 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   measures it, and the count followed the truth down
 # ceiling-fall: 35 -> 34, one obligation the kernel cannot execute left
 #   the corpus with the record that owned it
-CEILING_PAPER=34
+# ceiling-fall: 34 -> 28, six obligations the kernel cannot execute left the
+#   live corpus with the seven records that owned them
+CEILING_PAPER=28
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -186,7 +188,9 @@ CEILING_DEAD=0
 #   the corpus it counts
 # ceiling-fall: 145 -> 137, nine records moved to the archive and this
 #   tranche's own record entered the corpus it counts
-CEILING_CORPUS=137
+# ceiling-fall: 137 -> 131, seven records moved to the archive and this
+#   tranche's own record entered the corpus it counts
+CEILING_CORPUS=131
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
