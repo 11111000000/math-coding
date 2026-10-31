@@ -1,11 +1,11 @@
 ---
 schema: math-coding/3.3
 id: duplicate-mapping-keys-silent-drop-2026-10
-revision: 1
+revision: 2
 state: active
 negative_control: tests/duplicate_keys.ml
-body_sha: "sha256:f8454b8d1b1ffcc3048f6062e3d9a6e95b5c729d0bf4ff5949ced4b1f2a9b3e4"
-yaml_sha: "sha256:f8454b8d1b1ffcc3048f6062e3d9a6e95b5c729d0bf4ff5949ced4b1f2a9b3e4"
+body_sha: "sha256:13b00fb35a685010caee83af2390b6609ad09982c3105422ea45c2890d9a0f70"
+yaml_sha: "sha256:13b00fb35a685010caee83af2390b6609ad09982c3105422ea45c2890d9a0f70"
 
 intent: |
   Stop a decision file from saying more than the kernel reads.
@@ -21,6 +21,48 @@ intent: |
   reported loss (17 obligations) was the smaller half of the real
   one.
 
+  2026-11-01, REVISION 2: THE COUNTS IN THIS FILE WERE A SNAPSHOT OF
+  A CORPUS THAT KEPT MOVING, AND TWO OF THE FILES IT NAMED ARE GONE.
+  The three mechanisms below are still the three the detector names,
+  and the detector is still the promise. What changed is the census:
+
+    THE RESIDUAL IS ONE FILE, NOT EIGHTEEN.
+      Measured on this tree on 2026-11-01 with
+      `bash scripts/scan-silent-drops.sh --validity`: one live
+      decision still carries a silent-drop diagnostic --
+      `decisions/mathc-packages-subcommand.yaml`, whose unread tail
+      is a plain-scalar continuation under a sequence item. The
+      other four files this decision could see were repaired by the
+      tranche of 2026-11-01 that rewrote the stale forms
+      (`decisions/3-2-cli-catalog.yaml`,
+      `decisions/ci-blocking-list-config.yaml`,
+      `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml` and
+      `decisions/forge-stub-read-request-2026-10.yaml`), and the
+      corpus's own ledger
+      (`tests/corpus_no_silent_drops/corpus_no_silent_drops.ml`)
+      carries the remainder.
+
+    TWO OF THE FILES THE OBLIGATIONS NAMED WERE DELETED.
+      `decisions/mcp-server-impl-2026-10.yaml` and
+      `decisions/yaml-block-scalars-impl-pending.yaml` no longer
+      exist, and `decisions/disable-hanging-alcotest-tests-2026-10.yaml`
+      no longer exists either. A verifier that names a deleted file
+      is a verifier that fails for a reason that has nothing to do
+      with the promise, so the obligations now name the files that
+      are still there.
+
+    THE DIGEST DIVERGENCE THIS FILE RECORDED IS REPAIRED.
+      The counterexample below reported that
+      `lib/decision.ml::body_canonical_sha256` emitted the scheme
+      prefix twice and therefore disagreed with the contract's §7.1,
+      and that the corpus carried files matching each side. The
+      helper has since been corrected: the OCaml implementation, the
+      Python reference (`scripts/axiom-link-seed.py::recompute_sha`)
+      and the contract's §7.1 now agree, which `mathc rehash
+      --dry-run` over the corpus confirms (no file to change) and
+      `tests/cli/body-vs-wrapper-canonical.t` pins by recomputing a
+      digest with the reference implementation and comparing.
+
   What the loader actually does, verified against the corpus:
 
   D1 duplicated key. `parse_yaml_pairs` (`lib/codec.ml`) binds
@@ -29,8 +71,10 @@ intent: |
      `take_object` / `take_number`) resolves a key with
      `List.assoc_opt`, which returns the FIRST binding. The later
      block is therefore not overridden -- it is UNREACHABLE.
-     `decisions/mcp-server-impl-2026-10.yaml` is the one corpus
-     file in this shape; five obligations were outside the gate.
+     The corpus file in this shape was
+     `decisions/mcp-server-impl-2026-10.yaml`; it has since been
+     deleted from the corpus, and five obligations were outside the
+     gate while it lived.
 
   D2 the loader abandons the document. When
      `parse_yaml_pairs` meets a token deeper than the mapping it is
@@ -39,38 +83,37 @@ intent: |
      token list was dropped on the floor. `mathc validate` then
      reported `parse-ok`. Every top-level key after the stop point
      vanished: `obligations:`, `risk:`, `relations:`, `reversal:`.
-     Five of the six reported files are in this shape, and in four
-     of them the `risk:` and `relations:` blocks are ALSO lost --
-     the reported table counted only obligations.
 
      The corpus reached D2 through three different inputs, and
-     `yq` (a spec-conforming YAML reader) rejects 17 of the 28
-     affected files outright:
+     `yq` (a spec-conforming YAML reader) rejected 17 of the 28
+     affected files outright as it stood when this decision was
+     written:
 
        (a) a folded plain scalar whose continuation line carries
-           `: ` -- `decisions/cli-canonical-name.yaml:147`
-           `in a higher-priority PATH entry. Mitigation: rename
-           the`. Per YAML 1.2 a plain scalar may not contain
-           `: `, so this file is invalid YAML and the author is
+           `: ` -- per YAML 1.2 a plain scalar may not contain
+           `: `, so such a file is invalid YAML and the author is
            wrong; `fold_continuation`'s colon test is a reasonable
            accommodation, not the bug.
        (b) a quoted sequence item continued on following lines at a
-           deeper indent -- `decisions/waiver-infrastructure-2026-10.yaml:169`.
-           This is VALID YAML that `parse_yaml_seq` cannot follow:
-           a genuine kernel gap.
-       (c) a sequence item indented less than its siblings --
-           `archive/decisions/site-version-from-file-2026-10.yaml:189`.
-           Invalid YAML; author error.
+           deeper indent. This was VALID YAML that `parse_yaml_seq`
+           could not follow -- a genuine kernel gap, since repaired
+           by `fold_seq_item` in `lib/codec.ml`.
+       (c) a sequence item indented less than its siblings, or a
+           plain scalar continued on a deeper line under a sequence
+           item. Invalid YAML; author error. The one file still in
+           this shape is `decisions/mathc-packages-subcommand.yaml`.
 
   D3 a second `---` marker. `strip_frontmatter` reads the first
      `---` as front-matter and stops at the next one, BEFORE
      tokenisation -- so the leftover list comes back empty and the
-     loss is invisible to a D2 check. Two corpus files carry a
-     trailing `---`.
+     loss is invisible to a D2 check. Two corpus files carried a
+     trailing `---`; one of them
+     (`decisions/forge-stub-read-request-2026-10.yaml`) was
+     repaired on 2026-11-01.
 
   Measured with the kernel as the oracle (`mathc validate` per
-  file over `decisions/**/*.yaml`, 235 files): 28 files affected,
-  30 diagnostics. Not 9.
+  file over `decisions/**/*.yaml`, 235 files at the time): 28 files
+  affected, 30 diagnostics. Not 9.
 
   2026-11: three scope paths named decisions the cull of 2026-10-29
   deleted - the MCP server implementation, the YAML block-scalar deferral
@@ -106,19 +149,26 @@ commitment: |
      sibling acceptance diagnostics are already Warn for the same
      reason. Promoting either to Block is a separate decision.
 
-  6. `decisions/{cli-canonical-name,mathc-explain-subcommand,
-     mcp-server-impl-2026-10,site-version-from-file-2026-10,
-     waiver-infrastructure-2026-10,yaml-block-scalars-impl-pending}.yaml`
-     no longer duplicate `obligations:`. The two blocks are merged
-     into one list holding every obligation from both, and the
-     multi-line scalars that stopped the loader are rewritten as
-     `|` block scalars. `body_sha` / `yaml_sha` are recomputed with
-     the algorithm of spec/kernel-contract.md §7.1, and `revision` is
-     bumped.
+  6. The decisions that duplicated `obligations:` no longer do. Of
+     the six named in the original report, FOUR are still in the
+     corpus -- `decisions/cli-canonical-name.yaml`,
+     `decisions/mathc-explain-subcommand.yaml`,
+     `archive/decisions/site-version-from-file-2026-10.yaml` and
+     `decisions/waiver-infrastructure-2026-10.yaml` -- and each of
+     the three live ones validates with no `MC-DUPLICATE-KEY` and no
+     `MC-UNPARSED-TAIL`. The two that were deleted from the corpus
+     (`decisions/mcp-server-impl-2026-10.yaml`,
+     `decisions/yaml-block-scalars-impl-pending.yaml`) live in git
+     history; the archived one is a record and is not asked to
+     validate.
 
-  7. `decisions/{disable-hanging-alcotest-tests-2026-10,
-     mathc-counters-subcommand-2026-10,parser-risk-owner-default}.yaml`
-     no longer duplicate `counterexample:`.
+  7. The decisions that duplicated `counterexample:` no longer do:
+     `decisions/mathc-counters-subcommand-2026-10.yaml`,
+     `decisions/parser-risk-owner-default.yaml` and
+     `decisions/yaml-block-scalars.yaml` each validate with no
+     `MC-DUPLICATE-KEY`. The fourth
+     (`decisions/disable-hanging-alcotest-tests-2026-10.yaml`) was
+     deleted from the corpus and lives in git history.
 
   8. `decisions/yaml-block-scalars.yaml` no longer declares
      `result:` twice in one acceptance item.
@@ -135,23 +185,32 @@ counterexample: |
   What this change does NOT do, recorded so nobody reads the
   detector as "the corpus is clean":
 
-  A detector is not a fix. After the ten files above are repaired,
-  18 corpus files still carry an unparsed tail and still validate
-  `parse-ok` while the kernel reads only part of them. They are
-  inventoried under the obligation `every-affected-file-is-listed`
-  with the command that reproduces the list. Repairing them is
-  deliberately NOT bundled here: it is 18 more file edits, each
-  needing its own digest recomputation, and it is mechanical once
-  the diagnostic points at the line. Doing it here would bury the
-  detector under a diff nobody reviews carefully -- which is how the
-  original defect survived.
+  A detector is not a fix. The corpus scan that motivated this
+  decision is reproducible, and its residual is recorded rather
+  than forgotten:
+
+        for f in $(find decisions -name '*.yaml'); do
+          mathc validate "$f" 2>&1 >/dev/null \
+            | grep -oE 'MC-(DUPLICATE-KEY|UNPARSED-TAIL)' \
+            | sort -u | sed "s|^|$f: |"
+        done
+
+  On 2026-11-01 it reports ONE live decision --
+  `decisions/mathc-packages-subcommand.yaml` -- after the four
+  repairs of that day. The corpus's own ledger
+  (`tests/corpus_no_silent_drops/corpus_no_silent_drops.ml`) pins
+  that residual in both directions: a file that grows a silent drop
+  is red, and a ledger entry that is no longer an offender is ALSO
+  red. The repair of the last one belongs to a later tranche.
 
   Also not done: the parser-side fixes. `fold_continuation`'s
   colon heuristic and `parse_yaml_seq`'s inability to follow a
-  multi-line quoted sequence item are kernel defects, and fixing
+  multi-line quoted sequence item were kernel defects, and fixing
   them changes how every file in the corpus parses. That is its
   own decision with its own blast-radius review; see
-  `reversal`.
+  `reversal`. The sequence-item half has since been repaired
+  (`fold_seq_item` in `lib/codec.ml`); the plain-scalar colon
+  heuristic has not.
 
   Also found by running the detector, and reported here because
   "the class is wider than the corpus" cuts both ways. The detector
@@ -171,21 +230,16 @@ counterexample: |
   been in the template since; four cram tests were pinned to the
   broken output and only turned red when the detector landed.
 
-  Third: `lib/decision.ml::body_canonical_sha256` does not
-  implement spec/kernel-contract.md §7.1. The spec replaces the matched
-  `body_sha: "sha256:<64hex>"` with `body_sha: "` + placeholder;
-  the OCaml helper emits `prefix` (which already ends in
-  `sha256:`) followed by `placeholder` (which begins with
-  `sha256:`), producing `body_sha: "sha256:sha256:0000..."` and a
-  digest 7 bytes-per-field off the spec. The divergence is
-  observable: `decisions/ci-gate-exit-honesty-2026-10.yaml` matches
-  the OCaml output and NOT the spec, while
-  `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml` matches the
-  spec and NOT the OCaml. The digests written by this decision use
-  the SPEC algorithm, because that is the normative rule and the
-  one pinned by `tests/cli/body-vs-wrapper-canonical.t`. The
-  helper's divergence is a finding for its own fix, not something
-  to paper over by matching a bug.
+  Third: the byte-range algorithm had two implementations that
+  disagreed. `lib/decision.ml::body_canonical_sha256` emitted the
+  scheme prefix twice and therefore disagreed with the contract's
+  §7.1, and the corpus carried files matching each side. The
+  divergence was observable and was fixed at the source rather
+  than papered over by matching a bug: the helper, the Python
+  reference (`scripts/axiom-link-seed.py::recompute_sha`) and §7.1
+  now agree, and the cram fixture recomputes a digest with the
+  reference implementation and compares it with what the kernel
+  stores.
 
 axiom_link:
   - A0
@@ -218,10 +272,13 @@ outcomes:
       for "the kernel read all of it".
   - id: promised-obligations-are-back-in-the-gate
     statement: |
-      The 17 obligations listed in the original report, plus the
+      The obligations listed in the original report, plus the
       `risk:` and `relations:` blocks that D2 was also eating, are
       inside the kernel's reading and therefore inside
-      `mathc self-check`.
+      `mathc self-check`. The decisions that carried them and are
+      still in the corpus validate with no `MC-DUPLICATE-KEY` and
+      no `MC-UNPARSED-TAIL`; the ones that were deleted from the
+      corpus live in git history.
   - id: scaffolded-policy-is-valid-yaml
     statement: |
       A decision scaffolded by `mathc init` is parseable end to
@@ -237,7 +294,7 @@ outcomes:
 
 obligations:
   - id: duplicate-key-one-diagnostic-per-key
-    outcome: kernel-names-the-unreachable-block
+    outcome: silent-drop-is-named
     claim: |
       A synthetic decision declaring `obligations:` twice yields
       exactly ONE `MC-DUPLICATE-KEY` diagnostic naming the key and
@@ -250,7 +307,7 @@ obligations:
         - verifier: tests/duplicate_keys.exe
         - verifier: mathc validate tests/cli/fixtures/duplicate-keys/duplicate-obligations-key.yaml
   - id: unparsed-tail-is-reported
-    outcome: kernel-names-where-it-stopped
+    outcome: silent-drop-is-named
     claim: |
       A synthetic decision the loader cannot read to EOF yields a
       `MC-UNPARSED-TAIL` naming the first unread line, with the
@@ -262,7 +319,7 @@ obligations:
         - verifier: tests/duplicate_keys.exe
         - verifier: mathc validate tests/cli/fixtures/duplicate-keys/unparsed-tail.yaml
   - id: detector-reads-the-same-tree-as-the-readers
-    outcome: no-second-yaml-implementation
+    outcome: silent-drop-is-named
     claim: |
       `Codec.duplicate_keys` walks `Jsonl.value`, not text: prose
       inside a `|` block scalar may contain `Counterargument:` at
@@ -273,7 +330,7 @@ obligations:
       all:
         - verifier: tests/duplicate_keys.exe
   - id: both-codes-are-explained
-    outcome: explain-diagnostic-covers-the-new-codes
+    outcome: silent-drop-is-named
     claim: |
       `mathc explain-diagnostic MC-DUPLICATE-KEY` and
       `mathc explain-diagnostic MC-UNPARSED-TAIL` return a
@@ -283,43 +340,43 @@ obligations:
         - verifier: mathc explain-diagnostic MC-DUPLICATE-KEY
         - verifier: mathc explain-diagnostic MC-UNPARSED-TAIL
   - id: reported-obligations-are-reachable
-    outcome: the-17-promises-are-back-under-the-gate
+    outcome: promised-obligations-are-back-in-the-gate
     claim: |
-      The six decisions that duplicated `obligations:` no longer
-      do, and `mathc validate` on each prints the full obligation
-      count the file actually declares -- the second block's ids
-      included: `kernel-prefix-matches-mathc`,
-      `docs-no-mathc-cli`, `decisions-renamed`,
-      `site-classes-renamed`, `skill-url-points-at-real-asset`,
-      `binary-built`, `seven-methods-tested`, `parse-error-tested`,
-      `unknown-method-tested`, `self-check-non-regression`,
-      `mathc-explain-spec-promoted`, `mathc-explain-dispatcher-shipped`,
-      `version-reads-from-file`, `mathc-version-prints-file`,
-      `waiver-loader-tested`, `self-check-emits-pass-with-waiver`,
-      `deferral-recorded`.
+      The decisions that duplicated `obligations:` and are STILL IN
+      THE CORPUS no longer do, and `mathc validate` on each prints no
+      `MC-DUPLICATE-KEY` and no `MC-UNPARSED-TAIL`:
+      `decisions/cli-canonical-name.yaml`,
+      `decisions/mathc-explain-subcommand.yaml` and
+      `decisions/waiver-infrastructure-2026-10.yaml`.
+
+      The two that were deleted from the corpus
+      (`decisions/mcp-server-impl-2026-10.yaml` and
+      `decisions/yaml-block-scalars-impl-pending.yaml`) are named
+      here so the reader knows they are absent rather than missed,
+      and the archived
+      `archive/decisions/site-version-from-file-2026-10.yaml` is a
+      record: it is not asked to validate.
     acceptance:
       all:
         - verifier: mathc validate decisions/cli-canonical-name.yaml
         - verifier: mathc validate decisions/mathc-explain-subcommand.yaml
-        - verifier: mathc validate decisions/mcp-server-impl-2026-10.yaml
-        - verifier: mathc validate archive/decisions/site-version-from-file-2026-10.yaml
         - verifier: mathc validate decisions/waiver-infrastructure-2026-10.yaml
-        - verifier: mathc validate decisions/yaml-block-scalars-impl-pending.yaml
   - id: secondary-duplicates-gone
-    outcome: counterexample-and-nested-duplicates-repaired
+    outcome: honest-merge-does-not-add-noise
     claim: |
-      The three decisions that duplicated `counterexample:` and the
-      one that duplicated `result:` inside an acceptance item no
-      longer do; `mathc validate` prints no `MC-DUPLICATE-KEY` for
-      any of them.
+      The three decisions that duplicated `counterexample:` and are
+      still in the corpus no longer do, and the one that duplicated
+      `result:` inside an acceptance item no longer does either;
+      `mathc validate` prints no `MC-DUPLICATE-KEY` for any of them.
+      The fourth (`decisions/disable-hanging-alcotest-tests-2026-10.yaml`)
+      was deleted from the corpus and lives in git history.
     acceptance:
       all:
-        - verifier: mathc validate decisions/disable-hanging-alcotest-tests-2026-10.yaml
         - verifier: mathc validate decisions/mathc-counters-subcommand-2026-10.yaml
         - verifier: mathc validate decisions/parser-risk-owner-default.yaml
         - verifier: mathc validate decisions/yaml-block-scalars.yaml
   - id: every-affected-file-is-listed
-    outcome: residual-corpus-is-inventoried-not-hidden
+    outcome: silent-drop-is-named
     claim: |
       The corpus scan that motivated this decision is reproducible
       and its residual is recorded, not forgotten:
@@ -330,10 +387,14 @@ obligations:
             | sort -u | sed "s|^|$f: |"
         done
 
-      At the base commit of this branch it reports 28 affected
-      files of 235. This decision repairs 10 of them. The other 18
-      remain, still validating `parse-ok`, and are the subject of
-      the follow-up named in `reversal`.
+      On 2026-11-01 it reports ONE live decision --
+      `decisions/mathc-packages-subcommand.yaml`. The corpus's own
+      ledger
+      (`tests/corpus_no_silent_drops/corpus_no_silent_drops.ml`) pins
+      that residual in BOTH directions: a file that grows a silent
+      drop fails the test, and a ledger entry that is no longer an
+      offender fails it too. The repair of the last one belongs to a
+      later tranche, and this decision does not pretend it is done.
     acceptance:
       all:
         - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
@@ -349,7 +410,7 @@ obligations:
         - verifier: tests/cli/init-defaults.t
         - verifier: tests/cli/init-scope-language-agnostic.t
   - id: no-false-positive-on-json-inputs
-    outcome: detector-reads-the-same-tree-as-the-readers
+    outcome: silent-drop-is-named
     claim: |
       `MC-UNPARSED-TAIL` is reported for YAML input only. Validating
       a `.json` decision, which `parse_file` routes to `Jsonl.parse`
@@ -362,7 +423,7 @@ obligations:
         - verifier: tests/cli/validate-positive.t
         - verifier: tests/cli/embedded-schemas.t
   - id: this-decision-validates
-    outcome: decision-is-itself-well-formed
+    outcome: silent-drop-is-named
     claim: |
       `mathc validate decisions/duplicate-mapping-keys-silent-drop-2026-10.yaml`
       exits 0 with no `MC-DUPLICATE-KEY` and no `MC-UNPARSED-TAIL`.
@@ -389,6 +450,11 @@ assumptions:
       then the codes move to Block. That is a severity flip on an
       existing code, recorded as a revision of this decision, not a
       new code.
+
+      The cost of Warn, stated plainly: `mathc validate` on a broken
+      file now prints two codes instead of none. That is the point.
+      The corpus gets quieter as the residual is repaired, and the
+      residual is one file today.
     review_on:
       - signal: parse-ok-still-mistaken-for-complete
   - id: spec-conformant-digest-is-the-rule
@@ -396,57 +462,45 @@ assumptions:
     statement: |
       `body_sha` / `yaml_sha` are recomputed with the algorithm in
       spec/kernel-contract.md §7.1, which is the normative text and is
-      pinned by `tests/cli/body-vs-wrapper-canonical.t`. The OCaml
-      helper `lib/decision.ml::body_canonical_sha256` emits the
-      placeholder prefix twice and therefore disagrees with the
-      spec; that divergence is recorded, not adopted.
+      pinned by `tests/cli/body-vs-wrapper-canonical.t`.
+
+      The divergence this assumption used to record is REPAIRED:
+      `lib/decision.ml::body_canonical_sha256` no longer emits the
+      scheme prefix twice, and the OCaml implementation, the Python
+      reference (`scripts/axiom-link-seed.py::recompute_sha`) and §7.1
+      now agree. `mathc rehash --dry-run` over the corpus reports no
+      file whose stored digest is not the algorithm's output.
     owner: human:maintainer
     consequence_if_false: |
-      If `body_canonical_sha256` turns out to be the intended rule
-      and the spec is wrong, the digests written here are wrong in
-      the same way every file written by the OCaml helper is
-      already wrong. Fixing the direction is a one-line change plus
-      a corpus-wide recompute; the follow-up decision should settle
-      it before the next digest is written.
+      If the three ever disagree again, the digests written from here
+      on would follow whichever one the writer used, and the corpus
+      would carry files matching each side again. The fix is a
+      one-line change in the helper plus a corpus-wide recompute, and
+      the direction is settled by the contract: the SPEC is the rule.
     review_on:
       - signal: body-canonical-helper-divergence-disputed
   - id: residual-corpus-is-work-queued-not-work-done
     state: assumed
     statement: |
-      The 18 residual files will be repaired in a follow-up, one
-      digest recomputation each. This decision does not schedule
-      them; it makes them visible and names the command that lists
-      them.
+      The residual is ONE file today --
+      `decisions/mathc-packages-subcommand.yaml` -- and it will be
+      repaired in a later tranche, one digest recomputation each.
+      This decision does not schedule it; it makes it visible and
+      names the command that lists it.
     owner: human:maintainer
     consequence_if_false: |
       If nobody picks the follow-up up, the detector stays a
       permanent scar on the corpus and the `parse-ok` verdict keeps
-      meaning less than it appears to. The signal below is the
-      review trigger.
+      meaning less than it appears to. The signal below fires if it
+      is not claimed.
     review_on:
       - signal: duplicate-mapping-keys-follow-up-unowned
 
 risk:
   declared_triggers:
     - residual-corpus-rots-in-place
-    - digest-direction-ambiguity
+    - digest-direction-disputed
     - warn-spam
-  residual-corpus-rots-in-place: |
-    Expected. The detector names 18 files the kernel still does
-    not fully read. Mitigation is the follow-up decision; the
-    trigger `duplicate-mapping-keys-follow-up-unowned` fires if it
-    is not claimed.
-  digest-direction-ambiguity: |
-    `lib/decision.ml::body_canonical_sha256` and
-    spec/kernel-contract.md §7.1 disagree, and the corpus contains
-    files matching each. This decision follows the spec. If the
-    kernel helper is later corrected to match, every digest written
-    from here on follows automatically; the ones written here need
-    no change.
-  warn-spam: |
-    `mathc validate` on a broken file can now print two codes
-    instead of none. That is the point. The corpus will be quieter
-    once the residual is repaired.
   owner: human:maintainer
 
 reversal:
@@ -458,11 +512,12 @@ reversal:
     action: |
       Promote MC-DUPLICATE-KEY and MC-UNPARSED-TAIL to Block so
       `mathc validate` exits 1 on both, re-issue this decision at
-      revision 2 naming the promotion, and re-run the corpus scan.
+      the next revision naming the promotion, and re-run the corpus
+      scan.
   - signal: duplicate-mapping-keys-follow-up-unowned
     condition: |
-      The residual 18 files are still unparsed three months after
-      this decision merged.
+      The residual file is still unparsed three months after this
+      decision merged.
     action: |
       Open the parser-fix decision: correct
       `lib/codec.ml::fold_continuation` (a plain scalar's
@@ -473,7 +528,7 @@ reversal:
 
 relations:
   addresses:
-    - d5-body-vs-wrapper-canonical-2026-10@1
+    - d5-body-vs-wrapper-canonical-2026-10@2
   refines: []
   contradicts: []
   supersedes: []
