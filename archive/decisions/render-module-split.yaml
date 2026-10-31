@@ -1,11 +1,12 @@
 ---
 schema: math-coding/3.3
 id: render-module-split
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the first mechanical renderer split, with no live dependency.
 mode: light
-body_sha: "sha256:40eb484eff7a92f7c3fb59b287af202bce2ca948dc805c89b47aae8228c0e7cf"
-yaml_sha: "sha256:40eb484eff7a92f7c3fb59b287af202bce2ca948dc805c89b47aae8228c0e7cf"
+body_sha: "sha256:1629a96c289c7ed8053ac9b43ca7c37d9e4ccfed88c1423dd650ca5fb04e2555"
+yaml_sha: "sha256:1629a96c289c7ed8053ac9b43ca7c37d9e4ccfed88c1423dd650ca5fb04e2555"
 
 intent: |
   `lib/render.ml` is 3040 lines and is the single largest
