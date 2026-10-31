@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:01eea996747b3f13c82e044f909f7ce34d5ddd563849c7fe251b8e6c863c6d02"
-yaml_sha: "sha256:01eea996747b3f13c82e044f909f7ce34d5ddd563849c7fe251b8e6c863c6d02"
+body_sha: "sha256:12e01945da4321a18d8b50668ae895aa6eac0491e132bd53b3eb5c37b516bbfa"
+yaml_sha: "sha256:12e01945da4321a18d8b50668ae895aa6eac0491e132bd53b3eb5c37b516bbfa"
 
 axiom_link:
   - A0
@@ -42,7 +42,7 @@ intent: |
      `standard`. The friction ladder had exactly one rung, and the
      rung was the silent one.
 
-  2. THE PROTECTED-PATH RULE WAS STRICTER THAN THE SPEC. Algebra §5
+  2. THE PROTECTED-PATH RULE WAS STRICTER THAN THE SPEC. Kernel contract §5
      and §20 give a change to `lib/**`, `bin/Mathc.ml`, `spec/**`,
      `schemas/**` or `axioms/**` TWO ways to name the commitment it
      implements: a decision committed with the change, OR a trailer
@@ -87,7 +87,7 @@ commitment: |
      live test depends on does not leave until the dependency does.
   4. This repository's floors are `standard` on the paths the kernel
      protects and `light` everywhere else. NO floor above `standard`
-     is declared: algebra §10 makes `strict` and `exhaustive` require
+     is declared: kernel contract §10 makes `strict` and `exhaustive` require
      a rebuttal artifact, this repository keeps no `rebuttals/`
      directory, and a floor nothing can satisfy is a floor that
      blocks everything it covers.

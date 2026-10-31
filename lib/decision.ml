@@ -1,8 +1,8 @@
 (* Decision / Obligation decoder. *)
 
-(* sha-match validation per algebra §3 and §7.
-   Algebra §3 requires: if both sibling_yaml(c) and body_section(c)
-   exist then sha256(sibling_yaml) = sha256(body_section). Algebra §7
+(* sha-match validation per kernel contract §3 and §7.
+   Kernel contract §3 requires: if both sibling_yaml(c) and body_section(c)
+   exist then sha256(sibling_yaml) = sha256(body_section). Kernel contract §7
    states the same invariant on the Decision entity: if D.body_sha ≠ ∅
    ∧ D.yaml_sha ≠ ∅ then D.body_sha = D.yaml_sha.
    The check is parser-side: when both hashes are recorded on the
@@ -12,7 +12,7 @@
    so equality of the formatted strings is equality of the digests.
 
    The byte-range and canonicalisation algorithm that produces the
-   two stored hashes is defined in spec/algebra-3.2.md §7.1
+   two stored hashes is defined in spec/kernel-contract.md §7.1
    (placeholder-substitution sweep on UTF-8 bytes after CRLF→LF
    normalisation, then sha256, prefixed with `sha256:`). See
    decision `d5-body-vs-wrapper-canonical-2026-10` for the
@@ -57,7 +57,7 @@
 type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
 
 (* body_canonical_sha256 — implements the byte-range and
-   canonicalisation algorithm named in spec/algebra-3.2.md §7.1
+   canonicalisation algorithm named in spec/kernel-contract.md §7.1
    and decision `d5-body-vs-wrapper-canonical-2026-10`. The input
    is the raw file bytes (UTF-8, LF or CRLF); the output is the
    `sha256:` + 64 hex digest form used in `body_sha` / `yaml_sha`
@@ -67,7 +67,7 @@ type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
    insensitivity-to-placeholder, CRLF-equals-LF) follow from the
    definition. The single-file (trivial) case in the spec
    produces `body_sha = yaml_sha`; the dual-authored case
-   (algebra §6, sibling YAML) is deferred to a follow-up
+   (kernel contract §6, sibling YAML) is deferred to a follow-up
    decision. *)
 (* The OCaml 5.x `Str` module does not support the
    `\{n\}` interval quantifier (only `*`, `+`, `?`), so
@@ -86,7 +86,7 @@ type decision_parse = Accept of Domain.decision | Reject of Diagnostic.t
 (* The replacement text is the 64 zeros plus the closing quote — NOT
    including the "sha256:" scheme prefix.
 
-   Algebra §7.1 reads:
+   Kernel contract §7.1 reads:
      replace_all(re_body, "body_sha: \"" + placeholder, normalised)
    with placeholder = "sha256:" + "0"*64 + "\"". The matched pattern
    is the WHOLE `body_sha: "sha256:<64hex>`, and the replacement is
@@ -568,7 +568,7 @@ let[@warning "-32"] parse_reversal v =
 
 (* === T6.2 helper: counterexample-mode-required.
 
-   Rule (spec/algebra-3.2.md §11 + decisions/plan-2026-10-improvements/t6-2.yaml):
+   Rule (spec/kernel-contract.md §11 + decisions/plan-2026-10-improvements/t6-2.yaml):
      - mode ∈ {tiny, light}  + empty counterexample → allowed (legacy soft
        warning at most).
      - mode ∈ {standard, strict, exhaustive} + empty counterexample → reject.
@@ -597,7 +597,7 @@ let[@warning "-32"] parse_reversal v =
 let counterexample_meaningful_opt (s : string option) : bool =
   match s with Some t when String.trim t <> "" -> true | _ -> false
 
-(* Antithesis (v3 dialectic slot, per spec/algebra-3.2.md §11):
+(* Antithesis (v3 dialectic slot, per spec/kernel-contract.md §11):
    same "present and meaningful" check as counterexample. Authors cannot
    satisfy the rule with whitespace-only strings. *)
 let antithesis_meaningful_opt (s : string option) : bool =
@@ -615,7 +615,7 @@ let mode_geq_standard (m : Domain.mode) : bool =
   | `Tiny | `Light -> false
 
 (* mode >= considered: only `Considered` triggers the antithesis
-   requirement (algebra §11). The `mode_geq_considered` predicate
+   requirement (kernel contract §11). The `mode_geq_considered` predicate
    replaces the prior `mode_geq_standard` guard on
    `antithesis_required_missing`. See
    `decisions/antithesis-mode-considered-2026-10` for the rationale
@@ -625,7 +625,7 @@ let mode_geq_considered (m : Domain.mode) : bool =
   | `Considered -> true
   | `Tiny | `Light | `Standard | `Strict | `Exhaustive -> false
 
-(* === Axiom-link detection (algebra §17 "Inline axiom change")
+(* === Axiom-link detection (kernel contract §17 "Inline axiom change")
    ===
    Helpers below `populate_axiom_addresses` are kept ABOVE the
    mutually-recursive parser chain so the chain can extend all
@@ -754,7 +754,7 @@ let rec parse_assumption v =
                           in
                           let evidence = Schema.take_string ps "evidence" in
                           (* confidence is a float in [0.0, 1.0] per
-                             spec/algebra-3.2.md §7. Jsonl now parses
+                             spec/kernel-contract.md §7. Jsonl now parses
                              Float values (lib/jsonl.ml); preserve the
                              authored value rather than dropping it. *)
                           let confidence =
@@ -1019,9 +1019,9 @@ and[@warning "-32"] parse_obligation_with parent_id v =
           }
   | _ -> None
 
-(* Relations parser (algebra §7, 8 kinds). The JSON object under
+(* Relations parser (kernel contract §7, 8 kinds). The JSON object under
    "relations" carries up to 9 array-valued fields; the 8 relation
-   kinds defined by algebra §7 are revises, supersedes, refines,
+   kinds defined by kernel contract §7 are revises, supersedes, refines,
    depends_on, conflicts_with, addresses, implements, verifies.
    The 9th field `superseded_by` is the inverse of `supersedes` and
    is already populated by existing decisions; both directions are
@@ -1211,7 +1211,7 @@ and parse_decision_value v =
                          ~decision_id:decision_id_early
                          ~severity:Diagnostic.Block
                          "counterexample is required for mode >= standard; see \
-                          spec/algebra-3.2.md §11. Add a counterexample \
+                          spec/kernel-contract.md §11. Add a counterexample \
                           section naming the strongest objection considered \
                           and rejected, or downgrade to mode: light. (Reported \
                           in preference to MC-MISSING-INTENT because the \

@@ -4,8 +4,8 @@ id: site-redesign-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:efb29030903aaa4e0b0e0887976715e7e7c0ae43ce32d1355b988f3741f72abd"
-yaml_sha: "sha256:efb29030903aaa4e0b0e0887976715e7e7c0ae43ce32d1355b988f3741f72abd"
+body_sha: "sha256:89b6b124260ed615c76c4133ee574450b0ffab87e7d591f02fa37ca324a883ca"
+yaml_sha: "sha256:89b6b124260ed615c76c4133ee574450b0ffab87e7d591f02fa37ca324a883ca"
 axiom_link:
   - A0
   - A1
@@ -46,7 +46,7 @@ commitment: |
   2. Adds an SVG logo (assets/logo.svg, viewBox 0 0 64 64) to
      the brand anchor.  The mark is two brackets around a check
      (`[✓]`), reading as "the kernel verifies" — directly the
-     vocabulary of spec/algebra-3.2.md §15 (verdicts).  The mark
+     vocabulary of spec/kernel-contract.md §15 (verdicts).  The mark
      is single-color oxblood (#8b3a3a) so it inherits the
      project's existing Tufte palette and renders crisply at
      favicon sizes (16 px through 72 px).

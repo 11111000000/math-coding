@@ -44,20 +44,20 @@ axiom_link:
 #                 ELF with interpreter /lib/ld-musl-x86_64.so.1
 #                 and NEEDED libc.musl-x86_64.so.1
 #
-#                 Closes the algebra-3.2 §30 anti-property
+#                 Closes the kernel contract §30 anti-property
 #                 "bind kernel to single OS or architecture" for
 #                 Alpine/musl targets. The glibc pipeline and the
 #                 §30 violation history are unchanged.
 state: active
-body_sha: "sha256:98447f93421b56b8fa09a3af4d8fc6f51b144f09ecdb010657c309aacbe6b26d"
-yaml_sha: "sha256:98447f93421b56b8fa09a3af4d8fc6f51b144f09ecdb010657c309aacbe6b26d"
+body_sha: "sha256:ac94821cbdb0b3ac45528a0d4c12b5ad49ecebdd3093ebd236adbc0052d5623a"
+yaml_sha: "sha256:ac94821cbdb0b3ac45528a0d4c12b5ad49ecebdd3093ebd236adbc0052d5623a"
 intent: |
   Adopt a musl-based Linux build pipeline alongside the existing
   glibc-based Ubuntu pipeline, so math-coding's Linux binaries are
   truly portable across all common Linux distributions — including
   Alpine (musl) and glibc systems older than Ubuntu-22.04.
 
-  This closes algebra-3.2 §30 anti-property: "require nix-store paths
+  This closes kernel contract §30 anti-property: "require nix-store paths
   in binary dependencies" and "bind kernel to single OS or
   architecture". Currently the shipped `mathc-linux-*` binaries are
   dynamically linked against Ubuntu-22.04's glibc-2.35 and fail with
@@ -102,7 +102,7 @@ scope:
     - "adoption/SKILL.md"
   exclusions:
     - "lib/**"      # no kernel change
-    - "spec/**"     # no spec change; algebra §30 already normative
+    - "spec/**"     # no spec change; kernel contract §30 already normative
     - "schemas/**"  # no schema change
     - "axioms/**"   # axioms immutable per A3
     - "bin/Mathc.ml"

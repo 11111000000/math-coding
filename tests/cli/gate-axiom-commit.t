@@ -4,7 +4,7 @@ plus a sibling `decisions/*.yaml` (so the §20 kernel rule
 pass via `has_sibling_yaml`) and no rebuttal file surfaces
 verdict "block" (not "unknown"). The risk classification for
 `axioms/A0.md` is exhaustive per the `math-coding-axioms` policy
-floor in `policies.yaml`; algebra §10 requires rebuttals for
+floor in `policies.yaml`; kernel contract §10 requires rebuttals for
 non-Unblocked verdict at exhaustive mode. The v3.0 `evaluate`
 path now consults `Risk.mode files` (T3.1) and promotes the
 verdict to Block when `mode >= strict` and rebuttals are absent.
@@ -25,7 +25,7 @@ the process cwd, not to MATH_CODING_ROOT.
 MATH_CODING_POLICY points at a policy file THIS FIXTURE WRITES, and
 the file declares the `axioms/**` exhaustive floor on purpose. The
 repository's own `policies.yaml` declares `standard` for `axioms/**`
--- it does not maintain `rebuttals/<sha>.yaml`, and algebra §10 makes
+-- it does not maintain `rebuttals/<sha>.yaml`, and kernel contract §10 makes
 an exhaustive floor require a rebuttal, so a floor this repository
 cannot meet would be a floor that blocks every axiom change. The
 wiring under test here is the floor-to-rebuttal path, not the

@@ -147,7 +147,7 @@ let[@warning "-32"] iso_lt a b = String.compare a b < 0
    `issued_at < now`: Invariant 14c constrains only `expires_at`,
    and §Waivers requires the issue time to be identified, not to
    be exclusive. Note the asymmetry is deliberate, and it mirrors
-   attestation currency (spec/algebra-3.2.md §14, `current(a) ≔
+   attestation currency (spec/kernel-contract.md §14, `current(a) ≔
    a.issued_at ≤ now ≤ a.valid_until`, closed on both ends): a
    waiver is an interval whose START is a grant and whose END is a
    deadline. Do not "harmonise" the two by closing the waiver

@@ -4,9 +4,9 @@ id: waiver-infrastructure-2026-10
 revision: 2
 state: active
 
-body_sha: "sha256:b5494f43648f4676012c21fe1dabc4c1cf025dfb12e0bd5606a9cb230896fffc"
+body_sha: "sha256:6cc81003ee5e9ab8a1b56b32a8a34387cdd4c3bf23ad57b26043e40b4ada5b5e"
 
-yaml_sha: "sha256:b5494f43648f4676012c21fe1dabc4c1cf025dfb12e0bd5606a9cb230896fffc"
+yaml_sha: "sha256:6cc81003ee5e9ab8a1b56b32a8a34387cdd4c3bf23ad57b26043e40b4ada5b5e"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
@@ -74,7 +74,7 @@ scope:
   exclusions:
     - "lib/gate.ml"        # aggregate unchanged
     - "spec/constitution.md"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "spec/semantics.md"
     - "schemas/**"         # schemas unchanged
     - "decisions/portable-linux-musl.yaml"  # untouched

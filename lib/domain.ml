@@ -1,5 +1,5 @@
 (* lib/domain.ml — math-coding 3.2-ideal algebra types.
-   See spec/algebra-3.2.md §7 (Decision), §13 (Attestation),
+   See spec/kernel-contract.md §7 (Decision), §13 (Attestation),
    §15 (phase-aware gate), §17 (Axiom change), and the schemas
    under schemas/ for the canonical field names.
 
@@ -7,7 +7,7 @@
      - decision.state:    draft | active | retired | superseded
      - decision.mode:     tiny | light | standard | strict | exhaustive
      - decision.mode_floor_used, body_sha, yaml_sha (optional)
-     - decision.counterexample: optional string (algebra §7)
+     - decision.counterexample: optional string (kernel contract §7)
      - assumption.state widened to 5 epistemic markers + `Assumed`
        legacy value; new evidence, confidence fields
      - relations extended to 8 kinds (revises, supersedes, refines,
@@ -32,7 +32,7 @@ type kind = Decision | Obligation | Attestation | Waiver | Change
 type epistemic = Declared | Derived | Attested | Reviewed | Observed
 type freshness = Fresh | Stale | AtRisk | Unknown
 
-(* Enforcement phase for an obligation (algebra §15).
+(* Enforcement phase for an obligation (kernel contract §15).
    - `PreMerge    : blocking for the merge gate
    - `PreRelease  : blocking for the release gate (in addition to merge)
    - `PostRelease : monitoring-only; violations surface as AssuranceGap
@@ -40,7 +40,7 @@ type freshness = Fresh | Stale | AtRisk | Unknown
 type phase = [ `PreMerge | `PreRelease | `PostRelease ]
 
 (* Assurance mode. Used as a floor on what the kernel will demand
-   (algebra §3, §7). Five levels plus the v3-dialectic `Considered`
+   (kernel contract §3, §7). Five levels plus the v3-dialectic `Considered`
    level introduced by `decisions/antithesis-mode-considered-2026-10`.
    The `Considered` constructor carries the same assurance strength as
    `Standard` for kernel rules (risk, gate, policy, mode) but adds
@@ -51,20 +51,20 @@ type phase = [ `PreMerge | `PreRelease | `PostRelease ]
    countercase. *)
 type mode = [ `Tiny | `Light | `Standard | `Strict | `Exhaustive | `Considered ]
 
-(* Trust level (algebra §1 universal set 𝓣, §10 rebuttal binding,
+(* Trust level (kernel contract §1 universal set 𝓣, §10 rebuttal binding,
    §12 trust dynamics). Monotonic: Untrusted < Authenticated <
    Delegated < Authoritative. Carried by the rebutter at the time
    a rebuttal is recorded (`trust_level_at_rebuttal`); the binding
-   check (algebra §10) compares this rank against the authority
+   check (kernel contract §10) compares this rank against the authority
    floor required by the obligation's mode. *)
 type trust = [ `Untrusted | `Authenticated | `Delegated | `Authoritative ]
 
-(* Coarse environment class label (algebra §13, §14).
+(* Coarse environment class label (kernel contract §13, §14).
    Matches schemas/common.json#/definitions/environment_class_label. *)
 type environment_class_label =
   [ `Dev | `Staging | `StagingIntegration | `ProdMirror | `Prod ]
 
-(* 5 epistemic markers (algebra §7, axiom A5 v0.854).
+(* 5 epistemic markers (kernel contract §7, axiom A5 v0.854).
    The legacy 3.0 value `Assumed is preserved here so the same
    field name (`state`) can carry both the legacy 3.0 enum and
    the 3.2 marker enum without a parallel field.
@@ -92,12 +92,12 @@ type scope_target =
 type scope = scope_target list
 type outcome = { id : id; statement : string }
 
-(* obligation_domain — algebra §1, §8. Classifier pair
+(* obligation_domain — kernel contract §1, §8. Classifier pair
    (obligation_kind × path_namespace) used by the auto-inference
    rule and by the trust function. *)
 type obligation_domain = { obligation_kind : string; path_namespace : string }
 
-(* Assumption (algebra §7). `state` is the widened 5-marker
+(* Assumption (kernel contract §7). `state` is the widened 5-marker
    epistemic_marker; legacy `Assumed maps to `Assumed;
    `Unknown is shared. `evidence` is required when state = `Judgment
    (human-rationale observation); `confidence is required when
@@ -133,7 +133,7 @@ type reversal = {
 
 type risk = { declared_triggers : string list; owner : string }
 
-(* Relations (algebra §7, 8 kinds). supersedes/revises/refines/
+(* Relations (kernel contract §7, 8 kinds). supersedes/revises/refines/
    depends_on are acyclic (I6, I7). conflicts_with is symmetric.
    superseded_by is the inverse of supersedes — already used by
    existing decisions; formalised in 3.2. *)
@@ -149,15 +149,15 @@ type relations = {
   verifies : id list;
 }
 
-(* Decision entity (algebra §7). body_sha and yaml_sha must
+(* Decision entity (kernel contract §7). body_sha and yaml_sha must
    agree (body_sha = yaml_sha) when both are present. mode_floor_used
    is the assurance floor that the agent adopted when authoring this
    Decision; it is informational. counterexample is required for
-   modes ≥ light (algebra §11) but is optional here so that
+   modes ≥ light (kernel contract §11) but is optional here so that
    parser layer can default it. axiom_link carries the axiom IDs
    (e.g. "A1", "A3") this Decision addresses; the JSON schema
    lists it as a top-level array property (schemas/decision.json)
-   even though the algebra §7 syntax only carries the `addresses`
+   even though the kernel contract §7 syntax only carries the `addresses`
    relation. It is additive and defaults to [] when absent. *)
 type decision = {
   id : id;
@@ -183,12 +183,12 @@ type decision = {
   axiom_link : string list;
 }
 
-(* Attestation entity (algebra §13). environment_class is the
+(* Attestation entity (kernel contract §13). environment_class is the
    legacy free-form string; environment_class_level + label are
    the typed 3.2 form. substrate_digest and substrate_fingerprint
    anchor the attestation to the substrate it was produced
-   against (algebra §16). ci_run_id closes the id derivation
-   loop in algebra §13. *)
+   against (kernel contract §16). ci_run_id closes the id derivation
+   loop in kernel contract §13. *)
 type attestation = {
   id : string;
   decision : id;

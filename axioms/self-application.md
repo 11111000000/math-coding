@@ -58,7 +58,7 @@ In particular:
 
 The transition guard, the three-valued status, and the
 `max_verdict` ordering live in
-[`spec/algebra-3.2.html`](spec/algebra-3.2.html) §15 ("Gate verdict"),
+[`spec/kernel-contract.html`](spec/kernel-contract.html) §15 ("Gate verdict"),
 §17 ("Inline axiom change"), and §20 ("Kernel rules") respectively.
 
 The merge gate is *Open* when every pre-merge obligation is `Pass`
@@ -73,7 +73,7 @@ gate_merge(c, p, t, rules):
   Blocked otherwise
 ```
 
-An axiom revision (algebra §17) re-evaluates every decision whose
+An axiom revision (kernel contract §17) re-evaluates every decision whose
 obligations cite the old axiom's forbidden patterns. The status is
 one of three values; ordering matters because the kernel combines
 per-decision statuses by taking the maximum:

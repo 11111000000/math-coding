@@ -4,7 +4,7 @@ THE KERNEL.
 The claim is not about a file being present. It is about the file
 CHANGING WHAT THE KERNEL ANSWERS. `mathc mode PATH` prints the
 effective mode of a change, and the effective mode is
-`max(risk_to_mode(risk(c)), mode_floor(c))` (spec/algebra-3.2.md §2).
+`max(risk_to_mode(risk(c)), mode_floor(c))` (spec/kernel-contract.md §2).
 The second term comes from `policies.yaml`. If the kernel does not
 read that file, the second term is always `tiny`, every change in the
 repository is classified as the silent baseline, and the friction
@@ -74,7 +74,7 @@ of them answers "the project declared no floors" for the other.
   {"mode":"standard"}
 
 Without the file the answer is the silent baseline, and the absence
-is not a crash (algebra §9: `policy(p) = default-policy`).
+is not a crash (kernel contract §9: `policy(p) = default-policy`).
 
   $ rm policies.yaml
   $ $INSIDE_DUNE/bin/mathc.exe mode lib/gate.ml | jq -c '{mode}'

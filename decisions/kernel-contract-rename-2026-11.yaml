@@ -1,0 +1,515 @@
+---
+schema: math-coding/3.3
+id: kernel-contract-rename-2026-11
+revision: 6
+state: active
+mode: standard
+negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
+body_sha: "sha256:88c9005e9c5ed5ea08b26df73eb85fcec80502d5f3530197b5c9d95fc8002298"
+yaml_sha: "sha256:88c9005e9c5ed5ea08b26df73eb85fcec80502d5f3530197b5c9d95fc8002298"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
+  text: |
+    The normative contract was named after the version it described:
+    `spec/algebra-3.2.md`. A name that carries a revision is a name
+    that becomes FALSE at the next revision, and the repair then
+    costs every reference again - not the references of today, but
+    the references of tomorrow, which is where the cost actually
+    lands. The name `spec/kernel-contract.md` says what the document
+    IS (the contract the kernel enforces) and leaves the revision to
+    the place that already carries it: the decision that supersedes
+    the text, and the CHANGELOG.
+
+    MEASURED on this tree at 472918df, 2026-10-31, with
+    `git grep` over the tracked files:
+
+      331 mentions of `spec/algebra-3.2.md` in 123 tracked files.
+
+    The plan's row said 322 in 120 files. The drift is three files
+    and nine mentions: the plan's number was measured before the
+    wave-3 commits landed, and it counted the path alone. The number
+    here is the number this tree has, and the fixture below holds the
+    tree to it.
+
+    The same measurement, split by what each mention IS:
+
+      95  in 25 live decisions - prose, `scope.paths`, and four
+          `verifier:` strings that GREP the document. A verifier that
+          greps a path that no longer exists is a promise the kernel
+          cannot execute, and the corpus carries it as if it were a
+          check.
+      43  in 22 cram fixtures under tests/cli/ - fixtures that read
+          the document, five of which assert the exact TEXT of a
+          diagnostic that quotes the path.
+      41  in 20 archived decisions - HISTORY. A record says what was
+          true when it was written, and rewriting it would be lying
+          about the past.
+      36  in 12 files under lib/ - comments, plus four runtime
+          diagnostics whose message quotes the path.
+      30  in 12 files under docs/ - prose and links.
+      26  in 5 schema files - descriptions that name the section.
+      20  in 10 files at the root - README, ROADMAP, PACKAGES, USAGE,
+          KERNEL_AGENTS, the CHANGELOG, the attestation source map,
+          policies.yaml and the two copies of the adoption skill.
+      16  in 5 files under tests/ that are not cram fixtures.
+      9   in bin/Mathc.ml - runtime strings and comments.
+      7   in 3 files under scripts/ - one of them a check that greps
+          the document.
+      6   in 6 site pages.
+      2   in spec/ and axioms/ - NORMATIVE TEXT.
+
+    The list above is MEASURED, not estimated, and it sums to the 331
+    the header claims. Two classes the first draft of this paragraph
+    left out - the twenty in the root documents and the sixteen under
+    tests/ that are not cram fixtures - are in it now, and one of its
+    numbers was wrong: the two copies of the adoption skill carry FOUR
+    mentions between them, not six.
+
+    MEASURED AGAIN, after this tranche landed. The numbers above are
+    the BASELINE - the tree at 472918df, before the move - and they
+    are not rewritten: a measurement edited to match its conclusion
+    is not a measurement. What the tranche changed is the number the
+    instrument reads today:
+
+      0  mentions of the old path survive in the live tree, outside
+         the five places the instrument excludes.
+
+    What survives, and where, is the same five places the instrument
+    declares: the archive (48 mentions of either form), the plans
+    (the measurement that counted them), the CHANGELOG (5), this
+    decision, and the instrument itself. The section pointers are at
+    zero as well, outside the contract's own sentence about its own
+    section - the one sentence this tranche leaves alone, because
+    this tranche renames the file and does not reword it.
+
+    And 122 section pointers of the form `algebra §N` in lib/, bin/
+    and tests/ alone (93 in lib/, 9 in bin/, 20 in tests/). They
+    survive a rename as prose, but the sentence still LOOKS like a
+    reference and the thing it names is gone - which is the kind of
+    sentence that reads like a reference and is not one.
+
+    THE TRANSITION IS PROTECTED, and this decision is the reason.
+    A3 says the normative text does not change just like that, and
+    this transition changes it: the six path references in axioms/
+    and the one in spec/semantics.md move with the file, and the
+    section pointers that name the contract's sections are re-anchored
+    in the same commit. Every normative-text edit of this tranche
+    lands in ONE commit, under THIS decision, and nowhere else.
+
+    THE FILES OF THAT COMMIT, named, so that the claim can be checked
+    rather than believed:
+
+      axioms/care.md            axioms/feedback.md
+      axioms/invariants.md      axioms/self-application.md
+      axioms/separation.md      spec/semantics.md
+
+    The axiom pages link to the RENDERED page, because that is what
+    the site writes and what a reader in a browser follows; the link
+    text names the SOURCE, because that is the file the section lives
+    in. The contract's own text is NOT among the files: its bytes are
+    the bytes it had before the move, and the tranche that rewrites
+    that text is a different decision with its own review.
+
+    HISTORY OF THIS TRANSITION (each step is one commit, and each
+    step is revertable on its own):
+
+      rev 1  the file is renamed; this decision and its instrument
+             land with it.
+      rev 2  the kernel and the CLI: the four runtime diagnostics and
+             the 122 section pointers name the new path.
+      rev 3  the live corpus: thirty decisions, the five schema files,
+             the site, the documentation and the installer template
+             follow the file.
+      rev 4  the normative text: the five axiom pages and
+             spec/semantics.md move, in ONE commit that carries this
+             decision.
+      rev 5  the instrument: the pointer scan joins the path scan,
+             and every exclusion the instrument declares is exercised
+             by the negative control.
+      rev 6  the formatter: the new name is longer than the old one,
+             and three files quote it inside string literals that were
+             exactly at the margin.
+
+counterexample: |
+  The strongest objection against this transition is that it changes
+  no assertion whatsoever. `spec/algebra-3.2.md` and
+  `spec/kernel-contract.md` would hold the same bytes, describe the
+  same algebra, and require the same counterexample in the same
+  modes. Three hundred and thirty-one edits to move a file that says
+  exactly the same thing is a lot of churn for a name, and the churn
+  is real: every edit is a merge conflict waiting for the next branch
+  that touched the same line, and the next revision of the document
+  would have been perfectly serviceable under the old name until the
+  day somebody wrote the 3.3 header.
+
+  The objection is right about the assertions and wrong about the
+  cost, and the reason it is wrong is the version in the name.
+
+  Consider the two worlds. In the world where the file stays
+  `spec/algebra-3.2.md`, the rename happens at 3.3 - and at 3.3 the
+  document's own name is a lie that a reader can see: a contract
+  describing version 3.3 of an algebra, in a file called 3.2. The
+  repair then costs every reference that exists AT THAT MOMENT, and
+  that number is strictly larger than 331, because the tree has not
+  stopped growing. The version in the name does not remove the
+  rename; it SCHEDULES it for the moment when it is most expensive,
+  and it guarantees that the rename is needed at all: a name that
+  carries a revision is a name that must change when the revision
+  changes.
+
+  The same argument, in the shape this repository already measures:
+  a scope path that names no tracked file makes the digest of that
+  decision a digest of nothing, and the corpus's dead-path count is
+  a number the census bounds. A path that names a file whose NAME
+  says it is version 3.2, in a tree at 3.7, is the same defect one
+  layer up: the reference resolves, so nothing notices, and the file
+  it resolves to is about a revision that no longer exists. The cost
+  of the rename is paid once here or twice - once now, once at 3.3 -
+  and the second payment is larger.
+
+  What would change the verdict: if the document were never revised
+  again, the objection would win and this decision would be churn.
+  The trigger for that is in the risk block - a normative text that
+  stops moving is a text whose name has nothing left to lie about.
+
+antithesis: |
+  The opposite position is that a versioned name is the HONEST one,
+  and that this transition throws away information to buy tidiness.
+  `spec/algebra-3.2.md` says which revision of the contract a reader
+  is looking at. `spec/kernel-contract.md` says only what kind of
+  document it is, and a reader who wants to know which revision they
+  hold has to look somewhere else - in the decision that supersedes
+  the text, or in a CHANGELOG, or in the git history, which is where
+  the information already lives and where it is kept more honestly.
+
+  The position is coherent, and it is right that a versioned name
+  carries information. It is wrong about WHERE the information
+  belongs, and the repository has already answered that question
+  with a mechanism: the text carries no version header at all, the
+  revision lives in the decision that owns it, and the CHANGELOG
+  records the moves. A filename that duplicates the revision is a
+  SECOND copy of a fact that already has an owner, and a second copy
+  of a fact is a second thing that can go stale - as this one did,
+  for seven releases.
+
+  The position is also wrong about what the transition preserves.
+  The transition is not "the document loses its version". The
+  transition is: the document keeps every byte it had, the revision
+  keeps its owner, and the NAME stops making a claim the tree cannot
+  check. The `spec/` directory has three sibling documents -
+  `constitution.md`, `domain.md`, `semantics.md` - none of which
+  carries a version in its name, and nobody has ever had to wonder
+  which revision of the semantics they were reading.
+
+  The strongest thing the opposite position has, and what this
+  decision concedes, is the DIFF. The rename is a large diff that
+  changes no meaning, and a large diff that changes no meaning is a
+  cost in review attention. That cost is paid once, in commits that
+  are ordered by class and are individually revertable, and it is
+  bounded by the fact that the archive and the plans are left alone:
+  the diff is 331 mentions in the live tree and not one more.
+
+commitment: |
+  1. The document is renamed, and its CONTENT DOES NOT CHANGE. The
+     move is `git mv spec/algebra-3.2.md spec/kernel-contract.md`,
+     and the file's bytes are identical before and after. The
+     normative text is not reworded in this tranche; tranche T3.2 is
+     the one that rewrites it, and that tranche is a separate
+     decision with its own review.
+
+  2. Every reference in the LIVE TREE follows the file: the path
+     `spec/algebra-3.2.md` becomes `spec/kernel-contract.md`, the
+     rendered sibling `spec/algebra-3.2.html` becomes
+     `spec/kernel-contract.html` (the rendered page's name is derived
+     from the source's name - `mathc render` reads `spec/*.md` off
+     the disk, lib/render/render.ml:310-325 - so a rename that moved
+     only the source would leave the axioms linking to a page that is
+     never written), and the bare key `spec/algebra-3.2` used by the
+     site navigation becomes `spec/kernel-contract`.
+
+  3. Every SECTION POINTER that names the contract is re-anchored on
+     the new name: `algebra §N` becomes `kernel contract §N` in
+     lib/, bin/ and tests/ (122 pointers), and the same shape is
+     re-anchored in the live corpus, the schemas, the site and the
+     documentation. One convention is used throughout: the document
+     is called the KERNEL CONTRACT, and its sections are cited as
+     `kernel contract §N`.
+
+  4. The four runtime diagnostics that quote the path in their
+     message text (`MC-COUNTEREXAMPLE-MISSING`, the `mode-considered`
+     antithesis message, the axiom-link message and the sha-match
+     message) name the NEW path, and the five cram fixtures that
+     assert those messages verbatim are updated to match. A fixture
+     that asserts the old text is a fixture that pins a lie.
+
+  5. The live decisions follow: the four whose `verifier:` greps the
+     document, the TEN whose `scope.paths:` names it, and the prose of
+     all TWENTY-SEVEN that mention it. (The first draft of this
+     paragraph said two and two; the measurement says ten and none -
+     no decision in the corpus names the file in a `relations:` block,
+     because a relation names a decision, not a file.) Each edited
+     decision is re-hashed
+     (`mathc rehash --write FILE`) and re-validated (`mathc validate
+     FILE`) after the edit, so a decision whose digest or whose parse
+     breaks is caught in the commit that broke it.
+
+  6. The ARCHIVE IS NOT TOUCHED. The twenty archived decisions that
+     name the old path keep it: a record says what was true when it
+     was written, and rewriting a record is a lie about the past. The
+     fixture below asserts that the archive still holds its mentions,
+     so a future "cleanup" that rewrites them fails.
+
+  6b. THE CHANGELOG IS NOT REWRITTEN EITHER, for the same reason
+     the archive is not rewritten. Its entries are dated records of
+     what each release shipped, and the v3.3.3 rename set the
+     precedent: the release notes keep the names the files had when
+     those releases were cut. The rename of this tranche is recorded
+     the way that precedent records a rename - a NEW entry in the
+     Unreleased section, naming both names, above the history rather
+     than inside it.
+
+  7. THE PLANS ARE NOT TOUCHED, and this is a deliberate exception
+     to the rule in (2). `docs/plans/redundancy-and-portability-2026-11.md`
+     is the plan that MEASURED this transition: it counted the
+     mentions and named the old path to do it. Rewriting the plan
+     would rewrite the measurement, and a measurement edited to match
+     its conclusion is not a measurement. The plan is the record of
+     the tranche, and the tranche does not eat its own evidence.
+
+  8. THE NORMATIVE TEXT MOVES IN ONE COMMIT, AND IT IS THIS
+     DECISION. The six path references in axioms/ and the one in
+     spec/semantics.md are re-pointed at the new name, together with
+     the section pointers in the same files, in a single commit that
+     carries this decision. A3 is honoured by making the change
+     visible and reviewable rather than by refusing it: a protected
+     transition that nobody can see is not protected, it is just
+     unlogged.
+
+  8b. WHAT THE INSTRUMENT EXCLUDES IS DECLARED IN THE INSTRUMENT.
+     Five places may still name the old path, and each of them says
+     why in the fixture's own header, because an exclusion that
+     nobody can account for is an exclusion that hides a hole:
+     the archive (history), the plans (the measurement that counted
+     the mentions), the CHANGELOG (the record of what each release
+     shipped), this decision (the record of the move), and the
+     instrument itself (a check that cannot name the thing it forbids
+     cannot forbid it).
+
+  9. THE INSTRUMENT IS EXECUTABLE AND IT HAS TEETH.
+     `tests/fixtures/kernel-contract-rename-2026-11.sh` asserts that
+     the file is named `spec/kernel-contract.md` and that the old
+     name is gone; that NO mention of the old path survives in the
+     live tree; that the exclusions it declares (the archive, the
+     plans, this decision, the fixture itself) actually exclude -
+     a pathspec typo would otherwise protect nothing and the check
+     would be green for the wrong reason; that the archive still
+     holds its mentions; and that a SYNTHETIC repository carrying
+     the old path is caught by the same scan while the synthetic
+     archive and the synthetic plan are spared by the same
+     exclusions. A bound that has never been observed to bind is not
+     known to bind.
+
+axiom_link:
+  - A0
+  - A3
+
+outcomes:
+  - id: the-contract-is-named-what-it-is
+    statement: |
+      `spec/kernel-contract.md` exists with the bytes the document
+      had before the rename, `spec/algebra-3.2.md` does not exist,
+      and no file in the live tree names the old path in either its
+      source form or its rendered form.
+
+  - id: the-machine-followed-references-followed
+    statement: |
+      The 22 cram fixtures, the four runtime diagnostics, the 26
+      schema descriptions in five schema files, the four decisions
+      whose `verifier:` greps the document and the ten whose
+      `scope.paths:` names it all name the new path, and the fixtures
+      that assert the diagnostics' text assert the new text.
+
+  - id: the-section-pointers-are-re-anchored
+    statement: |
+      The 122 section pointers of the form `algebra §N` in lib/, bin/
+      and tests/ read `kernel contract §N`, and the same convention
+      holds in the live corpus, the schemas, the site and the
+      documentation.
+
+  - id: the-history-is-still-history
+    statement: |
+      The archived decisions and the plan that measured the rename
+      still name the old path, because they say what was true when
+      they were written, and the instrument asserts that they do.
+
+scope:
+  paths:
+    - "spec/kernel-contract.md"
+    - "spec/semantics.md"
+    - "axioms/**"
+    - "lib/**"
+    - "bin/Mathc.ml"
+    - "schemas/**"
+    - "tests/cli/**"
+    - "tests/fixtures/kernel-contract-rename-2026-11.sh"
+    - "decisions/kernel-contract-rename-2026-11.yaml"
+    - "scripts/**"
+    - "site/**"
+    - "adoption/SKILL.md"
+    - ".opencode/skills/math-coding/SKILL.md"
+    - "README.md"
+    - "ROADMAP.md"
+    - "PACKAGES.md"
+    - "USAGE.md"
+    - "KERNEL_AGENTS.md"
+    - "CHANGELOG.md"
+    - "attestation-source-map.md"
+    - "policies.yaml"
+    - "docs/**"
+    - "assets/**"
+    - "tests/**"
+  exclusions:
+    - "archive/decisions/**"
+    - "docs/plans/**"
+    - "spec/constitution.md"
+    - "spec/domain.md"
+
+obligations:
+  - id: the-live-tree-names-the-new-path-only
+    statement: |
+      No tracked file outside the declared exclusions names
+      `spec/algebra-3.2.md` or `spec/algebra-3.2.html`.
+    claim: |
+      `tests/fixtures/kernel-contract-rename-2026-11.sh` greps the
+      live tree for both forms of the old path and fails if it finds
+      one. The exclusions are the archive (history), the plans (the
+      measurement), the CHANGELOG (the record of what each release
+      shipped), this decision and the fixture itself.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
+
+  - id: the-file-is-named-what-it-is
+    statement: |
+      `spec/kernel-contract.md` exists, is tracked, and
+      `spec/algebra-3.2.md` does not exist.
+    claim: |
+      The same fixture asserts the existence and the absence, and its
+      negative control proves that the scan it uses still catches a
+      file that carries the old path.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
+
+  - id: the-history-keeps-the-old-path
+    statement: |
+      The archived decisions and the plans still name the old path.
+    claim: |
+      The fixture asserts that the archive still carries mentions of
+      the old path, so a rewrite of the archive fails the check. A
+      record that stops naming the old path has been edited into
+      something it never was.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
+
+  - id: the-diagnostics-name-the-new-path
+    statement: |
+      The runtime diagnostics that quote the contract's path in their
+      message text quote the NEW path, and the cram fixtures that
+      assert those messages verbatim assert the new text.
+    claim: |
+      `tests/cli/validate-counterexample-required.t` asserts the
+      `MC-COUNTEREXAMPLE-MISSING` message and the
+      `mode-standard-no-counterexample-demo` message, both of which
+      carry the path; `tests/cli/validate-considered-antithesis.t`
+      asserts the `mode-considered-no-antithesis-demo` message.
+    acceptance:
+      all:
+        - verifier: tests/cli/validate-counterexample-required.t
+        - verifier: tests/cli/validate-considered-antithesis.t
+
+  - id: the-section-pointers-name-the-contract
+    statement: |
+      No file in the live tree carries a section pointer of the form
+      `algebra §N`; the convention is `kernel contract §N`. The
+      contract's own text is the single exception: this tranche
+      renames the file and does not reword it, and the tranche that
+      rewrites the text is a different decision.
+    claim: |
+      `tests/fixtures/kernel-contract-rename-2026-11.sh` greps the live
+      tree for the old pointer shape and fails if it finds one, with
+      the exclusions it declares for the path plus the contract
+      itself. Its negative control carries a synthetic live pointer
+      AND a synthetic contract, so that both the scan and the
+      exclusion are exercised rather than assumed.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/kernel-contract-rename-2026-11.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "a reference to the old path survives in a file nobody read before the rename"
+    - "the rendered spec page is written under the old name and the axioms link to a page that is not there"
+    - "a decision's `scope.paths` still names the old path and the decision's digest becomes a digest of nothing"
+    - "the normative text stops being revised, and the version in a name stops being a lie"
+    - "a second document is added under spec/ and the question 'which one is the contract' has two answers"
+
+assumptions:
+  - id: the-section-anchors-survive-the-rename
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The contract's headings keep their `§N` anchors across the
+      rename: the file's bytes do not change, so `## §7. Decision
+      entity` is still `## §7. Decision entity` after the move, and
+      a pointer to `§7` still resolves to the same section.
+    consequence_if_false: |
+      If a later revision of the contract renumbers its sections, then
+      every section pointer in the tree - 122 of them in lib/, bin/
+      and tests/ alone - becomes a pointer to the wrong section, and
+      the rename will have carried the mistake forward. The
+      instrument in this tranche checks the NAME of the pointer, not
+      the section it names; a renumbering needs its own instrument.
+    review_on:
+      - signal: contract-section-renumbering
+
+  - id: the-archive-is-history-and-not-a-live-reference
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The twenty archived decisions that name the old path are
+      records, not dependencies: nothing in the tree READS them to
+      decide anything. They stay as they are.
+    consequence_if_false: |
+      If some live part of the kernel reads an archived decision and
+      follows a path out of it, then that reader is broken by the
+      rename and the fix is to re-point it - not to rewrite the
+      archive. The census's DANGLING count would rise, which is the
+      signal that this assumption has failed.
+    review_on:
+      - signal: census-dangling-count-rises
+
+reversal:
+  - signal: the-rename-is-reverted-upstream
+    condition: |
+      The contract is renamed back to a versioned name. The commits
+      are ordered by class (the file, then the machine-followed
+      references, then the prose and the pointers, then the
+      normative text), so the revert is one `git revert` per commit
+      and the classes come back independently.
+    action: revert
+
+  - signal: the-version-in-the-name-starts-paying-again
+    condition: |
+      The contract is revised and a new versioned name is proposed.
+      Resolution: the name stays `spec/kernel-contract.md`, and the
+      revision is recorded in the decision that owns the text and in
+      the CHANGELOG - the two places that already carry it.
+    action: review
+
+relations:
+  supersedes: []
+  superseded_by: []

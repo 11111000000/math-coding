@@ -40,14 +40,14 @@ let[@warning "-32"] parse_assumption_state s =
   (* 3.0 legacy values *)
   | "assumed" -> Some `Assumed
   | "unknown" -> Some `Unknown
-  (* 3.2 epistemic markers (algebra §7, axiom A5 v0.854) *)
+  (* 3.2 epistemic markers (kernel contract §7, axiom A5 v0.854) *)
   | "fact" -> Some `Fact
   | "hypothesis" -> Some `Hypothesis
   | "judgment" -> Some `Judgment
   | "proven" -> Some `Proven
   | _ -> None
 
-(* Decision lifecycle state (algebra §7). *)
+(* Decision lifecycle state (kernel contract §7). *)
 let[@warning "-32"] parse_decision_state s =
   match s with
   | "draft" -> Some `Draft
@@ -56,7 +56,7 @@ let[@warning "-32"] parse_decision_state s =
   | "superseded" -> Some `Superseded
   | _ -> None
 
-(* Assurance mode (algebra §3, §7). *)
+(* Assurance mode (kernel contract §3, §7). *)
 let[@warning "-32"] parse_mode s =
   match s with
   | "tiny" -> Some `Tiny
@@ -66,7 +66,7 @@ let[@warning "-32"] parse_mode s =
   | "exhaustive" -> Some `Exhaustive
   | _ -> None
 
-(* Environment class label (algebra §13). *)
+(* Environment class label (kernel contract §13). *)
 let[@warning "-32"] parse_environment_class_label s =
   match s with
   | "dev" -> Some `Dev
@@ -1211,7 +1211,7 @@ let[@warning "-32"] load_yaml_string raw =
    directly (Object OR Array OR scalar). load_yaml_string is
    hard-coded to call parse_yaml_pairs and always returns Object,
    which silently drops top-level YAML sequences such as the
-   policies.yaml file used by lib/policy.ml (spec/algebra-3.2.md
+   policies.yaml file used by lib/policy.ml (spec/kernel-contract.md
    §9 multi-policy). This wrapper calls parse_yaml_value instead,
    which dispatches to parse_yaml_pairs or parse_yaml_seq based
    on whether the leading token is a dash-item.

@@ -84,7 +84,7 @@ Each of these four questions has a corresponding step in the
 verdict-flow pipeline. The flow shown below is the same code path
 that runs every time you invoke `mathc gate` or `mathc self-check`:
 
-![Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps: parse decisions with identity I4; infer obligations per spec/algebra-3.2 §8; classify mode via the risk function per §2; compose direct and transitive obligations per §9; collect attestations across running CIs per §14; gate_merge per §15 plus A2 invariants. Output row lists the four verdict colours and exit codes from spec/semantics.md §4.3.](assets/verdict-flow.svg)
+![Verdict flow: from decision.yaml and attestations to gate_merge and exit code. Six steps: parse decisions with identity I4; infer obligations per spec/kernel-contract §8; classify mode via the risk function per §2; compose direct and transitive obligations per §9; collect attestations across running CIs per §14; gate_merge per §15 plus A2 invariants. Output row lists the four verdict colours and exit codes from spec/semantics.md §4.3.](assets/verdict-flow.svg)
 
 The pipeline reads from two inputs — the decision store and the
 attestation store — and produces one output — a verdict per
@@ -123,7 +123,7 @@ between the four rungs and the four risk bands:
 ![Risk bands: five coloured bands from tiny to exhaustive, mapped to example changes, gate posture, and who signs. Bands: tiny (pale gray), light (pale cream), standard (pale oxblood), strict (deeper oxblood), exhaustive (solid oxblood).](assets/risk-bands.svg)
 
 The risk function that classifies a change is the same function
-that maps it to a friction level (see `spec/algebra-3.2.md` §2 and
+that maps it to a friction level (see `spec/kernel-contract.md` §2 and
 §21). A change that is risky enough to be classified `exhaustive`
 will always be `block`; a change classified `tiny` will always be
 `silent`. The two diagrams are two views of the same property.

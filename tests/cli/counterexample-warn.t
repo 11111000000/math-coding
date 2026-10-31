@@ -54,7 +54,7 @@ Scenario 1 — `counterexample:` present, plain accept.
 Scenario 2 — `counterexample:` absent (genuine absence);
 Warn fires at `mode: light`. The verdict stays `parse-ok`
 because counterexample is a dialectical slot, not a hard
-requirement, at light mode (per spec/algebra-3.2.md §11).
+requirement, at light mode (per spec/kernel-contract.md §11).
 
   $ cat > no-ce.yaml <<'EOF'
   > ---
@@ -85,7 +85,7 @@ requirement, at light mode (per spec/algebra-3.2.md §11).
   >   owner: human:maintainer
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/kernel-contract.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Scenario 3 — `counterexample:` present AFTER inline-sequence
@@ -169,7 +169,7 @@ even in the inline-sequence context.
   >   owner: human:maintainer
   > EOF
   $ $INSIDE_DUNE/bin/mathc.exe validate --format=json post-parser-fix-no-ce.yaml | jq -c '[.verdict, (.diagnostics // [] | map(.code))]'
-  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/algebra-3.2.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
+  [warn] deficit/MC-COUNTEREXAMPLE-MISSING: missing counterexample: spec/kernel-contract.md §11 names it as a dialectical slot for modes >= light; add a counterexample section naming the strongest objection (legacy soft warning; the Block path was already rejected before parse)
   ["parse-ok",["MC-COUNTEREXAMPLE-MISSING"]]
 
 Cleanup.

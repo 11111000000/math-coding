@@ -159,7 +159,7 @@ let[@warning "-32"] resolve_policy_path ?root () : string =
 *                   a decision document. Resolved by
 *                   `resolve_policy_path`.
 *   policies file   the multi-policy record that carries the
-*                   per-path `mode_floor` (algebra §9): a YAML
+*                   per-path `mode_floor` (kernel contract §9): a YAML
 *                   SEQUENCE of policy records. Resolved here.
 *
 * The collision was not cosmetic. `resolve_policy_path` returns
@@ -182,7 +182,7 @@ let[@warning "-32"] resolve_policy_path ?root () : string =
 *      by path), so it keeps working.
 *   3. `policies.yaml` at the project root, if it is there.
 *   4. `policies.yaml` anyway: the loader treats an absent file as
-*      "no policy declared", which is algebra §9's default.
+*      "no policy declared", which is kernel contract §9's default.
 *
 * Decision `record-proportionality-2026-10`. *)
 let default_policies_path = "policies.yaml"

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 280" role="img" aria-labelledby="rb-title" preserveAspectRatio="xMidYMid meet">
-  <title id="rb-title">Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (AGENTS.md §"Honest time reporting"; algebra §18).</title>
+  <title id="rb-title">Three independent time-reporting scales: wall-clock-minutes, token-budget, step-count. The three are independently observable and may not be combined into a single natural-language estimate (AGENTS.md §"Honest time reporting"; kernel contract §18).</title>
   <desc>Three columns side by side, one per observable scale: wall-clock (real seconds from harness), token-budget (prompt + completion tokens from API), step-count (tool calls / reasoning rounds from harness). Each column lists scale, observed-by, an example observation, and a forbidden combination sentence.</desc>
   <defs>
     <style>

@@ -26,7 +26,7 @@ and a receipt — and Known defects before you trust a scaffold.
 
 Default: apply. `mathc init` prints the envelope it assumed: Path A,
 installed by default, a single maintainer included. Per
-`spec/algebra-3.2.md` §28 the burden of proof sits on the exclusion,
+`spec/kernel-contract.md` §28 the burden of proof sits on the exclusion,
 not on the adoption: to skip, the project must be throwaway (a
 prototype, MVP, spike, one-day hackathon), and the rationale goes in
 the README, per §23.
@@ -46,7 +46,7 @@ Raise the floor with `mode_floor: <mode>` in the project's
 
 ### Where the rule lives
 
-The applicability rule has one home: `spec/algebra-3.2.md` §28. This
+The applicability rule has one home: `spec/kernel-contract.md` §28. This
 skill states the operational instruction and points there; it does not
 carry a second copy of the rule. If the two ever disagree, §28 wins
 and the disagreement is a bug in the corpus, not a choice you get to

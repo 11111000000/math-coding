@@ -159,7 +159,7 @@ let[@warning "-32"] find_project_root () =
       the state this repository was in until 2026-10-30, because the
       resolver pointed at a decision document instead of at this file.
 
-   2. NO declared floor exceeds `standard`, because algebra §10 makes
+   2. NO declared floor exceeds `standard`, because kernel contract §10 makes
       `strict` and `exhaustive` require a rebuttal artifact
       (`rebuttals/<sha>.yaml`) and this repository keeps no such
       directory. A floor nothing can satisfy is a floor that blocks
@@ -227,7 +227,7 @@ let[@warning "-32"] policies_yaml_declares_meetable_floors () =
           if not keeps_rebuttals then
             Alcotest.failf
               "policy %s declares the %s floor but the repository keeps no \
-               rebuttals/ directory: algebra §10 makes that floor \
+               rebuttals/ directory: kernel contract §10 makes that floor \
                unsatisfiable"
               p.Policy.policy_id
               (match p.Policy.mode_floor with

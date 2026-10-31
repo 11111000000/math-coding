@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: dialectic-method-v3
 revision: 3
 state: active
-body_sha: "sha256:e616cc9bf5dc64bf9ba081f1cf60758686caf77cb670c85fa2ecdd1577b17a32"
-yaml_sha: "sha256:e616cc9bf5dc64bf9ba081f1cf60758686caf77cb670c85fa2ecdd1577b17a32"
+body_sha: "sha256:d508208c6a337c78f94ecb32e4e52d67a7d673b6b14049b489cf4555cddcc2ec"
+yaml_sha: "sha256:d508208c6a337c78f94ecb32e4e52d67a7d673b6b14049b489cf4555cddcc2ec"
 axiom_link:
   - A0
   - A1
@@ -17,7 +17,7 @@ intent: |
   commitment (synthesis, implicit). The existing counterexample slot
   continues as a parallel machine-checkable forcing function. Antithesis
   is required for mode=considered; counterexample remains required for
-  mode != tiny (per §11 / spec/algebra-3.2.md).
+  mode != tiny (per §11 / spec/kernel-contract.md).
 
 antithesis: |
   The v3 dialectic method (antithesis-required) is bureaucratic
@@ -32,7 +32,7 @@ commitment: |
     (a) `schemas/decision.json` declares `antithesis` as a string
         field with minLength 80.
 
-    (b) `spec/algebra-3.2.md` §11 names antithesis as the v3 dialectic
+    (b) `spec/kernel-contract.md` §11 names antithesis as the v3 dialectic
         slot; §11.1 records the rationale (intent=thesis, antithesis,
         commitment=synthesis; counterexample parallel forcing).
 
@@ -55,7 +55,7 @@ scope:
     - dialectic-method-v3
   paths:
     - "schemas/decision.json"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "lib/domain.ml"
     - "lib/decision.ml"
     - "decisions/decision.yaml"
@@ -70,7 +70,7 @@ outcomes:
   - id: antithesis-field-declared
     statement: schemas/decision.json declares antithesis as string, minLength 80.
   - id: spec-11-names-antithesis
-    statement: spec/algebra-3.2.md §11 (and §11.1) name antithesis and the v3
+    statement: spec/kernel-contract.md §11 (and §11.1) name antithesis and the v3
       dialectic method.
   - id: kernel-parses-antithesis
     statement: lib/domain.ml carries antithesis; lib/decision.ml parses it.
@@ -139,10 +139,10 @@ obligations:
         - verifier: shell-grep schemas/decision.json antithesis
   - id: spec-11-updated
     outcome: spec-11-names-antithesis
-    claim: spec/algebra-3.2.md §11 mentions antithesis; §11.1 records rationale.
+    claim: spec/kernel-contract.md §11 mentions antithesis; §11.1 records rationale.
     acceptance:
       all:
-        - verifier: shell-grep spec/algebra-3.2.md antithesis
+        - verifier: shell-grep spec/kernel-contract.md antithesis
   - id: kernel-parses
     outcome: kernel-parses-antithesis
     claim: lib/decision.ml accepts the antithesis key from YAML/JSON.

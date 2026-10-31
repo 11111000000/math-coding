@@ -1,7 +1,7 @@
 (* tests/body_canonical_test.ml
  *
  * Asserts the byte-range and canonicalisation algorithm named in
- * `spec/algebra-3.2.md §7.1` and adopted by decision
+ * `spec/kernel-contract.md §7.1` and adopted by decision
  * `d5-body-vs-wrapper-canonical-2026-10`. The algorithm is
  * implemented in OCaml as `Decision.body_canonical_sha256`
  * (`lib/decision.ml`).

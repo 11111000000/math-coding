@@ -42,7 +42,7 @@ let[@warning "-32"] render_decision_page ~decision_id ~obligation_html =
     decision_id obligation_html
 
 let[@warning "-32"] render_spec_page ~name ~body_md =
-  (* `spec/<name>.md` pages — normative algebra-3.2 spec, the
+  (* `spec/<name>.md` pages — normative kernel-contract spec, the
      constitution, the domain, the semantics. Each page is rendered
      with `enable_mathjax:true` so MathJax 3 (in defer mode) is
      injected into `<head>` and the page's `$..$` / `$$..$$`

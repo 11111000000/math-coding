@@ -44,7 +44,7 @@ observation.
 ## Formalization
 
 The honest-uncertainty result type and the gate-phase schedule live
-in [`spec/algebra-3.2.html`](spec/algebra-3.2.html) §0
+in [`spec/kernel-contract.html`](spec/kernel-contract.html) §0
 ("Honest uncertainty principle (A1-derived)") and §15
 ("Gate verdict (phase-aware)").
 
@@ -71,7 +71,7 @@ phase(post_release) : informational only, no block
 ```
 
 The invariant \( \text{exit} \neq 0 \land \text{remedies} \neq \varnothing \)
-(algebra §15, marked I14 in §19) restates the prose: every blocked
+(kernel contract §15, marked I14 in §19) restates the prose: every blocked
 merge must name at least one authorized remedy.
 
 ## Counter-example that would violate this axiom

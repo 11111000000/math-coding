@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: mathjax-delimiter-hardening-2026-10
 revision: 1
 state: active
-body_sha: "sha256:3c346beb30c153823e5120e21571aa3250b2505b401885ceccd4cb908ddb2509"
-yaml_sha: "sha256:3c346beb30c153823e5120e21571aa3250b2505b401885ceccd4cb908ddb2509"
+body_sha: "sha256:6955bb3e77032f2f5b98608b81e616e96bd5b322bafabfc7b58e52f66c47a889"
+yaml_sha: "sha256:6955bb3e77032f2f5b98608b81e616e96bd5b322bafabfc7b58e52f66c47a889"
 intent: |
   Harden the MathJax 3 wiring in `lib/render.ml` so that
   the dollar sign is no longer an active math delimiter.
@@ -96,7 +96,7 @@ commitment: |
       navigation.
     - The `decisions/plan-2026-10-improvements/t5-2-spec-mathjax`
       obligation (algebra 3.2 spec on the site) is NOT closed
-      by this cycle. That cycle publishes `dist/algebra-3.2.html`;
+      by this cycle. That cycle publishes `dist/spec/kernel-contract.html`;
       this cycle only makes the MathJax wiring safe enough that
       the algebra-3-page cycle can ship without further kernel
       churn.
@@ -156,7 +156,7 @@ counterexample: |
   cycle narrowed the default to OFF but kept the configuration
   intact for the opt-in path. This cycle further narrows the
   opt-in path to `\(..\)` / `\[..\]` only — the same set the
-  project's planned algebra-3.2 spec uses. Any future page
+  project's planned kernel contract uses. Any future page
   author that needs `$..$` can wrap their formulas in `\(..\)`;
   the markdown surface does not change. The `mathjax-wiring`
   obligation is amended, not retired: the obligation text is

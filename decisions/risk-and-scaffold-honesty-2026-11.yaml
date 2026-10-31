@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/risk-dead-branches-gone.sh
-body_sha: "sha256:9f43bafa3550076e4ef83afdb430de2c9caa584786c54f5a9fa96765546027a9"
-yaml_sha: "sha256:9f43bafa3550076e4ef83afdb430de2c9caa584786c54f5a9fa96765546027a9"
+body_sha: "sha256:24ea558201cccaaf0190201c91694123927ab3f067db9113c42770028e428191"
+yaml_sha: "sha256:24ea558201cccaaf0190201c91694123927ab3f067db9113c42770028e428191"
 
 intent: |
   Three places where the kernel said something it could not back up.
@@ -72,7 +72,7 @@ intent: |
 
   Source: plan docs/plans/redundancy-and-portability-2026-11.md,
   tranches T1.1 and T1.3a. Artifacts: lib/risk.ml, lib/policy.ml,
-  lib/new_decision/new_decision.ml, spec/algebra-3.2.md,
+  lib/new_decision/new_decision.ml, spec/kernel-contract.md,
   tests/cli/new-decision-scaffold.t,
   tests/cli/policy-unknown-mode-floor.t,
   tests/fixtures/risk-dead-branches-gone.sh.
@@ -126,7 +126,7 @@ counterexample: |
   kernel guesses.
 
   What this decision does NOT do is touch the impact taxonomy:
-  `spec/algebra-3.2.md` section 2 still lists `migrations/**` next to
+  `spec/kernel-contract.md` section 2 still lists `migrations/**` next to
   `lib/security/**` and `lib/utils/**`, three categories this
   repository does not have either. Those are categories of the trees
   the kernel is meant to serve, and the check
@@ -202,7 +202,7 @@ scope:
     - "lib/risk.ml"
     - "lib/policy.ml"
     - "lib/new_decision/new_decision.ml"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "tests/cli/new-decision-scaffold.t"
     - "tests/cli/policy-unknown-mode-floor.t"
     - "tests/fixtures/risk-dead-branches-gone.sh"
@@ -258,7 +258,7 @@ obligations:
   - id: the-spec-and-the-code-agree
     claim: |
       The marker table and the mode vocabulary in
-      `spec/algebra-3.2.md` section 2 are the ones the code
+      `spec/kernel-contract.md` section 2 are the ones the code
       implements; the check that compares them is
       `tests/cli/risk-bucketing.t`.
     acceptance:

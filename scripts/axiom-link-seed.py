@@ -3,7 +3,7 @@
 `axiom_link:` block to every legacy active decision that lacks
 one. This is the T2.2 migration tool: the kernel will reject
 active decisions with empty `axiom_link` per
-spec/algebra-3.2.md §7 (T2.2 closes the contract).
+spec/kernel-contract.md §7 (T2.2 closes the contract).
 
 Idempotency
 -----------

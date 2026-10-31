@@ -11,7 +11,7 @@ intent: |
 
 commitment: |
   (1) README, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
-  spec/algebra-3.2.md each carry a banner that disambiguates
+  spec/kernel-contract.md each carry a banner that disambiguates
   kernel-maintainer content from adoption content; (2) the
   master-policy template emitted by `mathc init` defaults to
   language-agnostic scope paths (`src/**`, `tests/**`, `docs/**`,
@@ -41,7 +41,7 @@ outcomes:
   - id: adoption-disambiguation-banner
     statement: |
       README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
-      spec/algebra-3.2.md each carry a banner that points adapters
+      spec/kernel-contract.md each carry a banner that points adapters
       in other languages to adoption/SKILL.md before they read any
       OCaml-specific content.
   - id: init-scope-language-agnostic
@@ -56,7 +56,7 @@ scope:
   paths:
     - "lib/init/**"
     - "lib/init/init.ml"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "README.md"
     - "KERNEL_AGENTS.md"
     - "OCAML_KERNEL_CONVENTIONS.md"
@@ -79,7 +79,7 @@ obligations:
   - id: kernel-side-docs-have-disambiguation-banner
     claim: |
       README.md, KERNEL_AGENTS.md, OCAML_KERNEL_CONVENTIONS.md, and
-      spec/algebra-3.2.md each contain, within the first 30 lines,
+      spec/kernel-contract.md each contain, within the first 30 lines,
       a banner that disambiguates kernel-maintainer content from
       adoption content.
     acceptance:

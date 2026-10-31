@@ -1,6 +1,6 @@
 mathc validate enforces the new v3-dialectic `antithesis`
 slot requirement only for `mode: considered`. Per
-spec/algebra-3.2.md §11 and
+spec/kernel-contract.md §11 and
 `decisions/antithesis-mode-considered-2026-10.yaml`,
 antithesis is required for `mode = considered`; modes
 `standard | strict | exhaustive` (and the absence of mode,
@@ -112,7 +112,7 @@ prior failures at HEAD pre-fix.)
   > commitment: |
   >   The dialectic method is opt-in via `mode: considered`.
   > counterexample: |
-  >   Counterexample stays required at mode >= standard per algebra §11.
+  >   Counterexample stays required at mode >= standard per kernel contract §11.
   > scope:
   >   paths: ["lib/**"]
   > outcomes:
@@ -176,7 +176,7 @@ id and the spec reference:
   reject: mode-considered-no-antithesis.yaml
     code: MC-ANTITHESIS-MISSING
     severity: block
-    message: mode-considered-no-antithesis-demo: decision has mode=considered but empty antithesis: spec/algebra-3.2.md §11 (v3 dialectic method) requires the antithesis dialectical slot for mode = considered; add an antithesis section naming the coherent counter-position the author considered and rejected (distinct from counterexample, which is the strongest objection surfaced to future readers)
+    message: mode-considered-no-antithesis-demo: decision has mode=considered but empty antithesis: spec/kernel-contract.md §11 (v3 dialectic method) requires the antithesis dialectical slot for mode = considered; add an antithesis section naming the coherent counter-position the author considered and rejected (distinct from counterexample, which is the strongest objection surfaced to future readers)
   [1]
 
 Cleanup:

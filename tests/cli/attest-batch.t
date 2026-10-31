@@ -182,7 +182,7 @@ finds 5 current pass attestations -> no gaps -> aggregate Pass
 Hand-write a parseable v3.2 decision with 5 obligations. The two
 SHA fields are stamped with the 64-zero placeholder, which is
 length-preserving but no longer sufficient: the kernel recomputes
-the digest of the file's own bytes (spec/algebra-3.2.md §7.1),
+the digest of the file's own bytes (spec/kernel-contract.md §7.1),
 and `mathc self-check` forces the verdict to Block when the stored
 value is stale (`MC-SHA-DIGEST-STALE`). So the fixture is rehashed
 before either snapshot below. Without that, `before` and `after`

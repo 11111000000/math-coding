@@ -40,7 +40,7 @@ fi
 
 # The MARKER function is where the dead branches were. The impact
 # taxonomy (`classify`) is a different thing and keeps its categories:
-# spec/algebra-3.2.md section 2 lists migrations/** next to
+# spec/kernel-contract.md section 2 lists migrations/** next to
 # lib/security/** and lib/utils/**, three of which this repository
 # does not have either - a taxonomy names the categories of the trees
 # the kernel is meant to serve, not only the files under this one.

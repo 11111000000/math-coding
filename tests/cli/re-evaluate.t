@@ -1,5 +1,5 @@
 mathc re-evaluate classifies a (DECISION_ID, AXIOM_ID) pair per
-algebra 3.2 §17 (T1.2 expansion: 4+1-valued status). Exercises
+kernel contract §17 (T1.2 expansion: 4+1-valued status). Exercises
 the rejection paths and the new no-run Incompatible verdict.
 
 For a decision whose verifier is `tests/cli/<name>.t`, calling
@@ -96,7 +96,7 @@ against whichever corpus decision happens to hold one today.
 
 T1.2 manual-style verifier still maps to `inconclusive`: the
 `notation-note-present` obligation has a non-built-in verifier
-(`rg -n '...' spec/algebra-3.2.md`); without a run the verdict
+(`rg -n '...' spec/kernel-contract.md`); without a run the verdict
 is `inconclusive` (does not block; surfaces follow-up review).
 
   $ $INSIDE_DUNE/bin/mathc.exe re-evaluate algebra-3.2-notation-flag-2026-10 A0 | jq -r '.obligations[] | select(.id == "notation-note-present") | .verdict'

@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/redundancy-census.sh
-body_sha: "sha256:11c715897b72d3463c57d4be21ae7e7cc6192add8d06a1740f2d6590827dcdc0"
-yaml_sha: "sha256:11c715897b72d3463c57d4be21ae7e7cc6192add8d06a1740f2d6590827dcdc0"
+body_sha: "sha256:3144cb7da39b2f0d25cbec24bc87abbb14c8d414aebc36b61258e5698def54fc"
+yaml_sha: "sha256:3144cb7da39b2f0d25cbec24bc87abbb14c8d414aebc36b61258e5698def54fc"
 
 intent: |
   The corpus of this repository is supposed to be a set of RULES:
@@ -55,7 +55,7 @@ intent: |
     applies. The other eight are waiver files and a migration
     manifest, which are not decisions and are not counted.
 
-    The normative text (spec/algebra-3.2.md, 1 002 lines) has not
+    The normative text (spec/kernel-contract.md, 1 002 lines) has not
     changed since 2026-10-24 while the code moved 221 commits, and it
     still says "72 active decisions" where there are 137.
 

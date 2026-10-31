@@ -31,7 +31,7 @@
     </marker>
   </defs>
 
-  <text class="rb-title" x="460" y="22">risk = impact &#215; probability &#215; irreversibility (algebra-3.2 &#167;2)</text>
+  <text class="rb-title" x="460" y="22">risk = impact &#215; probability &#215; irreversibility (kernel contract &#167;2)</text>
   <text class="rb-sub" x="460" y="38">risk_to_mode maps [0, 1] &#8594; {tiny, light, standard, strict, exhaustive}</text>
 
   <line class="rb-tick" x1="80" y1="60" x2="840" y2="60" marker-end="url(#rb-arrow)"/>

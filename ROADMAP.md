@@ -14,7 +14,7 @@
 > `cli.subcommand_count`).
 >
 > **Algebra 3.2-ideal**: accepted via `decisions/algebra-3.2.yaml`;
-> normative spec at `spec/algebra-3.2.md` (31 sections, §0–§30).
+> normative spec at `spec/kernel-contract.md` (31 sections, §0–§30).
 > Implementation history: the closed-tier history below.
 >
 > **Author:** Petr Kosov &lt;p.b.kosov@yandex.ru&gt;
@@ -83,7 +83,7 @@ batch (`decisions/ux-3-minimal-pollution-2026-10.yaml`,
 `archive/decisions/ux-3-attest-batch-subcommand-2026-10.yaml`). What
 they bought, in one line each: a kernel that checks its own repository,
 a gate that computes the verdict from evidence, a conformance runner,
-the 3.2-ideal algebra (`spec/algebra-3.2.md`), and a resolver that
+the 3.2-ideal algebra (`spec/kernel-contract.md`), and a resolver that
 keeps the brownfield artifact tree to one directory.
 
 ### Tier 1.5 — install-tooling follow-up (Phase 2/3)
@@ -110,7 +110,7 @@ sequenced after the install-tooling-2026-10 surface lands.
 - OCaml types to replace `lib/domain.ml` strings (`id` phantom types)
 - Decision validation against schema (currently parser-only)
 - Multi-policy hierarchy (activation boundary per `spec/semantics.md` §"Protected Policy Transition")
-- **D5: body-vs-wrapper canonicalization in `spec/algebra-3.2.md` §7** (2026-10-05 audit). **RESOLVED** by `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml` (rev 1, 2026-10-13). The new `spec/algebra-3.2.md` §7.1 sub-section names the placeholder-substitution algorithm in OCaml (`lib/decision.ml::body_canonical_sha256`); the kernel's `tests/body_canonical_test.ml` pins four properties (stability, sensitivity, insensitivity-to-placeholder, CRLF-equals-LF); the kernel's `lib/decision.ml:1-20` comment block references the decision id and §7.1. The dual-authored case (algebra §6 sibling YAML) is formally DEFERRED to a follow-up decision `d5-dual-authored-canonical-2026-XX` with `reversal.signal: first-dual-authored-decision-drafted`. A3-protected transition (human review recorded in the decision's `kind_: review` attestation). 5/5 obligations closed; `mathc self-check` verdict on the new subject is `pass`.
+- **D5: body-vs-wrapper canonicalization in `spec/kernel-contract.md` §7** (2026-10-05 audit). **RESOLVED** by `decisions/d5-body-vs-wrapper-canonical-2026-10.yaml` (rev 1, 2026-10-13). The new `spec/kernel-contract.md` §7.1 sub-section names the placeholder-substitution algorithm in OCaml (`lib/decision.ml::body_canonical_sha256`); the kernel's `tests/body_canonical_test.ml` pins four properties (stability, sensitivity, insensitivity-to-placeholder, CRLF-equals-LF); the kernel's `lib/decision.ml:1-20` comment block references the decision id and §7.1. The dual-authored case (kernel contract §6 sibling YAML) is formally DEFERRED to a follow-up decision `d5-dual-authored-canonical-2026-XX` with `reversal.signal: first-dual-authored-decision-drafted`. A3-protected transition (human review recorded in the decision's `kind_: review` attestation). 5/5 obligations closed; `mathc self-check` verdict on the new subject is `pass`.
 - **`mathc migrate` declarative migration mechanism** (LANDED in v3.2.0-alpha, commit `81afd39` via `decisions/migration-mechanism-2026-10.yaml`). Pure `lib/migrate.ml` parses a `decisions/migrations/<from>-to-<to>.yaml` manifest with a four-kind vocabulary (`rename-field`, `add-field`, `bump-schema-string`, `manual-review`) and emits a per-file plan; the kernel never mutates YAML. First manifest `decisions/migrations/3.2-to-3.2.1.yaml` ships empty (proof-of-mechanism). Outstanding follow-ups still tracked here, NOT in `decisions/migration-mechanism-2026-10.yaml`, because each is itself a separate workstream:
   - **`--write` mode** that emits a sibling `<file>.migrated.yaml` (preserves the agent-review gate but provides a one-step assist); variant B from the original A/B/C analysis.
   - **Bump schema-string in all live decisions** from `math-coding/3.0-alpha` to `math-coding/3.2` — A3-protected transition (`schemas/decision.json` enum tightens; each live decision's `body_sha` + `yaml_sha` recompute; one new migration manifest becomes non-trivial). **LANDED in v3.2.0-alpha** via `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml`; 72 decisions bumped; 6 decisions back-filled with `body_sha`/`yaml_sha` (pre-v3.0.0.19 were missing those fields); no remaining follow-ups on the 3.0-alpha → 3.2 schema-string.
@@ -157,7 +157,7 @@ bounded, not open-ended; future agents see when to re-engage.
   lag the live state until regenerated. The current fix path
   is `dune promote` after a clean `dune build` on a host
   with a working toolchain.
-- **Portable binary build** (the 3.2-ideal algebra §30 closure): **RESOLVED** at
+- **Portable binary build** (the 3.2-ideal kernel contract §30 closure): **RESOLVED** at
   rev 4 of `decisions/portable-linux-musl.yaml`
   (state: active, 2026-10-07). CI run #129
   (https://github.com/11111000000/math-coding/actions/runs/
@@ -187,7 +187,7 @@ bounded, not open-ended; future agents see when to re-engage.
 - Phantom types for IDs
 - Per-path policies for non-default services
 
-**Reference**: `spec/algebra-3.2.md` is the normative spec.
+**Reference**: `spec/kernel-contract.md` is the normative spec.
 
 ## Process principles (binding on all agents)
 

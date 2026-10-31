@@ -3,10 +3,10 @@ schema: math-coding/3.2
 id: algebra-3.2
 revision: 2
 state: active
-body_sha: "sha256:98476da9758595127a3d6b0167bc09976eb3c26cbb4430fadfb1fb12479da802"
-yaml_sha: "sha256:98476da9758595127a3d6b0167bc09976eb3c26cbb4430fadfb1fb12479da802"
+body_sha: "sha256:d3a2b5430c72cb4f65fa1ca73d3c52307631c9ddc3107fb03ef27f3b7bd095bc"
+yaml_sha: "sha256:d3a2b5430c72cb4f65fa1ca73d3c52307631c9ddc3107fb03ef27f3b7bd095bc"
 intent: |
-  Adopt `spec/algebra-3.2.md` as the authoritative formal specification
+  Adopt `spec/kernel-contract.md` as the authoritative formal specification
   of the math-coding 3.2-ideal kernel, supplementing (not replacing)
   the 14 constitution invariants from `spec/constitution.md`.
 
@@ -25,7 +25,7 @@ commitment: |
   mathematical specification of what the kernel MUST enforce.
 
   Concretely:
-  - `spec/algebra-3.2.md` is a normative spec alongside constitution.md
+  - `spec/kernel-contract.md` is a normative spec alongside constitution.md
   - The kernel implementation (lib/*.ml) must conform to the algebra
   - New kernel rules MUST be added via decision files following §20
   - Applicability envelope (§28) guides adoption decisions per project
@@ -52,7 +52,7 @@ scope:
     - axiom-transition-types
     - re-evaluation-oracle
   paths:
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "lib/canonical.ml"
     - "lib/decision.ml"
     - "lib/gate.ml"
@@ -91,7 +91,7 @@ scope:
 outcomes:
   - id: formal-spec-adopted
     statement: |
-      `spec/algebra-3.2.md` is the authoritative normative spec for
+      `spec/kernel-contract.md` is the authoritative normative spec for
       the 3.2-ideal kernel, supplementing constitution.md.
 
   - id: applicability-envelope-active
@@ -212,7 +212,7 @@ obligations:
   - id: spec-file-exists
     outcome: formal-spec-adopted
     claim: |
-      `spec/algebra-3.2.md` exists at this commit and contains all
+      `spec/kernel-contract.md` exists at this commit and contains all
       30 sections of the algebra as specified in this decision.
     acceptance:
       all:
@@ -221,7 +221,7 @@ obligations:
   - id: cross-references-correct
     outcome: formal-spec-adopted
     claim: |
-      spec/algebra-3.2.md cross-references axioms/, constitution.md,
+      spec/kernel-contract.md cross-references axioms/, constitution.md,
       and decisions/decision.yaml. Each cross-reference resolves.
     acceptance:
       all:

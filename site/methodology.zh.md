@@ -77,7 +77,7 @@ Mathcoding 是在每一次合并之前，将每一个有意义的变更与
 所示的流程与每次调用 `mathc gate` 或 `mathc self-check`
 时运行的代码路径相同：
 
-![判定流程：从 decision.yaml 与证据到 gate_merge 与导出到代码。决策经身份 I4 解析；按 spec/algebra-3.2 §8 推导义务；按 §2 的风险函数分类 mode；按 §9 组合直接与传递义务；按 §14 跨运行中的 CI 收集证据；按 §15 的 gate_merge 以及 A2 不变量。输出行列出 spec/semantics.md §4.3 中的四种判定颜色与代码。](assets/verdict-flow.svg)
+![判定流程：从 decision.yaml 与证据到 gate_merge 与导出到代码。决策经身份 I4 解析；按 spec/kernel-contract §8 推导义务；按 §2 的风险函数分类 mode；按 §9 组合直接与传递义务；按 §14 跨运行中的 CI 收集证据；按 §15 的 gate_merge 以及 A2 不变量。输出行列出 spec/semantics.md §4.3 中的四种判定颜色与代码。](assets/verdict-flow.svg)
 
 流水线从两个输入读取——决策存储与证据存储——并产生
 一个输出——按义务的判然，之后合成为带退出码的单一裁定。
@@ -111,7 +111,7 @@ silent < record < ask < block
 ![风险带：五条彩色带，从 tiny 到 exhaustive，分别映射到示例变更、闸门姿态以及签署人。带：tiny（浅灰）、light（浅米）、standard（浅褐红）、strict（更深的褐红）、exhaustive（纯褐红）。](assets/risk-bands.svg)
 
 用于对变更进行分类的风险函数与将其映射到摩擦级别的
-函数是同一个（参见 `spec/algebra-3.2.md` §2 与 §21）。
+函数是同一个（参见 `spec/kernel-contract.md` §2 与 §21）。
 一项变更若风险足以被分类为 `exhaustive`，则必为
 `block`；若被分类为 `tiny`，则必为 `silent`。两幅图是
 对同一性质的两种视图。

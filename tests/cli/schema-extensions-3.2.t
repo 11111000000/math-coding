@@ -1,4 +1,4 @@
-Schema extensions for math-coding 3.2-ideal algebra (algebra §7):
+Schema extensions for math-coding 3.2-ideal algebra (kernel contract §7):
 decisions with the new 3.2 fields (state, body_sha, yaml_sha)
 parse through the schema without breaking existing v3.0 structure.
 
@@ -28,7 +28,7 @@ fixture body):
   > intent: Test 3.2 schema extensions.
   > commitment: |
   >     The decision schema accepts state, body_sha, yaml_sha fields
-  >     per algebra §7.
+  >     per kernel contract §7.
   > scope:
   >     paths: ["lib/**"]
   > obligations:

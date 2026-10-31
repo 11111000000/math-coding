@@ -7,8 +7,8 @@ negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
 
-body_sha: "sha256:7969cb156bbb114705d9087199e16cb78cc5ff11e824195f6d2c123cc9f4c943"
-yaml_sha: "sha256:7969cb156bbb114705d9087199e16cb78cc5ff11e824195f6d2c123cc9f4c943"
+body_sha: "sha256:d4492a7829567808ef11447b1043dfaf1e90f710f3abae0eeb7eabdc45be9952"
+yaml_sha: "sha256:d4492a7829567808ef11447b1043dfaf1e90f710f3abae0eeb7eabdc45be9952"
 
 axiom_link:
   - A0
@@ -160,7 +160,7 @@ commitment: |
         interval as `issued_at <= t < w.expires_at`, cites 14c for
         the open upper endpoint, and says explicitly that it MUST
         NOT be harmonised with attestation currency
-        (`spec/algebra-3.2.md` §14, closed on both ends) because
+        (`spec/kernel-contract.md` §14, closed on both ends) because
         the two rules govern different artefacts. The section also
         repairs a dangling citation: `lib/waiver.ml` and
         `lib/gate.ml` have been pointing at "spec/semantics.md
@@ -233,7 +233,7 @@ commitment: |
 
   (g) NOT DONE, deliberately, with the proposals that belong to
       the owner — see `counterexample` (3) and (4). No change to
-      `spec/constitution.md`, no change to `spec/algebra-3.2.md`,
+      `spec/constitution.md`, no change to `spec/kernel-contract.md`,
       no change to the §Release Gate verdict list, no change to
       `Domain.gate` (declared, never used; `lib/packages.ml`'s
       comment claiming the consult step "is wired into
@@ -344,14 +344,14 @@ counterexample: |
       They already did, and this decision did not create it:
       `spec/semantics.md` §Merge Gate says "A merge with a Waiver
       MUST report `open-with-waiver`, never `pass`", while
-      `spec/algebra-3.2.md` §15 defines
+      `spec/kernel-contract.md` §15 defines
       `gate_merge(c, p, t, rules)` with only two outcomes
       (`Open` iff every blocking obligation is `Pass`, `Blocked`
-      otherwise) and no waiver branch — so under algebra §15 a
+      otherwise) and no waiver branch — so under kernel contract §15 a
       waived obligation is not `Pass` and the merge is `Blocked`,
       contradicting semantics.md and the shipped kernel.
       Resolution I recommend to the owner, and did NOT apply:
-      algebra §15 is a 3.2-ideal model and predates the 3.3 waiver
+      kernel contract §15 is a 3.2-ideal model and predates the 3.3 waiver
       step; §Waivers already permits the branch ("MAY permit a
       gate only when the active policy marks that gap class
       waivable"), so algebra is the stale document. Proposed §15
@@ -461,7 +461,7 @@ scope:
     - "decisions/verdict-vocabulary-and-waiver-expiry-2026-10.yaml"
   exclusions:
     - "spec/constitution.md"      # protected transition; proposals only, see counterexample (4)
-    - "spec/algebra-3.2.md"       # 3.2-ideal model; proposal only, see counterexample (3)
+    - "spec/kernel-contract.md"       # 3.2-ideal model; proposal only, see counterexample (3)
     - "decisions/waivers/**"      # no waiver changes status; see changed-verdicts
     - "lib/codec.ml"              # owned by a parallel session
     - "lib/diagnostic.ml"         # owned by a parallel session
@@ -638,7 +638,7 @@ obligations:
       `spec/semantics.md` §Waiver Validity states
       `issued_at <= t < w.expires_at`, cites Invariant 14c for the
       open upper endpoint, and warns against harmonising it with
-      attestation currency in algebra §14.
+      attestation currency in kernel contract §14.
     acceptance:
       all:
         - verifier: tests/fixtures/verdict-vocabulary-spec-coherence.sh
@@ -766,7 +766,7 @@ reversal:
   - signal: owner-answers-the-release-gate-question
     condition: |
       The owner rules on the §Release Gate verdict list and on
-      algebra §15's missing waiver branch (proposals in
+      kernel contract §15's missing waiver branch (proposals in
       `counterexample` (3)). Resolution: apply the owner's wording
       in its own decision with a `spec/**` scope entry, then extend
       the coherence fixture to assert the release verdict list too.
@@ -818,7 +818,7 @@ risk:
     `Gate.aggregate_with_waivers` and `bin/Mathc.ml`. So the comment
     describes a wiring that does not exist, and the type describes a
     vocabulary (`Open`/`Blocked`) that differs from both
-    `lib/gate.ml::verdict` and algebra §15. Left alone: deleting a
+    `lib/gate.ml::verdict` and kernel contract §15. Left alone: deleting a
     public type is a bigger step than this decision's mandate.
 
     The same comment is wrong in a second way, and this one has

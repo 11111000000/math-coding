@@ -35,7 +35,7 @@ kernel stack (walking decisions/, applying policies through
 risk.modes, etc.). With an isolated tmpdir that has zero
 decisions the verdict is `unknown` and the subject list is
 empty -- but the call exits 0 (no kernel crash, dispatcher
-load_policies completes silently per the algebra §9 no-policy
+load_policies completes silently per the kernel contract §9 no-policy
 declaration default).
 
   $ $INSIDE_DUNE/bin/mathc.exe self-check | jq -c '{subjects: (.subjects | length), verdict}'
@@ -44,7 +44,7 @@ declaration default).
 When MATH_CODING_POLICY points at a non-existent file the
 dispatcher falls through to the resolver's disk-check (no
 crash); the kernel still exits 0 (the `load_policies` call is
-explicitly a no-op when the file is absent per algebra §9
+explicitly a no-op when the file is absent per kernel contract §9
 `policy(p) = default-policy`).
 
   $ export MATH_CODING_POLICY="/nonexistent/policy.yaml"

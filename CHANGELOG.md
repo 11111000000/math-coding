@@ -5,6 +5,27 @@
 
 ## Unreleased
 
+**The contract is named what it is**
+(`decisions/kernel-contract-rename-2026-11.yaml`).
+`spec/algebra-3.2.md` was named after the version it described. A name
+that carries a revision is a name that becomes false at the next
+revision, and the repair then costs every reference again - not the
+references of today, but the references of tomorrow. The document is
+now `spec/kernel-contract.md`, and the content did not change: the
+bytes before the move and the bytes after it are the same. The
+rendered page follows its source, because the renderer derives the
+page name from the file name (`spec/kernel-contract.html`).
+
+Everything in the live tree follows the file. Thirty live decisions,
+the five schema files, the site, the documentation and the runtime
+strings quote the new path; the section pointers that name the
+contract's sections read `kernel contract §N`; and the four
+`verifier:` strings that GREP the document grep the path that exists.
+The release notes below keep the names the files had when those
+releases were cut, the way the v3.3.3 rename kept the old names in the
+notes, and the archive keeps the old path for the same reason: a
+record says what was true when it was written.
+
 **The merge gate runs in CI and can fail**
 (`decisions/gate-blocks-in-ci-2026-10.yaml`).
 The step `mathc gate (merge verdict for the pushed diff)` carried

@@ -323,7 +323,7 @@ let to_decision_yaml (p : parsed) : string =
     \  - A0\n\
      antithesis: |\n\
     \  The counter-position considered and rejected (per the v3\n\
-    \  dialectic method, spec/algebra-3.2.md section 11): the\n\
+    \  dialectic method, spec/kernel-contract.md section 11): the\n\
     \  imported ADR may be wrong about its chosen option, or\n\
     \  may be missing considerations that the math-coding\n\
     \  schema requires. The reviewer must verify the import\n\

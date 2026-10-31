@@ -152,7 +152,7 @@ YAML form; both yield the same domain value.
 
 **Gap.** `mathc re-evaluate DECISION_ID AXIOM_ID` is a 3.2-ideal
 subcommand implementing `lib/re_evaluation.ml`'s `re_evaluate`
-oracle (algebra-3.2 §17).
+oracle (kernel contract §17).
 
 **Where it surfaces.** Any invocation:
 

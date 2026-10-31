@@ -744,11 +744,11 @@ let counterexample_violation v =
             match mode_str with
             | "light" -> ""
             | _ ->
-                " but empty counterexample: spec/algebra-3.2.md §11 requires \
-                 the counterexample dialectical slot for modes >= standard; \
-                 add a counterexample section naming the strongest objection \
-                 (or downgrade to mode: light if a documented soft slot is "
-                ^ "appropriate)"
+                " but empty counterexample: spec/kernel-contract.md §11 \
+                 requires the counterexample dialectical slot for modes >= \
+                 standard; add a counterexample section naming the strongest \
+                 objection (or downgrade to mode: light if a documented soft \
+                 slot is " ^ "appropriate)"
           in
           Some
             (Diagnostic.mc_counterexample_missing ~decision_id
@@ -760,7 +760,7 @@ let counterexample_violation v =
    antithesis slot (v3 dialectic method). A decision with mode >= standard
    must carry a non-empty antithesis. See
    `decisions/dialectic-method-v3-2026-10.yaml` and
-   `spec/algebra-3.2.md` §11. The kernel-side check in
+   `spec/kernel-contract.md` §11. The kernel-side check in
    `lib/decision.ml::parse_decision` returns None when antithesis is
    missing; this CLI-side check surfaces a precise diagnostic so the
    author knows whether the missing field is counterexample or antithesis. *)
@@ -794,7 +794,7 @@ let antithesis_violation v =
           let msg =
             Printf.sprintf
               "%sdecision has mode=%s but empty antithesis: \
-               spec/algebra-3.2.md §11 (v3 dialectic method) requires the \
+               spec/kernel-contract.md §11 (v3 dialectic method) requires the \
                antithesis dialectical slot for mode = considered; add an \
                antithesis section naming the coherent counter-position the \
                author considered and rejected (distinct from counterexample, \
@@ -949,7 +949,7 @@ let validate_with_counts path =
                           try
                             match Decision.parse_decision_yaml v with
                             | Some d -> (
-                                (* T0.2: sha-match enforcement (spec/algebra-3.2.md §7,
+                                (* T0.2: sha-match enforcement (spec/kernel-contract.md §7,
                            schemas/decision.json: when both `body_sha` and
                            `yaml_sha` are present, the digests must agree.
                            sha_match_check returns `(bool, Diagnostic.t list)`;
@@ -957,7 +957,7 @@ let validate_with_counts path =
                            is the single source of truth for surface emission.
                            A Block diagnostic still rejects the file. *)
                                 (* The digest is defined over the file's
-                                   raw bytes (algebra §7.1), so they are read
+                                   raw bytes (kernel contract §7.1), so they are read
                                    here rather than reconstructed from the
                                    parsed value `v`. If the read fails we
                                    pass None, which falls back to the
@@ -1001,13 +1001,13 @@ let validate_with_counts path =
                                           (Diagnostic.mc_counterexample_missing
                                              ~decision_id:d.Domain.id
                                              "missing counterexample: \
-                                              spec/algebra-3.2.md §11 names it \
-                                              as a dialectical slot for modes \
-                                              >= light; add a counterexample \
-                                              section naming the strongest \
-                                              objection (legacy soft warning; \
-                                              the Block path was already \
-                                              rejected before parse)")
+                                              spec/kernel-contract.md §11 \
+                                              names it as a dialectical slot \
+                                              for modes >= light; add a \
+                                              counterexample section naming \
+                                              the strongest objection (legacy \
+                                              soft warning; the Block path was \
+                                              already rejected before parse)")
                                       else None
                                     in
                                     let extra_diags =
@@ -1522,7 +1522,7 @@ let print_usage oc =
      rehash [--write] [--dry-run] [PATH...]              recompute \
      body_sha/yaml_sha\n\
      (no PATH)                                          from each file's own \
-     bytes (algebra §7.1);\n\
+     bytes (kernel contract §7.1);\n\
      --write                                           stamps in place, \
      dry-run by default;\n\
      verifies each stamped file is\n\
@@ -2219,7 +2219,7 @@ let[@warning "-32"] do_version () =
 
 (* Mathc_cmd.Update namespace alias. The Update logic lives in
    the top-level helpers above (`update_*`); this module exposes
-   `Mathc_cmd.Update.run` per spec/algebra-3.2.md §15 CLI catalog
+   `Mathc_cmd.Update.run` per spec/kernel-contract.md §15 CLI catalog
    convention. *)
 module Mathc_cmd = struct
   module Update = struct
@@ -7121,7 +7121,7 @@ let do_gate () =
       ~reader:store_reader ~root:store_root
   in
   (* T3.1: load rebuttals for the candidate tree's HEAD so the
-     v3.0 evaluate path can enforce the algebra §10 rebuttal
+     v3.0 evaluate path can enforce the kernel contract §10 rebuttal
      obligation when Risk.mode >= strict. Without this load the
      new wiring in lib/gate.ml::evaluate would always see an
      empty rebuttals list and over-block every strict/exhaustive
@@ -7158,7 +7158,7 @@ let do_gate () =
    * The body is read here rather than further down because the set of
    * decisions the gate evaluates depends on it. A commit that cites
    * `Refs: decision:<id>@<rev>` says which commitment it implements,
-   * and algebra §20 lets that citation stand in for a committed
+   * and kernel contract §20 lets that citation stand in for a committed
    * decision file. For the citation to be worth anything, the
    * decision it names has to be CHECKED -- otherwise the gate would
    * accept a change that names a commitment and then verify nothing
@@ -7415,7 +7415,7 @@ let do_gate () =
   print_string (gate_to_json ~gaps_limit:!gaps_limit result);
   exit (verdict_to_exit result.verdict)
 
-(* --- mode subcommand (algebra 3.2 §2 risk function) ---
+(* --- mode subcommand (kernel contract §2 risk function) ---
  *
  * `mathc mode PATH1 PATH2 ...` computes the risk classification,
  * probability, risk, and effective mode for the given paths via
@@ -7472,7 +7472,7 @@ let do_mode () =
        ])
   |> print_endline
 
-(* --- rebuttals subcommand (algebra 3.2 §10) ---
+(* --- rebuttals subcommand (kernel contract §10) ---
  *
  * `mathc rebuttals COMMIT_SHA` loads `rebuttals/<sha>.yaml` plus the
  * forge mirror and emits all rebuttals. Used by CI to surface
@@ -7508,7 +7508,7 @@ let do_rebuttals () =
        ])
   |> print_endline
 
-(* --- re-evaluate subcommand (algebra 3.2 §17) ---
+(* --- re-evaluate subcommand (kernel contract §17) ---
  *
  * `mathc re-evaluate DECISION_ID AXIOM_ID` walks decisions/ via
  * Re_evaluation.load_decisions and reports the §17 re_evaluate
@@ -8130,7 +8130,7 @@ let[@warning "-32"] evaluate_decision ~materials ~store ~waivers ~now
         ( Printf.sprintf
             "body_sha (%s) is not the digest of this file (%s): the decision \
              body changed without a recompute, so the stored digest still \
-             asserts content that is no longer there (spec/algebra-3.2.md \
+             asserts content that is no longer there (spec/kernel-contract.md \
              §7.1; MC-SHA-DIGEST-STALE)"
             stored computed,
           Printf.sprintf
@@ -10542,7 +10542,7 @@ let[@warning "-32"] do_graph () =
  *
  * User-facing aliases "obsolete" / "archive" are NOT accepted
  * (see lib/lifecycle/lifecycle.ml preamble; widening the
- * 4-state enum is forbidden by algebra §7). *)
+ * 4-state enum is forbidden by kernel contract §7). *)
 let[@warning "-32"] do_decision_state () =
   Arg.current := 1;
   let pos = ref [] in
@@ -11998,7 +11998,7 @@ let[@warning "-32"] do_doctor () =
 (* --- mathc rehash ------------------------------------------------------
  *
  * Recompute `body_sha` / `yaml_sha` from the file's own bytes under the
- * canonicalisation of spec/algebra-3.2.md §7.1. Until this revision
+ * canonicalisation of spec/kernel-contract.md §7.1. Until this revision
  * nothing in the tree could recompute a digest: `sha_match_check`
  * compared the two stored fields to each other, so a decision edited
  * without a recompute kept validating, and the 64-zero placeholder
@@ -12024,7 +12024,7 @@ let do_rehash () =
   let anon p = explicit := p :: !explicit in
   let usage =
     "mathc rehash [--write] [--dry-run] [PATH...]\n\
-     Recompute body_sha/yaml_sha per spec/algebra-3.2.md §7.1.\n\
+     Recompute body_sha/yaml_sha per spec/kernel-contract.md §7.1.\n\
      With no PATH, walks the resolved decisions directory.\n"
   in
   (* Parse from argv.(2): argv.(1) is the subcommand name and must
@@ -12145,7 +12145,7 @@ let dispatch () =
   end;
   (* Load the RISK-FLOOR policies file once at startup so the cached
      policy list is populated before any `mathc mode` invocation runs.
-     The call is a no-op when the file is absent (algebra §9 default:
+     The call is a no-op when the file is absent (kernel contract §9 default:
      `policy(p) = default-policy`).
 
      THE FILE THIS LOADS. Not the master policy: the master policy is

@@ -7,7 +7,7 @@
 #
 #   mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
 #
-# (spec/algebra-3.2.md §2). The floor is what makes the friction
+# (spec/kernel-contract.md §2). The floor is what makes the friction
 # ladder have rungs: a path whose floor is `light` may be changed
 # with a one-line commit and a trailer; a path whose floor is
 # `standard` must carry a decision.
@@ -55,7 +55,7 @@
 # whose policy said `standard`. Decision
 # `record-proportionality-2026-10`.
 #
-# WHY NO FLOOR ABOVE `standard`. Algebra §10 makes `strict` and
+# WHY NO FLOOR ABOVE `standard`. Kernel contract §10 makes `strict` and
 # `exhaustive` require a rebuttal artifact (`rebuttals/<sha>.yaml`).
 # This repository does not maintain that directory, so a floor above
 # `standard` would be a floor nothing can satisfy: every change to

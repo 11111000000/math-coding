@@ -5,12 +5,12 @@ revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
-body_sha: "sha256:2f04f107c4360e1c9de409c5354844118213d20e98cdd595fbace54d63a44664"
-yaml_sha: "sha256:2f04f107c4360e1c9de409c5354844118213d20e98cdd595fbace54d63a44664"
+body_sha: "sha256:f60101fafb884a2a29e5adc87e8aa565c301b1f75068c6965589267daef74d4f"
+yaml_sha: "sha256:f60101fafb884a2a29e5adc87e8aa565c301b1f75068c6965589267daef74d4f"
 axiom_link:
   - A0
 intent: |
-  Extend the multi-policy algebra (spec/algebra-3.2.md §9) with a
+  Extend the multi-policy algebra (spec/kernel-contract.md §9) with a
   third composition axis: hierarchical policy composition. Current
   §9 covers two axes — union (sum of obligations across policies
   matching the same path) and transitive (data-flow reachability
@@ -22,17 +22,17 @@ intent: |
   The three composition axes are:
 
     (a) union       — multiple policies on one path: sum
-        obligations, max(mode_floor), summed override (algebra §9
+        obligations, max(mode_floor), summed override (kernel contract §9
         direct_obligations + §2 mode_floor_of).
     (b) transitive  — data-flow reachability: obligations follow
-        imports/exports to closure (algebra §9 transitive_paths,
+        imports/exports to closure (kernel contract §9 transitive_paths,
         data_flow_targets*).
     (c) hierarchical — parent inheritance: a policy's parent is
         walked, accumulating parent's obligations + scope_paths,
         max'ing mode_floor, and using CHILD's override_probability
         (not parent's).
 
-  This decision closes the gap left by algebra §9: §9 names the
+  This decision closes the gap left by kernel contract §9: §9 names the
   union and transitive axes but not the hierarchy axis. With this
   change a project can express "default policy catches every path,
   payments policy inherits from default and adds strict mode_floor
@@ -120,7 +120,7 @@ commitment: |
            = Strict, child.mode_floor = Exhaustive → resolved
            mode_floor = Exhaustive.
 
-  8. `spec/algebra-3.2.md` §9 is annotated with a clarifying note
+  8. `spec/kernel-contract.md` §9 is annotated with a clarifying note
      naming the three axes (union, transitive, hierarchical) and
      pointing to `resolve_policy` as the preprocessing step.
 
@@ -150,7 +150,7 @@ scope:
     - "tests/dune"
     - "tests/risk_kernel.ml"
     - "schemas/policy.json"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "policies.yaml"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   OCAML_BEST_PRACTICES.md - no tracked file matches it
@@ -193,7 +193,7 @@ outcomes:
       property; existing policy files (no parent field) still parse.
   - id: spec-note-three-axes
     statement: |
-      `spec/algebra-3.2.md §9` carries a clarifying note naming
+      `spec/kernel-contract.md §9` carries a clarifying note naming
       the three composition axes and pointing to resolve_policy
       as the hierarchy-axis preprocessing step.
 
@@ -217,7 +217,7 @@ counterexample: |
   non-zero — default-zero never overrides explicit value).
 
   "Cycle detection turns `resolve_policy` into a parser, not a
-  pure resolver. The function's purity (algebra §9) is the value
+  pure resolver. The function's purity (kernel contract §9) is the value
   — diagnostic emissions are a side effect that belongs in the
   gate layer."
 
@@ -350,12 +350,12 @@ obligations:
   - id: spec-note-three-axes
     outcome: spec-note-three-axes
     claim: |
-      `spec/algebra-3.2.md §9` carries a clarifying note naming
+      `spec/kernel-contract.md §9` carries a clarifying note naming
       the three composition axes (union, transitive, hierarchical)
       and pointing to `resolve_policy` as the preprocessing step.
     acceptance:
       all:
-        - verifier: shell-grep spec/algebra-3.2.md resolve_policy
+        - verifier: shell-grep spec/kernel-contract.md resolve_policy
 
 reversal:
   - signal: hierarchy-superseded-by-loader-convention

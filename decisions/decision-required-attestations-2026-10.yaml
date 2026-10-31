@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: decision-required-attestations
 revision: 1
 state: active
-body_sha: "sha256:7688a649241e7669bc371449ea6937e9a697c43a24729c3fb0d83b35a40ac51d"
-yaml_sha: "sha256:7688a649241e7669bc371449ea6937e9a697c43a24729c3fb0d83b35a40ac51d"
+body_sha: "sha256:e167c449b9c97a6c1cef05a36b3e798a8be99da271630192269b7c436903ddbe"
+yaml_sha: "sha256:e167c449b9c97a6c1cef05a36b3e798a8be99da271630192269b7c436903ddbe"
 axiom_link:
   - A1
   - A4
@@ -52,7 +52,7 @@ intent: |
           - "bin/Mathc.ml"
           - "spec/**/*.md"
 
-  The kernel's gate (algebra §22): for every loaded decision,
+  The kernel's gate (kernel contract §22): for every loaded decision,
   parse the block; for every item, search the attestation store
   for one whose `kind_` matches the declared kind_ and whose
   `producer_identity` matches the declared producer. If none
@@ -61,7 +61,7 @@ intent: |
   but not yet enforced (paths are captured in the gap cause for
   human traceability; matching them against attestation
   candidate_tree is a separate T1.1-style forge enrichment
-  tracked under algebra §16).
+  tracked under kernel contract §16).
 
   Implementation lands on top of the post-v3.0 evaluate path
   (`lib/gate.ml::evaluate`) so existing v3.0 callers

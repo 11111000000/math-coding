@@ -6,7 +6,7 @@ intent: |
   Bring the schema-string on every live decision forward from
   `math-coding/3.0-alpha` to `math-coding/3.2`. The bump aligns
   the `schema:` field in decisions/*.yaml with the algebra
-  formalised in `spec/algebra-3.2.md` (which the kernel has
+  formalised in `spec/kernel-contract.md` (which the kernel has
   implemented since `decisions/algebra-3.2.yaml@1`); the
   schema-string is the only divergent element left over from the
   v3.0.0.20 cycles.

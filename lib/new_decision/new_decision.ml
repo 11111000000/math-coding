@@ -78,7 +78,7 @@ type template_kind = Full | Minimal
    replaced before the decision counts as attested: run
    `mathc rehash <path> --write`, which computes both fields from
    the file's own bytes under the body-vs-wrapper canonicalisation
-   (algebra §7.1, `lib/decision.ml::body_canonical_sha256`) and
+   (kernel contract §7.1, `lib/decision.ml::body_canonical_sha256`) and
    verifies the result is a fixed point. Re-running
    `mathc validate` alone leaves the zeros in place — since
    §7.1 makes body_sha = yaml_sha, `0^64 = 0^64` satisfied the

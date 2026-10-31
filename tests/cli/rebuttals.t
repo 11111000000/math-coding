@@ -1,5 +1,5 @@
 mathc rebuttals walks rebuttals/<sha>.yaml for a given commit
-prefix per algebra 3.2 §10 (lib/rebuttal.ml). Exercises the
+prefix per kernel contract §10 (lib/rebuttal.ml). Exercises the
 success path on the bootstrap-expiry commit 8fa7fcf (no
 rebuttals in this revision, so the array is empty). The
 rejection path (missing argument) prints usage to stderr and

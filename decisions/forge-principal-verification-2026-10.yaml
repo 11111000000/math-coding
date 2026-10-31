@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: forge-principal-verification
 revision: 1
 state: active
-body_sha: "sha256:aed4185bf2960b1e82110b6db56c5458644251974e25036aa87f1e3d9f87d97e"
-yaml_sha: "sha256:aed4185bf2960b1e82110b6db56c5458644251974e25036aa87f1e3d9f87d97e"
+body_sha: "sha256:941f59e594c3d0f308ebc406a18164ab06c59c67f8005a8b064d3986d8cf3488"
+yaml_sha: "sha256:941f59e594c3d0f308ebc406a18164ab06c59c67f8005a8b064d3986d8cf3488"
 axiom_link:
   - A1
   - A4
@@ -16,7 +16,7 @@ commitment: |
         is `NotConfigured | Queried of bool | CurlFailure`. The
         module reads `MATH_CODING_FORGE_API`; when unset, every
         check returns `false` (the no-forge fallback per
-        spec/algebra-3.2.md §13). HTTP transport uses `curl`
+        spec/kernel-contract.md §13). HTTP transport uses `curl`
         via `Unix.open_process_args_in` (no new OCaml dep).
     (b) `bin/Mathc.ml::do_forge_verify` is a new subcommand
         accepting `--org`, `--team`, `--user`, `--committer`,
