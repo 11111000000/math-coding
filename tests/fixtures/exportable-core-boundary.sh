@@ -189,6 +189,67 @@ for book_file in KERNEL_AGENTS.md OCAML_KERNEL_CONVENTIONS.md; do
   fi
 done
 
+# --- 3b. the core is free of the project's own names --------------------
+#
+# T4.3 moved this repository's decision-file names out of the kernel. The
+# exported core must not carry them: an adopter's tree receives the kernel,
+# policies.yaml and the skill, NOT this repository's decisions, so advice
+# about those names is advice about files the adopter does not have.
+#
+# THE LIST is the same five names the plan's verification greps for, and it
+# lives here next to the check that uses it — one list, one consumer. The
+# project-strings file that HOLDS the project's own values is this
+# repository's (scripts/project-strings.txt, not exported), and the check
+# below requires it to exist and be non-empty so a deletion here is caught
+# by a check rather than silently dropping the book and the inference.
+project_names=(
+  'OCAML_KERNEL_CONVENTIONS'
+  'decisions/decision.yaml'
+  'infrastructure-honesty'
+  'kernel-conformance-runner'
+  'validate-and-context'
+)
+
+for name in "${project_names[@]}"; do
+  if grep -rnF -- "$name" \
+      "$exported/lib" "$exported/bin" \
+      "$exported/policies.yaml" "$exported/adoption/SKILL.md" \
+      > "$tmp/name.log" 2>&1; then
+    bad "the exported core carries a project name: $name"
+    sed -n '1,10p' "$tmp/name.log" >&2
+  else
+    ok "the exported core is free of: $name"
+  fi
+done
+
+if [ -f "$ROOT/scripts/project-strings.txt" ] \
+  && [ -s "$ROOT/scripts/project-strings.txt" ]; then
+  ok 'the project-strings file exists and is non-empty'
+else
+  bad 'scripts/project-strings.txt does not exist or is empty'
+fi
+
+# --- 3c. NEGATIVE CONTROL for the name check ---------------------------
+# A check that has never reported a name is not known to be able to. Plant
+# each name in a throwaway copy of the exported lib/ and require the SAME
+# grep to find it; if the grep cannot see a planted name, the positive
+# check above has no teeth.
+name_n=0
+for name in "${project_names[@]}"; do
+  name_n=$((name_n + 1))
+  contaminated="$tmp/contaminated-name-$name_n"
+  cp -a "$exported" "$contaminated"
+  printf '# project-only negative control: %s\n' "$name" \
+    >> "$contaminated/lib/capsule.ml"
+
+  if grep -rnF -- "$name" "$contaminated/lib" \
+      > "$tmp/name-neg-$name_n.log" 2>&1; then
+    ok "the name check reports a planted name: $name"
+  else
+    bad "the name check did not report a planted name: $name"
+  fi
+done
+
 # --- 4. NEGATIVE CONTROL ------------------------------------------------
 # Each copy receives one real project-shaped file. The independent boundary
 # check must reject the copy. If it accepts any of them, the positive check

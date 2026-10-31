@@ -304,6 +304,14 @@ type decision_entry = {
   decision_id : string;
   revision : string option;
   source : string; (* raw YAML/JSON, opaque here *)
+  (* The path the decision was READ from, project-relative where the
+     walker produced a relative path. The corpus's own lesson: the
+     filename is not the id, and a decision whose file name differs
+     from its id (bootstrap-v3 lives in decision.yaml) is still
+     addressable by the path it was found at. The capsule and
+     `mathc explain` read this instead of reconstructing a path from
+     the id, which is what the hardcoded id->path map used to do. *)
+  source_path : string;
   obligations : int;
   obligation_ids : string list;
   assumptions : int;
@@ -332,6 +340,11 @@ type t = {
   spec : spec_doc list;
   axioms : axiom_doc list;
   best_practices : string option;
+  (* The project-relative name of the best-practices document, when the
+     project declares one. The NAME comes from the project (a config
+     the caller read); the kernel does not know this repository's book
+     file name. None when the project declares no such document. *)
+  best_practices_path : string option;
   recent_commits : commit_entry list;
   changed_paths : changed_path list;
 }
@@ -482,6 +495,7 @@ let[@warning "-32"] parse_decision_yaml raw =
               decision_id = id;
               revision = rev;
               source = raw;
+              source_path = "";
               obligations;
               obligation_ids;
               assumptions;
@@ -537,13 +551,14 @@ let[@warning "-32"] load_decisions reader root =
                fails, fall back to a minimal entry so the capsule still
                names the decision. *)
               match parse_decision_yaml raw with
-              | Some entry -> Some entry
+              | Some entry -> Some { entry with source_path = p }
               | None ->
                   Some
                     {
                       decision_id = id;
                       revision = None;
                       source = raw;
+                      source_path = p;
                       obligations = 0;
                       obligation_ids = [];
                       assumptions = 0;
@@ -588,9 +603,20 @@ let[@warning "-32"] load_axioms reader root : axiom_doc list =
           Some entry)
     names
 
-let[@warning "-32"] load_best_practices reader root =
-  let p = Filename.concat root "OCAML_BEST_PRACTICES.md" in
-  match read reader p with None -> None | Some body -> Some body
+(* Read the project's best-practices document. The file NAME is passed
+   in — it is the project's, not the kernel's; the kernel has no name
+   of this repository's book. A missing name, or a missing file, yields
+   (None, None): "this project declares no best-practices document",
+   which the capsule treats as "no Supporting item" rather than as an
+   error. *)
+let[@warning "-32"] load_best_practices reader root ~path =
+  match path with
+  | None -> (None, None)
+  | Some rel -> (
+      let p = Filename.concat root rel in
+      match read reader p with
+      | None -> (None, None)
+      | Some body -> (Some rel, Some body))
 
 let[@warning "-32"] parse_commits lines =
   let is_blank s =
@@ -625,13 +651,17 @@ let[@warning "-32"] parse_changed_paths lines =
 
 (* --- top-level loader --- *)
 
-let[@warning "-32"] load_memory ~reader ~root ~recent_commits_raw
-    ~changed_paths_raw =
+let[@warning "-32"] load_memory ~reader ~root ~best_practices_path
+    ~recent_commits_raw ~changed_paths_raw =
+  let best_practices_path, best_practices =
+    load_best_practices reader root ~path:best_practices_path
+  in
   {
     decisions = load_decisions reader root;
     spec = load_spec reader root;
     axioms = load_axioms reader root;
-    best_practices = load_best_practices reader root;
+    best_practices;
+    best_practices_path;
     recent_commits = parse_commits (split_lines recent_commits_raw);
     changed_paths = parse_changed_paths (split_lines changed_paths_raw);
   }

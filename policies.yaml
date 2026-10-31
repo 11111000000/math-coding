@@ -26,7 +26,7 @@
 #   * `scripts/install-tooling/templates/active-policy.yaml` -- a
 #     DECISION document (`id: bootstrap-v3`, revision 1), not a
 #     policy sequence at all, and not a copy of this file either.
-#   * `decisions/decision.yaml` -- THIS repository's instance of the
+#   * the active policy -- THIS repository's instance of the
 #     master policy (`bootstrap-v3@3`): a decision with seven
 #     obligations, six of them about this repository.
 #
@@ -44,8 +44,8 @@
 #                   `mathc init` writes it.
 #   active policy   a project's instance of the master policy: the
 #                   file the kernel reads, located by id
-#                   (`bootstrap-v3`). In this repository it is
-#                   `decisions/decision.yaml` (`bootstrap-v3@3`).
+#                   (`bootstrap-v3`). In this repository that
+#                   instance is `bootstrap-v3@3`.
 #   policy sequence  this file: the per-path floors.
 #
 # The two were sharing one resolver until 2026-10-30, and the shared

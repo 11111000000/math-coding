@@ -18,7 +18,7 @@ let ci_yml =
 # math-coding blocking-CI template.
 #
 # Drop this file at .github/workflows/mathc.yml in a target repo
-# that has run `mathc init` (or copied `decisions/decision.yaml`
+# that has run `mathc init` (or copied the active-policy file
 # by hand). The workflow runs `mathc validate` against every
 # staged decisions/*.yaml, then `mathc self-check` against the
 # commit. A non-zero exit on either step blocks the merge.

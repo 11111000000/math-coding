@@ -180,7 +180,9 @@ CEILING_DEAD=0
 #   the corpus it counts
 # ceiling-raise: 141 -> 142, the corpus-tranche-stale-form-1 decision is in
 #   the corpus it counts
-CEILING_CORPUS=142
+# ceiling-raise: 142 -> 143, the project-strings-leave-the-core decision is in
+#   the corpus it counts
+CEILING_CORPUS=143
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.

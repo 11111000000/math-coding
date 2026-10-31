@@ -1,0 +1,341 @@
+---
+schema: math-coding/3.3
+id: project-strings-leave-the-core-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/exportable-core-boundary.sh
+body_sha: "sha256:5f62bb891dd0c409b4e809fc1188d289429e5bf41265854dd473608da11ec7e5"
+yaml_sha: "sha256:5f62bb891dd0c409b4e809fc1188d289429e5bf41265854dd473608da11ec7e5"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T4.3)"
+  text: |
+    Tranche T4.3 of the redundancy-and-portability plan: the project's
+    own strings leave the core. The plan's row names five places
+    (`lib/gate.ml:1016`, `lib/capsule.ml:171-176`,
+    `lib/decision.ml:1664-1667`, sixteen pointers in `lib/diagnostic.ml`,
+    `lib/memory.ml:592`); those line numbers are from an older tree, so
+    the instances were re-found in the current tree, and this decision
+    records what each became.
+
+    WHY. The core is meant to be transferable: an adopter's tree
+    receives the kernel, a policies.yaml, decisions, attestations and
+    the skill (T4.1 cut that boundary). But the kernel still carried
+    THIS repository's names, so an adopter's tree got advice about
+    files it does not have. The plan names the failure and this
+    decision removes the strings.
+
+    WHAT WAS FOUND AND WHAT EACH BECAME.
+
+    1. The decision id -> path map. `lib/capsule.ml` carried a
+       hand-written table mapping four decision ids to their file
+       paths ("bootstrap-v3" -> "decisions/decision.yaml",
+       "infrastructure-honesty", "kernel-conformance-runner",
+       "validate-and-context"). The corpus's own lesson is that the
+       filename is not the id — which is exactly why the map existed.
+       The same table existed a second time in `bin/Mathc.ml`
+       (`decision_relpath`, the `mathc explain` resolver). Both are
+       gone. `Memory.decision_entry` now carries `source_path`, the
+       path the walk actually read the decision from, and the capsule
+       uses it; `decision_relpath` walks the decisions directory and
+       finds the decision by the id its document declares, falling back
+       to the protocol's `<id>.yaml` convention.
+
+    2. The read of a file that does not exist. `lib/memory.ml:592`
+       (`load_best_practices`) read "OCAML_BEST_PRACTICES.md", a name
+       this repository RENAMED to OCAML_KERNEL_CONVENTIONS.md. It read
+       a file that is not there, and the caller (the capsule) turned
+       the resulting None into "no Supporting item" — silently dropping
+       a document the project does carry. The book's name is now the
+       project's: `scripts/project-strings.txt` declares it, the
+       kernel parses that file (lib/project_strings.ml, the same pure
+       shape as lib/protected_paths.ml), and `bin/Mathc.ml` reads it
+       and passes the name in. An absent declaration means "this
+       project declares no book", and the capsule then has no
+       Supporting item — permissive, never "reads nothing".
+
+    3. The axiom-link inference table. `lib/decision.ml:1664-1667`
+       hardcoded ("lib/" -> A0,A1; "tests/" -> A1; "decisions/" ->
+       A0,A4; "spec/" -> A0,A3): one repository's directory layout.
+       The rules now come from `scripts/project-strings.txt`
+       (`axiom-link:` lines), passed in as a value. An empty list keeps
+       the documented fallback (the universal A0), which is the
+       function's contract.
+
+    4. The diagnostic pointers. The plan said sixteen; the current
+       tree holds more. The `next_actions` remedy "mathc validate
+       decisions/<file>.yaml" (eleven copies) became "mathc validate
+       <file>". The `policy_rule` citations (nineteen of them) — a
+       field the kernel sets but never renders — stopped naming
+       "spec/kernel-contract.md", "spec/constitution.md",
+       "schemas/decision.json" and "decisions/<file>.yaml" and now name
+       the portable form ("kernel contract §7", "the decision schema",
+       "the <id> decision"). What was LEFT, and why, is below.
+
+    5. The gate. `lib/gate.ml:1016` was the protected-path list, which
+       left the core in an earlier tranche; what remained in the same
+       family were the functional project strings: the
+       "has_sibling_yaml" check hardcoded the "decisions/" prefix
+       (now the resolved decisions directory, passed in), and the gap
+       remedy texts named "decisions/waivers/...", "attestations/..."
+       (now portable: "a waiver for <decision>-<obligation>", "the
+       attestation for ...").
+
+    6. The legacy master-policy path. `lib/path_config.ml:39` wrote the
+       literal "decisions/decision.yaml" and `bin/Mathc.ml:1693`
+       (`has_math_coding_layout`) probed it. The legacy layout is a
+       PROTOCOL convention (a pre-3.4 project keeps its master policy
+       in a file named "decision.yaml" inside its legacy decisions
+       directory), not a fact about this repository, so the path is now
+       DERIVED (`Filename.concat legacy_decisions_dir "decision.yaml"`)
+       and the probe reads that value. The backward-compat contract —
+       a brownfield project works with no config edit — is unchanged.
+
+    7. The two exported prose files that still named the active policy.
+       `policies.yaml` (its header) and `adoption/SKILL.md` (its
+       legacy-layout section) are part of the exported core, and both
+       wrote "decisions/decision.yaml" for this repository's active
+       policy. They now name it by id (`bootstrap-v3@3`) and describe
+       the legacy master policy as a file named "decision.yaml" inside
+       "decisions/" — the convention, not this repository's instance.
+
+    WHAT STAYS, AND WHY.
+
+    - The schema namespace ("math-coding/3.x", "math-coding/waiver-",
+      "math-coding/obligations-", "math-coding/attestation-",
+      "math-coding/migration-manifest") is the protocol's wire format.
+      An adopter's tree speaks the same protocol. It is not a project
+      name and must not be "cleaned" away.
+    - The master-policy id "bootstrap-v3" is the protocol's blank-form
+      id (templates/master-policy.yaml carries it, and `mathc init`
+      writes it into an adopter's tree). Same category as the schema
+      namespace.
+    - The legacy layout directory names "decisions" and "attestations"
+      are the protocol's pre-3.4 artifact locations, and the exported
+      core creates both as empty protocol artifact directories.
+    - The diagnostic MESSAGE strings and the explain registry still
+      cite "spec/kernel-contract.md §N", "spec/constitution.md" and
+      "decisions/<file>.yaml". Those are RENDERED, and they are pinned
+      byte-for-byte (the messages) and byte-for-byte length (the
+      explain registry) by the cram fixtures in tests/cli/, which are
+      the acceptance surface of the book-rename tranche and of T5.2
+      ("mark the book as normative background"). Moving them is not
+      this tranche's cut; doing so here would break `dune build
+      @runtest` in a clean build. They are recorded, not forgotten.
+    - The ~fifty "OCAML_BEST_PRACTICES §N" references in comments are
+      the book rename's own tranche (ninety-three pointers), not T4.3.
+
+commitment: |
+  After this decision closes:
+
+  1. The kernel carries no name of this repository's decision files.
+     The capsule resolves a decision by the path the walk read it
+     from, and `mathc explain` resolves an id by the id the document
+     declares — never by a hand-written id->path table.
+
+  2. The book's name is a project value. `scripts/project-strings.txt`
+     declares it, `lib/project_strings.ml` parses it (pure), and
+     `bin/Mathc.ml` reads the file and passes the value in. An empty
+     declaration degrades to "this project declares no book", never to
+     "reads nothing".
+
+  3. The axiom-link inference rules are a project value in the same
+     file, passed in as a value. An empty rule list keeps the
+     documented A0 fallback.
+
+  4. The gate's "did the author pair a decision" check uses the
+     project's resolved decisions directory, and the gate's remedy
+     texts name the concept, not a directory layout.
+
+  5. The legacy layout paths are protocol conventions, and the master
+     policy path is derived from the legacy directory name and the
+     protocol's "decision.yaml" filename, not written as one literal.
+
+  6. `scripts/project-strings.txt` is read the way the protected-path
+     list is read: env-var override
+     (`MATH_CODING_PROJECT_STRINGS`), then the canonical project
+     location. The kernel module never touches the filesystem except
+     in a thin `load` wrapper.
+
+  7. The boundary fixture (tests/fixtures/exportable-core-boundary.sh)
+     checks that the exported core is free of this repository's
+     decision-file names, and it has a negative control that plants
+     them and requires the check to reject the copy.
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+counterexample: |
+  The strongest objection is that this decision changes strings in a
+  dead field and in documentation, and the names that are actually
+  RENDERED to a human — the diagnostic messages and the explain
+  registry — are left untouched. A kernel that still prints
+  "spec/kernel-contract.md §7" has not stopped knowing the project's
+  file names; it has only stopped knowing the four that a grep checks.
+
+  The objection is correct about what was left, and the decision says
+  so plainly rather than pretending otherwise. The rendered strings are
+  pinned by the cram fixtures (byte-for-byte messages, byte-for-byte
+  lengths on the explain registry), and those fixtures are the
+  acceptance surface of two other tranches: the book rename (which
+  moves the ninety-three §-pointers to the renamed book) and T5.2
+  (which marks the book as normative background). Changing the rendered
+  strings here would either break `dune build @runtest` in a clean
+  build or drag a second tranche's fixtures into this one. The cut
+  drawn here is the cut that is safe to draw now: the kernel no longer
+  reconstructs a decision's path from a name, no longer reads a
+  nonexistent book file, no longer hardcodes a directory layout for
+  inference, and no longer emits a remedy that names a directory it
+  cannot know. The rendered citations are the book's business.
+
+  What would change the verdict: a clean `dune build @runtest` that
+  passes while the rendered strings are also made portable. That is a
+  different tranche (it owns tests/cli/ and the book), and this
+  decision's risk block names the trigger.
+
+antithesis: |
+  The opposite position is to leave everything as it was: the names
+  are in comments and a dead field, they cost nothing at runtime, and
+  the real portability work is the packaging (T4.1) and the book
+  (T5.2), not a grep over strings. Under that position this tranche is
+  cosmetic.
+
+  The position is wrong about the functional strings, and those are the
+  ones this tranche removes. A kernel that reconstructs a decision's
+  path from a hand-written table will be wrong for the next decision
+  whose file name differs from its id — the corpus already demonstrated
+  that defect, and the table WAS a second instance of it. A kernel that
+  reads a book file by a name the project renamed silently drops the
+  book from the capsule, and nothing said so. A kernel that suggests
+  axioms from one repository's directory layout gives an adopter advice
+  about a layout the adopter does not have. Those are behaviours, not
+  cosmetics.
+
+  The position is right that the rendered citations are the larger
+  remaining surface, and this decision does not claim to have closed
+  it. It closes the functional surface and names the rest.
+
+outcomes:
+  - id: the-kernel-reads-paths-not-names
+    statement: |
+      The capsule and `mathc explain` resolve a decision by the path
+      the walk read it from or by the id its document declares, never
+      by a hand-written id->path table.
+
+  - id: the-book-name-is-a-project-value
+    statement: |
+      The book's filename is declared in `scripts/project-strings.txt`
+      and parsed by lib/project_strings.ml; the kernel does not hardcode
+      it, and an absent declaration means "no book" rather than "read
+      nothing".
+
+  - id: the-inference-table-is-a-project-value
+    statement: |
+      The axiom-link inference rules come from the same project file,
+      and an empty list keeps the documented A0 fallback.
+
+  - id: the-gate-names-concepts-not-directories
+    statement: |
+      The gate's sibling-decision check uses the resolved decisions
+      directory and its remedy texts name the concept, not a directory
+      layout.
+
+  - id: the-core-is-free-of-the-project-names
+    statement: |
+      The exported core contains none of this repository's decision-file
+      names, and the boundary fixture rejects a copy that plants them.
+
+scope:
+  paths:
+    - "lib/capsule.ml"
+    - "lib/memory.ml"
+    - "lib/decision.ml"
+    - "lib/diagnostic.ml"
+    - "lib/gate.ml"
+    - "lib/path_config.ml"
+    - "lib/project_strings.ml"
+    - "lib/init/init.ml"
+    - "lib/templates_embedded.ml"
+    - "lib/codec.ml"
+    - "lib/dune"
+    - "bin/Mathc.ml"
+    - "scripts/project-strings.txt"
+    - "policies.yaml"
+    - "adoption/SKILL.md"
+    - "tests/gate/state_filter.ml"
+    - "tests/fixtures/exportable-core-boundary.sh"
+    - "decisions/project-strings-leave-the-core-2026-11.yaml"
+  exclusions:
+    - "tests/cli/**"
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+
+obligations:
+  - id: the-core-is-free-of-the-project-names
+    claim: |
+      The exported core (scripts/export-core.sh output) contains none
+      of "OCAML_KERNEL_CONVENTIONS", "decisions/decision.yaml",
+      "infrastructure-honesty", "kernel-conformance-runner" or
+      "validate-and-context".
+    acceptance:
+      all:
+        - verifier: tests/fixtures/exportable-core-boundary.sh
+
+  - id: the-boundary-check-can-go-red
+    claim: |
+      The boundary fixture's negative control plants each project name
+      in a throwaway copy of the export and requires the check to
+      reject the copy.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/exportable-core-boundary.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "if a new decision's file name differs from its id and the walk is not the single source of the path, the capsule or `mathc explain` will again resolve by a guessed name"
+    - "if the project-strings file is deleted, the book silently drops from the capsule and the axiom inference falls back to A0, and nothing says so"
+    - "if the rendered diagnostic citations are made portable in a tranche that does not own tests/cli/, `dune build @runtest` breaks in a clean build"
+    - "if the schema namespace or the bootstrap-v3 id is 'cleaned' away as a project name, the protocol's wire format and blank-form id break"
+    - "if the legacy layout convention is moved to a config, pre-3.4 projects stop working without a config edit"
+
+assumptions:
+  - id: the-legacy-layout-is-protocol-not-project
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The pre-3.4 layout (a decisions directory, an attestations
+      directory, and a master policy named "decision.yaml" inside the
+      decisions directory) is a protocol convention shared by every
+      pre-3.4 project, not a name of this repository's files. The
+      backward-compat contract — a brownfield project works with no
+      config edit — depends on it staying in the kernel.
+    consequence_if_false: |
+      If the legacy layout were this repository's own, deriving the
+      master-policy path from the legacy directory and the protocol's
+      filename would not be enough — the kernel would still know the
+      project's names, and the fixture's grep would be the wrong
+      instrument. The legacy paths would have to move to the project,
+      and the "no config edit" contract would need a new owner.
+    review_on:
+      - signal: a-pre-3-4-project-stops-working-without-a-config
+
+  - id: the-rendered-citations-are-another-tranches-cut
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The diagnostic message strings and the explain registry are
+      pinned by tests/cli/ cram fixtures, and those fixtures are the
+      acceptance surface of the book-rename tranche and T5.2. Making
+      those citations portable is their work, not T4.3's.
+    consequence_if_false: |
+      If T4.3 was expected to move the rendered citations too, this
+      decision is incomplete, and the missing work is the book's
+      tranche, which owns both the strings and the fixtures that pin
+      them.
+    review_on:
+      - signal: the-book-rename-tranche-is-retired-without-moving-the-rendered-citations

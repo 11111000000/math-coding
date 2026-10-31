@@ -110,7 +110,7 @@ let ambiguous_acceptance ?(obligation_id = "") ?(item_position = -1)
           \        - verifier: oracles\n\
           \          result: pass    # or review: <text>"
           obligation_id );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
@@ -177,7 +177,7 @@ let mc_decision_invalid ?(path = []) ?(next_actions = []) message =
   let default_actions =
     [
       ("add", Printf.sprintf "%s: |\n  <one-line description>" field);
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
@@ -208,14 +208,14 @@ let mc_missing_field ~code ~field ?(next_actions = []) message =
   let default_actions =
     [
       ("add", Printf.sprintf "%s: |\n  <one-line description>" field);
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Deficit ~severity:Block ~path:[ field ]
-    ~policy_rule:(Some "schemas/decision.json") ~next_actions:actions
+    ~policy_rule:(Some "the decision schema") ~next_actions:actions
     ~retryable:false ~autofix_safe:false message
 
 let mc_missing_schema ?(next_actions = []) message =
@@ -267,14 +267,14 @@ let mc_invalid_id_format ?(id = "") ?(next_actions = []) message =
            `redis-origin-fallback`), optionally suffixed with `@rev` to pin a \
            specific revision (e.g. `redis-origin-fallback@3`)."
           (if id = "" then "<short-id>" else id) );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-INVALID-ID-FORMAT" ~kind:Deficit ~severity:Block
-    ~path:[ "id" ] ~policy_rule:(Some "schemas/decision.json / decision.id")
+    ~path:[ "id" ] ~policy_rule:(Some "the decision schema / decision.id")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
 let mc_invalid_revision_format ?(revision = "") ?(next_actions = []) message =
@@ -287,7 +287,7 @@ let mc_invalid_revision_format ?(revision = "") ?(next_actions = []) message =
           \  The revision field is a string (e.g. \"5\") or a sha256-prefixed \
            digest (e.g. \"rev:41aa92\")."
           (if revision = "" then "<revision>" else revision) );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
@@ -295,7 +295,7 @@ let mc_invalid_revision_format ?(revision = "") ?(next_actions = []) message =
   in
   create ~code:"MC-INVALID-REVISION-FORMAT" ~kind:Deficit ~severity:Block
     ~path:[ "revision" ]
-    ~policy_rule:(Some "schemas/decision.json / decision.revision")
+    ~policy_rule:(Some "the decision schema / decision.revision")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
 (* Axiom link: a value that does not match the axiom-shaped regex
@@ -311,7 +311,7 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
           \  Axiom-shaped tokens start with `A`, have digits, optionally have \
            `@rev` or `.sub` suffix (e.g. `A0`, `A1@2`, `A3.sub`)."
           (if token = "" then "<A0>" else token) );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
@@ -319,8 +319,7 @@ let mc_invalid_axiom_link ?(token = "") ?(next_actions = []) message =
   in
   create ~code:"MC-INVALID-AXIOM-LINK" ~kind:Deficit ~severity:Block
     ~path:[ "axiom_link" ]
-    ~policy_rule:
-      (Some "spec/kernel-contract.md §17 + lib/decision.ml:is_axiom_token")
+    ~policy_rule:(Some "kernel contract §17 + lib/decision.ml:is_axiom_token")
     ~next_actions:actions ~retryable:false ~autofix_safe:false message
 
 (* MC-COUNTEREXAMPLE-MISSING: emitted when a decision has an
@@ -364,7 +363,7 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
           \  A known failing case that would falsify this commitment.\n\
           \  Resolution: name the strongest objection to the decision."
           (if decision_id = "" then "<decision-id>" else decision_id) );
-      ("edit", "spec/kernel-contract.md §11 (dialectical slots)");
+      ("edit", "kernel contract §11 (dialectical slots)");
     ]
   in
   let actions =
@@ -372,10 +371,7 @@ let mc_counterexample_missing ?(decision_id = "") ?(severity = Warn)
   in
   let policy_rule =
     match severity with
-    | Block ->
-        Some
-          "spec/kernel-contract.md §11 + \
-           decisions/plan-2026-10-improvements/t6-2.yaml"
+    | Block -> Some "kernel contract §11 + the t6-2 decision"
     | Warn | Info -> None
   in
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
@@ -407,7 +403,7 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
           \  strongest objection the kernel surfaces to a future reader\n\
           \  regardless of what the author considered."
           (if decision_id = "" then "<decision-id>" else decision_id) );
-      ("edit", "spec/kernel-contract.md §11 (dialectic slots)");
+      ("edit", "kernel contract §11 (dialectic slots)");
     ]
   in
   let actions =
@@ -415,10 +411,7 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
   in
   let policy_rule =
     match severity with
-    | Block ->
-        Some
-          "spec/kernel-contract.md §11 + \
-           decisions/dialectic-method-v3-2026-10.yaml"
+    | Block -> Some "kernel contract §11 + the dialectic-method-v3 decision"
     | Warn | Info -> None
   in
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
@@ -475,7 +468,7 @@ let declared_result_acceptance ?(obligation_id = "") ?(item_position = -1)
   create ~code:"MC-ACCEPTANCE-DECLARED-RESULT" ~kind:Input ~severity:Block
     ~path:
       [ Printf.sprintf "obligations.%s.acceptance.all.result" obligation_id ]
-    ~policy_rule:(Some "spec/constitution.md#epistemic-separation")
+    ~policy_rule:(Some "constitution: epistemic separation")
     ~next_actions:actions msg
 
 let mc_declared_result_acceptance = declared_result_acceptance
@@ -504,7 +497,7 @@ let axiom_link_missing ?(decision_id = "") () =
       prefix
   in
   create ~code:"MC-AXIOM-LINK-MISSING" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/kernel-contract.md §7")
+    ~policy_rule:(Some "kernel contract §7")
     ~next_actions:
       [
         ("add", "axiom_link: [A0]");
@@ -558,7 +551,7 @@ let mc_sha_mismatch ?(decision_id = "") ?(body_sha = "") ?(yaml_sha = "")
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-SHA-MISMATCH" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/kernel-contract.md §7") ~next_actions:actions msg
+    ~policy_rule:(Some "kernel contract §7") ~next_actions:actions msg
 
 (* MC-SHA-DIGEST-STALE: emitted when `body_sha` and `yaml_sha` agree
    with each other but the shared value is not the digest of the file
@@ -597,7 +590,7 @@ let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-SHA-DIGEST-STALE" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/kernel-contract.md §7.1") ~next_actions:actions msg
+    ~policy_rule:(Some "kernel contract §7.1") ~next_actions:actions msg
 
 (* MC-BODY-SHA-PATTERN-VIOLATION: body_sha or yaml_sha is present but
    does not match the documented pattern `^sha256:[0-9a-f]{64}$`.
@@ -646,7 +639,7 @@ let mc_body_sha_pattern_violation ?(decision_id = "") ~field ~value
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-BODY-SHA-PATTERN-VIOLATION" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "schemas/decision.json#body_sha/yaml_sha")
+    ~policy_rule:(Some "the decision schema: body_sha/yaml_sha")
     ~next_actions:actions msg
 
 (* MC-VERIFIER-SCHEME-UNKNOWN: emitted by `mathc validate`
@@ -719,7 +712,7 @@ let mc_verifier_path_unresolved ?(obligation_id = "") ?(path = "")
   let default_actions =
     [
       ("edit", "make the path project-relative, or drop the key");
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
       ("run", "mathc explain-diagnostic " ^ code);
     ]
   in
@@ -728,7 +721,7 @@ let mc_verifier_path_unresolved ?(obligation_id = "") ?(path = "")
   in
   create ~code ~kind:Input ~severity:Warn
     ~path:[ Printf.sprintf "obligations.%s.acceptance.path" obligation_id ]
-    ~policy_rule:(Some "decisions/verifier-path-resolution-2026-10.yaml")
+    ~policy_rule:(Some "the verifier-path-resolution decision")
     ~next_actions:actions what
 
 (* THE CANONICAL LIST, RENDERED FROM WHAT THE KERNEL OWNS.
@@ -778,7 +771,7 @@ let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
       ( "replace",
         Printf.sprintf "verifier: \"%s <args>\"    # use a canonical scheme"
           scheme );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
@@ -787,7 +780,7 @@ let mc_verifier_scheme_unknown ?(obligation_id = "") ?(scheme = "")
   create ~code ~kind:Input ~severity:Warn
     ~path:
       [ Printf.sprintf "obligations.%s.acceptance.all.verifier" obligation_id ]
-    ~policy_rule:(Some "decisions/verifier-scheme-convention-2026-11.yaml")
+    ~policy_rule:(Some "the verifier-scheme-convention decision")
     ~next_actions:actions ~retryable:false ~autofix_safe:false msg
 
 (* MC-MATERIALS-DIGEST-EMPTY: emitted when an attestation with
@@ -843,8 +836,8 @@ let mc_materials_digest_empty ?(subject = "") ?(kind = "") ?(next_actions = [])
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-MATERIALS-DIGEST-EMPTY" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "spec/constitution.md §0; A0 separation")
-    ~next_actions:actions msg
+    ~policy_rule:(Some "constitution §0; A0 separation") ~next_actions:actions
+    msg
 
 (* MC-PRODUCER-CLASS-UNDECLARED: emitted when `producer.identity`
    carries no claim class. Per decisions/attestation-producer-vocab-
@@ -891,7 +884,7 @@ let mc_producer_class_undeclared ?(subject = "") ?(next_actions = []) ~identity
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-PRODUCER-CLASS-UNDECLARED" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "decisions/attestation-producer-vocab-2026-10")
+    ~policy_rule:(Some "the attestation-producer-vocab decision")
     ~next_actions:actions msg
 
 (* MC-PRODUCER-HUMAN-UNANCHORED: emitted when an attestation whose
@@ -962,7 +955,7 @@ let mc_producer_human_unanchored ?(subject = "") ?(next_actions = []) ~identity
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code:"MC-PRODUCER-HUMAN-UNANCHORED" ~kind:Deficit ~severity:Block
-    ~policy_rule:(Some "decisions/attestation-producer-vocab-2026-10")
+    ~policy_rule:(Some "the attestation-producer-vocab decision")
     ~next_actions:actions msg
 
 (* MC-DUPLICATE-KEY: emitted when the same mapping key is declared
@@ -1052,14 +1045,14 @@ let mc_duplicate_key ~key ?(path = []) ?(occurrences = 2) ?(lines = [])
       ( "edit",
         Printf.sprintf "merge the %d `%s:` blocks into a single declaration"
           occurrences key );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Conflict ~severity:Warn ~path
-    ~policy_rule:(Some "spec/constitution.md §0; YAML 1.2 §3.2.1 unique keys")
+    ~policy_rule:(Some "constitution §0; YAML 1.2 §3.2.1 unique keys")
     ~retryable:false ~autofix_safe:false ~next_actions:actions msg
 
 (* MC-UNPARSED-TAIL: emitted when the parser stops reading a
@@ -1127,15 +1120,15 @@ let mc_unparsed_tail ?(path = []) ?(line = 0) ?(content = "") ?(lost = 0)
       ( "edit",
         "rewrite the multi-line value as a `|` block scalar (or align the \
          sequence indentation) so the loader can read it to EOF" );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Input ~severity:Warn ~path
-    ~policy_rule:(Some "spec/constitution.md §0 (honest status)")
-    ~retryable:false ~autofix_safe:false ~next_actions:actions msg
+    ~policy_rule:(Some "constitution §0 (honest status)") ~retryable:false
+    ~autofix_safe:false ~next_actions:actions msg
 
 let severity_of_string = function
   | "info" -> Some Info
@@ -1214,14 +1207,14 @@ let mc_negative_control_missing ?(decision_id = "") ?(next_actions = []) () =
       ( "add",
         "negative_control: tests/fixtures/<name>.sh   # the fixture that fails \
          when the property is broken" );
-      ("run", "mathc validate decisions/<file>.yaml");
+      ("run", "mathc validate <file>");
     ]
   in
   let actions =
     match next_actions with [] -> default_actions | _ -> next_actions
   in
   create ~code ~kind:Input ~severity:Warn ~path:[ "negative_control" ]
-    ~policy_rule:(Some "decisions/negative-control-required-2026-10.yaml")
+    ~policy_rule:(Some "the negative-control-required decision")
     ~next_actions:actions msg
 
 let explain ?(exact_schemes = []) ?(prefix_schemes = []) (code : string) :

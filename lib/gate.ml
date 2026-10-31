@@ -318,7 +318,8 @@ let[@warning "-32"] required_attestation_gap entry store =
                     causes = [ cause_msg ];
                     remedies =
                       [
-                        "produce the listed attestation in attestations/";
+                        "produce the listed attestation in the attestation \
+                         store";
                         "or remove the requirement from the decision";
                       ];
                     next_actions =
@@ -508,8 +509,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
             ];
           remedies =
             [
-              "revert the change that broke this obligation";
-              "or add a waiver under decisions/*.yaml";
+              "revert the change that broke this obligation"; "or add a waiver";
             ];
           next_actions =
             [
@@ -518,7 +518,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 Printf.sprintf "%s   # fix the underlying cause" decision_id );
               ( "create",
                 Printf.sprintf
-                  "decisions/waivers/%s-%s.yaml   # add a waiver if acceptable"
+                  "a waiver for %s-%s   # add a waiver if acceptable"
                   decision_id obligation_id );
             ];
         }
@@ -540,13 +540,12 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
             [
               ( "run",
                 Printf.sprintf
-                  "mathc verify decisions/%s.yaml   # see the per-obligation \
-                   verdict"
+                  "mathc verify %s   # see the per-obligation verdict"
                   decision_id );
               ( "edit",
                 Printf.sprintf
-                  "decisions/%s.yaml   # point the verifier at something that \
-                   exists"
+                  "the decision file for %s   # point the verifier at \
+                   something that exists"
                   decision_id );
             ];
         }
@@ -585,7 +584,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                   );
                   ( "edit",
                     Printf.sprintf
-                      "attestations/<decision>-%s.json   # update \
+                      "the attestation for <decision>-%s   # update \
                        subject.materials_digest"
                       obligation_id );
                 ];
@@ -605,15 +604,15 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
               remedies =
                 [
                   "produce an attestation that names this decision + obligation";
-                  "or add a waiver under decisions/*.yaml";
+                  "or add a waiver";
                 ];
               next_actions =
                 [
                   ( "create",
                     Printf.sprintf
-                      "attestations/%s-%s.json   # add an attestation file"
+                      "an attestation for %s-%s   # add an attestation file"
                       decision_id obligation_id );
-                  ("create", "decisions/waivers/<decision>-<obligation>.yaml");
+                  ("create", "a waiver for <decision>-<obligation>");
                   ("run", "mathc self-check");
                 ];
             }
@@ -651,7 +650,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                 remedies =
                   [
                     "revert the change that broke this obligation";
-                    "or add a waiver under decisions/*.yaml";
+                    "or add a waiver";
                   ];
                 next_actions =
                   [
@@ -662,8 +661,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                         decision_id );
                     ( "create",
                       Printf.sprintf
-                        "decisions/waivers/%s-%s.yaml   # add a waiver if \
-                         acceptable"
+                        "a waiver for %s-%s   # add a waiver if acceptable"
                         decision_id obligation_id );
                   ];
               }
@@ -710,7 +708,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                          explicitly" );
                     ( "edit",
                       Printf.sprintf
-                        "attestations/%s-%s.json   # re-author the \
+                        "the attestation for %s-%s   # re-author the \
                          inconclusive attestation"
                         decision_id obligation_id );
                   ]
@@ -718,7 +716,7 @@ let[@warning "-32"] obligation_gap ~decision_id ~obligation_id ~materials_digest
                   [
                     ( "edit",
                       Printf.sprintf
-                        "attestations/%s-%s.json   # add producer.run, or \
+                        "the attestation for %s-%s   # add producer.run, or \
                          reissue with a 'ci:' producer"
                         decision_id obligation_id );
                     ( "run",
@@ -1085,6 +1083,11 @@ type commit_info = {
      commitment this implements" is a claim the kernel can check, and
      a claim it cannot check is a claim it must not accept. *)
   corpus_decision_ids : string list;
+  (* The project's decisions directory, resolved by the caller
+     (`Path_config.resolve_decisions_dir`). The "did the author pair
+     the change with a decision file" rule checks a path against this
+     prefix, so the kernel does not hardcode one directory layout. *)
+  decisions_dir : string;
   (* The patterns of the project's protected-path list
      (`scripts/protected-paths.txt`). Injected, like the materials
      resolver, so this module stays free of I/O. *)
@@ -1098,6 +1101,7 @@ let empty_commit_info =
     has_sibling_yaml = false;
     trailer_decision_refs = [];
     corpus_decision_ids = [];
+    decisions_dir = "decisions";
     protected_paths = [];
   }
 
@@ -1201,13 +1205,16 @@ let[@warning "-32"] parse_trailer_refs body =
 
 (* Detect whether a decision file is part of the changed files.
    The commit_info.has_sibling_yaml flag tells apply_rule whether
-   the author paired the kernel change with a decisions/*.yaml
-   edit (per kernel contract §5). *)
-let[@warning "-32"] has_sibling_yaml files =
+   the author paired the kernel change with a decision-file edit
+   (per kernel contract §5). The directory is the project's, passed
+   in as `~decisions_dir` — the kernel does not hardcode one layout. *)
+let[@warning "-32"] has_sibling_yaml ~decisions_dir files =
+  let prefix = decisions_dir ^ "/" in
+  let plen = String.length prefix in
   List.exists
     (fun f ->
-      String.length f >= 12
-      && String.sub f 0 10 = "decisions/"
+      String.length f >= plen
+      && String.sub f 0 plen = prefix
       &&
       let ext = Filename.extension f in
       ext = ".yaml" || ext = ".yml")
@@ -1215,10 +1222,10 @@ let[@warning "-32"] has_sibling_yaml files =
 
 (* Build commit_info from the live gate inputs. *)
 let[@warning "-32"] commit_info_of ~protected_paths ~changed_paths ~body
-    ~corpus_decision_ids =
+    ~corpus_decision_ids ~decisions_dir =
   let files = List.sort String.compare changed_paths in
   let mode = Risk.mode files in
-  let has_sibling_yaml = has_sibling_yaml files in
+  let has_sibling_yaml = has_sibling_yaml ~decisions_dir files in
   let trailer_decision_refs =
     if body = "" then [] else parse_trailer_refs body
   in
@@ -1228,6 +1235,7 @@ let[@warning "-32"] commit_info_of ~protected_paths ~changed_paths ~body
     has_sibling_yaml;
     trailer_decision_refs;
     corpus_decision_ids;
+    decisions_dir;
     protected_paths;
   }
 

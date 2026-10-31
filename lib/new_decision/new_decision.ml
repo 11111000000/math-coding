@@ -333,8 +333,9 @@ let[@warning "-32"] has_axiom_link_block (contents : string) : bool =
    The code `MC-AXIOM-LINK-INFERENCE-EMPTY` is registered in
    `lib/diagnostic.ml::explain` so `mathc explain-diagnostic
    MC-AXIOM-LINK-INFERENCE-EMPTY` returns prose remediation. *)
-let[@warning "-32"] emit_axiom_link_inference_warn (paths : string list) =
-  let candidates = Decision.infer_axiom_candidates paths in
+let[@warning "-32"] emit_axiom_link_inference_warn ~axiom_link_rules
+    (paths : string list) =
+  let candidates = Decision.infer_axiom_candidates ~axiom_link_rules paths in
   let paths_str =
     if List.length paths <= 3 then String.concat ", " paths
     else
@@ -468,6 +469,11 @@ type options = {
   mode : mode;
   force : bool;
   template_kind : template_kind;
+  (* The axiom-link inference rules, read by bin/Mathc.ml from the
+     project's project-strings file. The kernel (this module, via
+     lib/decision.ml) applies whatever rules it is given; it does
+     not know this repository's directory layout. *)
+  axiom_link_rules : (string * string list) list;
 }
 
 (* `emit_scope_placeholder_warn`: the scaffold's scope path is a
@@ -522,7 +528,8 @@ let run (opts : options) =
               | Some ps -> ps
               | None -> extract_scope_paths contents
             in
-            emit_axiom_link_inference_warn warn_paths;
+            emit_axiom_link_inference_warn
+              ~axiom_link_rules:opts.axiom_link_rules warn_paths;
             emit_scope_placeholder_warn contents)
       | Interactive_mode ->
           Printf.printf
@@ -539,7 +546,8 @@ let run (opts : options) =
               | Some ps -> ps
               | None -> extract_scope_paths contents
             in
-            emit_axiom_link_inference_warn warn_paths
+            emit_axiom_link_inference_warn
+              ~axiom_link_rules:opts.axiom_link_rules warn_paths
       | Write_mode ->
           let root = project_root () in
           (* `~root` anchors the layout probe on the same tree the
@@ -571,6 +579,7 @@ let run (opts : options) =
               | Some ps -> ps
               | None -> extract_scope_paths contents
             in
-            emit_axiom_link_inference_warn warn_paths
+            emit_axiom_link_inference_warn
+              ~axiom_link_rules:opts.axiom_link_rules warn_paths
           end;
           emit_scope_placeholder_warn contents)

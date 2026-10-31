@@ -1,7 +1,7 @@
 (* lib/init/init.ml — `mathc init` implementation.
  *
- * Scaffolds a new math-coding project: creates `decisions/` and
- * `attestations/`, writes `decisions/decision.yaml` from a
+ * Scaffolds a new math-coding project: creates the decisions and
+ * attestations directories, writes the active policy from a
  * minimal master-policy template, and installs the pre-commit
  * hook (unless --no-install).
  *

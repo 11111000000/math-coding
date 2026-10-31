@@ -18,6 +18,7 @@
   packages
   policy
   protected_paths
+  project_strings
   re_evaluation
   rebuttal
   risk
