@@ -18,7 +18,7 @@ preserved by the dispatcher per spec/semantics.md CLI output
 contract):
 
   $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-COUNTEREXAMPLE-MISSING | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
-  {"code":"MC-COUNTEREXAMPLE-MISSING","def_len":451,"occ_len":879,"rem_len":304}
+  {"code":"MC-COUNTEREXAMPLE-MISSING","def_len":455,"occ_len":879,"rem_len":304}
 
 Positive case — known code MC-AMBIGUOUS-ACCEPTANCE exits 0 with
 the same shape contract. Confirms the registry is keyed by the

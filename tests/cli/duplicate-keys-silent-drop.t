@@ -12,7 +12,7 @@ makes the unreachable block visible.
     obligations: 1
     assumptions: 0
   $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-DUPLICATE-KEY | jq -c '{code, def_len: (.definition | length), occ_len: (.occurs_when | length), rem_len: (.remediation | length)}'
-  {"code":"MC-DUPLICATE-KEY","def_len":142,"occ_len":777,"rem_len":637}
+  {"code":"MC-DUPLICATE-KEY","def_len":142,"occ_len":777,"rem_len":641}
 
 mathc validate on a decision the loader cannot read to EOF prints
 MC-UNPARSED-TAIL naming the first unread line and keeps the verdict at

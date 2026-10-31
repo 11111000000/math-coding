@@ -254,7 +254,7 @@ The diagnostic is reachable via `mathc explain-diagnostic` so
 authors can look up remediation:
 
   $ $INSIDE_DUNE/bin/mathc.exe explain-diagnostic MC-SHA-MISMATCH | jq -c '{code, def_len: (.definition | length), rem_len: (.remediation | length)}'
-  {"code":"MC-SHA-MISMATCH","def_len":320,"rem_len":506}
+  {"code":"MC-SHA-MISMATCH","def_len":324,"rem_len":506}
 
 Cleanup:
   $ cd /
