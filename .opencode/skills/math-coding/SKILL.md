@@ -124,7 +124,8 @@ To point the kernel at the legacy layout explicitly:
 ```bash
 export MATH_CODING_DECISIONS_DIR=decisions
 export MATH_CODING_ATTESTATIONS_DIR=attestations
-export MATH_CODING_POLICY=decisions/decision.yaml
+# the legacy master policy is a file named `decision.yaml` in `decisions/`
+export MATH_CODING_POLICY="$MATH_CODING_DECISIONS_DIR/decision.yaml"
 ```
 
 The env var wins over the filesystem, and the resolver never consults
@@ -402,8 +403,9 @@ the legacy fallback; otherwise the new-default path, synthesised.
 ## Backward compatibility
 
 Projects bootstrapped against a 3.0–3.3 release — `decisions/` and
-`attestations/` at the repo root, master policy at
-`decisions/decision.yaml` — keep working with no configuration change:
+`attestations/` at the repo root, with the master policy as a file
+named `decision.yaml` inside `decisions/` — keep working with no
+configuration change:
 the resolver prefers `.math-coding/...` when it is present and falls
 back to the legacy layout when it is not; no migration, no rename, no
 deprecation warning. `mathc init` on a project that already has
@@ -415,6 +417,7 @@ To opt into the legacy layout explicitly:
 ```bash
 export MATH_CODING_DECISIONS_DIR=decisions
 export MATH_CODING_ATTESTATIONS_DIR=attestations
-export MATH_CODING_POLICY=decisions/decision.yaml
+# the legacy master policy is a file named `decision.yaml` in `decisions/`
+export MATH_CODING_POLICY="$MATH_CODING_DECISIONS_DIR/decision.yaml"
 mathc validate decisions/<id>.yaml
 ```

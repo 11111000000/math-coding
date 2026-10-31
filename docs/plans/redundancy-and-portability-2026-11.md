@@ -612,3 +612,42 @@ lesson is the wave's own: a plausible fix with a measured proof inside
 it still has to be checked against the decisions already in the
 corpus - and the cheapest check is to ask what the repository's own
 `.gitignore` excludes, before merging a filter that reads it.
+
+### 9.8 The full check is not the test suite
+
+The wave found a red fixture that a green suite did not see, and the
+reason is worth writing down, because the plan's own instrument had
+the same shape.
+
+**`dune build @runtest` is not the repository's check.** It runs the
+cram and Alcotest suites; the sixty-five shell fixtures under
+`tests/fixtures/` are run by `scripts/check.sh`, and by CI. A green
+`@runtest` says nothing about them.
+
+**And a green `@runtest` may be a CACHED green.** Dune caches the
+result of a test whose inputs did not change, and a cram test's
+inputs do not include the documentation it compares against. So a
+change to `adoption/SKILL.md` does not re-run the test that compares
+it with the copy the installer ships. The suite was green after the
+change and red before it, in the same tree.
+
+The defect that hid there was older than the wave: commit 68e406bf
+changed one copy of the OpenCode skill and not the other, and
+`tests/fixtures/skill-copies-identical.sh` has been red since. The
+copy the installer writes into a user's `~/.config` was the OLD
+document, and the adopter's document was the new one.
+
+So the wave's rule, from here:
+
+    the full check is `scripts/check.sh` AND `dune build @runtest --force`
+
+Two commands, not one, and the `--force` is not optional: without it
+the second of them may report a cached green. The exit code of each
+is the signal - and when the exit code comes from a pipeline, the
+pipeline's exit code is NOT the command's. This wave caught itself
+doing exactly that once: a `grep` at the end of a command line made a
+red test look green.
+
+And the rule underneath: a fixture that CI runs is not a fixture that
+everyone runs. If a check is the thing that catches a defect, it
+belongs to the command everyone runs.
