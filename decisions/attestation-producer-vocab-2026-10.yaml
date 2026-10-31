@@ -1,46 +1,44 @@
 ---
 schema: math-coding/3.3
 id: attestation-producer-vocab-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
-body_sha: "sha256:7011668a90ff36cd7f8d396ab6e7ad83a7c78ac2c8f6c7230f6bad4d617e4875"
-yaml_sha: "sha256:7011668a90ff36cd7f8d396ab6e7ad83a7c78ac2c8f6c7230f6bad4d617e4875"
+body_sha: "sha256:ccbda16873b18473a32400747b4f7062d97b6c011383a1151c4b464a39dbe86c"
+yaml_sha: "sha256:ccbda16873b18473a32400747b4f7062d97b6c011383a1151c4b464a39dbe86c"
 
-intent: |
-  Make the store say WHO produced each attestation, in a vocabulary a
-  reader cannot misread, and stop a machine from signing its own work
-  with a person's name.
+intent:
+  source: "issue:the-store-claims-passes-nobody-checked-2026-10-25"
+  text: |
+    Make the store say WHO produced each attestation, in a vocabulary a
+    reader cannot misread, and stop a machine from signing its own work
+    with a person's name.
 
-  `schemas/attestation.json` declared `producer.identity` as
-  `{"type": "string"}`. That is not a weak constraint, it is no
-  constraint: the one distinction that gives an attestation its
-  epistemic weight -- a human DECLARATION versus a machine
-  OBSERVATION -- was neither expressed nor checkable, and the store
-  actively violated the distinction it could not express.
+    `schemas/attestation.json` declared `producer.identity` as
+    `{"type": "string"}`. That is not a weak constraint, it is no
+    constraint: the one distinction that gives an attestation its
+    epistemic weight -- a human DECLARATION versus a machine
+    OBSERVATION -- was neither expressed nor checkable, and the store
+    actively violated the distinction it could not express.
 
-  Measured over the 765 tracked attestations, with `jq`, not by eye:
+    2026-11-01, REVISION 2: THE CENSUS BELOW IS A RECORD OF A STORE
+    THAT IS NO LONGER IN THE TREE. The counts -- 765 attestations, 369
+    `human:` identities, 90 of those demonstrably agent-produced, 62
+    untagged, 58 unanchored, 0 signed -- were measured over the store as
+    it stood on 2026-10-23. The store is not committed: `git ls-files
+    attestations/**` returns 0 and `decisions/store-not-committed-2026-10.yaml`
+    says why. A checkout carries no attestations at all, so the census
+    has nothing to walk, and a number about files that are not here is a
+    number about the past.
 
-    369  declare an identity beginning `human:`
-     90  of those are demonstrably agent-produced, not human:
-          human:opencode-agent               60
-          human:integration-experiment       17
-          human:agent-a1                      5
-          human:opencode-agent-c4             3
-          human:subagent-{alpine,docs,edge-tag,
-            healthcheck,install-fallback}   1 each
-     58  carry `human:` AND a runtime kind (test/build/analysis/
-          observation), which is the shape that actually upgrades a
-          claim: a person's name on machine-grade evidence
-     62  carry no class tag at all (ci-bot 40, ci-bot:dune-runtest 7,
-          dune:test 6, ci-bot:re-evaluate-decisions 4,
-          sub-agent-A4-batchA 3, test 2)
-
-  `human:integration-experiment` is the harness from commit 9c1f7ab,
-  which mass-signed 793 attestations under that name without asking
-  anyone; `--producer` became required in that same commit precisely
-  because of it. The tool learned to demand a name. Nothing taught it
-  to check that the name meant something.
+    The RULE did not move with the store, and the rule is what this
+    decision is for. The two validators are still in the kernel, still
+    dispatched only from `mathc validate` (the issuance path), still
+    registered in `mathc explain-diagnostic`, and still pinned by the
+    conformance fixtures and `tests/producer_vocab.ml`. What the
+    revision replaces is the arithmetic: the promise is now about the
+    validator and about the store that exists, not about a census of
+    files that were deleted from the corpus.
 
 commitment: |
   Two rules, both forward-only, enforced by the kernel and stated in
@@ -76,42 +74,45 @@ commitment: |
       reproduce the recorded `materials_digest` is caught by a named,
       failing verifier rather than by an inspection nobody performs.
 
-  The 62 untagged and 58 unanchored attestations already committed
-  are NOT rewritten. See `outcomes/grandfathered-not-rewritten`: the
-  reason is structural, not stylistic.
+  The rules apply to ISSUANCE. The store loader
+  (`lib/attestations/attestations.ml`) calls `Codec.parse_attestation`
+  and never these validators, so an attestation that predates the rules
+  stays loadable. That separation is deliberate and is the reason the
+  rule could be adopted without rewriting anybody's evidence: see
+  `outcomes/grandfathering-has-nothing-left-to-grandfather`.
 
 antithesis: |
-  "Rewrite the 90 misattributed files. Correct the record, then add
-  the rule so it cannot recur. `human:opencode-agent` becomes
+  "Rewrite the misattributed files. Correct the record, then add the
+  rule so it cannot recur. `human:opencode-agent` becomes
   `agent:opencode-agent` and the store is honest again."
 
   Rejected, on a mechanical ground that survives inspection: an
   attestation `id` is the sha256 of the attestation's canonical body
   with the `id` field removed, and `producer.identity` is part of
-  that body. Measured, not assumed -- on
-  `attestations/add-verify-subcommand-2026-10-no-self-check-regression.json`
-  the stored `id`
-  `sha256:cb50e64a9004d8a43905782fb20dd5c46027f31917fb69678abe38a39fe74a2f`
-  reproduces exactly as sha256 over the compact key-sorted body minus
-  `id`. Change the identity and the digest no longer matches. So
-  "correcting" 58 committed files means RECOMPUTING 58 evidence
-  identifiers and rewriting 58 committed objects -- minting new
+  that body. Change the identity and the digest no longer matches. So
+  "correcting" a committed file means RECOMPUTING its evidence
+  identifier and rewriting a committed object -- minting new
   provenance for evidence nobody re-ran, which is the same class of
   unrequested mass mutation as the 9c1f7ab incident this decision
   exists to prevent. A correction that fabricates the identifiers of
   the thing it corrects is not a correction.
 
+  The objection is now moot in the stronger sense: the files it names
+  are no longer in the tree, so there is nothing left to rewrite. The
+  reasoning is kept because the NEXT store will be written by a tool
+  that could make the same mistake, and the objection is the reason
+  the correction must not be a bulk rewrite when it does.
+
   Also rejected: "require a DSSE signature whose key_id is bound to a
   human key." That is the rule that would actually close the gap, and
-  it is deferred, not dismissed -- 0 of the 765 stored attestations
-  carry a signature at all, so the substrate has no key registry, no
-  key class, and no trust anchor to check a `human:` claim against.
-  Shipping the rule first would produce 765 rejects and no
-  discrimination. Tracked as the reversal signal
-  `first-signed-attestation-committed`.
+  it is deferred, not dismissed -- the substrate has no key registry,
+  no key class, and no trust anchor to check a `human:` claim against.
+  Shipping the rule first would produce a store in which every
+  attestation is rejected and no claim is discriminated. Tracked as the
+  reversal signal `first-signed-attestation-committed`.
 
-  Also rejected: "ban `human:` on `kind_: review` too, so no agent
-  can ever claim to be human." Banning the class where a false claim
+  Also rejected: "ban `human:` on `kind_: review` too, so no agent can
+  ever claim to be human." Banning the class where a false claim
   costs nothing buys no safety and costs the store its most common
   and most legitimate record -- a maintainer saying they read
   something.
@@ -143,19 +144,16 @@ counterexample: |
   impossible. What would make it impossible is key separation, and
   that is named above as deferred with a trigger, not glossed.
 
-  "The grandfathering makes the rule decorative: 120 of the 765
-  files still violate it."
+  "The grandfathering makes the rule decorative: the old files still
+  violate it."
 
   Counterargument: the store loader deliberately does not run these
-  validators, so all 765 remain loadable, and the rule applies to
-  issuance. That is not a loophole invented here to dodge the cost
-  -- it is exactly the shape of the sibling rule shipped in
-  `decisions/kernel-bugs-v3.4-2026-10`. Measured over the same 765
-  files, `mathc validate` already rejects 427 of them with
-  MC-MATERIALS-DIGEST-EMPTY. This decision adds 120 more rejects on
-  the issuance path and moves the corpus no further from loadable
-  than it already was. The debt is not hidden: it is INVENTORIED
-  below and PINNED by `tests/producer_vocab.ml::`
+  validators, so every legacy file remains loadable, and the rule
+  applies to issuance. That is not a loophole invented here to dodge
+  the cost -- it is exactly the shape of the sibling rule shipped in
+  `decisions/kernel-bugs-v3.4-2026-10`. The debt is not hidden: it is
+  INVENTORIED in `outcomes/grandfathering-has-nothing-left-to-grandfather`
+  and PINNED by `tests/producer_vocab.ml::`
   `test_grandfathered_backlog_is_pinned`, so if a file is quietly
   reissued or quietly added, a test fails and the inventory is
   visibly stale.
@@ -169,9 +167,10 @@ scope:
     - "fixtures/conformance/**"
     - "decisions/**"
     # In scope because this decision ADDS attestation files for its
-    # own obligations. It modifies none: outcomes/
-    # grandfathered-not-rewritten pins that, and the store walk in
-    # tests/producer_vocab.ml would fail if a tracked file changed.
+    # own obligations. It modifies none: the outcome
+    # grandfathering-has-nothing-left-to-grandfather pins that, and
+    # the store walk in tests/producer_vocab.ml would fail if a
+    # tracked file changed.
     - "attestations/**"
   exclusions:
     - "site/**"
@@ -183,10 +182,10 @@ outcomes:
       `mathc validate` rejects an attestation whose
       `producer.identity` does not match
       `^(human|agent|ci):[A-Za-z0-9][A-Za-z0-9._:/-]*$`, with code
-      MC-PRODUCER-CLASS-UNDECLARED and severity block. All 703
-      class-tagged identities in the committed corpus match that
-      pattern, so the rule constrains future issuance without
-      invalidating any identity the store already uses.
+      MC-PRODUCER-CLASS-UNDECLARED and severity block. The rule
+      constrains ISSUANCE without invalidating anything the store
+      already uses, because the store loader never runs the validator
+      and the store itself is not committed to the tree.
 
   - id: human-runtime-claim-must-be-anchored
     statement: |
@@ -195,22 +194,26 @@ outcomes:
       MC-PRODUCER-HUMAN-UNANCHORED and severity block. It ACCEPTS the
       same identity on `kind_: review`, and accepts `run: ""` nowhere.
 
-  - id: grandfathered-not-rewritten
+  - id: grandfathering-has-nothing-left-to-grandfather
     statement: |
-      No file under `attestations/` is modified by this decision. All
-      765 tracked attestations remain parseable and loadable, because
-      the store loader (`lib/attestations/attestations.ml`) calls
+      No file under `attestations/` is modified by this decision, and
+      there is nothing in the tree to modify: the store is not
+      committed (`git ls-files attestations/**` returns 0; see
+      `decisions/store-not-committed-2026-10.yaml`), and the store
+      loader (`lib/attestations/attestations.ml`) calls
       `Codec.parse_attestation` and never these validators -- the same
       separation the sibling MC-MATERIALS-DIGEST-EMPTY rule uses. The
-      62 untagged and 58 unanchored files are left exactly as
-      committed, inventoried here, and pinned by
+      legacy backlog is therefore not a corpus in this repository; what
+      is pinned instead is the backlog the CURRENT sweep produces: no
+      untagged identity and no `human:` producer on a runtime kind
+      among the attestations this tree's sweep emits, checked by
       `tests/producer_vocab.ml::test_grandfathered_backlog_is_pinned`.
 
   - id: the-gap-is-stated-not-papered
     statement: |
       The decision records as an explicit `unknown` that a `human:`
-      tag cannot be verified, enumerates the consequence, and names
-      the substrate change (key separation) that would close it,
+      tag cannot be verified, enumerates the consequence, and names the
+      substrate change (key separation) that would close it,
       together with the reversal signal that would trigger it. No
       diagnostic and no schema text asserts that a `human:` tag is
       true.
@@ -234,20 +237,21 @@ assumptions:
     epistemic_marker: unknown
     statement: |
       Nothing in this repository can establish that a `human:` identity
-      was typed by a person. 0 of the 765 tracked attestations carry
-      a `signature` block, so there is no key_id, no key registry, and
-      no trust anchor to compare a claim against. The schema constrains
-      the SHAPE of the claim and forces the runtime anchor to be
-      named; it does not and cannot authenticate the claim.
+      was typed by a person. No attestation in this repository carries
+      a `signature` block -- the store is not committed at all -- so
+      there is no key_id, no key registry, and no trust anchor to
+      compare a claim against. The schema constrains the SHAPE of the
+      claim and forces the runtime anchor to be named; it does not and
+      cannot authenticate the claim.
     owner: human:maintainer
     consequence_if_false: |
       If this unknown is wrong -- if some out-of-band mechanism does
-      bind identities to humans -- then (1) the 90 misattributed files
-      are a live integrity incident rather than a labelling debt, and
-      the investigation belongs in the security track, not here;
-      (2) rule (b) is a weaker duplicate of that mechanism and should
-      be relaxed to avoid double-penalising honest producers;
-      (3) the grandfathered 58 should be re-triaged as tampering.
+      bind identities to humans -- then (1) the misattributed files
+      of 2026-10 are a live integrity incident rather than a labelling
+      debt, and the investigation belongs in the security track, not
+      here; (2) rule (b) is a weaker duplicate of that mechanism and
+      should be relaxed to avoid double-penalising honest producers;
+      (3) the legacy backlog should be re-triaged as tampering.
       None of the three is derivable from this repository, which is
       precisely why the marker is `unknown` and not `judgment`.
     review_on:
@@ -269,10 +273,11 @@ assumptions:
       If naming a run changes nothing about what gets caught -- if
       verifiers are skipped or ignored in practice -- then rule (b)
       is ceremony and the store is no better off than before, except
-      that it now records a run string it never checks. Measured
-      executable coverage after commit 9c1f7ab was 860 of 1504
-      (57.2%); the remaining 634 Skipped are the population where
-      this assumption is weakest.
+      that it now records a run string it never checks. The coverage
+      that decides this is measured elsewhere and moves: the
+      executable-verifier census of 2026-10-23 read 860 of 1504
+      obligations executable (57.2%), and the population where this
+      assumption is weakest is the remaining Skipped set.
     review_on:
       - signal: verifier-execution-coverage-regresses
         date: "2026-10-23"
@@ -299,8 +304,9 @@ obligations:
       rejected, a `human:` runtime claim without a run is rejected,
       a named run is accepted, `run: ""` is not a run, `human:` on
       `kind_: review` is accepted, and `ci:`/`agent:` producers are
-      untouched. The suite also walks the live store and fails if any
-      class-tagged identity in the corpus is rejected by the kernel.
+      untouched. The suite also walks the live store -- when the tree
+      has one -- and fails if any class-tagged identity in it is
+      rejected by the kernel.
     acceptance:
       all:
         - verifier: tests/producer_vocab.ml
@@ -324,11 +330,13 @@ obligations:
         - verifier: tests/conformance.ml
 
   - id: corpus-remains-loadable
-    outcome: grandfathered-not-rewritten
+    outcome: grandfathering-has-nothing-left-to-grandfather
     claim: |
-      All 765 tracked attestations still parse and load, and no file
-      under `attestations/` is touched by this change. The grandfathered
-      backlog is measured and pinned, so it cannot drift unnoticed.
+      Nothing in the tree is touched by this change and nothing needs
+      to be: the store is generated, not committed, and the loader
+      never runs these validators. The backlog that must not grow is
+      the one the CURRENT sweep produces, and it is measured and
+      pinned, so it cannot drift unnoticed.
     acceptance:
       all:
         - verifier: tests/producer_vocab.ml
@@ -372,8 +380,8 @@ reversal:
       Promote `identity-must-declare-a-class` from "the claim is
       well-shaped" to "the claim is bound to a key whose class is
       human", keep rule (b) for producers with no signature, and
-      re-triage the 58 grandfathered files as a possible integrity
-      incident rather than a labelling debt. The assumption
+      re-triage the legacy files as a possible integrity incident
+      rather than a labelling debt. The assumption
       `human-tag-is-not-verifiable` flips out of `unknown` at that
       point and its consequence list is executed in full.
 
