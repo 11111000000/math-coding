@@ -1250,7 +1250,8 @@ let[@warning "-32"] read_cli_version_opt () : string option =
   in
   let rec loop = function
     | [] -> None
-    | p :: rest -> ( match try_one p with Some v -> Some v | None -> loop rest)
+    | p :: rest -> (
+        match try_one p with Some v -> Some v | None -> loop rest)
   in
   loop candidates
 
@@ -1291,14 +1292,14 @@ let[@warning "-32"] executable_real_path () : string option =
 let[@warning "-32"] self_sha256 () : string option =
   match executable_real_path () with
   | None -> None
-  | Some path ->
-      (try
-         let ic = open_in_bin path in
-         let n = in_channel_length ic in
-         let s = really_input_string ic n in
-         close_in ic;
-         Some (Digest.sha256_hex s)
-       with _ -> None)
+  | Some path -> (
+      try
+        let ic = open_in_bin path in
+        let n = in_channel_length ic in
+        let s = really_input_string ic n in
+        close_in ic;
+        Some (Digest.sha256_hex s)
+      with _ -> None)
 
 (* The short form: twelve hex characters of the digest above. *)
 let[@warning "-32"] build_id_short () : string option =
@@ -1312,59 +1313,58 @@ let[@warning "-32"] build_id_short () : string option =
 let[@warning "-32"] build_stamp_path () : string option =
   match executable_real_path () with
   | None -> None
-  | Some path ->
-      Some (Filename.concat (Filename.dirname path) "mathc.build-id")
+  | Some path -> Some (Filename.concat (Filename.dirname path) "mathc.build-id")
 
 let[@warning "-32"] read_build_stamp () : (string * string) option =
   match build_stamp_path () with
   | None -> None
-  | Some path ->
+  | Some path -> (
       if not (Sys.file_exists path) then None
       else
-        (try
-           let ic = open_in path in
-           let version = ref "" in
-           let build = ref "" in
-           (try
-              while true do
-                let line = input_line ic in
-                let key, value =
-                  match String.index_opt line '=' with
-                  | Some i ->
-                      (String.sub line 0 i, String.sub line (i + 1)
-                                     (String.length line - i - 1))
-                  | None -> (line, "")
-                in
-                if key = "version" then version := value
-                else if key = "build" then build := value
-              done
-            with End_of_file -> ());
-           close_in ic;
-           if !version = "" || !build = "" then None
-           else Some (!version, !build)
-         with _ -> None)
+        try
+          let ic = open_in path in
+          let version = ref "" in
+          let build = ref "" in
+          (try
+             while true do
+               let line = input_line ic in
+               let key, value =
+                 match String.index_opt line '=' with
+                 | Some i ->
+                     ( String.sub line 0 i,
+                       String.sub line (i + 1) (String.length line - i - 1) )
+                 | None -> (line, "")
+               in
+               if key = "version" then version := value
+               else if key = "build" then build := value
+             done
+           with End_of_file -> ());
+          close_in ic;
+          if !version = "" || !build = "" then None else Some (!version, !build)
+        with _ -> None)
 
 let[@warning "-32"] print_version () =
   let stamp = read_build_stamp () in
   match stamp with
-  | None ->
-      Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
-  | Some (version, stamped_build) ->
+  | None -> Printf.printf "math-coding %s: bootstrap\n" (read_cli_version ())
+  | Some (version, stamped_build) -> (
       (* The stamp describes the INSTALLED artifact, so its version is
          the one to print: the VERSION file the file lookup may find
          belongs to whatever tree the operator happens to stand in. *)
       let id =
         match build_id_short () with
         | Some id -> id
-        | None -> String.sub stamped_build 0 (min 12 (String.length stamped_build))
+        | None ->
+            String.sub stamped_build 0 (min 12 (String.length stamped_build))
       in
       Printf.printf "math-coding %s: bootstrap (build %s)\n" version id;
-      (match self_sha256 () with
-       | Some hex when hex <> stamped_build ->
-           Printf.eprintf
-             "mathc version: the installed stamp says %s but this binary hashes to %s\n"
-             stamped_build hex
-       | _ -> ())
+      match self_sha256 () with
+      | Some hex when hex <> stamped_build ->
+          Printf.eprintf
+            "mathc version: the installed stamp says %s but this binary hashes \
+             to %s\n"
+            stamped_build hex
+      | _ -> ())
 
 let print_usage oc =
   Printf.fprintf oc
@@ -2191,10 +2191,10 @@ let[@warning "-32"] do_version () =
    with Arg.Bad m ->
      Printf.fprintf stderr "mathc version: %s\n" m;
      exit 2);
-  if !build_id then begin
+  if !build_id then
     (* The build id is a MEASUREMENT: when the binary cannot be read,
        the answer is "unknown" (exit 3), not a guess. *)
-    match build_id_short () with
+    begin match build_id_short () with
     | Some id ->
         print_endline id;
         exit 0
@@ -2202,7 +2202,7 @@ let[@warning "-32"] do_version () =
         Printf.eprintf
           "mathc version: the build id of this binary could not be measured\n";
         exit 3
-  end;
+    end;
   if !check then
     begin match update_fetch_latest_tag () with
     | None -> exit 0

@@ -534,7 +534,7 @@ let[@warning "-32"] parse_policy v =
   match v with
   | Jsonl.Object ps -> (
       match Schema.take_string ps "policy_id" with
-      | Some policy_id ->
+      | Some policy_id -> (
           let parent = Schema.take_string ps "parent" in
           let scope_paths = parse_string_list ps "scope_paths" in
           let obligations = parse_obligations ps in
@@ -544,12 +544,14 @@ let[@warning "-32"] parse_policy v =
             | Some s -> (s, "")
             | None ->
                 if mode_declared then
-                  ( "", Printf.sprintf
-                       "MC-POLICY-UNKNOWN-MODE-FLOOR: policy %s: \
-                        mode_floor is not a mode name" policy_id )
+                  ( "",
+                    Printf.sprintf
+                      "MC-POLICY-UNKNOWN-MODE-FLOOR: policy %s: mode_floor is \
+                       not a mode name"
+                      policy_id )
                 else ("tiny", "")
           in
-          (match mode_error with
+          match mode_error with
           | _ when mode_error <> "" -> (None, mode_error)
           | _ -> (
               match Codec.parse_mode mode_str with
@@ -561,7 +563,9 @@ let[@warning "-32"] parse_policy v =
                       policy_id mode_str
                       (String.concat ", " known_mode_names) )
               | Some mode_floor ->
-                  let transitive_into = parse_string_list ps "transitive_into" in
+                  let transitive_into =
+                    parse_string_list ps "transitive_into"
+                  in
                   let data_flow_edges = parse_data_flow_edges ps in
                   let override_probability =
                     match Schema.take_number ps "override_probability" with
@@ -623,7 +627,9 @@ let parse_policies content =
           let parsed = List.map parse_policy items in
           let policies = List.filter_map fst parsed in
           let errors =
-            List.filter_map (fun (_, e) -> if e = "" then None else Some e) parsed
+            List.filter_map
+              (fun (_, e) -> if e = "" then None else Some e)
+              parsed
           in
           (policies, String.concat "; " errors)
       | None -> ([], "expected array of policies"))
@@ -677,8 +683,7 @@ let cached_policies : policy list ref = ref []
 let load_policies ?path () =
   let p = match path with Some s -> s | None -> default_policies_path in
   let ps, errors = load_policies_from_file p in
-  if errors <> "" then
-    Printf.eprintf "policies file %s: %s\n" p errors;
+  if errors <> "" then Printf.eprintf "policies file %s: %s\n" p errors;
   cached_policies := ps;
   ps
 
