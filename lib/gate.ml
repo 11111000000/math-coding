@@ -919,8 +919,87 @@ let[@warning "-32"] active_entries (memory : Memory.t) :
  * decision is therefore only as good as the person who wrote it,
  * and the gate says so by scoping itself to what the change
  * touches rather than by pretending to have checked the rest. *)
-let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
-    ~rebuttals ~materials_of_decision ~touched ~live =
+
+(* THE CHANGE SET: WHAT CHANGED, AND WHETHER WE KNOW.
+ *
+ * A list of changed paths carries two facts, and the gate used to
+ * read only one of them. "No path changed" and "we could not find
+ * out which paths changed" produce the same list, and the gate
+ * answered PASS to both.
+ *
+ * MEASURED, this repository, 2026-10-31, before this change:
+ *
+ *   $ mathc gate --no-scope --no-execute HEAD HEAD
+ *   {"verdict":"pass","obligations":468,"gaps_total":468,
+ *    "gaps_by_kind":{"MissingEvidence":468}, ...}
+ *   exit 0
+ *
+ * The AUDIT question — "is the whole corpus still sound?" — was
+ * answered `pass` while the same document listed 468 obligations and
+ * 468 gaps. The verdict came from `changed_paths = []` and never
+ * looked at the gaps it had already computed: the `| [], _ -> Pass`
+ * arm of the base verdict (lib/gate.ml:955-958, the line this
+ * comment replaced). The same tree, one commit earlier, with a
+ * NON-empty diff, answered `unknown` with the same 468 gaps. The
+ * only difference was whether git had anything to report.
+ *
+ * So the change set is a VALUE with two cases, and the gate tells
+ * them apart:
+ *
+ *   Diff_read ps     git answered. `ps` may be empty, and an empty
+ *                    list then means "the two trees are the same":
+ *                    the change's question has nothing to ask, and
+ *                    the scoped gate's answer is `pass` because there
+ *                    are no gaps to report.
+ *   Diff_unreadable  git did not answer. The change's scope is
+ *                    UNKNOWN, so the gate cannot conclude that the
+ *                    change touched nothing. The verdict is `unknown`
+ *                    and the reason is a gap of its own, not a
+ *                    silent pass.
+ *
+ * The audit question is the other half of the fix, and it needs no
+ * new case: with `Diff_read []` and no scoping, every active
+ * decision is evaluated, the gaps are the corpus's gaps, and the
+ * verdict is computed FROM THE GAPS. An audit question with gaps is
+ * `unknown`; an audit question without them is `pass`. *)
+type change_set = Diff_read of string list | Diff_unreadable
+
+(* The paths of a change set. An unreadable diff has no paths to
+ * report: handing back an empty list AS IF it were the answer is
+ * exactly the confusion this type exists to remove. *)
+let[@warning "-32"] changed_paths_of = function
+  | Diff_read ps -> ps
+  | Diff_unreadable -> []
+
+(* THE GAP OF A CHANGE SET THAT COULD NOT BE READ.
+ *
+ * It is a gap like any other: an obligation_id that names nothing in
+ * the corpus, a kind (`Unknown` — a check that could not conclude),
+ * a cause that says what happened, and a remedy that says what to do
+ * about it. It is NOT a per-obligation gap, because no obligation is
+ * at fault; it is the gate's own report that its INPUT was missing,
+ * and it carries the same weight as any other gap: it makes the
+ * verdict `unknown`, and `unknown` exits 3. *)
+let[@warning "-32"] unreadable_diff_gap () : gap =
+  {
+    obligation_id = "change-scope";
+    kind = `Unknown;
+    causes =
+      [
+        "the diff between the base and the head could not be read, so the \
+         scope of the change is unknown";
+      ];
+    remedies =
+      [
+        "make the repository readable -- git present, both refs resolvable, \
+         the objects intact -- and run the gate again";
+      ];
+    next_actions = [];
+  }
+
+let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed ~store ~rebuttals
+    ~materials_of_decision ~touched ~live =
+  let changed_paths = changed_paths_of changed in
   let active_decisions = active_entries memory in
   let active_decisions =
     match touched with
@@ -951,12 +1030,28 @@ let[@warning "-32"] evaluate ~now ~base ~head ~memory ~changed_paths ~store
         (fun entry -> required_attestation_gap entry store)
         active_decisions
   in
-  let obligation_count = applicable_count in
-  let base_verdict =
-    match (changed_paths, obligation_count) with
-    | [], _ | _, 0 -> Pass
-    | _ -> aggregate gaps
+  (* A change set that could not be read contributes a gap of its
+     own: the gate could not determine what the change touches, and
+     that fact belongs in the report rather than in a green verdict
+     that hides it. *)
+  let gaps =
+    match changed with
+    | Diff_read _ -> gaps
+    | Diff_unreadable -> unreadable_diff_gap () :: gaps
   in
+  let obligation_count = applicable_count in
+  (* THE VERDICT IS COMPUTED FROM THE GAPS.
+   *
+   * It used to be short-circuited to `pass` in two cases: an
+   * empty change set (`| [], _`) and an empty obligation set
+   * (`| _, 0`). The first was the measured lie above; the second
+   * was a smaller one of the same shape -- a decision whose
+   * `required_attestations` are unmet has no OBLIGATIONS, so the
+   * obligation count is 0, so the gate reported `pass` while the
+   * store was missing evidence the decision demanded. Both arms
+   * are gone: the verdict is what the gaps say, and a gap that
+   * exists is a gap the reader must see. *)
+  let base_verdict = aggregate gaps in
   let mode = Risk.mode changed_paths in
   let rebuttals_required =
     match rebuttal_gating_for_mode mode with
@@ -990,6 +1085,10 @@ type commit_info = {
      commitment this implements" is a claim the kernel can check, and
      a claim it cannot check is a claim it must not accept. *)
   corpus_decision_ids : string list;
+  (* The patterns of the project's protected-path list
+     (`scripts/protected-paths.txt`). Injected, like the materials
+     resolver, so this module stays free of I/O. *)
+  protected_paths : string list;
 }
 
 let empty_commit_info =
@@ -999,6 +1098,7 @@ let empty_commit_info =
     has_sibling_yaml = false;
     trailer_decision_refs = [];
     corpus_decision_ids = [];
+    protected_paths = [];
   }
 
 (* The trailer citations that name a decision the corpus holds.
@@ -1012,16 +1112,25 @@ let[@warning "-32"] resolved_trailer_refs (c : commit_info) : string list =
     c.trailer_decision_refs
 
 (* Helpers *)
-let touches_protected_path files =
-  let protected = [ "lib/"; "bin/Mathc.ml"; "spec/"; "schemas/"; "axioms/" ] in
-  List.exists
-    (fun p ->
-      List.exists
-        (fun prot ->
-          String.length p >= String.length prot
-          && String.sub p 0 (String.length prot) = prot)
-        protected)
-    files
+
+(* THE PROTECTED PATHS.
+ *
+ * The list is NOT here any more. It lives in the project, in
+ * `scripts/protected-paths.txt`, and it is read by three consumers:
+ * this gate, the pre-commit hook and the release-pending workflow.
+ * Before 2026-11 the three carried three different lists
+ * (`lib/gate.ml:1016` said `lib/`, the hook said `lib/*.ml`, the
+ * workflow said `lib/*`), so the three gates protected three
+ * different sets of files and nothing could say which was meant.
+ *
+ * The patterns arrive as a value: the kernel stays offline
+ * (OCAML_BEST_PRACTICES §1.3) and `bin/Mathc.ml` reads the file at the
+ * I/O boundary, the way it reads the attestation store and the
+ * materials resolver. An EMPTY list means "this project declares no
+ * protected paths" — the rule then has nothing to ask about, which is
+ * a fact about the project and not an error. *)
+let[@warning "-32"] touches_protected_path ~protected_paths files =
+  Protected_paths.touches protected_paths files
 
 let obligation_has_verifier _ob = true
 let obligation_has_review _ob = true
@@ -1045,7 +1154,7 @@ let apply_rule (rule : kernel_rule) (c : commit_info) : bool =
          implements an existing commitment wrote a second decision
          saying so, which is what `change_kind: implementation` marks,
          and which KERNEL_AGENTS.md §Decisions says not to do. *)
-      (not (touches_protected_path c.files))
+      (not (touches_protected_path ~protected_paths:c.protected_paths c.files))
       || c.has_sibling_yaml
       || resolved_trailer_refs c <> []
   | CoCommitFixture ->
@@ -1105,14 +1214,22 @@ let[@warning "-32"] has_sibling_yaml files =
     files
 
 (* Build commit_info from the live gate inputs. *)
-let[@warning "-32"] commit_info_of ~changed_paths ~body ~corpus_decision_ids =
+let[@warning "-32"] commit_info_of ~protected_paths ~changed_paths ~body
+    ~corpus_decision_ids =
   let files = List.sort String.compare changed_paths in
   let mode = Risk.mode files in
   let has_sibling_yaml = has_sibling_yaml files in
   let trailer_decision_refs =
     if body = "" then [] else parse_trailer_refs body
   in
-  { files; mode; has_sibling_yaml; trailer_decision_refs; corpus_decision_ids }
+  {
+    files;
+    mode;
+    has_sibling_yaml;
+    trailer_decision_refs;
+    corpus_decision_ids;
+    protected_paths;
+  }
 
 (* Detect any FailedEvidence gap in the obligations. Used by
    gate_v32 to honour the attestation check that the placeholder

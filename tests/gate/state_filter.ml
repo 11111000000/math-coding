@@ -290,7 +290,7 @@ let[@warning "-32"] run_filter_evaluate entries =
   in
   let result =
     Gate.evaluate ~now ~base:"HEAD~1" ~head:"HEAD" ~memory
-      ~changed_paths:[ "lib/test.ml" ] ~store:empty_store
+      ~changed:(Gate.Diff_read [ "lib/test.ml" ]) ~store:empty_store
       ~rebuttals:[]
         (* Semantics A: the reference materials digest is per decision.
          The kernel takes it as an injected function so it stays
