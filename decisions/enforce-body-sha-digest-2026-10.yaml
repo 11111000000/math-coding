@@ -4,8 +4,8 @@ id: enforce-body-sha-digest-2026-10
 revision: 1
 state: active
 mode: standard
-body_sha: "sha256:12a953df24b71f81be587661f686db5e111aec346e0708be78690ff3b0f628b9"
-yaml_sha: "sha256:12a953df24b71f81be587661f686db5e111aec346e0708be78690ff3b0f628b9"
+body_sha: "sha256:7a67aa8221365283b8e68f273823dd8259b66ea9dd022912a7a069789d2e76b2"
+yaml_sha: "sha256:7a67aa8221365283b8e68f273823dd8259b66ea9dd022912a7a069789d2e76b2"
 
 axiom_link:
   - A0
@@ -193,7 +193,7 @@ scope:
     - "tests/cli/self-check-digest-stale.t"
     - "tests/cli/validate-body-sha-pattern.t"
     - "decisions/**/*.yaml"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "tests/counters_drift.ml"
     - "tests/rebuttal_forge_stub.ml"
     - "tests/render_kernel.ml"
@@ -208,7 +208,7 @@ obligations:
     claim: |
       `mathc rehash` reports zero files needing a stamp: every decision
       under decisions/ carries the digest of its own bytes under
-      algebra §7.1, except the waiver/obligations files that belong to
+      kernel contract §7.1, except the waiver/obligations files that belong to
       other schema families and carry no body_sha by design. This is
       the one claim in this decision the kernel can decide entirely on
       its own, so it is the one stated as an obligation.
