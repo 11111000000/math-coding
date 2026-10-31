@@ -1,0 +1,476 @@
+---
+schema: math-coding/3.3
+id: corpus-tranche-stale-form-2-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/relation-targets-resolve.sh
+body_sha: "sha256:6b7abb170436a940a3e7ff6fd10c6baf0f76976e8ce5784d2b97864af72fdb48"
+yaml_sha: "sha256:6b7abb170436a940a3e7ff6fd10c6baf0f76976e8ce5784d2b97864af72fdb48"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+intent:
+  source: "task:T2.2b tranche 2 of 3 (the eleven STALE-FORM decisions named in docs/corpus-claims-inventory-2026-11.md §§6.13-6.23)"
+  text: |
+    Tranche T2.2b of the redundancy-and-portability plan, part 2 of 3:
+    eleven live decisions whose claim was still true and whose form had
+    gone stale.
+
+    THE RULE. The substance of each promise stays. The form becomes
+    current. A path that moved is re-pointed at the file or symbol that
+    exists; a count that changed becomes the invariant the count stood
+    for; a sentence about the past becomes a dated record or a current
+    rule; an unread YAML tail is repaired without dropping a field. No
+    promise was weakened to make it true. All eleven were changed; none
+    needed the judgment-call stop.
+
+    WHAT WAS REWRITTEN, AND HOW IT WAS MEASURED. Every statement below
+    was checked on this worktree on 2026-10-31. The command is named so
+    another reader can rerun it.
+
+    1. legacy-attestation-debt-2026-10. The old wording counted a
+       TRACKED store. The store is generated and is not tracked. The
+       decision now names the three measurements the fixture actually
+       makes over the generated store: empty-digest attestations,
+       unattested active decisions, and undeclared inconclusive
+       attestations. The current ceilings are 0, 3 and 1. Evidence:
+       `bash tests/fixtures/legacy-attestation-debt.sh` answers exit 3
+       (`unknown`, no store), and `bash scripts/ceiling-monotonic.sh`
+       prints all three ceilings against their bases.
+
+    2. mathc-packages-subcommand. The complete catalog promise remains:
+       every live decision-obligation pair has a verifier and a current
+       verdict. The file's unread tail is gone; the current site and
+       renderer paths are `site/packages.md` and
+       `lib/render/render.ml::build_pages`. Evidence:
+       `dune test tests/cli/packages.t` passes,
+       `mathc validate decisions/mathc-packages-subcommand.yaml` is
+       parse-ok with no MC-UNPARSED-TAIL, and the live JSON measurement
+       on 2026-10-31 was 139 decisions / 529 pairs with the generated
+       store absent (`no_store`, not `pass`). The corpus silent-drop
+       ledger was struck in the same commit.
+
+    3. mathjax-delimiter-hardening-2026-10. The safe delimiter promise
+       stays (`\\(...\\)` and `\\[...\\]` only). The implementation
+       anchor is now `lib/render/render_nav.ml::render_head`; the current
+       default is ON and `--no-mathjax` is the opt-out; the retired
+       Mermaid CSS claim is gone. Evidence:
+       `dune test tests/render_kernel.ml` passes, including the
+       no-dollar-delimiters and LaTeX-delimiter cases.
+
+    4. migration-mechanism-2026-10. The plan/default and opt-in
+       sibling-write behaviour stays. The decision now names
+       `lib/migrate.ml::apply_actions`,
+       `bin/Mathc.ml::do_migrate`, `KERNEL_AGENTS.md`, and
+       `OCAML_KERNEL_CONVENTIONS.md §4.3` instead of historical files
+       and line anchors. Evidence: the four cram cases
+       `migrate-dry-run.t`, `migrate-malformed.t`,
+       `migrate-no-changes.t`, and `migrate-write.t` pass.
+
+    5. multi-policy-hierarchy-2026-10. The parent-chain semantics stay.
+       The trap anchor is `OCAML_KERNEL_CONVENTIONS.md §11.30`, and the
+       expired `67 pass / 1 unknown` self-check count is replaced by
+       the current evidence boundary: a checkout without a generated
+       store answers `unknown` and exits 3, while the conformance
+       corpus passes. Evidence: `dune test tests/policy_test.ml`
+       passes all six hierarchy cases.
+
+    6. new-decision-mkdir-parent-2026-10. The recursive-mkdir and
+       forward-layout invariants stay. The decision now records the
+       CURRENT init contract: `.math-coding/` for a fresh tree and
+       `decisions/` only under explicit legacy environment variables.
+       The inventory's claim that init-legacy still expected an older
+       scaffold was already stale on this base: the current legacy
+       fixture expects revision 1, one obligation, and the kernel's
+       policy diagnostic, and passes. Evidence:
+       `dune test tests/cli/new-decision.t tests/cli/new-decision-axiom-warn.t tests/cli/init.t tests/cli/init-defaults.t tests/cli/init-legacy.t`
+       passes. The existing rejecting cram is now named as this
+       decision's negative control, making the inventory's CHECKED
+       class visible to the corpus instrument.
+
+    7. obligations. The aggregator still lists the live parent's seven
+       obligation ids in the same order. Its `decision.revision: 2` is
+       now explicitly a HISTORICAL reconciliation pointer, not the
+       current parent revision; the aggregator has its own revision 3.
+       The developer-practices promise names
+       `OCAML_KERNEL_CONVENTIONS.md`. Evidence:
+       `bash tests/fixtures/aggregator-matches-parent.sh` passes, and
+       `mathc validate decisions/obligations.yaml` is parse-ok.
+
+    8. priority-drift. The mirror invariant stays. The authoritative
+       table is `spec/semantics.md §Context-prioritisation`; the mirror
+       is `OCAML_KERNEL_CONVENTIONS.md §10.5`; the authority citation
+       is `decisions/validate-and-context.yaml`. The file also gained
+       the body/yaml digest fields required by the current form.
+       Evidence: `dune test tests/repo_structure.ml` passes the
+       `spec-vs-bp-priority` case.
+
+    9. process-principles-close-branches. The close-branches utility
+       and P1/P2 hook stay. The editorial exemption now cites
+       `KERNEL_AGENTS.md §Before work`; the malformed counterexample
+       list is one block scalar. Evidence: the four close-branches and
+       pre-commit fixtures pass, and `mathc verify` reports 3/3 pass.
+
+    10. process-principles. P1-P7 remain the promised set. The decision
+       now says what the tree does: P1/P2/P5/P6 have machine cases,
+       P3/P4/P7 are explicit human declarations, and live CLI cram
+       tests live in `tests/cli/*.t` while the old `tests/cram/*.t`
+       directory stays retired. Evidence:
+       `dune test tests/process_principles.ml` passes all eleven cases.
+
+    11. record-proportionality-2026-10. The floor, citation, and
+       corpus-proportionality rules stay. The citation verdict is now
+       stated as three distinct cases measured by
+       `tests/cli/gate-trailer-decision.t`: a resolving citation with
+       unresolved evidence is UNKNOWN (exit 3); no citation is BLOCKED;
+       a dangling citation is BLOCKED. The old corpus counts are marked
+       as dated evidence, not current counters. Evidence:
+       `dune test tests/cli/mode-floor-from-policies.t tests/cli/gate-trailer-decision.t`
+       passes, and `mathc mode lib/gate.ml` answers `standard` from the
+       declared floor.
+
+    WHAT WAS DELIBERATELY NOT REWRITTEN. The inventory lists 34
+    STALE-FORM decisions. This tranche edited the eleven above. It did
+    not edit the following 23 ids. Twelve were already rewritten by
+    tranche 1; the remaining eleven are reserved for tranche 3. The
+    list is explicit so "what was left" is not silence:
+
+      tranche 1 (already rewritten before this tranche):
+        3-2-cli-catalog
+        agent-onboarding
+        algebra-3.2
+        attestation-producer-vocab-2026-10
+        ci-blocking-list-config
+        d5-body-vs-wrapper-canonical-2026-10
+        decision
+        duplicate-mapping-keys-silent-drop-2026-10
+        executed-evidence-census-2026-10
+        forge-stub-read-request-2026-10
+        formal-verifier-conventions
+        install-tooling-2026-10
+
+      tranche 3 (still untouched):
+        render-ordered-lists-2026-10
+        site-broken-links-2026-10
+        site-deploy
+        site-diagrams-as-svg-2026-10
+        site-quality-2026-10
+        site-quality-illustrations-2026-10
+        time-honesty
+        unanchored-attestations-are-declarations-2026-10
+        validate-and-context
+        verifier-outcome-taxonomy-2026-10
+        version-sync-2026-10
+
+    WHAT REMAINS UNCERTAIN. Three boundaries are stated because the
+    tree cannot erase them from inside this tranche.
+
+      THE LEGACY-DEBT MEASUREMENT NEEDS A FRESH GENERATED STORE. The
+      fixture's semantics and ceilings are known, but this checkout has
+      no store, so the actual debt numbers are UNKNOWN (exit 3), not
+      zero. Claiming a measured zero from the missing store would repeat
+      the mistake this decision removes.
+
+      TWO INVENTORY OBSERVATIONS WERE ALREADY BEHIND THE TREE. The
+      init-legacy expectation and the gate-trailer expectation cited by
+      the inventory both pass on this base. The decisions now state the
+      live three-way citation rule; the read-only inventory record was
+      not edited.
+
+      PROTECTED NORMATIVE TEXT STILL NAMES OLD PATHS. In particular,
+      `spec/semantics.md §packages` still names `site/index.md` and the
+      old flat renderer path, and the protected spec was outside this
+      tranche's scope. The decision and the live implementation name
+      `site/packages.md` and `lib/render/render.ml`; that cross-surface
+      debt remains for the contract tranche.
+
+    The corpus instrument also retains one UNDECLARED relation key:
+    `amends: site-deploy@5` in mathjax-delimiter-hardening. The target
+    resolves; the key is not in the relation vocabulary. This tranche
+    did not invent a different relation meaning to make the counter
+    disappear.
+
+commitment: |
+  After this tranche closes:
+
+  1. The eleven decisions named above are current in form and retain
+     their substantive promises. Their revisions are:
+     legacy-attestation-debt-2026-10@2,
+     mathc-packages-subcommand@4,
+     mathjax-delimiter-hardening-2026-10@2,
+     migration-mechanism@3,
+     multi-policy-hierarchy-2026-10@2,
+     new-decision-mkdir-parent-2026-10@2,
+     obligations@3 (aggregator revision; the parent pointer remains a
+     historical reconciliation pointer),
+     priority-drift@4,
+     process-principles-close-branches@4,
+     process-principles@6, and
+     record-proportionality-2026-10@2.
+
+  2. Every one of the eleven is read by the kernel to EOF. The
+     packages file's former MC-UNPARSED-TAIL is gone, and the corpus
+     silent-drop ledger is empty.
+
+  3. Every relation target and verifier target named by the eleven
+     resolves. The relation-target fixture reports zero dangling
+     targets. The one remaining UNDECLARED key has a resolving target
+     and is not hidden.
+
+  4. The control classes recorded by the inventory are preserved.
+     `new-decision-mkdir-parent-2026-10` now names the existing
+     rejecting cram as its `negative_control:`, so the instrument's
+     UNCHECKED count falls from 32 to 31 instead of the inventory's
+     CHECKED class remaining prose. No other class changed. After this
+     tranche decision is included, the instrument measures CHECKED 87,
+     DECLARED 21, UNCHECKED 31, NO-PROMISE 1, over 140 decisions; the
+     sum invariant holds.
+
+  5. The corpus grows by exactly one decision -- this one. The corpus
+     measurement ceiling moves 142 -> 143 with the exact marker the
+     monotonic checker reads. The UNCHECKED ceiling falls 32 -> 31.
+     No other ceiling moves.
+
+  6. The other 23 inventory STALE-FORM ids are named above, with the
+     twelve already handled by tranche 1 separated from the eleven
+     reserved for tranche 3.
+
+  7. The uncertainty is recorded rather than smoothed over: the
+     generated-store debt is UNKNOWN without a fresh store, two
+     inventory observations were already behind the tree, and the
+     protected normative packages section still carries old paths.
+
+counterexample: |
+  "Rewriting eleven decisions is how a corpus stops being able to
+  answer the question it was written to answer. After the rewrite, a
+  decision says what the project happened to say on the day of the
+  rewrite, so the reader has to re-read it anyway."
+
+  The objection is right about a record and wrong about a rule, and
+  this tranche kept the distinction visible.
+
+  A decision that RECORDS what happened on a date may keep its past
+  tense. The legacy-attestation census, the 157/556 corpus measurement,
+  and the init defect report are dated records now. Rewriting them as
+  present facts would be a new falsehood.
+
+  A decision that RULES what the kernel must do is making a claim
+  about the present. A moved path, a vanished line, an unread tail,
+  and an obsolete self-check count make that claim impossible to
+  check. Replacing the form with the current path, symbol, section, or
+  measured rule does not weaken the promise; it makes the promise
+  readable by the kernel and by the next reader.
+
+  The branch's acceptance test was therefore: what does the tree say
+  NOW, and which command says so? Every rewritten promise can answer
+  both questions. Where the inventory's answer had itself become old,
+  the tree won and the inventory was reported, not copied.
+
+antithesis: |
+  The coherent alternative is to leave all eleven decisions alone and
+  let the STALE-FORM ledger describe them. The reader who wants the
+  current promise can inspect the tree, and a stale form is a smaller
+  sin than rewriting policy to fit the implementation.
+
+  That position has one real advantage: it never rewrites a decision
+  to make it look good. Its cost is that the corpus can no longer answer
+  "does this promise hold?" without making the reader repeat the
+  inventory's work.
+
+  The evidence used here is deliberately narrower than a pattern. The
+  work list came from a one-at-a-time inventory, but every rewrite was
+  re-measured here. Two inventory claims were already behind the tree;
+  neither was copied into a decision. The branch did not lower a
+  promise until the measurement was true, and it left the protected
+  normative debt named rather than pretending a decision-file edit had
+  repaired it.
+
+outcomes:
+  - id: eleven-decisions-are-current
+    statement: |
+      The eleven tranche decisions say what the tree says now, keep
+      their substantive promises, and are read by the kernel to EOF.
+  - id: the-measurements-are-reproducible
+    statement: |
+      Every rewritten claim names the command that measured it in this
+      tranche's intent.
+  - id: the-other-twenty-three-are-named
+    statement: |
+      The other 23 STALE-FORM ids are named, separating tranche 1's
+      twelve from tranche 3's eleven.
+  - id: the-class-delta-is-explicit
+    statement: |
+      One instrument classification changed because the inventory's
+      CHECKED decision named its existing rejecting control; the
+      change, the resulting four numbers, and the sum invariant are
+      recorded.
+  - id: uncertainty-remains-visible
+    statement: |
+      The missing generated store, the two obsolete inventory
+      observations, and the protected normative path debt remain
+      explicitly uncertain or deferred.
+
+scope:
+  paths:
+    - "decisions/legacy-attestation-debt-2026-10.yaml"
+    - "decisions/mathc-packages-subcommand.yaml"
+    - "decisions/mathjax-delimiter-hardening-2026-10.yaml"
+    - "decisions/migration-mechanism-2026-10.yaml"
+    - "decisions/multi-policy-hierarchy-2026-10.yaml"
+    - "decisions/new-decision-mkdir-parent-2026-10.yaml"
+    - "decisions/obligations.yaml"
+    - "decisions/priority-drift.yaml"
+    - "decisions/process-principles-close-branches.yaml"
+    - "decisions/process-principles.yaml"
+    - "decisions/record-proportionality-2026-10.yaml"
+    - "decisions/corpus-tranche-stale-form-2-2026-11.yaml"
+    - "tests/corpus_no_silent_drops/corpus_no_silent_drops.ml"
+    - "tests/fixtures/relation-targets-resolve.sh"
+    - "tests/fixtures/negative-control-debt.sh"
+    - "tests/fixtures/redundancy-census.sh"
+    - "scripts/ceiling-monotonic.sh"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "schemas/**"
+    - "docs/**"
+
+obligations:
+  - id: every-rewritten-decision-parses
+    outcome: eleven-decisions-are-current
+    claim: |
+      The kernel parses each of the eleven rewritten decisions to EOF at
+      the revision named in this decision, with no MC-UNPARSED-TAIL and
+      no MC-DUPLICATE-KEY.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/legacy-attestation-debt-2026-10.yaml
+        - verifier: mathc validate decisions/mathc-packages-subcommand.yaml
+        - verifier: mathc validate decisions/mathjax-delimiter-hardening-2026-10.yaml
+        - verifier: mathc validate decisions/migration-mechanism-2026-10.yaml
+        - verifier: mathc validate decisions/multi-policy-hierarchy-2026-10.yaml
+        - verifier: mathc validate decisions/new-decision-mkdir-parent-2026-10.yaml
+        - verifier: mathc validate decisions/obligations.yaml
+        - verifier: mathc validate decisions/priority-drift.yaml
+        - verifier: mathc validate decisions/process-principles-close-branches.yaml
+        - verifier: mathc validate decisions/process-principles.yaml
+        - verifier: mathc validate decisions/record-proportionality-2026-10.yaml
+
+  - id: no-silent-drop-remains
+    outcome: eleven-decisions-are-current
+    claim: |
+      The corpus scan reports no silent-drop diagnostic, and the exact
+      ledger test accepts the empty residual.
+    acceptance:
+      all:
+        - verifier: scripts/scan-silent-drops.sh
+        - verifier: tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+
+  - id: every-relation-target-resolves
+    outcome: eleven-decisions-are-current
+    claim: |
+      The relation-target fixture reports zero dangling targets over the
+      live corpus.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: the-control-class-delta-is-measured
+    outcome: the-class-delta-is-explicit
+    claim: |
+      The promise-debt instrument measures CHECKED 87, DECLARED 21,
+      UNCHECKED 31, and NO-PROMISE 1 over 140 decisions, and its sum
+      invariant holds.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-corpus-census-holds
+    outcome: eleven-decisions-are-current
+    claim: |
+      The redundancy census measures the enlarged corpus without a new
+      paper, broken, dangling, or dead-path debt.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-ceilings-are-monotone
+    outcome: the-class-delta-is-explicit
+    claim: |
+      The monotonic checker sees only the recorded corpus-size transition
+      and the UNCHECKED ceiling fall; every other ceiling holds or falls.
+    acceptance:
+      all:
+        - verifier: scripts/ceiling-monotonic.sh
+
+  - id: the-full-suite-passes
+    outcome: the-measurements-are-reproducible
+    claim: |
+      The full dune runtest suite exits 0; the exit code is the signal,
+      not a grep for the word FAIL.
+    acceptance:
+      all:
+        - verifier: dune build @runtest
+
+  - id: this-decision-validates
+    outcome: eleven-decisions-are-current
+    claim: |
+      This tranche decision validates under the current schema.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-tranche-stale-form-2-2026-11.yaml
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - corpus-form-stale-again
+    - generated-store-measurement-unavailable
+    - protected-spec-path-drift-remains
+    - relation-vocabulary-drift-remains
+
+assumptions:
+  - id: generated-store-freshness-is-the-measurement-boundary
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A generated attestation store measures this tree only when it is
+      signed for the current HEAD; a missing or stale store makes the
+      debt UNKNOWN rather than zero.
+    consequence_if_false: |
+      If the fixture measured a store for another tree as if it were
+      current, the ceiling would certify the wrong corpus.
+    review_on:
+      - signal: legacy-attestation-store-freshness-changes
+
+  - id: inventory-observations-are-rechecked-against-the-tree
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The inventory names the work list, but its dated observations are
+      hypotheses to rerun, not facts to copy into a decision.
+    consequence_if_false: |
+      If an unmeasured inventory observation were treated as current, a
+      rewrite could encode a defect that the tree had already fixed.
+    review_on:
+      - signal: inventory-and-live-tree-diverge-again
+
+  - id: protected-normative-debt-remains-out-of-scope
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      This tranche does not edit spec/**; an old path in protected
+      normative text is recorded as remaining debt, not silently
+      rewritten in a decision file.
+    consequence_if_false: |
+      If the decision and the normative section disagree about a path,
+      readers can still see which one the live tree implements, but
+      the protected-text debt remains open for its own transition.
+    review_on:
+      - signal: packages-spec-path-is-repaired
