@@ -2,9 +2,10 @@
 schema: math-coding/3.2
 id: schema-string-bump-3.0-alpha-to-3.2
 revision: 1
-state: active
-body_sha: "sha256:f8a9498e81566f36557bb6f4e5b9ceecb6a8ad18c3de8825ff2b3b427e5b74fa"
-yaml_sha: "sha256:f8a9498e81566f36557bb6f4e5b9ceecb6a8ad18c3de8825ff2b3b427e5b74fa"
+state: retired
+# Archived by T2.1: a completed schema-bump record with no live dependency.
+body_sha: "sha256:c73179ac7d27eca869b37efebf1eaf6a957ff3c03e5be5bddbca8c8dfe1f7f8c"
+yaml_sha: "sha256:c73179ac7d27eca869b37efebf1eaf6a957ff3c03e5be5bddbca8c8dfe1f7f8c"
 intent: |
   Close the schema-string drift between `decisions/*.yaml`
   (which have carried `math-coding/3.0-alpha` since v3.0.0.19)
@@ -112,7 +113,7 @@ scope:
   paths:
     - "schemas/decision.json"
     - "decisions/migrations/3.0-alpha-to-3.2.yaml"
-    - "decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml"
+    - "archive/decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml"
     - "decisions/*.yaml"
     - "PACKAGES.md"
     - "ROADMAP.md"

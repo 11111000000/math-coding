@@ -3,7 +3,7 @@
 #
 # NEGATIVE CONTROL for the `decisions-precommit` step in
 # scripts/check.sh. Verifier for obligation `precommit-gate-rejects`
-# of decisions/gate-truth-mathc-path-2026-10.yaml.
+# of archive/decisions/gate-truth-mathc-path-2026-10.yaml.
 #
 # WHY THIS EXISTS. The step under test used to invoke bare `mathc`
 # inside `nix develop .#test`. `mathc` is not a devShell package, so

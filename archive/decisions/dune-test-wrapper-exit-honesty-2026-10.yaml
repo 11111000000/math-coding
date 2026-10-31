@@ -2,10 +2,11 @@
 schema: math-coding/3.3
 id: dune-test-wrapper-exit-honesty-2026-10
 revision: 1
-state: active
+state: retired
+# Archived by T2.1: a completed exit-honesty fix record with no live dependency.
 mode: light
-body_sha: "sha256:79642c2240d7985faa3bbc15ae6bbdcf04793d72906de6d2b0d3d3dc91d97ccf"
-yaml_sha: "sha256:79642c2240d7985faa3bbc15ae6bbdcf04793d72906de6d2b0d3d3dc91d97ccf"
+body_sha: "sha256:e9277d38ddba678447e0a38c97baa948867b87ea7a09bb9f45ec1013d6decf4d"
+yaml_sha: "sha256:e9277d38ddba678447e0a38c97baa948867b87ea7a09bb9f45ec1013d6decf4d"
 
 axiom_link:
   - A1
@@ -141,7 +142,7 @@ scope:
   paths:
     - "scripts/dune-test-with-timeout.sh"
     - "tests/fixtures/dune-test-wrapper-propagates-failure.sh"
-    - "decisions/dune-test-wrapper-exit-honesty-2026-10.yaml"
+    - "archive/decisions/dune-test-wrapper-exit-honesty-2026-10.yaml"
   exclusions:
     - "scripts/dev"
     - "scripts/dev-fast-test"

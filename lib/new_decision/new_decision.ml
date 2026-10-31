@@ -72,7 +72,7 @@ type template_kind = Full | Minimal
 (* The template mirrors `adoption/SKILL.md` Step 3 with `<id>`
    substituted in. The schema-string is `math-coding/3.2` to
    match the live schema after
-   `decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml@1`.
+   `archive/decisions/schema-string-bump-3.0-alpha-to-3.2-2026-10.yaml@1`.
 `body_sha` and `yaml_sha` are 64-zero placeholders. The kernel
    VALIDATES but never WRITES them, so the placeholder must be
    replaced before the decision counts as attested: run

@@ -9,7 +9,7 @@ create one (`tests/cli/init-defaults.t`).
 WHAT WAS FALSE, and is corrected here: this file used to say that the
 six JSON schemas are "embedded as OCaml string constants in
 `lib/schema_embedded.ml`". They were not: that module had no reader in
-lib/ or bin/ and was removed (`decisions/dead-code-removal-2026-10.yaml`).
+lib/ or bin/ and was removed (`archive/decisions/dead-code-removal-2026-10.yaml`).
 The schemas remain the DOCUMENTATION of the formats; the parser is the
 law, and it is written in OCaml.
 

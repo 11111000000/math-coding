@@ -2,7 +2,7 @@
 # tests/fixtures/dune-test-wrapper-propagates-failure.sh
 #
 # NEGATIVE CONTROL for the obligation `wrapper-propagates-dune-exit` in
-# decisions/dune-test-wrapper-exit-honesty-2026-10.yaml.
+# archive/decisions/dune-test-wrapper-exit-honesty-2026-10.yaml.
 #
 # WHY THIS EXISTS
 # ---------------

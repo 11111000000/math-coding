@@ -2,9 +2,10 @@
 schema: math-coding/3.2
 id: gate-truth-mathc-path-2026-10
 revision: 1
-state: active
-body_sha: "sha256:54c1333c50688cd20199f241dae65a9c4a2cb0d72653e5ae2790a0d383067a67"
-yaml_sha: "sha256:54c1333c50688cd20199f241dae65a9c4a2cb0d72653e5ae2790a0d383067a67"
+state: retired
+# Archived by T2.1: a completed gate-path fix record with no live dependency.
+body_sha: "sha256:3defd6fbf9e58bb6cb2686d5533bc5801cb2ffeb035e81bc8a48bfb3a43f45d3"
+yaml_sha: "sha256:3defd6fbf9e58bb6cb2686d5533bc5801cb2ffeb035e81bc8a48bfb3a43f45d3"
 intent: |
   Make the `decisions-precommit` gate in scripts/check.sh mean what its
   label says, and make that meaning falsifiable.
@@ -167,7 +168,7 @@ scope:
     - "flake.nix"
     - "tests/fixtures/decisions-precommit-gate-rejects.sh"
     - "tests/fixtures/decisions-precommit-path-independent.sh"
-    - "decisions/gate-truth-mathc-path-2026-10.yaml"
+    - "archive/decisions/gate-truth-mathc-path-2026-10.yaml"
     - "attestations/gate-truth-mathc-path-2026-10-precommit-gate-rejects.json"
     - "attestations/gate-truth-mathc-path-2026-10-precommit-gate-is-path-independent.json"
   exclusions:

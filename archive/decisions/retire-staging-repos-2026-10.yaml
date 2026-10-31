@@ -6,8 +6,8 @@ state: active
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:57cd02e569fb253f9f9dd30dd35e983c40ee7d5ccb6cc66d6dc0dd2efa382a1d"
-yaml_sha: "sha256:57cd02e569fb253f9f9dd30dd35e983c40ee7d5ccb6cc66d6dc0dd2efa382a1d"
+body_sha: "sha256:7a44a73e904d9b6cb649c18859e4a0c70d795e89bc81967fdfd80a5b2e8eb4a7"
+yaml_sha: "sha256:7a44a73e904d9b6cb649c18859e4a0c70d795e89bc81967fdfd80a5b2e8eb4a7"
 
 axiom_link:
   - A1
@@ -68,7 +68,7 @@ counterexample: |
   An argument worth preserving: "audit cycles and adoption-
   experiment batches used `math-coding-fixes` as a buffer
   before fast-forwarding to main." Rejected: those commits
-  (e.g., decisions/render-module-split-phase1-2026-10.yaml)
+  (e.g., archive/decisions/render-module-split-phase1-2026-10.yaml)
   ship today from feature branches directly to main without a
   staging mirror, and the per-commit attestation store keeps
   evidence.

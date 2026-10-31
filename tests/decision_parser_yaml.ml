@@ -403,7 +403,7 @@ let[@warning "-32"] seq_following_key_survives_a_multiline_item () =
             (Jsonl.stringify (Jsonl.Object pairs)))
   | other -> Alcotest.failf "expected Object, got %s" (Jsonl.stringify other)
 
-(* The p8-hook-deficit-2026-10.yaml shape: a double-quoted flow scalar
+(* The archive/decisions/p8-hook-deficit-2026-10.yaml shape: a double-quoted flow scalar
    whose closing quote sits on the last continuation line. The
    continuation carries ": ", which is legal inside a double-quoted
    scalar (§7.3.4) and illegal in a plain one, so `fold_continuation`'s

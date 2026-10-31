@@ -942,8 +942,8 @@ let[@warning "-32"] rec fold_continuation tokens cur_indent =
  *
  *   decisions/cli-cram-tests.yaml                  `unknowns:`
  *   decisions/paren-balance-fix-2026-10.yaml       `unknowns:`
- *   decisions/p8-hook-deficit-2026-10.yaml         `unknowns:`
- *   decisions/render-module-split-phase1-2026-10.yaml   `unknowns:`
+ *   archive/decisions/p8-hook-deficit-2026-10.yaml  `unknowns:`
+ *   archive/decisions/render-module-split-phase1-2026-10.yaml   `unknowns:`
  *   decisions/render-module-split-phase1a-2026-10.yaml  `unknowns:`
  *   decisions/site-deploy.yaml                     `unknowns:`
  *

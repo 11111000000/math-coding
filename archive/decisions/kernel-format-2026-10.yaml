@@ -6,8 +6,8 @@ state: retired
 mode: tiny
 change_kind: editorial
 
-body_sha: "sha256:90cb06b7dcc0bbf76f3635ebc18e516449c40cbe16bb1025fbf3cc2ecb77f62e"
-yaml_sha: "sha256:90cb06b7dcc0bbf76f3635ebc18e516449c40cbe16bb1025fbf3cc2ecb77f62e"
+body_sha: "sha256:c6d6d90defd3793965030fe7d6553c68428436ec094525d0007f695d4703ab37"
+yaml_sha: "sha256:c6d6d90defd3793965030fe7d6553c68428436ec094525d0007f695d4703ab37"
 
 # 2026-10-31: archived by T2.1 - a record of one formatting commit, named
 #   by nothing in the tree (no relation, no verifier, no scope path).
@@ -28,7 +28,7 @@ intent: |
   fmt --preview`, and one of them (`format-circular-verifier-message-2026-10`)
   was left unsigned for that reason. The formatter is not a
   semantic change, and this decision records it in the same shape as
-  `decisions/format-circular-verifier-message-2026-10.yaml`, which
+  `archive/decisions/format-circular-verifier-message-2026-10.yaml`, which
   recorded a rewrap of a single message literal.
 
 commitment: |

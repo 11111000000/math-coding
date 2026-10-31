@@ -16,7 +16,7 @@
 # a cram .t path, or a recognised manual-style prefix.
 #
 # P8 enforcement was REMOVED on 2026-10 (see
-# decisions/p8-hook-deficit-2026-10). The previous "3+ правки .ml
+# archive/decisions/p8-hook-deficit-2026-10.yaml). The previous "3+ правки .ml
 # за 5 коммитов = edit-loop" rule gave false-positives on
 # legitimate connected refactors. The real P8 (AGENTS.md §Edit-loop
 # prevention) is "3 consecutive dune build attempts fail" — that
@@ -29,7 +29,7 @@
 # See:
 #   decisions/process-principles.yaml                 (P1 + P2 + P8)
 #   decisions/process-principles-close-branches.yaml  (this hook)
-#   decisions/p8-hook-deficit-2026-10.yaml            (P8 enforcement removed)
+#   archive/decisions/p8-hook-deficit-2026-10.yaml    (P8 enforcement removed)
 #
 # Exit 0 on pass, 1 on fail. Opt-in via `scripts/dev init-hooks`
 # (sets `git config core.hooksPath .githooks`).
@@ -56,7 +56,7 @@ if [ "$kernel_change" = "1" ] && [ "$decision_change" = "0" ]; then
 fi
 
 # --- P8 (soft warning; enforcement removed) -----------------------------
-# Per decisions/p8-hook-deficit-2026-10: the previous "3+ правки .ml за
+# Per archive/decisions/p8-hook-deficit-2026-10.yaml: the previous "3+ правки .ml за
 # 5 коммитов = edit-loop" rule gave false-positives on legitimate
 # connected refactors (every green build). The real P8 (AGENTS.md
 # §Edit-loop prevention) is "3 consecutive dune build attempts fail" —
@@ -70,7 +70,7 @@ if [ -n "$staged_ml" ]; then
     | awk '$1 >= 3 {print $0}')
   if [ -n "$HOT" ]; then
     echo "pre-commit: P8 soft warning — frequent recent edits to a .ml/.mli file." >&2
-    echo "This is no longer a hard block (see decisions/p8-hook-deficit-2026-10)." >&2
+    echo "This is no longer a hard block (see archive/decisions/p8-hook-deficit-2026-10.yaml)." >&2
     echo "If the agent is in an edit-loop, it should self-check per AGENTS.md §Edit-loop prevention." >&2
     echo "$HOT" >&2
     # soft warning: do NOT exit 1

@@ -2,11 +2,12 @@
 schema: math-coding/3.3
 id: dead-code-removal-2026-10
 revision: 2
-state: active
+state: retired
+# Archived by T2.1: a completed removal record with no live dependency.
 mode: standard
 
-body_sha: "sha256:eda4f3703518f326b7fad25aa47d9a22600544338f29e79045a2846309f37754"
-yaml_sha: "sha256:eda4f3703518f326b7fad25aa47d9a22600544338f29e79045a2846309f37754"
+body_sha: "sha256:b0c9a33abd54c369233ad4601cf2c7dd649b0584232c2cd9b71d90bf64a3d62f"
+yaml_sha: "sha256:b0c9a33abd54c369233ad4601cf2c7dd649b0584232c2cd9b71d90bf64a3d62f"
 
 axiom_link:
   - A0
@@ -101,7 +102,7 @@ scope:
     - "tests/cli/init-defaults.t"
     - "archive/decisions/ux-3-minimal-pollution-2026-10.yaml"
     - "decisions/negative-control-required-2026-10.yaml"
-    - "decisions/dead-code-removal-2026-10.yaml"
+    - "archive/decisions/dead-code-removal-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "_build/**"
@@ -122,11 +123,11 @@ obligations:
         - verifier: tests/fixtures/no-dead-references.sh
   - id: this-decision-validates
     claim: |
-      `mathc validate decisions/dead-code-removal-2026-10.yaml`
+      `mathc validate archive/decisions/dead-code-removal-2026-10.yaml`
       returns exit 0.
     acceptance:
       all:
-        - verifier: mathc validate decisions/dead-code-removal-2026-10.yaml
+        - verifier: mathc validate archive/decisions/dead-code-removal-2026-10.yaml
 
 risk:
   declared_triggers:

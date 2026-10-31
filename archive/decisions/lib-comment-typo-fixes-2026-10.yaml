@@ -4,8 +4,8 @@ id: lib-comment-typo-fixes-2026-10
 revision: 1
 state: active
 mode: light
-body_sha: "sha256:7bd3a8e6f9ca0e163e705098380f15dc4556386b15bc866f6aa89bab496501d1"
-yaml_sha: "sha256:7bd3a8e6f9ca0e163e705098380f15dc4556386b15bc866f6aa89bab496501d1"
+body_sha: "sha256:127db335a30a1f09afda24b14b20c1df13d07bbc048187eb2b723d033295cc11"
+yaml_sha: "sha256:127db335a30a1f09afda24b14b20c1df13d07bbc048187eb2b723d033295cc11"
 intent: |
   Fix two stale or incorrect textual references inside `lib/`
   OCaml comments that are misleading on first read:
@@ -23,7 +23,7 @@ intent: |
   the POSIX `Str` engine that ships across the 5.x series.
   Behavioural equivalence is preserved by construction: comments
   inside `lib/*.ml` are documentation, not policy-bearing code,
-  per `decisions/lib-stale-comments-cleanup-2026-10@1`
+  per `archive/decisions/lib-stale-comments-cleanup-2026-10.yaml` (revision 1)
   (assumption `comments-not-policy`).
 
   This file exists because `lib/*.ml` is policy-protected by
