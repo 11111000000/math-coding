@@ -1,11 +1,12 @@
 ---
 schema: math-coding/3.2
 id: paren-balance-fix-2026-10
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the one-off compile fix, with no live dependency.
 mode: light
-body_sha: "sha256:3bf9b8433bf6c944e599e7f6fb54a1b5ecd78e98f67c37d3ef8ebd90071be157"
-yaml_sha: "sha256:3bf9b8433bf6c944e599e7f6fb54a1b5ecd78e98f67c37d3ef8ebd90071be157"
+body_sha: "sha256:0721d00ecaf3d40025f01f15bd5757a695e9e998033167154470317262e1d647"
+yaml_sha: "sha256:0721d00ecaf3d40025f01f15bd5757a695e9e998033167154470317262e1d647"
 axiom_link:
   - A3
 intent: |
@@ -37,7 +38,7 @@ intent: |
 commitment: |
   1. `bin/Mathc.ml::validate_with_counts` builds cleanly with
      `dune build` on a clean tree at HEAD.
-  2. `mathc validate decisions/site-redesign-2026-10.yaml`
+  2. `mathc validate archive/decisions/site-redesign-2026-10.yaml`
      continues to return `accept`.
   3. `mathc validate decisions/d8-coarse-diagnostics-2026-10.yaml`
      continues to return `accept` (the decision that introduced
