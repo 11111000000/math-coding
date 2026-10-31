@@ -17,8 +17,8 @@ state: active
 # went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:3414432da4013867449bc570fd2e8845bedd41823ed7ca88a3dcb302a2cfe16a"
-yaml_sha: "sha256:3414432da4013867449bc570fd2e8845bedd41823ed7ca88a3dcb302a2cfe16a"
+body_sha: "sha256:6e1966f2c237e73c90a8ced3e02c23fa68f8ab234bfd8411f58c3437a586f873"
+yaml_sha: "sha256:6e1966f2c237e73c90a8ced3e02c23fa68f8ab234bfd8411f58c3437a586f873"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -347,7 +347,7 @@ scope:
     - "decisions/attest-per-obligation-2026-10.yaml"
     - "archive/decisions/audit-0.0.21-fixes.yaml"
     - "decisions/candidate-tree-resolves-to-a-commit-2026-10.yaml"
-    - "decisions/ceiling-monotonic-2026-10.yaml"
+    - "archive/decisions/ceiling-monotonic-2026-10.yaml"
     - "decisions/ci-self-check-is-an-audit-2026-10.yaml"
     - "decisions/cli-canonical-name.yaml"
     - "decisions/corpus-silent-drop-inventory-2026-10.yaml"

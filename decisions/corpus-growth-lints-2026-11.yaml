@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: light
 negative_control: tests/fixtures/verifier-scheme-allowlist.sh
-body_sha: "sha256:a7e02513fd31edfa0e6af02ba5a9b461addd6d6308b314acd91770bc533da6d3"
-yaml_sha: "sha256:a7e02513fd31edfa0e6af02ba5a9b461addd6d6308b314acd91770bc533da6d3"
+body_sha: "sha256:1937c85ad008639253332809c1324b7112d0d527ec47470e228c19207c894f49"
+yaml_sha: "sha256:1937c85ad008639253332809c1324b7112d0d527ec47470e228c19207c894f49"
 
 intent: |
   Two ways the corpus grows are invisible to the gate, and both of
@@ -51,7 +51,7 @@ intent: |
   `scope-invalidation-breadth-2026-10` and
   `self-check-fixture-coverage-honest-2026-10` - and draws six edges
   to them. The first of the three names a decision that exists under
-  a DIFFERENT id (`decisions/ceiling-monotonic-2026-10.yaml` declares
+  a DIFFERENT id (`archive/decisions/ceiling-monotonic-2026-10.yaml` declares
   `id: ceiling-monotonic`); the other two name decisions that are not
   in the corpus at all. Nothing says so, because nothing checks.
   MEASURED 2026-10-31: 44 relation targets in the live corpus resolve
