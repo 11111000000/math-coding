@@ -744,11 +744,11 @@ let counterexample_violation v =
             match mode_str with
             | "light" -> ""
             | _ ->
-                " but empty counterexample: spec/kernel-contract.md §11 requires \
-                 the counterexample dialectical slot for modes >= standard; \
-                 add a counterexample section naming the strongest objection \
-                 (or downgrade to mode: light if a documented soft slot is "
-                ^ "appropriate)"
+                " but empty counterexample: spec/kernel-contract.md §11 \
+                 requires the counterexample dialectical slot for modes >= \
+                 standard; add a counterexample section naming the strongest \
+                 objection (or downgrade to mode: light if a documented soft \
+                 slot is " ^ "appropriate)"
           in
           Some
             (Diagnostic.mc_counterexample_missing ~decision_id
@@ -1001,13 +1001,13 @@ let validate_with_counts path =
                                           (Diagnostic.mc_counterexample_missing
                                              ~decision_id:d.Domain.id
                                              "missing counterexample: \
-                                              spec/kernel-contract.md §11 names it \
-                                              as a dialectical slot for modes \
-                                              >= light; add a counterexample \
-                                              section naming the strongest \
-                                              objection (legacy soft warning; \
-                                              the Block path was already \
-                                              rejected before parse)")
+                                              spec/kernel-contract.md §11 \
+                                              names it as a dialectical slot \
+                                              for modes >= light; add a \
+                                              counterexample section naming \
+                                              the strongest objection (legacy \
+                                              soft warning; the Block path was \
+                                              already rejected before parse)")
                                       else None
                                     in
                                     let extra_diags =

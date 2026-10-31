@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: kernel-contract-rename-2026-11
-revision: 5
+revision: 6
 state: active
 mode: standard
 negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
-body_sha: "sha256:3bafb9e7a684edb552a0f6104326d4b37cf0b2a6c32b33e45edc5930980d1cdb"
-yaml_sha: "sha256:3bafb9e7a684edb552a0f6104326d4b37cf0b2a6c32b33e45edc5930980d1cdb"
+body_sha: "sha256:88c9005e9c5ed5ea08b26df73eb85fcec80502d5f3530197b5c9d95fc8002298"
+yaml_sha: "sha256:88c9005e9c5ed5ea08b26df73eb85fcec80502d5f3530197b5c9d95fc8002298"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
@@ -127,6 +127,9 @@ intent:
       rev 5  the instrument: the pointer scan joins the path scan,
              and every exclusion the instrument declares is exercised
              by the negative control.
+      rev 6  the formatter: the new name is longer than the old one,
+             and three files quote it inside string literals that were
+             exactly at the margin.
 
 counterexample: |
   The strongest objection against this transition is that it changes

@@ -417,7 +417,8 @@ let mc_antithesis_missing ?(decision_id = "") ?(severity = Warn)
     match severity with
     | Block ->
         Some
-          "spec/kernel-contract.md §11 + decisions/dialectic-method-v3-2026-10.yaml"
+          "spec/kernel-contract.md §11 + \
+           decisions/dialectic-method-v3-2026-10.yaml"
     | Warn | Info -> None
   in
   create ~code ~kind:Deficit ~severity ~policy_rule ~next_actions:actions
@@ -496,10 +497,10 @@ let axiom_link_missing ?(decision_id = "") () =
   in
   let msg =
     Printf.sprintf
-      "%sdecision has state=active but empty axiom_link: spec/kernel-contract.md \
-       §7 requires every active decision to name the axiom(s) it addresses via \
-       the axiom_link field; add one (e.g. axiom_link: [A0]) to the decision \
-       front-matter"
+      "%sdecision has state=active but empty axiom_link: \
+       spec/kernel-contract.md §7 requires every active decision to name the \
+       axiom(s) it addresses via the axiom_link field; add one (e.g. \
+       axiom_link: [A0]) to the decision front-matter"
       prefix
   in
   create ~code:"MC-AXIOM-LINK-MISSING" ~kind:Deficit ~severity:Block
@@ -579,11 +580,11 @@ let mc_sha_digest_stale ?(decision_id = "") ?(stored = "") ?(computed = "")
   let msg =
     Printf.sprintf
       "%sstored digest (%s) is not the digest of this file (%s): \
-       spec/kernel-contract.md §7.1 defines body_sha as sha256 of the file with \
-       both digest fields replaced by 'sha256:' + 64 zeros, so an edit to the \
-       body that was not accompanied by a recompute leaves the stored value \
-       stale. The body of this decision changed under a digest that still \
-       claims the old content."
+       spec/kernel-contract.md §7.1 defines body_sha as sha256 of the file \
+       with both digest fields replaced by 'sha256:' + 64 zeros, so an edit to \
+       the body that was not accompanied by a recompute leaves the stored \
+       value stale. The body of this decision changed under a digest that \
+       still claims the old content."
       prefix stored computed
   in
   let default_actions =

@@ -1099,7 +1099,8 @@ let[@warning "-32"] footer_links_github_origin () =
     (has "github.com/11111000000/math-coding/blob/main/PACKAGES.md" body);
   Alcotest.(check bool)
     "footer links to spec/kernel-contract.md on GitHub" true
-    (has "github.com/11111000000/math-coding/blob/main/spec/kernel-contract.md" body);
+    (has "github.com/11111000000/math-coding/blob/main/spec/kernel-contract.md"
+       body);
   (* Negative: the old broken-relative-link pattern is gone. *)
   Alcotest.(check bool)
     "footer does NOT carry '../AGENTS.html'" true
@@ -1168,7 +1169,9 @@ let[@warning "-32"] nav_has_github_link () =
            path)
         true
         (not (has "href=\"./github\"" page.Render.body)))
-    [ ("home", "Home"); ("axioms", "Axioms"); ("spec/kernel-contract", "Algebra") ]
+    [
+      ("home", "Home"); ("axioms", "Axioms"); ("spec/kernel-contract", "Algebra");
+    ]
 
 let[@warning "-32"] axioms_link_html_not_md () =
   (* The five axiom markdown sources must reference the rendered
@@ -1190,17 +1193,18 @@ let[@warning "-32"] axioms_link_html_not_md () =
       let path = Filename.concat root ("axioms/" ^ name ^ ".md") in
       let md = read_text path in
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/kernel-contract.md"
-           name)
+        (Printf.sprintf
+           "axioms/%s.md does NOT link to ../spec/kernel-contract.md" name)
         true
         (not (has "../spec/kernel-contract.md" md));
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md does NOT link to ../spec/kernel-contract.html"
-           name)
+        (Printf.sprintf
+           "axioms/%s.md does NOT link to ../spec/kernel-contract.html" name)
         true
         (not (has "../spec/kernel-contract.html" md));
       Alcotest.(check bool)
-        (Printf.sprintf "axioms/%s.md DOES link to spec/kernel-contract.html" name)
+        (Printf.sprintf "axioms/%s.md DOES link to spec/kernel-contract.html"
+           name)
         true
         (has "spec/kernel-contract.html" md))
     axiom_files;
