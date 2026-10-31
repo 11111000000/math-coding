@@ -1,0 +1,51 @@
+# scripts/project-strings.txt — THIS project's own names, in one file.
+#
+# WHAT THIS FILE IS. The single answer to the question "which of this
+# repository's names does the kernel need to know?". Two kinds:
+#
+#   book        the conventions document this repository carries. The
+#               capsule reads it as a Supporting item, and the kernel
+#               used to hardcode its OLD name — a name that stopped
+#               existing when the book was renamed, so the kernel read
+#               a file that was not there.
+#
+#   axiom-link  the inference table `mathc new-decision` uses to
+#               suggest axiom ids for a decision whose scope lives
+#               under a directory prefix. `lib/** -> A0,A1`,
+#               `tests/** -> A1` and the rest is THIS repository's
+#               directory layout, not a fact about the protocol.
+#
+# WHY THIS FILE EXISTS. The kernel is transferable: an adopter's tree
+# receives the kernel, a policies.yaml, decisions, attestations and the
+# skill. The adopter does NOT receive this repository's book or this
+# repository's directory layout, so advice about either is advice about
+# files the adopter does not have. These strings therefore live in the
+# project, and the kernel reads them the way it reads the protected
+# paths (lib/protected_paths.ml + scripts/protected-paths.txt): the
+# module is pure, bin/Mathc.ml reads this file and passes the value in,
+# and an empty file means "this project declares none" rather than an
+# error.
+#
+# FORMAT
+# ------
+# `key: value` per line. A line whose first non-blank character is `#`
+# is a comment; a blank line is ignored.
+#
+#   book: <project-relative filename>
+#       ONE value; the first non-empty occurrence wins.
+#   axiom-link: <prefix> <A0> [<A1> ...]
+#       the directory prefix, then the axiom ids to suggest, whitespace
+#       separated. Repeated lines accumulate, in file order.
+#
+# An unknown key is ignored. The kernel parses this text; it never
+# names these values itself.
+#
+# WHY THIS IS A DECISION. Changing these strings changes what the
+# kernel suggests and reads, so the list is a decision:
+# decisions/project-strings-leave-the-core-2026-11.yaml.
+
+book: OCAML_KERNEL_CONVENTIONS.md
+axiom-link: lib/ A0 A1
+axiom-link: tests/ A1
+axiom-link: decisions/ A0 A4
+axiom-link: spec/ A0 A3

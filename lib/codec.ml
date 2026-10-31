@@ -475,9 +475,9 @@ let[@warning "-32"] parse_waiver v =
  * Mirrors the loader in tests/conformance.ml: block-style mappings
  * with scalar or list values, nested objects via indentation,
  * quoted or bare scalars, and block-style sequences via "- ".
- * This is NOT a general YAML parser. See decisions/validate-and-context.yaml
- * for the assumption record and OCAML_BEST_PRACTICES §11.12 for the
- * trap-log entry that fixes the whitespace-stripping bug.
+ * This is NOT a general YAML parser. See the decision that introduced
+ * the assumption record and OCAML_BEST_PRACTICES §11.12
+ * for the trap-log entry that fixes the whitespace-stripping bug.
  *
  * Pure function: takes a string, returns a Jsonl.value. No file I/O.
  * The bin/ wrapper in bin/Mathc.ml reads the file and passes the
@@ -885,9 +885,9 @@ let[@warning "-32"] parse_yaml_flow_seq s =
    scalar value at indent `cur_indent` is followed by one or
    more lines whose indent is greater than `cur_indent`,
    those lines are appended to the scalar value with a
-   single space separator. Without this, `mathc validate
-   decisions/decision.yaml` rejects the bootstrap policy
-   itself: the `outcomes:` array contains a 2-line plain
+   single space separator. Without this, `mathc validate` on the
+   active policy rejects the bootstrap policy itself: the
+   `outcomes:` array contains a 2-line plain
    scalar, the second line is at indent 6, parse_yaml_pairs
    bails out at `head_indent tokens > cur_indent`, and
    every subsequent top-level key (`assumptions:`,

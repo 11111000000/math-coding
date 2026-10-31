@@ -599,11 +599,11 @@ let[@warning "-32"] verifier_path_diagnostic (id, p, reason, _manual) =
   in
   Diagnostic.create ~code ~kind:Diagnostic.Input ~severity
     ~path:[ Printf.sprintf "obligations.%s.acceptance.path" id ]
-    ~policy_rule:(Some "decisions/verifier-path-resolution-2026-10.yaml")
+    ~policy_rule:(Some "the verifier-path-resolution decision")
     ~next_actions:
       [
         ("edit", remedy);
-        ("run", "mathc validate decisions/<file>.yaml");
+        ("run", "mathc validate <file>");
         ("run", "mathc explain-diagnostic " ^ code);
       ]
     what
@@ -1480,8 +1480,7 @@ let print_usage oc =
     \  init [PATH] [--agent NAME]        scaffold a new math-coding project:\n\
     \                  [--from-adr PATH]     create decisions/, attestations/, \
      write\n\
-    \                  [--no-install]        decisions/decision.yaml, install \
-     the\n\
+    \                  [--no-install]        the active policy, install the\n\
     \                  [--merge]             pre-commit hook. Refuses on \
      arc42/MADR\n\
     \                  [--with-ci-workflow]  unless --merge; --from-adr is a \
@@ -1690,7 +1689,7 @@ let[@warning "-32"] has_math_coding_layout root =
       ".math-coding/decisions";
       ".math-coding/attestations";
       "decisions";
-      "decisions/decision.yaml";
+      Path_config.legacy_policy_path;
       "attestations";
     ]
 
@@ -2239,7 +2238,16 @@ let[@warning "-32"] build_memory_for root base head =
   let changed_paths_raw =
     try run_git_command base head [ "diff"; "--name-only" ] with _ -> ""
   in
-  Memory.load_memory ~reader ~root ~recent_commits_raw ~changed_paths_raw
+  (* The best-practices document's name is the project's, read from
+     the project-strings file (the same shape as the protected-path
+     list). None = "this project declares no such document". *)
+  let best_practices_path =
+    let rel = Path_config.resolve_project_strings_path ~root () in
+    let ps = Project_strings.load (Filename.concat root rel) in
+    ps.Project_strings.book
+  in
+  Memory.load_memory ~reader ~root ~best_practices_path ~recent_commits_raw
+    ~changed_paths_raw
 
 (* Render a Capsule.t as JSON. We hand-build the JSON so we do not
    need yojson in the kernel or in bin/ (OCAML_BEST_PRACTICES §7.3
@@ -2388,22 +2396,45 @@ let[@warning "-32"] capsule_to_json cap =
 
 (* --- explain subcommand (bootstrap decision mathc-explain-subcommand) --- *)
 
-(* Resolve a decision id to its project-relative file under
-   decisions/. Mirrors the special-case table in
-   lib/capsule.ml:174-185 so a `mathc context` omitted item with
-   detail_ref `decision:<id>` resolves to the same file the
-   capsule would have shown had the budget permitted. Returns
-   a project-relative path so the JSON `path` field is portable
-   across worktrees (the absolute path is reconstructed for the
-   actual file read). *)
+(* Resolve a decision id to its project-relative file under the
+   decisions directory. The corpus's own lesson applies: the filename
+   is not the id. The pre-fix code carried a hand-written table of the
+   four decisions whose file name differs from their id; that table was
+   this project's own file names baked into the kernel, and it went
+   stale as the corpus grew. The walk below finds the decision by the
+   id its document DECLARES, and the fallback is the protocol's
+   `<id>.yaml` convention for the common case — not a table of files.
+   Returns a project-relative path so the JSON `path` field is
+   portable across worktrees (the absolute path is reconstructed for
+   the actual file read). *)
 let[@warning "-32"] decision_relpath ~root id =
   let dir = Path_config.resolve_decisions_dir ~root () in
-  match id with
-  | "bootstrap-v3" -> dir ^ "/decision.yaml"
-  | "infrastructure-honesty" -> dir ^ "/infrastructure-honesty.yaml"
-  | "kernel-conformance-runner" -> dir ^ "/kernel-conformance-runner.yaml"
-  | "validate-and-context" -> dir ^ "/validate-and-context.yaml"
-  | _ -> dir ^ "/" ^ id ^ ".yaml"
+  let abs_dir = Filename.concat root dir in
+  let root_prefix =
+    if String.length root > 0 && root.[String.length root - 1] = '/' then root
+    else root ^ "/"
+  in
+  let strip_root p =
+    if
+      String.length p > String.length root_prefix
+      && String.sub p 0 (String.length root_prefix) = root_prefix
+    then
+      String.sub p
+        (String.length root_prefix)
+        (String.length p - String.length root_prefix)
+    else p
+  in
+  let found =
+    Memory.decision_document_paths abs_dir
+    |> List.find_map (fun p ->
+        match read_file p with
+        | Error _ -> None
+        | Ok raw -> (
+            match Memory.decision_document_id ~raw with
+            | Some did when String.equal did id -> Some (strip_root p)
+            | _ -> None))
+  in
+  match found with Some rel -> rel | None -> dir ^ "/" ^ id ^ ".yaml"
 
 (* Resolve a "soft" kind that lib/reference.ml does not recognise
    (the formal parser covers decision/obligation/attestation/waiver/
@@ -5655,7 +5686,7 @@ let[@warning "-32"] extract_obligation_ids lines =
 (* The verifier strings a document names, read off its lines: a
    sequence item that begins with `verifier:`. The value is the rest of
    the line, unquoted. *)
-let[@warning "-32"] decision_entry_of_raw ~id raw =
+let[@warning "-32"] decision_entry_of_raw ~id ~path raw =
   if id = "" then None
   else
     let lines = String.split_on_char '\n' raw in
@@ -5682,6 +5713,7 @@ let[@warning "-32"] decision_entry_of_raw ~id raw =
         Memory.decision_id = id;
         Memory.revision = None;
         Memory.source = raw;
+        Memory.source_path = path;
         Memory.obligations = List.length obligation_ids;
         Memory.obligation_ids;
         Memory.assumptions = 0;
@@ -5699,7 +5731,7 @@ let[@warning "-32"] load_decision_entry reader path =
   | raw -> (
       match Memory.decision_document_id ~raw with
       | None -> None
-      | Some id -> decision_entry_of_raw ~id raw)
+      | Some id -> decision_entry_of_raw ~id ~path raw)
 
 (* --- the corpus index -------------------------------------------------
  *
@@ -5738,7 +5770,7 @@ let[@warning "-32"] load_corpus ~(reader : string -> string)
           match Memory.decision_document_id ~raw with
           | None -> None
           | Some id -> (
-              match decision_entry_of_raw ~id raw with
+              match decision_entry_of_raw ~id ~path raw with
               | None -> None
               | Some entry -> Some { path; id; raw; entry })))
 
@@ -7207,6 +7239,7 @@ let do_gate () =
   let c_info =
     Gate.commit_info_of ~protected_paths ~changed_paths ~body:commit_body_raw
       ~corpus_decision_ids
+      ~decisions_dir:(Path_config.resolve_decisions_dir ~root ())
   in
   let cited = Gate.resolved_trailer_refs c_info in
   let touched =
@@ -11502,7 +11535,17 @@ let[@warning "-32"] do_new_decision () =
     else New_decision.Print_mode
   in
   New_decision.run
-    { New_decision.id = !id; mode; force = !force; template_kind = kind }
+    {
+      New_decision.id = !id;
+      mode;
+      force = !force;
+      template_kind = kind;
+      axiom_link_rules =
+        (let root = find_project_root (Sys.getcwd ()) in
+         let rel = Path_config.resolve_project_strings_path ~root () in
+         (Project_strings.load (Filename.concat root rel))
+           .Project_strings.axiom_link_rules);
+    }
 
 (* --- doctor subcommand (mathc-doctor-subcommand-2026-10) ---
  *
@@ -11753,8 +11796,8 @@ let[@warning "-32"] doctor_section_latest () : doctor_section =
 
 (* Section d -- Config.
  *
- * Does `decisions/decision.yaml` (the active policy) parse
- * against the live schema and pass `validate_with_counts`?
+ * Does the active policy (the file `resolve_policy_path` names)
+ * parse against the live schema and pass `validate_with_counts`?
  * Verdict: `Pass` on accept, `Fail` on reject. *)
 let[@warning "-32"] doctor_section_config () : doctor_section =
   let root = find_project_root (Sys.getcwd ()) in
@@ -11767,7 +11810,7 @@ let[@warning "-32"] doctor_section_config () : doctor_section =
       | `Accept_aggregate _ -> `Pass
       | `Reject (_, msg) -> `Fail msg
       | `Input_err msg -> `Fail msg
-    else `Fail "decisions/decision.yaml not found"
+    else `Fail (path ^ " not found")
   in
   let details =
     Jsonl.Object
@@ -12151,8 +12194,8 @@ let dispatch () =
      THE FILE THIS LOADS. Not the master policy: the master policy is
      the active protocol DECISION (bootstrap-v3@3), located by id, and
      the resolver this call used to use answered "the master policy"
-     with `.math-coding/policy.yaml` or `decisions/decision.yaml` --
-     both decision documents. Parsing either as a policy sequence
+     with the new-default policy path or the legacy one -- both
+     decision documents. Parsing either as a policy sequence
      yields an empty list, so the policy cache stayed empty, every
      path classified as `tiny`, and the `mode_floor` a project
      declares was never read by the kernel that documents it. The

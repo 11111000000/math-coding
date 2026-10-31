@@ -166,15 +166,10 @@ let[@warning "-32"] build_change_items mem =
 let[@warning "-32"] build_decision_items ~active_policy_id mem =
   List.map
     (fun entry ->
-      let source_path =
-        match entry.Memory.decision_id with
-        | "bootstrap-v3" -> "decisions/decision.yaml"
-        | "infrastructure-honesty" -> "decisions/infrastructure-honesty.yaml"
-        | "kernel-conformance-runner" ->
-            "decisions/kernel-conformance-runner.yaml"
-        | "validate-and-context" -> "decisions/validate-and-context.yaml"
-        | _ -> "decisions/" ^ entry.Memory.decision_id ^ ".yaml"
-      in
+      (* The decision's path comes from the walk that loaded it — the
+         id is the identity, not the file name, so the path is what the
+         walker found, never a reconstruction from the id. *)
+      let source_path = entry.Memory.source_path in
       let kind = classify_decision ~active_policy_id mem entry source_path in
       let summary =
         Printf.sprintf "%s@%s: %d obligations, %d assumptions, %d triggers"
@@ -209,14 +204,11 @@ let[@warning "-32"] build_axiom_items (mem : Memory.t) =
     axioms
 
 let[@warning "-32"] build_best_practices_item mem =
-  match mem.Memory.best_practices with
-  | None -> []
-  | Some body ->
-      [
-        make_item Supporting
-          ("OCAML_BEST_PRACTICES.md: " ^ first_line body)
-          "doc:OCAML_BEST_PRACTICES";
-      ]
+  match (mem.Memory.best_practices_path, mem.Memory.best_practices) with
+  | Some rel, Some body ->
+      let base = Filename.basename rel in
+      [ make_item Supporting (base ^ ": " ^ first_line body) ("doc:" ^ rel) ]
+  | _ -> []
 
 (* Sort by priority rank, stable on input order. *)
 let[@warning "-32"] sort_items (items : item list) : item list =

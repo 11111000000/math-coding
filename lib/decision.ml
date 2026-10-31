@@ -1622,13 +1622,14 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
  * NEVER auto-filled. The author retains full control over the
  * final axiom choice.
  *
- * Table (from `plan-2026-10-adoption-fixes-2026-10.yaml` §4 C2):
- *
- *     lib/**         → A0, A1
- *     tests/**       → A1
- *     decisions/**   → A0, A4
- *     spec/**        → A0, A3
- *     (fallback)     → A0
+ * The table's SHAPE (a directory prefix maps to a list of axiom
+ * ids) is the rule; the table's CONTENT (which prefix maps to
+ * which axioms) is THIS project's directory layout, and it lives in
+ * `scripts/project-strings.txt` (read through lib/project_strings.ml).
+ * The plan that first wrote the table here
+ * (`plan-2026-10-adoption-fixes-2026-10.yaml` §4 C2) named the
+ * prefixes lib/** tests/** decisions/** spec/** — one repository's
+ * layout, which is exactly the knowledge the kernel must not carry.
  *
  * A path "matches" a rule when it starts with the rule's prefix
  * (case-sensitive; no glob expansion). When multiple rules match,
@@ -1653,20 +1654,22 @@ let[@warning "-32"] peek_schema_family (v : Jsonl.value) :
  * Pure function: no I/O, no state. Tested directly in
  * `tests/cli/new-decision-axiom-warn.t` via the
  * `MATH_CODING_NEW_DECISION_SCOPE_PATHS` env-var override on
- * `mathc new-decision`. *)
-let[@warning "-32"] infer_axiom_candidates (paths : string list) : string list =
+ * `mathc new-decision`.
+ *
+ * The rule table is NOT this function's own: it is passed in
+ * (`~axiom_link_rules`), read by bin/Mathc.ml from the project's
+ * `scripts/project-strings.txt` (lib/project_strings.ml). The
+ * directory layout of THIS repository is project knowledge; the
+ * kernel only applies the rules it is given. An EMPTY rule list
+ * keeps the documented fallback: "always return at least one
+ * candidate", the universal `A0`. *)
+let[@warning "-32"] infer_axiom_candidates ~axiom_link_rules
+    (paths : string list) : string list =
   let[@warning "-32"] starts_with ~prefix s =
     let pl = String.length prefix in
     String.length s >= pl && String.sub s 0 pl = prefix
   in
-  let rules =
-    [
-      ("lib/", [ "A0"; "A1" ]);
-      ("tests/", [ "A1" ]);
-      ("decisions/", [ "A0"; "A4" ]);
-      ("spec/", [ "A0"; "A3" ]);
-    ]
-  in
+  let rules = axiom_link_rules in
   let matched_axioms =
     List.concat_map
       (fun (prefix, axs) ->

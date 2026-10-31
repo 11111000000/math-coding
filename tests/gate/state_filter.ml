@@ -244,6 +244,7 @@ let[@warning "-32"] make_entry ?(state = `Active)
     Memory.decision_id = id;
     Memory.revision = Some revision;
     Memory.source = "";
+    Memory.source_path = "";
     Memory.obligations = List.length obligations;
     Memory.obligation_ids = obligations;
     Memory.assumptions = 0;
@@ -284,6 +285,7 @@ let[@warning "-32"] run_filter_evaluate entries =
       Memory.spec = [];
       Memory.axioms = [];
       Memory.best_practices = None;
+      Memory.best_practices_path = None;
       Memory.recent_commits = [];
       Memory.changed_paths = [];
     }

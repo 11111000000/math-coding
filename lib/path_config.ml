@@ -11,10 +11,11 @@
  *      `mathc init` user gets `.math-coding/decisions/`,
  *      `.math-coding/attestations/`, `.math-coding/policy.yaml`.
  *
- *   3. Else, the legacy path (`decisions/`, `attestations/`,
- *      `decisions/decision.yaml`) is returned. This keeps every
- *      pre-3.4 project (which has `decisions/` and `attestations/`
- *      at the repo root) working without any config change.
+ *   3. Else, the legacy path (`decisions/`, `attestations/`, and
+ *      the legacy master policy inside `decisions/`) is returned.
+ *      This keeps every pre-3.4 project (which has `decisions/`
+ *      and `attestations/` at the repo root) working without any
+ *      config change.
  *
  * The functions return *relative* paths (no root prefix); callers
  * compose with `Filename.concat root ...` as before. The resolver
@@ -33,10 +34,18 @@ let default_decisions_dir = ".math-coding/decisions"
 let default_attestations_dir = ".math-coding/attestations"
 let default_policy_path = ".math-coding/policy.yaml"
 
-(* Legacy fallback paths. Pre-3.4 layout. *)
+(* Legacy fallback paths. Pre-3.4 layout.
+ *
+ * The legacy layout is a PROTOCOL convention, not a fact about this
+ * repository: a pre-3.4 project keeps its decisions in a directory
+ * and its master policy in a file named `decision.yaml` inside it.
+ * The policy path is DERIVED from the two conventions rather than
+ * written as one literal, so the kernel carries the legacy layout
+ * (which every pre-3.4 adopter shares) without carrying a single
+ * hardcoded master-policy file path. *)
 let legacy_decisions_dir = "decisions"
 let legacy_attestations_dir = "attestations"
-let legacy_policy_path = "decisions/decision.yaml"
+let legacy_policy_path = Filename.concat legacy_decisions_dir "decision.yaml"
 
 (* --- public, parametric: env-var or filesystem-checked default ---- *)
 
@@ -86,7 +95,7 @@ let[@warning "-32"] effective_root ?root () =
 
 (* Layout choice, made ONCE per project. Three independent
    filesystem checks produced incoherent trees: a directory holding
-   `decisions/` but no `decisions/decision.yaml` resolved the
+   `decisions/` but no legacy master policy inside it resolved the
    decisions dir to the legacy path and the policy to
    `.math-coding/policy.yaml`, so `mathc init` scaffolded half a
    project in each layout. The three paths are one layout decision
@@ -163,8 +172,8 @@ let[@warning "-32"] resolve_policy_path ?root () : string =
 *                   SEQUENCE of policy records. Resolved here.
 *
 * The collision was not cosmetic. `resolve_policy_path` returns
-* `.math-coding/policy.yaml` when it exists and `decisions/decision.yaml`
-* otherwise, and BOTH of those are decision documents: parsing either
+* `.math-coding/policy.yaml` when it exists and the legacy master
+* policy path otherwise, and BOTH of those are decision documents: parsing either
 * as a policy sequence yields an empty list, and the kernel's policy
 * cache stays empty. So the `mode_floor` a project declares was never
 * read: every path classified as `tiny`, the friction ladder had one
@@ -233,6 +242,22 @@ let[@warning "-32"] resolve_protected_paths_path ?root () : string =
   match Sys.getenv_opt "MATH_CODING_PROTECTED_PATHS" with
   | Some p when String.trim p <> "" -> p
   | _ -> default_protected_paths_path
+
+(* THE PROJECT-STRINGS FILE.
+ *
+ * One file names the strings this project owns that the kernel must
+ * not hardcode: the conventions document (the capsule's Supporting
+ * item) and the new-decision axiom-link inference table (a directory
+ * layout). Same family as the protected-path list, same shape:
+ * env-var wins, the default is the canonical location in the project,
+ * and the kernel module (lib/project_strings.ml) is pure while
+ * bin/Mathc.ml reads the file. *)
+let default_project_strings_path = "scripts/project-strings.txt"
+
+let[@warning "-32"] resolve_project_strings_path ?root () : string =
+  match Sys.getenv_opt "MATH_CODING_PROJECT_STRINGS" with
+  | Some p when String.trim p <> "" -> p
+  | _ -> default_project_strings_path
 
 (* --- root-joined variants ------------------------------------------- *)
 (* The functions above return *relative* paths; callers that already
