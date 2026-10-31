@@ -122,10 +122,47 @@ Order is by dependency, not by preference.
 
 | step | what | risk |
 |---|---|---|
-| T2.1 | archive tranche: the records (one-off events, refactoring notes) move to `archive/decisions/` with `state: retired` and a reason. 112 archived files still say `state: active` today | medium |
+| T2.1 | archive tranche: the records (one-off events, refactoring notes) move to `archive/decisions/` with `state: retired` and a reason. 120 files sit in `archive/decisions/`, and 104 of them still say `state: active` today | medium |
 | T2.2 | rewrite the stale decisions into statements about the current state, or archive them; fix the 44 dangling relation targets and the 20 dead scope paths | medium |
 | T2.3 | the five quote-broken verifiers: fix the scheme or withdraw the promise. They are signed `pass` in the store, so the store lies about them | low |
 | T2.4 | the class the audit of 2026-10-30 found and this plan names: obligations whose verifier is executable but does not check its own claim. 13 decisions carry no negative control; the debt is 98 against a ceiling of 123, and the ceiling may only fall | high - a choice: rewrite, declare with an owner and a date, or archive |
+
+#### T2.2, measured (the brief, ready to launch)
+
+The 44 dangling targets are not 44 different mistakes. Measured with
+`tests/fixtures/relation-targets-resolve.sh` over the live corpus
+(200 targets, 9 relation kinds the schema declares and 2 the corpus
+adds):
+
+| kind | count | what it is |
+|---|---|---|
+| `id-dangling` | 33 | the target names a decision id that does not exist |
+| `path-dangling` | 10 | the target names a file that does not exist |
+| `fragment-dangling` | 1 | `attestation-store-fill@2::ci-block-set`: the decision is there, the obligation in it is not |
+
+Two habits in the corpus produce the id form, and both are fixable
+without inventing anything:
+
+- **The filename is not the id.** 19 of the 142 files in `decisions/`
+  carry an `id:` that differs from the file's stem
+  (`exit-code-symmetry-2026-10.yaml` has `id: exit-code-symmetry`,
+  `ceiling-monotonic-2026-10.yaml` has `id: ceiling-monotonic` with
+  `revision: 2`). A relation written against the filename resolves to
+  nothing: `exit-code-symmetry-2026-10@1` is dangling, while
+  `exit-code-symmetry@1` resolves. The fix is to write the id.
+- **The revision is part of the reference.** `ceiling-monotonic@1` is
+  dangling because the decision is at revision 2. A relation that means
+  "the first version" must say so, or name the current revision.
+
+The path form is mostly one decision: `decisions/spec-cli-catalog.yaml`
+points at eight files under `bootstrap/` that do not exist, and two more
+decisions point at the same tree. Either the files come back, or the
+relations name what exists.
+
+The census and the lint agree on 44 - the census asks the kernel, the
+lint parses the corpus, and the two counts coincide. Two instruments
+that measure the same thing and differ are a bug in one of them; here
+they do not differ.
 
 ### T3 - the contract of the kernel (2026-11-30 .. 12-04, A3)
 
