@@ -93,7 +93,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 2 | RESOLVED | capsule priority class |
 | `decisions/gate-decision.yaml` | `gate-decision` | 2 | RESOLVED | mathc gate verdict against populated store |
 | `decisions/gate-attestation-store-fill-decision.yaml` | `gate-attestation-store-fill` | 2 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
-| `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 3 | RESOLVED | populates `attestations/` |
+| `archive/decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 4 | RESOLVED | populates `attestations/` |
 | `decisions/mathc-explain-subcommand.yaml` | `mathc-explain-subcommand` | 3 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
 | `decisions/mathc-self-check-subcommand.yaml` | `mathc-self-check-subcommand` | 4 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
 | `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 2 | RESOLVED | kernel diagnostics |
@@ -107,12 +107,12 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | RETIRED | attempted kernel contract §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
 | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 2 | RESOLVED | locks ADR location + first-file convention |
 | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
-| `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 2 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
+| `archive/decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 3 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
 | `decisions/site-deploy.yaml` | `site-deploy` | 5 | RESOLVED | restores the project's published surface under its own gate |
 | `decisions/cli-canonical-name.yaml` | `cli-canonical-name` | 2 | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
 | `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 2 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
 | `decisions/algebra-3.2.yaml` | `algebra-3.2` | 2 | RESOLVED | adopts `spec/kernel-contract.md` as formal normative spec |
-| `decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 2 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
+| `archive/decisions/audit-0.0.21-fixes.yaml` | `audit-0.0.21-fixes` | 4 | RESOLVED | master decision for the integrity-fixes cycle (Phase 1-5) |
 | `decisions/render-kernel-fixes-2026-10.yaml` | `render-kernel-fixes-2026-10` | 1 | RESOLVED | closes the 10 render-kernel defects catalogued in the decision's own scope (fenced blocks, list continuation, italic, MathJax, packages grid, RU nav, axiom single `<h1>`, footer text, `base href` empty option, `mc-*` deploy re-sync) |
 | `decisions/mathjax-delimiter-hardening-2026-10.yaml` | `mathjax-delimiter-hardening-2026-10` | 1 | RESOLVED | narrows MathJax 3 inline/display delimiters to LaTeX-style `\(..\)` / `\[..\]` only; removes `$..$` and `$$..$$` from `lib/render/render.ml`; ships `mjx-container` + `.mermaid svg` CSS rules so future `--mathjax` opt-ins and mermaid diagrams respect the Tufte column rhythm |
 | `archive/decisions/mathjax-default-on-2026-10.yaml` | `mathjax-default-on-2026-10` | 1 | RESOLVED | flips `Render.config.enable_mathjax` default `false` → `true`; reverses the `mathjax-default-off` workaround from `render-kernel-fixes-2026-10@1` because `mathjax-delimiter-hardening-2026-10@1` removed `$..$` as a math boundary; emits MathJax on every page (prose + axiom + spec) |
@@ -183,7 +183,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 
 | Cram test | Obligation | Decision |
 |---|---|---|
-| `version.t` | mathc prints bootstrap hello on `version` | `decisions/cli-cram-tests.yaml` |
+| `version.t` | mathc prints bootstrap hello on `version` | `archive/decisions/cli-cram-tests.yaml` |
 | `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
 | `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
 | `validate-error-actionable.t` | validator names the missing required field | `archive/decisions/validator-actionable-error.yaml` |

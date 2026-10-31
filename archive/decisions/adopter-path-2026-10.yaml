@@ -1,12 +1,13 @@
 ---
 schema: math-coding/3.2
 id: adopter-path-2026-10
-revision: 1
-state: superseded
+revision: 2
+state: retired
+# Archived by T2.2b: a completed adoption-path experiment with no live dependency.
 mode: light
 negative_control: tests/cli/init-defaults.t
-body_sha: "sha256:afcb1aa0573504ccfd09485cdde624b12386cec81fca8546d632660bf7eb0b0a"
-yaml_sha: "sha256:afcb1aa0573504ccfd09485cdde624b12386cec81fca8546d632660bf7eb0b0a"
+body_sha: "sha256:62500b6d8d23fa6fe9b5a2c380914f1933fb200fbdc59fe8779df1aab5bc700e"
+yaml_sha: "sha256:62500b6d8d23fa6fe9b5a2c380914f1933fb200fbdc59fe8779df1aab5bc700e"
 
 intent: |
   The first ten minutes of an adoption should cost what the protocol is
@@ -93,7 +94,7 @@ scope:
     - "lib/init/init.ml"
     - "adoption/SKILL.md"
     - "docs/adoption-quickstart.md"
-    - "decisions/adopter-path-2026-10.yaml"
+    - "archive/decisions/adopter-path-2026-10.yaml"
   exclusions:
     - "_build/**"
     - "attestations/**"
@@ -110,7 +111,7 @@ obligations:
         - verifier: bash -c "! grep -q 'verifier: mathc self-check' lib/init/init.ml"
         - verifier: bash -c "grep -q 'verifier: file-exists src' lib/init/init.ml"
         - verifier: tests/cli/init-defaults.t
-        - verifier: mathc validate decisions/adopter-path-2026-10.yaml
+        - verifier: mathc validate archive/decisions/adopter-path-2026-10.yaml
 
   - id: the-protocol-is-opt-in
     claim: |

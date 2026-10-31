@@ -1,12 +1,13 @@
 ---
 schema: math-coding/3.3
 id: decision-level-census-2026-10
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the decision-level census pass, with no live dependency.
 mode: standard
 
-body_sha: "sha256:dad733ce41b3ef41897f7917790acd0d157f7c13dd0d6815794a2c7636db714e"
-yaml_sha: "sha256:dad733ce41b3ef41897f7917790acd0d157f7c13dd0d6815794a2c7636db714e"
+body_sha: "sha256:6b36cf46b9f502434ecf8c1da3d2b44a5a6588cb7e3b4d7b3e2ba93715650b66"
+yaml_sha: "sha256:6b36cf46b9f502434ecf8c1da3d2b44a5a6588cb7e3b4d7b3e2ba93715650b66"
 
 axiom_link:
   - A0
@@ -91,7 +92,7 @@ scope:
   paths:
     - "decisions/**"
     - "tests/**"
-    - "decisions/decision-level-census-2026-10.yaml"
+    - "archive/decisions/decision-level-census-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "_build/**"
@@ -106,11 +107,11 @@ obligations:
         - verifier: dune test --root .
   - id: this-decision-validates
     claim: |
-      `mathc validate decisions/decision-level-census-2026-10.yaml`
+      `mathc validate archive/decisions/decision-level-census-2026-10.yaml`
       returns exit 0.
     acceptance:
       all:
-        - verifier: mathc validate decisions/decision-level-census-2026-10.yaml
+        - verifier: mathc validate archive/decisions/decision-level-census-2026-10.yaml
 
 risk:
   declared_triggers:

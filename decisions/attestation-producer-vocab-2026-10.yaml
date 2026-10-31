@@ -4,8 +4,8 @@ id: attestation-producer-vocab-2026-10
 revision: 2
 state: active
 mode: light
-body_sha: "sha256:ccbda16873b18473a32400747b4f7062d97b6c011383a1151c4b464a39dbe86c"
-yaml_sha: "sha256:ccbda16873b18473a32400747b4f7062d97b6c011383a1151c4b464a39dbe86c"
+body_sha: "sha256:bdd2d6adc6cde197648afc5616813150548ac01a0627fceb8805b1390731ab90"
+yaml_sha: "sha256:bdd2d6adc6cde197648afc5616813150548ac01a0627fceb8805b1390731ab90"
 
 intent:
   source: "issue:the-store-claims-passes-nobody-checked-2026-10-25"
@@ -151,7 +151,7 @@ counterexample: |
   validators, so every legacy file remains loadable, and the rule
   applies to issuance. That is not a loophole invented here to dodge
   the cost -- it is exactly the shape of the sibling rule shipped in
-  `decisions/kernel-bugs-v3.4-2026-10`. The debt is not hidden: it is
+  `archive/decisions/kernel-bugs-v3.4-2026-10.yaml`. The debt is not hidden: it is
   INVENTORIED in `outcomes/grandfathering-has-nothing-left-to-grandfather`
   and PINNED by `tests/producer_vocab.ml::`
   `test_grandfathered_backlog_is_pinned`, so if a file is quietly

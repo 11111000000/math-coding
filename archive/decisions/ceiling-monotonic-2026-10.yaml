@@ -1,12 +1,13 @@
 ---
 schema: math-coding/3.3
 id: ceiling-monotonic
-revision: 2
-state: superseded
+revision: 3
+state: retired
+# Archived by T2.2b: a superseded ceiling-monotonicity record whose obligations were retired at revision 2, with no live dependency.
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: light
-body_sha: "sha256:d11846964ae04c8e5a36fa5510f943cf09d64ac5e73f82a74876a280cba68453"
-yaml_sha: "sha256:d11846964ae04c8e5a36fa5510f943cf09d64ac5e73f82a74876a280cba68453"
+body_sha: "sha256:df9a3049697b459d5c5705fbf9f30288e3efea786bfc7da5dff67c87cd7d2aa6"
+yaml_sha: "sha256:df9a3049697b459d5c5705fbf9f30288e3efea786bfc7da5dff67c87cd7d2aa6"
 intent: |
   Make the monotonicity of the debt ceilings MECHANICAL, so that the
   promise "a ceiling may fall and may never rise" is kept by a
@@ -249,7 +250,7 @@ obligations:
       checks.
     acceptance:
       all:
-        - verifier: mathc validate decisions/ceiling-monotonic-2026-10.yaml
+        - verifier: mathc validate archive/decisions/ceiling-monotonic-2026-10.yaml
 # 2026-10-28: the negative control of this decision was removed with
 #   the corpus-debt meta-layer (decisions/corpus-meta-layer-2026-10.yaml).
 #   The decision no longer has an executable verifier to demonstrate.

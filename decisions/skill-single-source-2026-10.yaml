@@ -12,7 +12,7 @@ intent: |
   separately. Two of those statements are mutually exclusive, and both
   were green in the same CI run (2026-10-30T14:57:35Z, producer
   ci:kernel:resign): decisions/solo-default-on-2026-10.yaml said the
-  envelope is default-on, and decisions/adopter-path-2026-10.yaml said
+  envelope is default-on, and archive/decisions/adopter-path-2026-10.yaml said
   the skill is opt-in and proved it by grepping the skill for the
   phrase "Opt-in".
 
@@ -90,7 +90,7 @@ scope:
     - "scripts/check-applicability-agreement.sh"
     - "scripts/check-no-prose-policy-grep.sh"
     - "decisions/skill-single-source-2026-10.yaml"
-    - "decisions/adopter-path-2026-10.yaml"
+    - "archive/decisions/adopter-path-2026-10.yaml"
   exclusions:
     - "_build/**"
     - "attestations/**"

@@ -21,7 +21,7 @@
  * lines) make both shapes legal, and the kernel claims to read
  * decision YAML. Four corpus decisions were in that shape:
  *
- *   decisions/cli-cram-tests.yaml
+ *   archive/decisions/cli-cram-tests.yaml
  *   archive/decisions/p8-hook-deficit-2026-10.yaml
  *   archive/decisions/render-module-split-phase1-2026-10.yaml
  *   archive/decisions/render-module-split-phase1-2026-10.yaml
@@ -73,7 +73,7 @@ let[@warning "-32"] contains haystack needle =
 (* --- D4a: a plain multi-line scalar in a sequence item ---------- *)
 
 let test_plain_multiline_seq_item_is_folded () =
-  (* The exact shape of decisions/cli-cram-tests.yaml: one `unknowns:`
+  (* The exact shape of archive/decisions/cli-cram-tests.yaml: one `unknowns:`
      item whose prose continues on three more lines, and a top-level
      key AFTER it. Before the fix the parser stopped on the first
      continuation line, so `unknowns` came back empty and
@@ -396,7 +396,7 @@ let[@warning "-32"] in_repo rel =
    restoring it. *)
 let corpus_cases =
   [
-    ("decisions/cli-cram-tests.yaml", "unknowns", 2);
+    ("archive/decisions/cli-cram-tests.yaml", "unknowns", 2);
     ("archive/decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
     ("archive/decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
   ]

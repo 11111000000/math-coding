@@ -1,6 +1,6 @@
 # attestation-source-map.md
 
-> Companion to `decisions/attestation-store-fill.yaml`. Each row
+> Companion to `archive/decisions/attestation-store-fill.yaml`. Each row
 > maps one `(decision, obligation)` pair to its attestation source
 > (test name, manual review, build, or analysis) and producer
 > identity. The agent uses this map to generate attestation JSONs

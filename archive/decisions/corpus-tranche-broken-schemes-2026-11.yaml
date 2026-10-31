@@ -1,12 +1,13 @@
 ---
 schema: math-coding/3.3
 id: corpus-tranche-broken-schemes-2026-11
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the broken-verifier-scheme repair, with no live dependency.
 mode: light
 negative_control: tests/fixtures/verifier-schemes-are-canonical.sh
-body_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
-yaml_sha: "sha256:8fa1ec2c4e974cf0500e2be0058257ff38bcd8f55654c7ddc46519212b2e9a8e"
+body_sha: "sha256:b740e82d77f09402287527de6cf054370c5e4e6a013f45edb7331c15edaa8deb"
+yaml_sha: "sha256:b740e82d77f09402287527de6cf054370c5e4e6a013f45edb7331c15edaa8deb"
 
 intent: |
   Five obligations in five decisions named a verifier scheme the
@@ -26,7 +27,7 @@ intent: |
       obligation forge-team-member-endpoint, verifier `mathc-validate`.
     decisions/exit-code-symmetry-2026-10.yaml  obligation self-check-still-pass,
       verifier `mathc-self-check-verdict-pass`.
-    decisions/audit-0.0.21-fixes.yaml         obligation self-check-verdict-is-pass,
+    archive/decisions/audit-0.0.21-fixes.yaml obligation self-check-verdict-is-pass,
       verifier `mathc-self-check-verdict-pass`.
     decisions/constitution-header-3-3-update-2026-10.yaml
       obligation constitution-header-bumped, verifier
@@ -284,11 +285,11 @@ scope:
     - "lib/diagnostic.ml"
     - "bin/Mathc.ml"
     - "decisions/verifier-scheme-convention-2026-11.yaml"
-    - "decisions/corpus-tranche-broken-schemes-2026-11.yaml"
+    - "archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml"
     - "decisions/cli-canonical-name.yaml"
     - "decisions/forge-principal-verification-2026-10.yaml"
     - "decisions/exit-code-symmetry-2026-10.yaml"
-    - "decisions/audit-0.0.21-fixes.yaml"
+    - "archive/decisions/audit-0.0.21-fixes.yaml"
     - "decisions/constitution-header-3-3-update-2026-10.yaml"
     - "decisions/parser-risk-owner-default.yaml"
     - "decisions/obligation-count-reconcile.yaml"

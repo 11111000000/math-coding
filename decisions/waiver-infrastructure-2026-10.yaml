@@ -16,9 +16,9 @@ state: active
 # end to end: tests/cli/self-check-waiver-verdict.t asserts the
 # verdict a waived subject gets, and asserts it is not `pass`.
 negative_control: tests/cli/self-check-waiver-verdict.t
-body_sha: "sha256:99592cdb3a98473010ad5a988335ebc6ab519c81b373993089bd2938b2e77443"
+body_sha: "sha256:b8e6fe70cda063be55981083cd01e21209657a750cfd7af0e30c3f260c2021f4"
 
-yaml_sha: "sha256:99592cdb3a98473010ad5a988335ebc6ab519c81b373993089bd2938b2e77443"
+yaml_sha: "sha256:b8e6fe70cda063be55981083cd01e21209657a750cfd7af0e30c3f260c2021f4"
 
 intent: |
   Introduce waiver files (schema `math-coding/waiver-3.0-alpha`)
@@ -118,7 +118,7 @@ scope:
     - "spec/semantics.md"
     - "schemas/**"         # schemas unchanged
     - "decisions/portable-linux-musl.yaml"  # untouched
-    - "decisions/audit-0.0.21-fixes*.yaml"  # untouched
+    - "archive/decisions/audit-0.0.21-fixes*.yaml"  # untouched
 
 outcomes:
   - id: waiver-loader-works

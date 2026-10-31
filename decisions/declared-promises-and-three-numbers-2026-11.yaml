@@ -17,8 +17,8 @@ state: active
 # went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
-yaml_sha: "sha256:029761b7b3f7cfdf34685e2554ee274e6eb558126287eba3a9fc4f4de1b12ad0"
+body_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
+yaml_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -345,9 +345,9 @@ scope:
     - "decisions/declared-promises-and-three-numbers-2026-11.yaml"
     - "decisions/attestation-producer-vocab-2026-10.yaml"
     - "decisions/attest-per-obligation-2026-10.yaml"
-    - "decisions/audit-0.0.21-fixes.yaml"
+    - "archive/decisions/audit-0.0.21-fixes.yaml"
     - "decisions/candidate-tree-resolves-to-a-commit-2026-10.yaml"
-    - "decisions/ceiling-monotonic-2026-10.yaml"
+    - "archive/decisions/ceiling-monotonic-2026-10.yaml"
     - "decisions/ci-self-check-is-an-audit-2026-10.yaml"
     - "decisions/cli-canonical-name.yaml"
     - "decisions/corpus-silent-drop-inventory-2026-10.yaml"
@@ -368,7 +368,7 @@ scope:
     - "decisions/gate-verifier-cycle-guard-2026-10.yaml"
     - "decisions/honest-instruments-2026-10.yaml"
     - "decisions/install-tooling-2026-10.yaml"
-    - "decisions/kernel-bugs-v3.4-2026-10.yaml"
+    - "archive/decisions/kernel-bugs-v3.4-2026-10.yaml"
     - "decisions/kernel-conformance-runner.yaml"
     - "decisions/kernel-fixes-found-bugs-2026-10.yaml"
     - "decisions/legacy-attestation-debt-2026-10.yaml"
