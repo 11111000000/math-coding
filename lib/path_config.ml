@@ -208,6 +208,32 @@ let[@warning "-32"] join_root ?root rel =
     | Some r when r <> "" && r <> "." -> Filename.concat r rel
     | _ -> rel
 
+(* THE PROTECTED-PATH LIST.
+ *
+ * One file names the paths this project protects, and three consumers
+ * read it: the gate (lib/gate.ml, through lib/protected_paths.ml), the
+ * pre-commit hook (scripts/pre-commit/decision-fixture-co-commit.sh)
+ * and the release-pending workflow. Before 2026-11 the three carried
+ * three different lists, and `lib/` against `lib/*.ml` against `lib/*`
+ * meant three gates protected three different sets of files.
+ *
+ * The path is resolved like the other project paths: the env-var wins
+ * (the operator owns the override, and a test that needs a different
+ * list must not have to edit the tree to get one), and the default is
+ * the canonical location in the project.
+ *
+ * The default is NOT one of the `.math-coding/` artifacts: the
+ * protected paths are this PROJECT's business, not part of the
+ * protocol an adopter receives, and the plan that says so
+ * (docs/plans/redundancy-and-portability-2026-11.md, T4.3) moves
+ * these strings out of the kernel entirely. *)
+let default_protected_paths_path = "scripts/protected-paths.txt"
+
+let[@warning "-32"] resolve_protected_paths_path ?root () : string =
+  match Sys.getenv_opt "MATH_CODING_PROTECTED_PATHS" with
+  | Some p when String.trim p <> "" -> p
+  | _ -> default_protected_paths_path
+
 (* --- root-joined variants ------------------------------------------- *)
 (* The functions above return *relative* paths; callers that already
    hold a project root compose with it themselves. Callers that do NOT

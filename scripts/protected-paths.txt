@@ -1,0 +1,83 @@
+# scripts/protected-paths.txt — THE protected paths of this repository.
+#
+# ONE list. Every consumer of the question "which paths are
+# protected?" reads this file:
+#
+#   - the gate (lib/gate.ml, through lib/protected_paths.ml): which
+#     paths require a decision committed with the change — the §20
+#     CoCommitDecision rule;
+#   - the pre-commit hook (scripts/pre-commit/decision-fixture-co-commit.sh):
+#     which files require a decision file in the same commit;
+#   - the release-pending workflow (.github/workflows/release-pending.yml):
+#     which paths make the published artifact stale.
+#
+# The three consumers keep their own RULES (what they require of a
+# protected path); the SET of protected paths is this file, and it is
+# the same set for all three.
+#
+# FORMAT
+# ------
+# One pattern per line. A line whose first non-blank character is `#`
+# is a comment; a blank line is ignored. Every other line is a glob
+# over a repository-relative path:
+#
+#   - `*` matches any run of characters, INCLUDING `/`;
+#   - `?` matches exactly one character;
+#   - every other character matches itself.
+#
+# This is the semantics of a shell `case` pattern — fnmatch without
+# FNM_PATHNAME — and lib/protected_paths.ml implements the same rule
+# for the kernel. The two implementations are compared, pattern by
+# pattern and path by path, by
+# tests/fixtures/protected-paths-single-source.sh, so they cannot
+# drift apart without a check going red.
+#
+# WHY THIS FILE EXISTS
+# --------------------
+# Before 2026-11 the same question had three answers in three files,
+# and the three answers did not agree:
+#
+#   lib/gate.ml:1016
+#     lib/  bin/Mathc.ml  spec/  schemas/  axioms/
+#   scripts/pre-commit/decision-fixture-co-commit.sh:16-20
+#     lib/*.ml  bin/Mathc.ml  spec/*.md  schemas/*.json
+#   .github/workflows/release-pending.yml:123-129
+#     bin/Mathc.ml  bin/*  lib/*  scripts/install-tooling/*
+#
+# `lib/` against `lib/*.ml` against `lib/*`: three lists, one
+# question, and nothing that could say which list a gate meant. The
+# pre-commit hook did not require a decision for `lib/attestations/
+# evidence.ml` (it wanted `lib/*.ml`), the gate did not require one
+# for `bin/mathc_mcp.ml` (it wanted `bin/Mathc.ml`), and the release
+# gate did not fire for a change to `spec/` at all. Three gates, one
+# repository, three different ideas of what is protected.
+#
+# THE LIST BELOW IS THE UNION of the three, and the union is the
+# choice that cannot quietly weaken a protection: an intersection
+# would have dropped `spec/` from the release gate and `axioms/` from
+# the pre-commit hook, and nothing would have said so. The union is
+# also the set the project already declares elsewhere: policies.yaml
+# gives `standard` (a change carries a decision) to lib/**, bin/**,
+# spec/**, schemas/** and axioms/**, and the release-pending gate
+# protects the installer because the installer ships in the artifact.
+#
+# WHAT IS NOT HERE
+# -----------------
+# Two neighbouring lists answer DIFFERENT questions and are
+# deliberately not folded in:
+#
+#   scripts/check-stub-lint.sh scans `lib/` and `bin/Mathc.ml` for
+#   untracked stub markers — that is "where a stub may hide", not
+#   "what is protected";
+#   scripts/kernel-stamp.sh names the files the kernel is — that is
+#   "what the kernel is", not "what is protected".
+#
+# Changing the list changes what the gate asks, so it is a decision:
+# decisions/protected-paths-and-empty-diff-2026-11.yaml.
+
+bin/*
+lib/*
+spec/*
+schemas/*
+axioms/*
+scripts/install-tooling/*

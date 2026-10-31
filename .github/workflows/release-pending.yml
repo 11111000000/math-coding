@@ -116,21 +116,44 @@ jobs:
             echo "Gate fails closed: an unreadable diff is not a clean diff." >&2
             exit 1
           fi
-          # A `case` loop rather than `git diff | grep`: no pipe means no
+          # THE PROTECTED PATHS ARE ONE LIST, IN THE PROJECT.
+          #
+          # `scripts/protected-paths.txt` says which paths are
+          # protected; `scripts/protected-paths.sh` says whether a path
+          # is one of them. The gate reads the same list (through
+          # lib/protected_paths.ml) and the pre-commit hook reads it
+          # too, so the three gates cannot protect three different
+          # sets of files. The list used to be spelled out here, and it
+          # disagreed with the gate's list and with the hook's: one
+          # question, three answers. All three old lists are written
+          # out in scripts/protected-paths.txt, where the history is
+          # recorded.
+          #
+          # The matcher is read out of the checkout, and a missing
+          # matcher FAILS CLOSED: a gate that cannot read the
+          # protected paths cannot ask its question, and "I could not
+          # find out" is not "nothing is protected".
+          MATCHER="scripts/protected-paths.sh"
+          if [ ! -f "${MATCHER}" ]; then
+            echo "release-pending: the protected-path matcher (${MATCHER}) is missing from the checkout." >&2
+            echo "Gate fails closed: a gate that cannot read the protected paths cannot ask its question." >&2
+            exit 1
+          fi
+          # A loop rather than `git diff | grep`: no pipe means no
           # SIGPIPE, and no `|| true` that could swallow a real failure.
-          TOUCHED=""
-          while IFS= read -r CHANGED; do
-            case "${CHANGED}" in
-              # `bin/Mathc.ml` is named first because release-cadence-2026-11
-              # names it and its obligation greps for that literal; the
-              # bare `bin/*` beside it is deliberate and is the superset
-              # that actually protects the build — bin/ is a dune package
-              # and also holds mathc_mcp.ml and md_probe.ml.
-              bin/Mathc.ml | bin/* | lib/* | scripts/install-tooling/*)
-                TOUCHED+="${CHANGED}"$'\n'
-                ;;
-            esac
-          done <<< "${DIFF}"
+          #
+          # The matcher is asked ONCE, with the whole diff on its
+          # standard input, and it prints the protected paths. Three
+          # answers, not two: the matcher exits 0 and prints the
+          # protected paths, 1 and prints nothing when no path is
+          # protected, and 2 when the list could not be READ. The
+          # third is not "nothing is protected" — it is this gate's
+          # own input missing, and it ends the step.
+          if ! TOUCHED="$(bash "${MATCHER}" match-stdin <<< "${DIFF}")"; then
+            echo "release-pending: the protected-path matcher could not read the list." >&2
+            echo "Gate fails closed: an unreadable list is not an empty list." >&2
+            exit 1
+          fi
           if [ -n "${TOUCHED}" ]; then
             {
               echo "touches_protected=true"
