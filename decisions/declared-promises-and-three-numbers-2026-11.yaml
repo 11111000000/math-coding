@@ -17,8 +17,8 @@ state: active
 # went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:eac20a7a27de6ae51d05a5b28647bdb859ac7af23a280c9f1a320a1f498730b2"
-yaml_sha: "sha256:eac20a7a27de6ae51d05a5b28647bdb859ac7af23a280c9f1a320a1f498730b2"
+body_sha: "sha256:a06967c7362c42a8b4f51268c37cce5a3e303e94d846932d9b929eedcfc6933f"
+yaml_sha: "sha256:a06967c7362c42a8b4f51268c37cce5a3e303e94d846932d9b929eedcfc6933f"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -381,7 +381,7 @@ scope:
     - "decisions/process-principles-close-branches.yaml"
     - "decisions/process-principles.yaml"
     - "decisions/record-proportionality-2026-10.yaml"
-    - "decisions/render-kernel-fixes-2026-10.yaml"
+    - "archive/decisions/render-kernel-fixes-2026-10.yaml"
     - "archive/decisions/render-module-split-phase1a-2026-10.yaml"
     - "decisions/render-ordered-lists-2026-10.yaml"
     - "decisions/site-broken-links-2026-10.yaml"

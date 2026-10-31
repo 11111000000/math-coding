@@ -5,9 +5,9 @@ revision: 4
 state: active
 negative_control: tests/fixtures/decisions-have-no-mc-prefix.sh
 
-body_sha: "sha256:3388b3a5f0a174af91940b5b0c9543f7d8be341d152f7286d83595be779f4991"
+body_sha: "sha256:42cd28d07bfa9a4352c8955bb30e0e0f4ae4bf131e7b88cdbc6df14a84af220d"
 
-yaml_sha: "sha256:3388b3a5f0a174af91940b5b0c9543f7d8be341d152f7286d83595be779f4991"
+yaml_sha: "sha256:42cd28d07bfa9a4352c8955bb30e0e0f4ae4bf131e7b88cdbc6df14a84af220d"
 
 intent: |
   Collapse the project's three CLI referents (the legacy short
@@ -188,7 +188,7 @@ obligations:
 
       The prefix survives in the corpus as PROSE only: in this
       decision, which names the retired prefix in order to say what
-      was retired, and in decisions/render-kernel-fixes-2026-10.yaml,
+      was retired, and in archive/decisions/render-kernel-fixes-2026-10.yaml,
       which records the class-name drift the rename fixed. Prose is
       neither a scheme nor an id, so the check does not look at it.
       Nor is the `mathc-` prefix a retired one - it CONTAINS the
