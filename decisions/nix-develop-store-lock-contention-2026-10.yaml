@@ -6,8 +6,8 @@ state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
 change_kind: bugfix
-body_sha: "sha256:63fbb3c4396182a5922b721ef0c0264ca2c97ba99375dcb8e361a2408fe0a266"
-yaml_sha: "sha256:63fbb3c4396182a5922b721ef0c0264ca2c97ba99375dcb8e361a2408fe0a266"
+body_sha: "sha256:0bb8e140366d8b61d2f6c329340f59810728d5980a63ac6b7fe64f72ddb26df6"
+yaml_sha: "sha256:0bb8e140366d8b61d2f6c329340f59810728d5980a63ac6b7fe64f72ddb26df6"
 
 axiom_link:
   - A0
@@ -214,7 +214,7 @@ risk:
 
 relations:
   addresses:
-    - dune-3.23.1-rpc-hang
+    - docs/upstream-bugs/dune-3.23.1-rpc-hang.md
   depends_on: []
   supersedes: []
 
