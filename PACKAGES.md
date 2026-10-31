@@ -93,7 +93,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/capsule-active-policy.yaml` | `capsule-active-policy` | 2 | RESOLVED | capsule priority class |
 | `decisions/gate-decision.yaml` | `gate-decision` | 2 | RESOLVED | mathc gate verdict against populated store |
 | `decisions/gate-attestation-store-fill-decision.yaml` | `gate-attestation-store-fill` | 2 | RESOLVED | Tier-1 #1 (closed in `ed42290`) |
-| `decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 3 | RESOLVED | populates `attestations/` |
+| `archive/decisions/attestation-store-fill.yaml` | `attestation-store-fill` | 4 | RESOLVED | populates `attestations/` |
 | `decisions/mathc-explain-subcommand.yaml` | `mathc-explain-subcommand` | 3 | RESOLVED | Tier-A (closed in `6e922d3`) — broken promise from `omitted[].expansion` resolved |
 | `decisions/mathc-self-check-subcommand.yaml` | `mathc-self-check-subcommand` | 4 | RESOLVED | Tier-1 #2 (closed in `758f340`) |
 | `decisions/parse-acceptance-diagnostics.yaml` | `parse-acceptance-diagnostics` | 2 | RESOLVED | kernel diagnostics |
