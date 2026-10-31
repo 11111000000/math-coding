@@ -2,12 +2,13 @@
 schema: math-coding/3.3
 id: format-circular-verifier-message-2026-10
 revision: 1
-state: active
+state: retired
+# Archived by T2.1: a one-event formatting record with no live dependency.
 mode: light
 change_kind: editorial
 
-body_sha: "sha256:af251116ca881255720e8cb8e8b15690e3e37e72fd91d0fc565e7a738522bbb4"
-yaml_sha: "sha256:af251116ca881255720e8cb8e8b15690e3e37e72fd91d0fc565e7a738522bbb4"
+body_sha: "sha256:5f1319dfd6c9953b151fffe058dda3b25e8b20765c11f081dd61794a33a86a44"
+yaml_sha: "sha256:5f1319dfd6c9953b151fffe058dda3b25e8b20765c11f081dd61794a33a86a44"
 
 axiom_link:
   - A1
@@ -53,7 +54,7 @@ commitment: |
 scope:
   paths:
     - "bin/Mathc.ml"
-    - "decisions/format-circular-verifier-message-2026-10.yaml"
+    - "archive/decisions/format-circular-verifier-message-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "_build/**"
