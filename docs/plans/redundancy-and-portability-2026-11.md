@@ -404,6 +404,7 @@ Merged into `main`, each with its own decision and its own evidence:
 | T2.3 | eight promises that named a verifier the kernel could not execute, or one that did not check its own claim; the diagnostic prints the list the kernel owns | BROKEN 5 -> 0, PAPER 44 -> 38 |
 | T2.1 | twelve records moved to `archive/decisions/` with `state: retired`; two stayed for reasons that are not taste | the corpus criterion, and the pointer repairs each move needed |
 | T2.2a | the corpus's relation and scope debt paid: 44 dangling targets and 20 dead scope paths, both zero now | both instruments report zero, and the census lists no item |
+| T4.1 | the transferable boundary became a script: `scripts/export-core.sh` cuts the protocol out of the repository by an exact allowlist, and `tests/fixtures/exportable-core-boundary.sh` plants one project file of each kind in a copy and requires the checker to reject every copy | the exported `mathc` accepts a decision; the negative control rejects six kinds of contamination |
 
 The numbers after the wave (2026-10-31):
 
