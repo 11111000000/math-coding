@@ -129,7 +129,7 @@ let template ~id ~paths =
      risk:\n\
     \  declared_triggers:\n\
     \    - <what-could-go-wrong>\n\
-    \  owner: <human:role or human:name>\n\n\
+    \  owner: \"<human:role or human:name>\"\n\n\
      relations:\n\
     \  addresses:\n\
     \    - bootstrap-v3@3\n"
@@ -178,17 +178,17 @@ let template_minimal ~id ~paths =
     \      One sentence. What the kernel or fixture can verify.\n\
     \    acceptance:\n\
     \      all:\n\
-    \        - verifier: <TODO: fixture-path-or-kernel-verifier>\n\
+    \        - verifier: \"<TODO: fixture-path-or-kernel-verifier>\"\n\
      axiom_link:\n\
     \  - A0\n\n\
      counterexample: |\n\
     \  TODO: the strongest practical objection to this decision. At\n\
     \  mode light this is a warning, not a block, but an empty slot\n\
     \  is an admission that the counter-case was not considered.\n\n\
-    \     risk:\n\
+     risk:\n\
     \  declared_triggers:\n\
-    \    - <TODO: what-could-go-wrong>\n\
-    \  owner: <human:role or human:name>\n\n\
+    \    - \"<TODO: what-could-go-wrong>\"\n\
+    \  owner: \"<human:role or human:name>\"\n\n\
      relations:\n\
     \  addresses:\n\
     \    - bootstrap-v3@3\n"

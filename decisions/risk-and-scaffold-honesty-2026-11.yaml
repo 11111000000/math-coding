@@ -1,0 +1,272 @@
+---
+schema: math-coding/3.3
+id: risk-and-scaffold-honesty-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/risk-dead-branches-gone.sh
+body_sha: "sha256:7130961558d0c089a41edc71f434f631b6fb590e19c58e383d1e3b03d37b3fc6"
+yaml_sha: "sha256:7130961558d0c089a41edc71f434f631b6fb590e19c58e383d1e3b03d37b3fc6"
+
+intent: |
+  Three places where the kernel said something it could not back up.
+  All three were measured before they were changed.
+
+  1. The irreversibility marker function (`lib/risk.ml::path_marker`)
+     carried three branches that named directories this repository
+     does not have: `pci/`, `payments/` and `migrations/`. No tracked
+     path could ever carry those markers, so the branch could never
+     fire - and the printed irreversibility looked like a measurement
+     while being a constant. The spec's marker table never listed
+     them: the code had three markers the normative text did not
+     know about.
+
+     The markers that SURVIVE are segment tokens - `data-mig`,
+     `schema-break` - because a path SEGMENT with that name says what
+     it is, whoever owns the tree. A directory PREFIX says it only for
+     a tree that puts that directory at the root: an adopter whose
+     migrations live in `db/migrations/` was never covered by the
+     prefix `migrations/` either, so the prefix form was inert here
+     and unreliable everywhere else.
+
+     The helper `mode_floor_of_string` had zero callers and parsed a
+     vocabulary the kernel does not use (`silent`, `baseline`,
+     `pci-strict`, `axiom-touching` against the real five: `tiny`,
+     `light`, `standard`, `strict`, `exhaustive`). The spec quoted
+     that dead vocabulary as if it were the contract, so the spec was
+     corrected in the same commit - the tables in the code and in the
+     text move together, or one of them is a lie.
+
+  2. An unknown `mode_floor` degraded silently (`lib/policy.ml`).
+     `Codec.parse_mode` returns None for a word the kernel does not
+     know, and the parser answered `tiny` - the cheapest rung of the
+     ladder - without a word to anyone. An operator who wrote
+     `mode_floor: pci-strict` got the silent baseline instead of
+     their floor, and the only trace was a promise the kernel did not
+     keep. Now the policy is dropped (its floor does not apply) and
+     the error names the policy, the value and the words the kernel
+     reads. A record whose SHAPE was not recognised is still dropped
+     silently: a malformed entry and an entry the kernel read and
+     rejected are different defects, and only the second one can name
+     the value that is wrong.
+
+  3. The scaffold the kernel writes was not a document a strict
+     parser could read (`lib/new_decision/new_decision.ml`). Two
+     defects, both in the minimal template: the verifier placeholder
+     was unquoted, and the whole risk block sat INSIDE the
+     counterexample scalar, indented under it. The first made the
+     file not YAML at all ("mapping values are not allowed in this
+     context"). The second was worse: the file parsed, and the parsed
+     decision had NO risk - the owner and the declared triggers became
+     part of the counterexample's text, and the kernel filled the gap
+     with its own default (`owner: human:maintainer`). The author had
+     written a risk and the kernel kept a promise on their behalf
+     without asking.
+
+  MEASURED, for the record: the maximum risk this repository can
+  produce is 0.0475, below the first bucket boundary of 0.05, so
+  `risk_to_mode` answers `tiny` for every input and the mode of every
+  change comes from the declared floor. The risk function does not
+  decide anything HERE. It is still the function that decides
+  something in an adopter's tree, and it has to be honest there.
+
+  Source: plan docs/plans/redundancy-and-portability-2026-11.md,
+  tranches T1.1 and T1.3a. Artifacts: lib/risk.ml, lib/policy.ml,
+  lib/new_decision/new_decision.ml, spec/algebra-3.2.md,
+  tests/cli/new-decision-scaffold.t,
+  tests/cli/policy-unknown-mode-floor.t,
+  tests/fixtures/risk-dead-branches-gone.sh.
+
+commitment: |
+  The kernel's own tables, its own vocabulary and the files it hands
+  to an author are kept in step with each other and with the
+  normative text:
+
+  1. A branch that names something that does not exist is removed
+     rather than kept as decoration, and the vocabulary that replaces
+     it is expressed so that it works for a tree other than this one.
+
+  2. A value the kernel cannot read is named, with the vocabulary the
+     kernel does read, at the place where the operator's build log
+     will show it.
+
+  3. A file the kernel writes is a document a strict parser can read,
+     and the fields the schema declares are where the schema says they
+     are. A file that parses but has lost a field is worse than a file
+     that does not parse, because the loss is invisible.
+
+axiom_link:
+  - A0
+  - A3
+
+counterexample: |
+  The strongest objection to this decision is to item 1: removing the
+  three directory prefixes removes PROTECTION for the trees that do
+  have those directories. An adopter with a `payments/` directory gets
+  no irreversibility marker from the kernel, and an irreversible
+  change to their payment code is graded exactly like a change to a
+  comment.
+
+  Two answers, and the second is the better one.
+
+  The first: nothing is lost that worked. `has_prefix p "migrations/"`
+  matches a path that STARTS with `migrations/` - the repository
+  root's directory. A tree that keeps its migrations in
+  `db/migrations/` - which is most trees - was never covered by that
+  prefix either. The prefix form was not protection, it was a guess
+  about one layout, and it was inert in the one tree it was written
+  in.
+
+  The second: the replacement is strictly more precise. A path
+  SEGMENT named `data-mig` is a data migration wherever it sits, and a
+  segment named `schema-break` is a breaking schema change wherever it
+  sits. The corpus can name them (`lib/risk.ml` already reads them),
+  and a tree that wants more markers can declare them in its policy -
+  which is a place an operator controls, rather than a place the
+  kernel guesses.
+
+  What this decision does NOT do is touch the impact taxonomy:
+  `spec/algebra-3.2.md` section 2 still lists `migrations/**` next to
+  `lib/security/**` and `lib/utils/**`, three categories this
+  repository does not have either. Those are categories of the trees
+  the kernel is meant to serve, and the check
+  `tests/fixtures/risk-dead-branches-gone.sh` reads the MARKER function
+  for exactly this reason: a taxonomy is not a dead branch.
+
+antithesis: |
+  The opposite position: keep the code as it was and correct the SPEC
+  instead. The marker table grows three rows, the dead helper is wired
+  to the parser so it stops being dead, and the scaffold stays as it
+  was because a lenient file is easier to edit.
+
+  This is rejected because it makes the normative text the thing that
+  follows the code. The three markers were not in the spec because
+  nobody wrote them down; the dead helper parsed a vocabulary nobody
+  used; and the scaffold's risk block was lost under the
+  counterexample because the file was never parsed by anything but the
+  kernel's own forgiving reader. In all three cases the text and the
+  code had drifted apart, and the drift is invisible to a reader
+  unless one of them is checked against the other. The check is what
+  this decision adds.
+
+  The one part of the antithesis worth keeping is the editability of
+  the scaffold: the placeholders stay placeholders, so an author still
+  sees at a glance what they have to fill in. What changed is that
+  they are quoted, and that the risk block is where the schema expects
+  it - not that the file got stricter to edit.
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - an-adopter-whose-tree-uses-the-prefixes-this-decision-removed-needs-them-back
+    - the-scaffold-becomes-harder-to-edit-than-the-author-expects
+    - a-policy-typo-is-read-as-a-policy-error-and-blocks-a-build-that-used-to-pass
+    - the-risk-function-stays-inert-here-and-nobody-notices-it-is-inert-elsewhere
+
+assumptions:
+  - id: the-kernel-is-meant-to-serve-other-trees
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The kernel is a portable core (plan tranche T4.1), so a path
+      category that this repository does not have is not dirt by
+      itself. Only a marker that could never fire AND could never
+      match another tree's layout is.
+    consequence_if_false: |
+      The impact taxonomy would have to shrink to this repository's
+      directories, and the kernel would grade an adopter's tree by a
+      rule written for another tree. The marker vocabulary is where the
+      removal happened, not the taxonomy - the taxonomy keeps
+      `migrations/**`, `lib/security/**` and `lib/utils/**`, none of
+      which exist here either.
+    review_on:
+      - signal: the-core-is-split-into-its-own-package
+
+  - id: a-strict-parser-is-the-reader-that-matters
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      A file the kernel writes has to be readable by a standard YAML
+      parser, not only by the kernel's own forgiving reader. The
+      scaffold is what an author and their tools meet first.
+    consequence_if_false: |
+      The scaffold would keep a shape only one reader understands, and
+      the risk block would keep disappearing into the counterexample for
+      every author whose editor parses strictly. The check would be
+      pinning a convention nobody else follows.
+    review_on:
+      - signal: an-adopter-reports-a-scaffold-their-tool-cannot-read
+
+scope:
+  paths:
+    - "lib/risk.ml"
+    - "lib/policy.ml"
+    - "lib/new_decision/new_decision.ml"
+    - "spec/algebra-3.2.md"
+    - "tests/cli/new-decision-scaffold.t"
+    - "tests/cli/policy-unknown-mode-floor.t"
+    - "tests/fixtures/risk-dead-branches-gone.sh"
+  exclusions:
+    - "lib/gate.ml"
+    - "lib/diagnostic.ml"
+    - "axioms/**"
+
+outcomes:
+  - id: the-markers-name-segments-not-this-repository
+    statement: |
+      The irreversibility marker function names segment tokens, the
+      spec's marker table names the same three entries, and the check
+      `tests/fixtures/risk-dead-branches-gone.sh` fails if a directory
+      prefix comes back.
+  - id: an-unknown-floor-is-named
+    statement: |
+      A `mode_floor` the kernel cannot read produces
+      MC-POLICY-UNKNOWN-MODE-FLOOR, naming the policy, the value and
+      the words the kernel reads.
+  - id: the-scaffold-is-yaml
+    statement: |
+      `mathc new-decision` writes a file that a strict parser reads,
+      with the risk block where the schema expects it, and the check
+      `tests/cli/new-decision-scaffold.t` fails if either stops being
+      true.
+
+obligations:
+  - id: the-marker-function-has-no-directory-prefix
+    claim: |
+      `lib/risk.ml`'s marker function names no directory prefix that
+      only this repository could have had, the helper with no callers
+      is gone, and the two segment tokens are still there.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/risk-dead-branches-gone.sh
+  - id: an-unknown-mode-floor-is-named
+    claim: |
+      A policy that declares a `mode_floor` the kernel does not know
+      produces MC-POLICY-UNKNOWN-MODE-FLOOR naming the value, and a
+      floor the kernel does know is honoured with no error.
+    acceptance:
+      all:
+        - verifier: tests/cli/policy-unknown-mode-floor.t
+  - id: the-scaffold-parses-and-keeps-its-risk
+    claim: |
+      The scaffold the kernel writes parses under a strict parser, and
+      its risk is a map with `owner` and `declared_triggers` - not text
+      inside the counterexample.
+    acceptance:
+      all:
+        - verifier: tests/cli/new-decision-scaffold.t
+  - id: the-spec-and-the-code-agree
+    claim: |
+      The marker table and the mode vocabulary in
+      `spec/algebra-3.2.md` section 2 are the ones the code
+      implements; the check that compares them is
+      `tests/cli/risk-bucketing.t`.
+    acceptance:
+      all:
+        - verifier: tests/cli/risk-bucketing.t
+
+relations:
+  addresses:
+    - "ceiling-monotonic@2"
+  refines:
+    - "risk-policy-driven-floor@1"

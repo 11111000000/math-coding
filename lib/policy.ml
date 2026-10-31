@@ -513,6 +513,23 @@ let[@warning "-32"] parse_string_list ps key =
         xs
   | None -> []
 
+(* The mode names the kernel understands. `Codec.parse_mode` is the
+   parser; this list is its vocabulary, written out so the ERROR
+   message can name what the reader expected. A floor the kernel
+   cannot read is a floor it cannot honour, and the operator has to
+   be told which words the reader knows. *)
+let[@warning "-32"] known_mode_names =
+  [ "tiny"; "light"; "standard"; "strict"; "exhaustive" ]
+
+(* parse_policy: one policy record -> (policy option, error string).
+
+   The error string is non-empty exactly when the record was READ and
+   could not be UNDERSTOOD - today, when `mode_floor` names a mode
+   the kernel does not have. A record whose SHAPE was not recognised
+   (no `policy_id`) is still dropped silently, as before: a malformed
+   entry and an entry the kernel read and rejected are different
+   defects, and only the second one can name the value that is
+   wrong. *)
 let[@warning "-32"] parse_policy v =
   match v with
   | Jsonl.Object ps -> (
@@ -521,34 +538,50 @@ let[@warning "-32"] parse_policy v =
           let parent = Schema.take_string ps "parent" in
           let scope_paths = parse_string_list ps "scope_paths" in
           let obligations = parse_obligations ps in
-          let mode_str =
+          let mode_declared = List.mem_assoc "mode_floor" ps in
+          let mode_str, mode_error =
             match Schema.take_string ps "mode_floor" with
-            | Some s -> s
-            | None -> "tiny"
+            | Some s -> (s, "")
+            | None ->
+                if mode_declared then
+                  ( "", Printf.sprintf
+                       "MC-POLICY-UNKNOWN-MODE-FLOOR: policy %s: \
+                        mode_floor is not a mode name" policy_id )
+                else ("tiny", "")
           in
-          let mode_floor =
-            match Codec.parse_mode mode_str with Some m -> m | None -> `Tiny
-          in
-          let transitive_into = parse_string_list ps "transitive_into" in
-          let data_flow_edges = parse_data_flow_edges ps in
-          let override_probability =
-            match Schema.take_number ps "override_probability" with
-            | Some f -> f
-            | None -> 0.0
-          in
-          Some
-            {
-              policy_id;
-              parent;
-              scope_paths;
-              obligations;
-              mode_floor;
-              override_probability;
-              transitive_into;
-              data_flow_edges;
-            }
-      | None -> None)
-  | _ -> None
+          (match mode_error with
+          | _ when mode_error <> "" -> (None, mode_error)
+          | _ -> (
+              match Codec.parse_mode mode_str with
+              | None ->
+                  ( None,
+                    Printf.sprintf
+                      "MC-POLICY-UNKNOWN-MODE-FLOOR: policy %s: unknown \
+                       mode_floor %S (the kernel reads one of: %s)"
+                      policy_id mode_str
+                      (String.concat ", " known_mode_names) )
+              | Some mode_floor ->
+                  let transitive_into = parse_string_list ps "transitive_into" in
+                  let data_flow_edges = parse_data_flow_edges ps in
+                  let override_probability =
+                    match Schema.take_number ps "override_probability" with
+                    | Some f -> f
+                    | None -> 0.0
+                  in
+                  ( Some
+                      {
+                        policy_id;
+                        parent;
+                        scope_paths;
+                        obligations;
+                        mode_floor;
+                        override_probability;
+                        transitive_into;
+                        data_flow_edges;
+                      },
+                    "" )))
+      | None -> (None, ""))
+  | _ -> (None, "")
 
 (* parse_policies: pure function over a YAML or JSON string.
    policies.yaml is a top-level YAML sequence; JSON files are
@@ -587,29 +620,39 @@ let parse_policies content =
   | _ -> (
       match sequence v with
       | Some items ->
-          let policies = List.filter_map parse_policy items in
-          (policies, "")
+          let parsed = List.map parse_policy items in
+          let policies = List.filter_map fst parsed in
+          let errors =
+            List.filter_map (fun (_, e) -> if e = "" then None else Some e) parsed
+          in
+          (policies, String.concat "; " errors)
       | None -> ([], "expected array of policies"))
 
 (* --- file loader (thin I/O wrapper) --- *)
 
 (* load_policies_from_file: read a policies file from disk using
-   `In_channel.with_open_text`. Returns the empty list when the
-   file is missing (the "no policy declared" case — algebra §9
-   `policy(p) = default-policy`). Parse errors collapse to the
-   empty list with the error string dropped; the gate layer is
-   responsible for surfacing them.
+   `In_channel.with_open_text`. Returns `(policies, errors)`. The
+   empty list and no error is the "no policy declared" case — algebra
+   §9 `policy(p) = default-policy` — and a MISSING file is that same
+   case, not an error: the absence of a policies file is a project
+   that declared no floors, which the kernel reads as the silent
+   baseline.
+
+   A record the kernel READ and could not UNDERSTAND (an unknown
+   `mode_floor`) is not that case: the error string names the policy
+   and the value. The record is dropped — its floor does not apply —
+   and the error travels with the file, because a reader that drops
+   the error drops the only sentence the operator would have read.
    This is the only function in the module that touches I/O;
-   OCAML_BEST_PRACTICES §1.3 keeps I/O at the bin/ boundary
-   when feasible, but policy files are small (a few KB) and the
-   parse path needs to be testable without monkey-patching a
-   reader, so the wrapper is colocated with the pure parser. *)
+   OCAML_BEST_PRACTICES §1.3 keeps I/O at the bin/ boundary when
+   feasible, but policy files are small (a few KB) and the parse path
+   needs to be testable without monkey-patching a reader, so the
+   wrapper is colocated with the pure parser. *)
 let load_policies_from_file path =
-  if not (Sys.file_exists path) then []
+  if not (Sys.file_exists path) then ([], "")
   else
     let raw = In_channel.with_open_text path In_channel.input_all in
-    let policies, _errors = parse_policies raw in
-    policies
+    parse_policies raw
 
 (* --- module initialisation --- *)
 
@@ -621,10 +664,21 @@ let cached_policies : policy list ref = ref []
 (* load_policies: read from `default_policies_path` (or an
    override), parse it, and cache the result. Returns the
    list. Empty list means "no policies declared" (default
-   policy applies to every path). *)
+   policy applies to every path).
+
+   The ERROR is printed, not returned into the void. Before this
+   change the parser read a `mode_floor` it did not know and used
+   `tiny` instead, and the operator who wrote `mode_floor:
+   pci-strict` got the cheapest rung of the ladder without a word:
+   the floor they promised was silently the floor nobody promised.
+   A floor the kernel cannot read is a floor it cannot honour, and
+   the sentence saying so belongs to the operator who wrote it. The
+   message names the file, the policy and the value. *)
 let load_policies ?path () =
   let p = match path with Some s -> s | None -> default_policies_path in
-  let ps = load_policies_from_file p in
+  let ps, errors = load_policies_from_file p in
+  if errors <> "" then
+    Printf.eprintf "policies file %s: %s\n" p errors;
   cached_policies := ps;
   ps
 

@@ -113,10 +113,9 @@ probability(c) = 0.5 + 0.5 · policy_override_probability(c)
   default 0
 
 irreversibility(c) = max{marker(path) : path ∈ c.files}
-  non-mig → 0.1
+  no marker → 0.1
   data-mig → 0.7
   schema-break → 0.95
-  business-irreversible → 0.95
 
 mode(c) = max(risk_to_mode(risk(c)), mode_floor(c))
 
@@ -129,11 +128,9 @@ risk_to_mode : [0, 1] → 𝓜
     | exhaustive  if r ≥ 0.90
 
 mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c)}
-  mode_floor declared in policy.yaml:
-    silent → tiny
-    baseline → standard
-    pci-strict → strict
-    axiom-touching → exhaustive
+  mode_floor declared in policies.yaml, the vocabulary the parser
+  accepts (lib/policy.ml → Codec.parse_mode):
+    tiny, light, standard, strict, exhaustive
 ```
 
 > **Notation note (2026-10-07):** the form `mode(c) = max(risk_to_mode(risk(c)),
@@ -143,6 +140,23 @@ mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪ transitive_paths(c
 > notation flagged in `decisions/algebra-3.2-notation-flag-2026-10.yaml`
 > (2026-10-05) is superseded; the ambiguity the note recorded is closed
 > by the explicit bucketed form above.
+
+> **Marker note (2026-11 tranche):** the marker table above dropped the three
+> project-specific directory prefixes `migrations/`, `pci/` and
+> `payments/`. None of the three directories exists in this repository, so
+> no path in the tree could ever carry the marker - a branch that cannot
+> fire protects nothing. The two surviving entries are segment tokens
+> (`data-mig`, `schema-break`): a segment with that name says what it is
+> whoever owns the tree. Their absence changed no mode, because the
+> maximum risk this repository can produce is 0.0475, below the first
+> bucket boundary, so the mode of every change came from the declared
+> floor and not from the risk.
+>
+> The `mode_floor` vocabulary above is the one the parser accepts. The
+> `silent` / `baseline` / `pci-strict` / `axiom-touching` table it
+> replaces described a function with no callers, and the kernel has read
+> the five real mode names all along. See decision
+> `risk-and-scaffold-honesty-2026-11`.
 
 ---
 

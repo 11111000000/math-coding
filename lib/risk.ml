@@ -113,18 +113,38 @@ let probability files = 0.5 +. (0.5 *. policy_override_probability files)
 (* ---------- irreversibility (algebra §2) ---------- *)
 
 (* Path-level irreversibility marker. Returns the marker value if
-   `path` carries an irreversibility annotation, else None. *)
+   `path` carries an irreversibility annotation, else None.
+
+   The markers are SEGMENT tokens, not this repository's directory
+   names: a path segment called `data-mig` is a data migration and a
+   segment called `schema-break` is a breaking schema change, whoever
+   owns the tree. That is why they stay while the three
+   project-specific directory prefixes are gone.
+
+   The three branches that named `migrations/`, `pci/` and
+   `payments/` were removed in the 2026-11 tranche (decision
+   `risk-and-scaffold-honesty-2026-11`). None of the three
+   directories exists in this repository, so no path in the tree
+   could ever carry the marker: a branch that cannot fire protects
+   nothing, and it made the printed irreversibility look like a
+   measure when it was a constant. Their absence changed no mode:
+   `risk_to_mode` was already `Tiny` for every input this
+   repository can produce (the maximum risk is 0.0475 against a
+   first threshold of 0.05), so the mode of every change came from
+   the floor `policies.yaml` declares, not from the risk.
+
+   The irreversibility axis is therefore still inert here - the two
+   surviving tokens fire on no tracked path either - and the honest
+   repair for that is a DECLARED marker vocabulary in
+   `policies.yaml`, not more hardcoded paths. *)
 let path_marker path =
   let p = normalize_path path in
-  if has_prefix p "migrations/" || p = "migrations" then Some 0.95
-  else if path_contains_segment p "data-mig" then Some 0.7
+  if path_contains_segment p "data-mig" then Some 0.7
   else if path_contains_segment p "schema-break" then Some 0.95
-  else if has_prefix p "pci/" || p = "pci" then Some 0.95
-  else if has_prefix p "payments/" || p = "payments" then Some 0.95
   else None
 
 (* irreversibility(c) = max{marker(p) : p ∈ c.files}.
-   Empty file list returns 0.1 (non-mig default). *)
+   Empty file list returns 0.1 (the no-marker default). *)
 let irreversibility files =
   match files with
   | [] -> 0.1
@@ -133,23 +153,6 @@ let irreversibility files =
       match markers with [] -> 0.1 | xs -> List.fold_left max 0.0 xs)
 
 (* ---------- mode_floor ---------- *)
-
-(* Parse the mode_floor string declared in policy.yaml, algebra §2:
-
-     silent          → tiny
-     baseline        → standard
-     pci-strict      → strict
-     axiom-touching  → exhaustive
-
-   Unknown strings yield None; the caller falls back to Tiny
-   (the identity for max_mode). *)
-let mode_floor_of_string (s : string) : Domain.mode option =
-  match s with
-  | "silent" -> Some `Tiny
-  | "baseline" -> Some `Standard
-  | "pci-strict" -> Some `Strict
-  | "axiom-touching" -> Some `Exhaustive
-  | _ -> None
 
 (* mode_floor(c) = max{mode_floor(policy(p)) : p ∈ c.files ∪
                        transitive_paths(c)}, algebra §2. Backed by
