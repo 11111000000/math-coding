@@ -1,25 +1,51 @@
 ---
 schema: math-coding/3.3
 id: legacy-attestation-debt-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
 negative_control: tests/fixtures/legacy-attestation-debt.sh
-body_sha: "sha256:ca81530ce1f8259a606f514c1ff37741eadff401b4218295179dffce3932f1ab"
-yaml_sha: "sha256:ca81530ce1f8259a606f514c1ff37741eadff401b4218295179dffce3932f1ab"
+body_sha: "sha256:fc0b4e40e5b0b7406a276bcd945f06dc838b9ade9b9c97bb00e96e1053fa4b63"
+yaml_sha: "sha256:fc0b4e40e5b0b7406a276bcd945f06dc838b9ade9b9c97bb00e96e1053fa4b63"
 
-intent: { source: "issue:legacy-attestations-are-wildcards-2026-10-23", text: "760 of the 773 tracked attestations carry an empty subject.materials_digest. The gate treats an empty digest as a wildcard, so those attestations are fresh for every tree, for ever, and can never be invalidated by a change. They are also, by the schema's own wording, invalid for every runtime kind: materials_digest MUST be non-empty when kind_ is in {test, build, observation, analysis}, and 427 of the 760 are not review. The debt has no number anywhere in the repository, so it cannot go down — it can only be re-described." }
+intent: |
+  The issue recorded on 2026-10-23 was concrete: 760 of 773 then-tracked
+  attestations carried an empty `subject.materials_digest`, which the gate
+  treated as a wildcard.  Those files are gone.  The attestation store is
+  now generated on disk and is not tracked by git, so the old file census is
+  a dated record, not the population this promise measures today.
+
+  2026-10-31, REVISION 2: THE STORE MOVED FROM VERSION CONTROL TO THE
+  WORKING TREE.  `tests/fixtures/legacy-attestation-debt.sh` reads the
+  generated store at the same path the kernel resolves, rejects a missing or
+  stale store with exit 3 (`unknown`, not `pass`), and measures three
+  current debts when the store is present and fresh: legacy empty-digest
+  attestations, active decisions with obligations but no attestation, and
+  undeclared inconclusive attestations.  The current ceilings are 0, 3 and
+  1; `bash scripts/ceiling-monotonic.sh` prints all three against their
+  recorded bases.
+
+  History:
+    rev 1: adopted a measured ceiling for the legacy wildcard attestations
+      and the decisions they failed to cover.
+    rev 2 (this revision): replaced the tracked-store population with the
+      generated-store measurement the fixture actually performs; the
+      substantive ceiling and negative-control promises are unchanged.
 
 commitment: |
   After this decision closes:
 
-  1. The size of the debt is MEASURED by a fixture, not by prose:
-     the number of tracked attestations with an empty
-     subject.materials_digest, and the number of decisions with no
-     attestation at all.
-  2. The fixture pins that number as a CEILING. The debt may fall;
-     it may never rise. A fixture that only counted the debt would
-     let it grow silently.
+  1. The size of the debt is MEASURED by a fixture, not by prose.  When
+     the generated store exists and is signed for the current tree, the
+     fixture measures: (a) attestations with an empty
+     `subject.materials_digest`; (b) active decisions that have
+     obligations but no attestation; and (c) inconclusive attestations
+     whose `kind_` is not `review`.  A missing store or a store for another
+     tree is UNKNOWN (exit 3), never a green measurement over nothing.
+  2. The fixture pins those three numbers as CEILINGS.  The current
+     ceilings are 0 legacy empty-digest attestations, 3 unattested active
+     decisions, and 1 undeclared inconclusive attestation; the debt may
+     fall and may never rise.
   3. Every replacement is an attestation signed by
      `mathc attest-batch` under semantics A, carrying a real
      scope digest. The legacy file is deleted in the same commit
@@ -39,7 +65,8 @@ axiom_link:
 counterexample: |
   Two counter-positions considered and rejected.
 
-  (a) "Delete the 760 legacy attestations and re-sign everything
+  (a) "Delete the 760 legacy attestations recorded in 2026-10 and
+  re-sign everything
   from scratch in one commit." Rejected: a re-signed attestation
   that nobody ran is exactly the fabrication this repository has
   been collecting evidence about for six weeks — 793 attestations
@@ -49,8 +76,9 @@ counterexample: |
   goal was to close that gap, not to reproduce it at scale.
 
   (b) "Leave the legacy attestations alone and simply stop
-  treating the empty digest as a wildcard." Rejected: this makes
-  all 760 stale at once, which is honest but not actionable — a
+  treating the empty digest as a wildcard." Rejected: in the
+  tracked-store population this made
+  all 760 stale at once, which was honest but not actionable — a
   debt that appears in one step of a thousand is a debt nobody
   pays. The ceiling is the thing that makes the reduction
   possible: a number that must fall, with a per-commit budget.
@@ -75,9 +103,11 @@ outcomes:
   - id: debt-is-a-number
     statement: |
       `tests/fixtures/legacy-attestation-debt.sh` reports the
-      measured debt and fails if it exceeds the ceiling recorded in
-      the fixture. The ceiling is a constant in the fixture, so
-      lowering it is an explicit, reviewable act.
+      generated-store debt and fails if any of its three measurements
+      exceeds the ceiling recorded in the fixture. A missing or stale
+      store is reported as UNKNOWN (exit 3), not as a satisfied promise.
+      Each ceiling is a constant in the fixture, so lowering it is an
+      explicit, reviewable act.
 
 scope:
   paths:
@@ -93,10 +123,12 @@ scope:
 obligations:
   - id: debt-is-measured-and-bounded
     claim: |
-      The fixture measures the number of tracked attestations with
-      an empty materials_digest and the number of decisions with no
-      attestation, and fails when either exceeds its recorded
-      ceiling.
+      The fixture measures the generated store, not a git index: it
+      counts attestations with an empty materials_digest, active
+      decisions with no attestation, and undeclared inconclusive
+      attestations, and fails when any count exceeds its recorded
+      ceiling. With no store, or a store signed for another tree, it
+      exits 3 (unknown), not 0.
     acceptance:
       all:
         - verifier: tests/fixtures/legacy-attestation-debt.sh
@@ -104,8 +136,8 @@ obligations:
   - id: debt-can-only-fall
     claim: |
       The fixture's negative control demonstrates that it fails when
-      the measured debt exceeds the ceiling, so the bound is real
-      rather than decorative.
+      a synthetic generated store exceeds the legacy and unattested
+      ceilings, so the bounds are real rather than decorative.
     acceptance:
       all:
         - verifier: tests/fixtures/legacy-attestation-debt.sh
@@ -113,14 +145,15 @@ obligations:
 risk:
   owner: human:maintainer
   declared_triggers:
-    - "a legacy attestation is added to the store by a tool other than mathc attest-batch"
+    - "a legacy attestation is added to the generated store by a tool other than mathc attest-batch"
 
 assumptions:
   - id: legacy-files-are-unexamined
     state: assumed
     owner: human:maintainer
     statement: |
-      A tracked attestation with an empty materials_digest carries
+      An attestation in the generated store with an empty
+      materials_digest carries
       no claim that can be falsified, and is therefore treated as
       unexamined rather than as evidence. Replacing it does not
       retract a true claim; it re-establishes one that can be

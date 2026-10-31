@@ -1,11 +1,18 @@
 ---
 schema: math-coding/obligations-3.0-alpha
+revision: 3
 decision:
   id: bootstrap-v3
   revision: 2
 # This file aggregates the obligations declared in
 # `decisions/decision.yaml@2` so external readers see a single
 # canonical obligation set without parsing the parent policy.
+# The `decision.revision: 2` above is a HISTORICAL reconciliation
+# pointer: it records the parent revision at which this list was
+# reconciled. The live parent is now `decisions/decision.yaml@4`.
+# The obligation ids below still match the live parent's ids and order;
+# `tests/fixtures/aggregator-matches-parent.sh` measures that agreement
+# without mistaking the historical pointer for the current revision.
 # Revision bumped 1 -> 2 at v0.0.19 alongside the count reconciliation:
 # - prior (rev 1): 5 obligations, ids `preserve-v2`,
 #   `single-active-protocol`, `executable-musts`, `honest-bootstrap`,
@@ -21,6 +28,13 @@ decision:
 #   name reconciliation. The packages `Obs` column in `PACKAGES.md`
 #   is observation count from a separate audit tool and is
 #   unaffected by this reconcile.
+#
+# Aggregator history:
+#   rev 1: the original five-obligation aggregate.
+#   rev 2: reconciled to the seven ids of bootstrap-v3@2.
+#   rev 3 (2026-10-31): marked the parent revision pointer historical,
+#     re-pointed the developer-practices rule at the renamed conventions
+#     file, and retained the live parent's seven ids in the same order.
 obligations:
   - id: preserve-v2
     kind: invariant
@@ -49,8 +63,8 @@ obligations:
     kind: invariant
     statement: |
       Every change to the kernel, schemas, or build follows the rules
-      in OCAML_BEST_PRACTICES.md.
-    evidence: manual-review-against-bp
+      in OCAML_KERNEL_CONVENTIONS.md.
+    evidence: manual-review-against-kernel-conventions
   - id: axioms-binding
     kind: invariant
     statement: |

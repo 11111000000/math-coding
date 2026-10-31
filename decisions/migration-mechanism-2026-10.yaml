@@ -1,33 +1,40 @@
 ---
 schema: math-coding/3.2
 id: migration-mechanism
-revision: 2
+revision: 3
 state: active
 negative_control: tests/cli/migrate-malformed.t
-body_sha: "sha256:9c045e88edeb8a0aabb297fa32dcaa22ebca7f80f959074239d036c7249630aa"
-yaml_sha: "sha256:9c045e88edeb8a0aabb297fa32dcaa22ebca7f80f959074239d036c7249630aa"
+body_sha: "sha256:133f1ac8ce1be15a49c32896dbc4a8633d98f2081412c70a16b8e91690b17b7b"
+yaml_sha: "sha256:133f1ac8ce1be15a49c32896dbc4a8633d98f2081412c70a16b8e91690b17b7b"
 intent: |
   Give math-coding agents a deterministic, reproducible, kernel-driven
-  way to migrate decisions/*.yaml between minor versions of the schema
-  (3.0-alpha -> 3.2 -> 3.2.1 -> ...). Today the protocol has no built-in
-  migration path; the only record of one is `scripts/migrate-decisions-3.2.py`
-  and `scripts/migrate-decisions-3.2-phase2.py` — a pair of one-shot
-  Python scripts authored for the v3.0.0.20 cycles and never re-run.
-  Each future schema change that touches existing decisions was
-  therefore forcing a new bespoke script. This stops here.
+  way to migrate `decisions/*.yaml` between minor versions of the schema.
+  The mechanism is live: `lib/migrate.ml` parses a declarative manifest,
+  `bin/Mathc.ml::do_migrate` walks the requested decision tree, and the
+  default command emits a per-file plan. The two one-shot Python scripts
+  that predate this mechanism are absent from the tree; their history is
+  preserved in git.
 
-  The mechanism is small by design. The kernel learns a single new
-  subcommand `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json]
-  [--explain] [--manifest=PATH]` and a single pure kernel module
-  `lib/migrate.ml`. The kernel NEVER mutates YAML on disk. It reads a
-  declarative migration manifest (a YAML file under
-  `decisions/migrations/<from>-to-<to>.yaml`), walks `decisions/*.yaml`
-  under `--root`, and prints a per-file plan listing what each file
-  would need. An agent (or human) reads the plan, edits the files,
-  and re-runs `mathc validate` to confirm. This isolates the kernel's
-  role to "observe and describe"; the decision to mutate lives with
-  the agent, who can stage, diff, and `git revert` if the plan is
-  wrong.
+  2026-10-31, REVISION 3: THE PROTOCOL AND CONVENTION ANCHORS MOVED.
+  The mechanism and its behaviour did not. The implementation anchor is
+  `lib/migrate.ml::apply_actions` and the dispatcher anchor is
+  `bin/Mathc.ml::do_migrate`; exit-code conventions live in
+  `OCAML_KERNEL_CONVENTIONS.md §4.3`; the kernel toolchain rule lives in
+  `KERNEL_AGENTS.md §OCaml toolchain — hard requirement`. The old
+  `OCAML_BEST_PRACTICES.md` and `AGENTS.md` paths are historical names, not
+  live anchors.
+
+  The mechanism is small by design. The kernel exposes
+  `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json]
+  [--explain] [--manifest=PATH] [--write|--dry-run]` and the pure module
+  `lib/migrate.ml`. In its default plan-only mode, the kernel NEVER
+  mutates YAML on disk. It reads a declarative migration manifest (a YAML
+  file under `decisions/migrations/<from>-to-<to>.yaml`), walks
+  `decisions/*.yaml` under `--root`, and prints a per-file plan listing
+  what each file would need. An agent (or human) reads the plan, edits
+  the files, and re-runs `mathc validate` to confirm. The opt-in
+  `--write` mode emits a sibling `<file>.migrated.yaml` and never
+  overwrites the original.
 
   The manifest vocabulary is minimal: rename-field, add-field,
   bump-schema-string, manual-review. Anything outside this vocabulary
@@ -48,11 +55,17 @@ intent: |
       `math-coding/3.2.1`); the kernel accepts any string as long
       as the decision file passes `mathc validate`.
 
-  2026-11: the axiom this decision implements was carried in the
+  The axiom this decision implements was carried in the
   relation block, which is for decisions; it is carried by this
   decision's axiom_link block, where the corpus puts an axiom. The scope
-  path that named the agent guide named the file this repository no
-  longer has: AGENTS.md was renamed to KERNEL_AGENTS.md.
+  path that named the agent guide now names `KERNEL_AGENTS.md`.
+
+  History:
+    rev 1: adopted the declarative manifest and plan-only migration path.
+    rev 2: added opt-in sibling-file write and dry-run modes.
+    rev 3 (this revision): replaced historical protocol and convention
+      filenames and line anchors with the symbols and sections that exist
+      today; the migration behaviour is unchanged.
 
 axiom_link:
   - A0
@@ -60,7 +73,7 @@ axiom_link:
   - A3
 
 commitment: |
-  New pure kernel module `lib/migrate.ml` exposes:
+  The pure kernel module `lib/migrate.ml` exposes:
 
     val parse_manifest_yaml :
       reader:(string -> string) -> path:string -> result_
@@ -74,12 +87,12 @@ commitment: |
   It is registered in `lib/dune` under the existing `mathcoding_core`
   library; no new library or dune stanza is added.
 
-  New subcommand in `bin/Mathc.ml::dispatch`:
+  The `migrate` subcommand in `bin/Mathc.ml::do_migrate`:
 
     | "migrate" -> do_migrate ()
 
   with signature and flags documented inline (see also
-  `OCAML_BEST_PRACTICES.md` §4.3 exit codes: 0 = plan emitted,
+  `OCAML_KERNEL_CONVENTIONS.md` §4.3 exit codes: 0 = plan emitted,
   2 = input error including manifest parse failure).
 
   Revision 2 (2026-10-13) adds `--write` and `--dry-run` flags.
@@ -96,8 +109,8 @@ commitment: |
   Implementation lives in `lib/migrate.ml::apply_actions`
   (line-edit apply for bump-schema-string and rename-field,
   end-of-file append for add-field, no-op for manual-review)
-  and in `bin/Mathc.ml::do_migrate` (~30 LOC addition: flag
-  parsing, sibling-file IO, JSON summary record). Fixture:
+  and in `bin/Mathc.ml::do_migrate` (flag parsing, sibling-file IO,
+  and JSON summary record). Fixture:
   `tests/cli/migrate-write.t` (positive for the apply path +
   negative for the dry-run no-disk-touch property).
 
@@ -105,12 +118,12 @@ commitment: |
 
     decisions/migrations/3.2-to-3.2.1.yaml
 
-  ships in this commit as a no-op proof of the mechanism: the
+  shipped as a no-op proof of the mechanism: the
   declared `from`-`to` pair is the next planned schema-string bump,
   the migration list is empty, and `tests/cli/migrate-no-changes.t`
   asserts that running `mathc migrate --from=3.2 --to=3.2.1` against
-  the current tree is a no-op (zero files match the manifest's
-  `from` because the live tree is at 3.0-alpha). This is the
+  its synthetic tree is a no-op (zero files match the manifest's
+  `from`). This is the
   small, verifiable, repeatable assertion that the mechanism works
   end-to-end.
 
@@ -132,7 +145,8 @@ scope:
     - "CHANGELOG.md"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
   #   tests/cli/fixtures/migrate/ - no tracked file matches it
-  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+  # 2026-10-31: OCAML_BEST_PRACTICES.md was renamed to
+  #   OCAML_KERNEL_CONVENTIONS.md; the scope names the file that exists.
   exclusions:
     - "schemas/**"
 
@@ -142,8 +156,9 @@ outcomes:
       `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json]
       [--explain] [--manifest=PATH]` walks decisions/*.yaml under the
       given root and prints a per-file plan derived from
-      `decisions/migrations/<from>-to-<to>.yaml`. The kernel never
-      writes to the YAML files.
+      `decisions/migrations/<from>-to-<to>.yaml`. The default mode
+      never writes to the YAML files; opt-in `--write` emits sibling
+      `<file>.migrated.yaml` files and never overwrites an original.
   - id: declarative-migration-manifest
     statement: |
       A migration manifest declares `from`, `to`, an `intent`, and a
@@ -161,7 +176,7 @@ assumptions:
   - id: python-ban-extension
     state: assumed
     statement: |
-      Per AGENTS.md §Toolchain preference, all new kernel-side tooling
+      Per KERNEL_AGENTS.md §OCaml toolchain — hard requirement, all new kernel-side tooling
       is OCaml. Python remains acceptable only where no OCaml alternative
       exists in the immediate future (data migrations in scripts/*.py,
       the cram harness for shell orchestration, occasional YAML parsing
@@ -172,7 +187,7 @@ assumptions:
     consequence_if_false: >
       A future agent might re-introduce a Python migration script
       instead of using `mathc migrate`. Capture this constraint in
-      OCAML_BEST_PRACTICES.md trap log and check via
+      OCAML_KERNEL_CONVENTIONS.md §11 trap log and check via
       `tests/process_principles.ml` that no `scripts/migrate-*.py`
       files exist.
     review_on:
@@ -181,20 +196,20 @@ assumptions:
   - id: schema-string-evolves-as-minor
     state: assumed
     statement: |
-      The schema-string in YAML front-matter is allowed to grow as
-      `math-coding/3.0-alpha`, `math-coding/3.2`,
-      `math-coding/3.2.1`, ... Minor changes (field additions,
-      renames) do not require revving a major version; major
-      changes do. The first minor bump is deferred to a future
-      decision.
+      The schema-string in YAML front-matter is allowed to grow across
+      minor families such as `math-coding/3.2` and `math-coding/3.3`.
+      Minor changes (field additions, renames) do not require revving a
+      major version; major changes do. The live corpus is mixed while
+      existing decisions are migrated on touch, so this assumption does
+      not claim that one family has already replaced the other.
     owner: human:maintainer
     consequence_if_false: >
-      If a future agent bakes the schema-string into a validator
-      that rejects anything not `math-coding/3.0-alpha`, the
+      If a future agent bakes one schema family into the validator
+      and rejects the other accepted families, the
       kernel-migration mechanism becomes useless for its own
       purpose.
     review_on:
-      - signal: first-schema-string-bump-applied
+      - signal: schema-family-constraint-tightened
 
 obligations:
   - id: migrate-subcommand-shipped

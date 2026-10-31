@@ -1,15 +1,36 @@
 ---
 schema: math-coding/3.2
 id: multi-policy-hierarchy-2026-10
-revision: 1
+revision: 2
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
 mode: standard
-body_sha: "sha256:f60101fafb884a2a29e5adc87e8aa565c301b1f75068c6965589267daef74d4f"
-yaml_sha: "sha256:f60101fafb884a2a29e5adc87e8aa565c301b1f75068c6965589267daef74d4f"
+body_sha: "sha256:6fd467957f617cd7d9f0f21d1531dc1b7c055455f5a3e3fadfb501266eec80dd"
+yaml_sha: "sha256:6fd467957f617cd7d9f0f21d1531dc1b7c055455f5a3e3fadfb501266eec80dd"
 axiom_link:
   - A0
 intent: |
+  The hierarchy extension is live: `lib/policy.ml` carries the optional
+  parent, `resolve_policy` walks and flattens the chain, and
+  `tests/policy_test.ml` exercises the cases named below.
+
+  2026-10-31, REVISION 2: THE CONVENTION ANCHOR AND THE CORPUS
+  EVIDENCE MOVED. The default-zero trap now lives at
+  `OCAML_KERNEL_CONVENTIONS.md §11.30`, not in the renamed
+  `OCAML_BEST_PRACTICES.md`. The old promise "self-check returns 67 pass /
+  1 unknown" was a moving count and described a store state this checkout
+  does not have: on 2026-10-31 `mathc self-check` answered `unknown` and
+  exited 3 because the generated store is absent, while the conformance
+  corpus itself passed. The hierarchy promise is therefore measured by
+  `tests/policy_test.ml`, not by a corpus count that expires.
+
+  History:
+    rev 1: adopted single-parent policy inheritance, cycle detection,
+      cumulative resolution, and the default-zero override trap.
+    rev 2 (this revision): re-pointed the convention anchor and replaced
+      the stale self-check count with the current evidence boundary; the
+      hierarchy semantics are unchanged.
+
   Extend the multi-policy algebra (spec/kernel-contract.md §9) with a
   third composition axis: hierarchical policy composition. Current
   §9 covers two axes — union (sum of obligations across policies
@@ -129,14 +150,17 @@ commitment: |
      `mathc explain-diagnostic <CODE>` returns a Definition /
      Occurs-when / Remediation body.
 
-  10. `OCAML_BEST_PRACTICES.md §11` gains a new entry documenting
+  10. `OCAML_KERNEL_CONVENTIONS.md §11.30` documents
       the "parent inheritance overrides child only when child
       is the explicit default-zero" rule (the trap is: a future
       regression where the child's 0.0 silences the parent's
       non-zero override).
 
-  11. `mathc self-check` still returns 67 pass / 1 unknown / 0
-      fail (no regression).
+  11. The hierarchy behaviour is measured by `tests/policy_test.ml`.
+      The repository-wide `mathc self-check` is a separate question:
+      with no generated store it answers `unknown` and exits 3, while
+      the conformance corpus passes. No pass/unknown subject count is
+      promised here.
 
 scope:
   capabilities:
@@ -153,7 +177,8 @@ scope:
     - "spec/kernel-contract.md"
     - "policies.yaml"
   # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
-  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+  # 2026-10-31: OCAML_BEST_PRACTICES.md was renamed to
+  #   OCAML_KERNEL_CONVENTIONS.md; the convention anchor now lives there.
   exclusions:
     - "lib/decision.ml"
     - "lib/codec.ml"
@@ -380,7 +405,7 @@ risk:
 
 relations:
   addresses:
-    - algebra-3.2@2
+    - algebra-3.2@3
     - risk-policy-driven-floor-2026-10@1
   supersedes: []
   superseded_by: []

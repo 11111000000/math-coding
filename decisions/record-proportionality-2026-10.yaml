@@ -1,19 +1,49 @@
 ---
 schema: math-coding/3.3
 id: record-proportionality-2026-10
-revision: 1
+revision: 2
 state: active
 mode: standard
 
 negative_control: tests/cli/gate-trailer-decision.t
-body_sha: "sha256:1a4f037d8c26d4ed5c5b362bd09597ad58bf096b48e7119eb32809a79bcd500c"
-yaml_sha: "sha256:1a4f037d8c26d4ed5c5b362bd09597ad58bf096b48e7119eb32809a79bcd500c"
+body_sha: "sha256:27cf9d8f4015abfff5c982312ff5fab3077f32175e5e2fdfb64dc47aa794cbae"
+yaml_sha: "sha256:27cf9d8f4015abfff5c982312ff5fab3077f32175e5e2fdfb64dc47aa794cbae"
 
 axiom_link:
   - A0
   - A2
 
 intent: |
+  This decision is the dated record of a completed 2026-10 transition,
+  followed by the live contract it established. The corpus sizes and
+  the defects described below are measurements of the tree on which the
+  decision was written; they are not current counters.
+
+  2026-10-31, REVISION 2: THE CITATION VERDICT IS NOW EXPLICIT. The
+  current rule, measured by `tests/cli/gate-trailer-decision.t`, has
+  three distinct answers:
+
+    - a citation that RESOLVES to a live decision is accepted as the
+      name of a commitment; the cited obligation joins the evaluation;
+      when its evidence is unresolved, the verdict is UNKNOWN (exit 3),
+      not BLOCK and not PASS;
+    - a change that cites nothing is BLOCKED for the missing
+      commitment; and
+    - a DANGLING citation is BLOCKED, because a string that names no
+      live decision is not a citation.
+
+  The current floor behaviour is measured by
+  `tests/cli/mode-floor-from-policies.t`: `mathc mode lib/gate.ml`
+  answers `standard` from `policies.yaml`, while an undeclared path
+  keeps the baseline. The promise is the rule, not a subject count.
+
+  History:
+    rev 1: adopted the floor, citation, and corpus-proportionality rules
+      after measuring the 2026-10 corpus.
+    rev 2 (this revision): marked the old counts as dated, named the
+      current Block/Unknown rule, and re-pointed the evidence at the
+      live fixtures; the three substantive rules are unchanged.
+
   THE RECORD GREW FASTER THAN THE KERNEL, AND THE THREE MECHANISMS
   THAT SHOULD HAVE STOPPED IT WERE NOT WIRED.
 
@@ -78,7 +108,9 @@ commitment: |
      second decision. The citation must RESOLVE -- a trailer naming
      a decision the corpus does not hold is a string, not a citation
      -- and the decision it names is EVALUATED with the change, so
-     the citation is not a way to skip the evidence.
+     the citation is not a way to skip the evidence. A resolving
+     citation whose evidence is unresolved yields UNKNOWN (exit 3),
+     never PASS; a missing or dangling citation is BLOCKED.
   3. The corpus holds rules, not records. The twenty-three decisions
      that recorded an implementation of another decision have left the
      corpus; git keeps their bytes. The three that a live contract
@@ -105,7 +137,8 @@ outcomes:
     statement: |
       A commit that cites the decision it implements needs no decision
       file of its own, and the decision it cites is evaluated with the
-      change.
+      change. If that evaluation has unresolved evidence, the verdict
+      is UNKNOWN rather than PASS or BLOCK.
   - id: the-corpus-holds-rules
     statement: |
       The corpus holds rules the project keeps; the records of
@@ -139,7 +172,10 @@ obligations:
       A change that cites the decision it implements is not blocked
       for having no decision file of its own, a change that cites
       nothing is blocked, and a citation that names no decision in
-      the corpus is blocked.
+      the corpus is blocked. When the resolving citation's obligation
+      has no fresh evidence, the gate reports UNKNOWN (exit 3); the
+      citation is neither laundered into PASS nor turned into a BLOCK
+      for missing evidence.
     acceptance:
       all:
         - verifier: tests/cli/gate-trailer-decision.t
@@ -190,9 +226,12 @@ counterexample: |
   the change that carries fewer of them carries a NAMED one: the
   trailer names a decision, the kernel resolves it, and that
   decision's obligations are evaluated with the change. A commit
-  that implements `bootstrap-v3@3` and says so is measured against
-  `bootstrap-v3@3`. A commit that names nothing, or names something
-  that does not exist, is blocked -- and the fixture pins both.
+  that implements `bootstrap-v3@4` and says so is measured against
+  `bootstrap-v3@4`. A commit that names nothing, or names something
+  that does not exist, is blocked -- and the fixture pins both. A
+  resolving citation whose evidence is unresolved is a third case:
+  its verdict is UNKNOWN (exit 3), because the commitment was named
+  correctly but not evidenced.
 
   The stronger version of the objection is about the floors
   themselves: `standard` on `lib/**` is the same floor the policy

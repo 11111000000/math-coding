@@ -114,7 +114,11 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   tests/fixtures/spec-cli-catalog-gap.sh measures the gap between
 #   the dispatcher and the normative catalog, and its negative
 #   controls require the measurement to move in both directions
-CEILING=32
+# ceiling-fall: 32 -> 31, new-decision-mkdir-parent now names its
+#   existing rejecting cram as the negative control that catches the
+#   mkdir/layout promise; the inventory's CHECKED class is visible to
+#   the instrument instead of remaining prose
+CEILING=31
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls

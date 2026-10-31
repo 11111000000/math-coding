@@ -1,14 +1,38 @@
 ---
 schema: math-coding/3.2
 id: priority-drift
-revision: 3
+revision: 4
 state: active
+body_sha: "sha256:95670ed47cfd75abd9607725a6c69c88e672de69c6fcb4fb5e742d62d77f4e6c"
+yaml_sha: "sha256:95670ed47cfd75abd9607725a6c69c88e672de69c6fcb4fb5e742d62d77f4e6c"
 intent: |
+  The priority-order mirror check is live. The authoritative ordering
+  line is in `spec/semantics.md §Context-prioritisation`; the
+  implementer mirror is in `OCAML_KERNEL_CONVENTIONS.md §10.5`.
+
+  2026-10-31, REVISION 4: THE MIRROR FILE MOVED AND THE HISTORICAL
+  IMPLEMENTATION TENSE DID NOT. The old decision named
+  the former `OCAML_BEST_PRACTICES.md §10.5` and an earlier revision of the file;
+  the live test now reads `OCAML_KERNEL_CONVENTIONS.md §10.5`. The
+  source-authority citation is `decisions/validate-and-context.yaml`,
+  not `bootstrap/validate-and-context.yaml`. The test reports the two
+  extracted lines rather than the unified diff the old prose promised.
+  This revision also gives the file the body/yaml digest fields the
+  current schema requires.
+
+  History:
+    rev 1: adopted the mirror check for the context-priority order.
+    rev 2: recorded the OCaml implementation and its four outcomes.
+    rev 3: kept the check while the corpus moved around it.
+    rev 4 (this revision): re-pointed both mirrors and the authority
+      citation at their current paths, made the failure wording match
+      the current test, and added the current digest fields.
+
   Close deficit D3 from docs/AUDIT-0.0.11.md by adding a machine
   check that the priority table in spec/semantics.md
   ("context-prioritisation") and the mirror table in
-  OCAML_BEST_PRACTICES.md §10.5 stay byte-equivalent. The spec
-  is authoritative (`bootstrap/validate-and-context.yaml` line 124
+  OCAML_KERNEL_CONVENTIONS.md §10.5 stay byte-equivalent. The spec
+  is authoritative (`decisions/validate-and-context.yaml`
   counterexample: "the priority order is a kernel policy statement,
   not a coding convention"); the practices file mirrors the
   table for implementer convenience. Two copies, maintained by
@@ -22,17 +46,17 @@ commitment: |
   (Alcotest) when the normative priority-ordering line in
   spec/semantics.md "context-prioritisation" is byte-equivalent
   (modulo whitespace) to the corresponding line in
-  OCAML_BEST_PRACTICES.md §10.5, and FAILS (printing a unified
-  diff) otherwise. The OCaml test is part of the standard
+  OCAML_KERNEL_CONVENTIONS.md §10.5, and FAILS (printing both
+  extracted lines) otherwise. The OCaml test is part of the standard
   `dune runtest`; a drift is therefore caught before the next tag
   is cut. The check uses hand-rolled OCaml + the Str regex
   library; no new dependencies, no kernel change, no schema
   change.
 
-  This is the implementation record (revision 2): the OCaml test
+  This is the implementation record: the OCaml test
   tests/repo_structure.ml:test_spec_vs_bp_priority exists, is
   registered in tests/dune, and currently passes against the
-  priority tables at v3-alpha-0.0.12. A future change to
+  priority tables in the current tree. A future change to
   either table without a matching change to the other will
   fail the fixture and the aggregator.
 
@@ -42,9 +66,9 @@ scope:
   paths:
     - "tests/repo_structure.ml"
     - "docs/AUDIT-0.0.11.md"
-  # 2026-10-25: pruned from this scope, per decisions/dead-scope-paths-2026-10.yaml
-  #   bootstrap/priority-drift.yaml - no tracked file matches it
-  #   OCAML_BEST_PRACTICES.md - no tracked file matches it
+    - "decisions/priority-drift.yaml"
+  # 2026-10-31: this file moved from bootstrap/ to decisions/;
+  #   OCAML_BEST_PRACTICES.md was renamed to OCAML_KERNEL_CONVENTIONS.md.
   exclusions:
     - "lib/**"
     - "bin/**"
@@ -57,9 +81,9 @@ outcomes:
       The priority-ordering line in spec/semantics.md (the
       ```text block under "context-prioritisation") is
       byte-equivalent to the priority-ordering line in
-      OCAML_BEST_PRACTICES.md §10.5. Either both are present
+      OCAML_KERNEL_CONVENTIONS.md §10.5. Either both are present
       and identical, or both are absent. Any other state is a
-      drift and the fixture reports it with a unified diff.
+      drift and the test reports both extracted lines.
 
 counterexample: |
   Why a fixture instead of code review? Because two copies of
@@ -67,21 +91,21 @@ counterexample: |
   spec copy and the practices mirror exist for different
   audiences (kernel spec vs. OCaml implementer) but the data
   must be the same data; the smallest change to the order is a
-  protected policy transition (spec/semantics.md line 178: "A
+  protected policy transition (spec/semantics.md §Context-prioritisation: "A
   change to the priority order is itself a protected policy
   transition"), and code review alone has already allowed one
   audit (docs/AUDIT-0.0.11.md D3) to flag this gap.
 
-  Why not put the table only in OCAML_BEST_PRACTICES.md and
+  Why not put the table only in OCAML_KERNEL_CONVENTIONS.md and
   delete it from the spec? Because spec/semantics.md names the
-  table a kernel policy statement (line 124 of
-  bootstrap/validate-and-context.yaml says so explicitly: "the
+  table a kernel policy statement (the counterexample in
+  decisions/validate-and-context.yaml says so explicitly: "the
   priority order is a kernel policy statement, not a coding
   convention. The spec is the authoritative source"). Removing
   the table from the spec would invert the policy hierarchy.
 
   Why not put the table only in the spec and delete it from
-  OCAML_BEST_PRACTICES.md? Because the practices file is the
+  OCAML_KERNEL_CONVENTIONS.md? Because the conventions file is the
   hand-held reference for OCaml implementers who don't read the
   spec; removing the table would not stop the mirror from
   existing, it would just make the mirror a memory of a memory.
@@ -108,10 +132,10 @@ assumptions:
   - id: no-new-deps
     state: assumed
     statement: |
-      The fixture uses only POSIX shell, grep, sed, awk, and
-      diff. No new executable, no new package, no new dune
-      stanza. The fixture is invoked by ./scripts/check.sh via
-      the same aggregator that runs every other fixture.
+      The test uses the existing OCaml test executable and the `Str`
+      library already in the test environment. No new executable, no
+      new package, and no new dune stanza. The test runs with the
+      standard `dune runtest` suite.
     owner: human:maintainer
     consequence_if_false: |
       If a future extension to the priority table includes
@@ -151,11 +175,11 @@ obligations:
       The priority-ordering line in spec/semantics.md
       "context-prioritisation" is byte-equivalent (modulo
       whitespace) to the priority-ordering line in
-      OCAML_BEST_PRACTICES.md §10.5. tests/repo_structure.ml:
+      OCAML_KERNEL_CONVENTIONS.md §10.5. tests/repo_structure.ml:
       test_spec_vs_bp_priority extracts the line beginning with
       `RequiredForGate` from each file (or returns None if
       absent), normalises whitespace, and asserts equality. A
-      drift fails the Alcotest case with a unified diff; an
+      drift fails the Alcotest case with both extracted lines; an
       absent-on-one-side is reported explicitly.
     acceptance:
       all:

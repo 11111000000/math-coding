@@ -1,12 +1,30 @@
 ---
 schema: math-coding/3.2
 id: process-principles-close-branches
-revision: 3
+revision: 4
 state: active
 negative_control: tests/fixtures/pre-commit-editorial-exempt.sh
-body_sha: "sha256:c398acb33a53aebf042a1ff1425bfe18227ddcdc26a76947e3cd0c5271ad6b1e"
-yaml_sha: "sha256:c398acb33a53aebf042a1ff1425bfe18227ddcdc26a76947e3cd0c5271ad6b1e"
+body_sha: "sha256:8ae027622739290b30950e7f0bdc3fc69989a1b2d97f8cd68c5003449e6f49b4"
+yaml_sha: "sha256:8ae027622739290b30950e7f0bdc3fc69989a1b2d97f8cd68c5003449e6f49b4"
 intent: |
+  The branch-hygiene utility and the P1/P2 pre-commit gate are live.
+
+  2026-10-31, REVISION 4: THE EDITORIAL-CONTRACT DOCUMENT MOVED. Rev 1
+  cited `AGENTS.md`, and rev 2 cited the then-correct section of that
+  filename. The file is now `KERNEL_AGENTS.md`; its live anchor is
+  `KERNEL_AGENTS.md §Before work` (the "provably editorial change"
+  contract). The historical filename remains only in this dated
+  paragraph.
+
+  History:
+    rev 1: adopted `scripts/dev close-branches` and the P1/P2 hook.
+    rev 2: implemented the editorial exemption and fixed the then-broken
+      protocol-document anchor.
+    rev 3: retained the utility and hook as the repository evolved.
+    rev 4 (this revision): re-pointed the editorial-contract anchor at
+      `KERNEL_AGENTS.md §Before work` and restored the counterexample to
+      one block scalar; the hook behaviour is unchanged.
+
   Implement `scripts/dev close-branches`, the long-promised
   branch-hygiene utility from ROADMAP Tier-2 #4. Closes audit
   deficit D10 (stale-worktree accumulation: 19 branches in
@@ -64,8 +82,8 @@ commitment: |
       path.
 
   P2 is exempted for any `decisions/*.yaml|.md` file whose
-  top-level `change_kind:` key reads `editorial` (per
-  AGENTS.md §Before work — "provably editorial change"
+    top-level `change_kind:` key reads `editorial` (per
+    KERNEL_AGENTS.md §Before work — "provably editorial change"
   contract). The exemption is matched before the P2 awk
   pass; a `change_kind: editorial` decision file may have
   zero obligations or obligations without a verifier
@@ -97,25 +115,22 @@ risk:
     - pre-commit-hook-overreach
   owner: human:maintainer
 counterexample: |
-  - counterexample: |
-      `scripts/dev close-branches --yes` deletes a branch that
-      had been force-pushed to and was not in the merge-base
-      walk because the walk uses `--is-ancestor` semantics
-      rather than topological merge. Mitigation: the script
-      uses `git merge-base main <branch>` == `<branch>` (i.e.
-      the branch HEAD is the merge-base itself), which is
-      strictly stronger than `--is-ancestor`.
-  - pre_commit_hook_overreach: |
-      The hook rejects legitimate `decisions/*.yaml` changes
-      that legitimately have no fixtures (e.g. the
-      `decision.yaml` rev-bump that closes D6). Mitigation:
-      the hook's matcher allows a fixture path, a cram `.t`
-      path, a recognised manual-style prefix, or *no verifier
-      at all if the decision's `change_kind` is `editorial`*
-      (per AGENTS.md §Before work — the "provably editorial
-      change" contract, line 105). The exemption is matched
-      before the P2 awk pass; rev 2 makes the exemption
-      effective where rev 1 only described it.
+  Two counter-positions considered and rejected.
+
+  (a) "`scripts/dev close-branches --yes` may delete a branch that was
+  force-pushed to and was not in the merge-base walk because the walk
+  uses `--is-ancestor` semantics rather than topological merge."
+  Mitigation: the script uses `git merge-base main <branch>` == `<branch>`
+  (the branch HEAD is the merge-base itself), which is strictly
+  stronger than `--is-ancestor` for this purpose.
+
+  (b) "The hook may reject legitimate `decisions/*.yaml` changes that
+  have no fixture (for example an editorial revision)." Mitigation: the
+  hook's matcher allows a fixture path, a cram `.t` path, a recognised
+  manual-style prefix, or no verifier when the decision's `change_kind`
+  is `editorial`, per `KERNEL_AGENTS.md §Before work` (the "provably
+  editorial change" contract). The exemption is matched before the P2
+  awk pass.
 
 obligations:
   - id: close-branches-impl
@@ -140,7 +155,7 @@ obligations:
   - id: editorial-exemption-impl
     statement: |
       `.githooks/pre-commit` honours the `change_kind: editorial`
-      exemption per AGENTS.md §Before work. A staged
+      exemption per KERNEL_AGENTS.md §Before work. A staged
       `decisions/*.yaml` file whose top-level `change_kind`
       reads `editorial` is exempt from the P2 verifier check
       (it may declare obligations without fixture paths, or no
