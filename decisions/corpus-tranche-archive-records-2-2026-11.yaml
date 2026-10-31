@@ -1,0 +1,637 @@
+---
+schema: math-coding/3.3
+id: corpus-tranche-archive-records-2-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/relation-targets-resolve.sh
+body_sha: "sha256:7de3ed34bc49c1cd71967b4bd69f80098d577d955c00c6c3364bf28c0884b2c5"
+yaml_sha: "sha256:7de3ed34bc49c1cd71967b4bd69f80098d577d955c00c6c3364bf28c0884b2c5"
+
+axiom_link:
+  - A0
+  - A1
+  - A3
+  - A4
+
+intent:
+  source: "task:T2.2b tranche 2 of the archive-records work: the nine RECORD decisions named in docs/corpus-claims-inventory-2026-11.md sections 7.1 to 7.8 and 7.10"
+  text: |
+    THE RULE THIS TRANCHE APPLIED. A mention is not a dependency. A
+    file may leave the live corpus when NOTHING DEPENDS on it: no
+    machine opens it, no live test reads it by path, no verifier runs
+    it, no live scope path or index row points at it as the thing to
+    look at, and no live relation resolves to it as a live target. A
+    comment, a changelog entry, a ROADMAP line, an id cited in prose,
+    or a fixture that names the id in a diagnostic string is a MENTION,
+    and a mention does not keep a record alive.
+
+    The reference for the shape of the move is the tranche before this
+    one (`archive/decisions/corpus-tranche-archive-records-2026-11.yaml`,
+    which this tranche archives as well: a record of a record). The
+    shape of a moved file is the archive's own shape: `state: retired`,
+    one comment line saying why and by which tranche, the revision
+    bumped by one because the bytes changed, and both digests
+    recomputed with the placeholder-substitution algorithm
+    (`mathc rehash --write`), so the file validates `parse-ok` from its
+    archived path.
+
+    THE NINE THAT MOVED, AND THE CHECK RUN FOR EACH. The inventory
+    named the list; every item on it was re-checked against this tree
+    before it moved, because an inventory observation is a hypothesis
+    to re-run, not a fact to copy.
+
+    1. adopter-path-2026-10 -> archive/decisions/adopter-path-2026-10.yaml
+       CHECK: `git grep -n -F adopter-path-2026-10` over the tracked
+       tree, and the file's own header (`state: superseded`). FOUND:
+       one scope path and one prose pointer in the live decision
+       `decisions/skill-single-source-2026-10.yaml`; one relation
+       `adopter-path-2026-10@1` (an ID form, which the corpus resolves
+       across the live tree AND the archive); one comment in
+       `scripts/check-no-prose-policy-grep.sh`. Nothing opens the file.
+       RETARGETED: the scope path and the prose pointer in
+       skill-single-source-2026-10.yaml.
+
+    2. attestation-store-fill -> archive/decisions/attestation-store-fill.yaml
+       CHECK: `git grep -n -F attestation-store-fill`, and
+       `git ls-files attestations/**` (0 files: the store is generated,
+       not tracked). FOUND: two live path pointers - the index row in
+       PACKAGES.md and the companion line in attestation-source-map.md
+       - and a set of ID mentions, among them the live relation
+       `attestation-store-fill@3` in
+       `decisions/ci-gate-exit-honesty-2026-10.yaml`, which resolves in
+       the archive and was left alone. The file carries NO obligations
+       at all: it records a store fill that happened at an old HEAD,
+       and the live policy now says the store is generated.
+       RETARGETED: PACKAGES.md and attestation-source-map.md.
+
+    3. audit-0.0.21-fixes -> archive/decisions/audit-0.0.21-fixes.yaml
+       CHECK: `git grep -n -F audit-0.0.21-fixes`. FOUND: three path
+       pointers in OCAML_KERNEL_CONVENTIONS.md (the live convention doc
+       says where the conformance evidence is), one index row in
+       PACKAGES.md, four scope paths - two in live decisions, one
+       plain path in `decisions/install-tooling-2026-10.yaml`, and one
+       GLOB (`decisions/audit-0.0.21-fixes*.yaml`) in
+       `decisions/waiver-infrastructure-2026-10.yaml` that would have
+       become a dead scope path the moment the file moved - and one
+       ARCHIVED waiver record
+       (`archive/decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml`)
+       that names the file five times. That waiver's claim - "the
+       decision is byte-identical before and after this commit" - is
+       scoped to its OWN commit, so it stays true; its pointers were
+       moved to the archive and its digests recomputed.
+       RETARGETED: OCAML_KERNEL_CONVENTIONS.md, PACKAGES.md,
+       install-tooling-2026-10.yaml, waiver-infrastructure-2026-10.yaml,
+       corpus-growth-lints-2026-11.yaml, the archived waiver record.
+
+    4. ceiling-monotonic-2026-10 -> archive/decisions/ceiling-monotonic-2026-10.yaml
+       CHECK: `git grep -n -F ceiling-monotonic-2026-10`. FOUND: two
+       scope paths in live decisions
+       (`decisions/declared-promises-and-three-numbers-2026-11.yaml`,
+       `decisions/corpus-growth-lints-2026-11.yaml`) and two prose
+       mentions. The file is `state: superseded` and its four retired
+       obligations say `RETIRED at revision 2` - a historical statement
+       about the revision-2 edit, which stays true; the revision-3
+       header is this tranche's archive marker, and the comment line
+       under it says so.
+       RETARGETED: the two scope paths and the path inside the prose
+       mention in corpus-growth-lints-2026-11.yaml.
+
+    5. cli-cram-tests -> archive/decisions/cli-cram-tests.yaml
+       CHECK: `git grep -n -F cli-cram-tests`. FOUND: two MACHINE
+       READS by exact path - `tests/corpus_no_silent_drops/corpus_no_silent_drops.ml`
+       and `tests/yaml_seq_continuation.ml` - plus the index rows in
+       PACKAGES.md, the pointer in OCAML_KERNEL_CONVENTIONS.md, the
+       source map's section heading, and ID mentions (including the
+       live relation `cli-cram-tests@1` in
+       `decisions/install-tooling-2026-10.yaml`).
+       THE TWO TESTS WERE REDIRECTED FIRST, and only then did the file
+       move. Both tests keep their meaning: what they assert is that
+       the KERNEL reads these files to EOF and folds the `unknowns:`
+       block the way the D4 defect lost it. The file is the SAME file
+       after the move - the bytes the parser sees are the bytes it saw
+       before - so the assertion still tests the parser and not the
+       path. The previous tranche did exactly this for
+       `render-module-split-phase1-2026-10.yaml`, and the two files
+       were changed the same way here.
+       RETARGETED: the two test files, PACKAGES.md (two rows),
+       OCAML_KERNEL_CONVENTIONS.md.
+
+    6. corpus-tranche-archive-records-2026-11 -> archive/decisions/corpus-tranche-archive-records-2026-11.yaml
+       CHECK: `git grep -n -F corpus-tranche-archive-records-2026-11`.
+       FOUND: its own scope path, and one prose mention in
+       `decisions/declared-promises-and-three-numbers-2026-11.yaml`.
+       Nothing opens it. It is the record of the PREVIOUS archive
+       tranche, so archiving it is archiving a record of a record.
+       RETARGETED: its own scope path.
+
+    7. corpus-tranche-broken-schemes-2026-11 -> archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml
+       CHECK: `git grep -n -F corpus-tranche-broken-schemes-2026-11`.
+       FOUND: its own scope path; a path inside the prose block that
+       names the five broken verifier schemes; the header comment of
+       the instrument that belongs to it
+       (`tests/fixtures/verifier-schemes-are-canonical.sh`); and a
+       diagnostic string in `lib/diagnostic.ml` (out of scope for
+       this tranche - see below).
+       RETARGETED: its own scope path, the prose pointer, and the
+       instrument's header comment.
+
+    8. decision-level-census-2026-10 -> archive/decisions/decision-level-census-2026-10.yaml
+       CHECK: `git grep -n -F decision-level-census-2026-10`. FOUND:
+       its own scope path, its own verifier (`mathc validate
+       decisions/decision-level-census-2026-10.yaml`), the live
+       relation `decision-level-census-2026-10@1` in
+       `decisions/record-proportionality-2026-10.yaml` (an ID form,
+       left alone), and one comment in the corpus-wide silent-drop
+       test. Nothing opens it.
+       RETARGETED: its own scope path and its own verifier.
+
+    9. kernel-bugs-v3.4-2026-10 -> archive/decisions/kernel-bugs-v3.4-2026-10.yaml
+       CHECK: `git grep -n -F kernel-bugs-v3.4-2026-10`. FOUND: one
+       scope path in
+       `decisions/declared-promises-and-three-numbers-2026-11.yaml`, one
+       prose pointer in
+       `decisions/attestation-producer-vocab-2026-10.yaml`, a
+       ROADMAP line, a CHANGELOG line, and code and test COMMENTS
+       (lib/**, bin/**, tests/cli/*.t, tests/process_principles.ml).
+       None of them opens the file. Note that the file's ID is
+       `kernel-bugs-v3.4`, not its file name; the corpus resolves IDs,
+       not names, so the archive keeps the same file name and the same
+       id.
+       RETARGETED: the scope path and the prose pointer.
+
+    WHAT WAS RETARGETED, IN ONE PLACE. Twelve live files and one
+    archived file were edited so that no pointer to a moved file
+    names a path that no longer exists:
+
+      PACKAGES.md - three index rows and one cram-test row
+        (attestation-store-fill, cli-cram-tests, audit-0.0.21-fixes,
+        and the `version.t` row);
+      OCAML_KERNEL_CONVENTIONS.md - three pointers to
+        audit-0.0.21-fixes and one to cli-cram-tests;
+      attestation-source-map.md - the companion line;
+      decisions/skill-single-source-2026-10.yaml - one scope path and
+        one prose pointer;
+      decisions/declared-promises-and-three-numbers-2026-11.yaml -
+        three scope paths;
+      decisions/install-tooling-2026-10.yaml - one scope path;
+      decisions/waiver-infrastructure-2026-10.yaml - one scope path
+        (a glob, which would otherwise have become a dead scope path);
+      decisions/corpus-growth-lints-2026-11.yaml - one scope path and
+        one prose pointer;
+      decisions/attestation-producer-vocab-2026-10.yaml - one prose
+        pointer;
+      tests/corpus_no_silent_drops/corpus_no_silent_drops.ml and
+        tests/yaml_seq_continuation.ml - the two exact-path reads and
+        the file lists that name the moved file;
+      tests/fixtures/verifier-schemes-are-canonical.sh - the header
+        comment that names the decision the instrument belongs to;
+      archive/decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml
+        - five pointers (an archived record that named a live file).
+
+    THE POINTERS THAT WERE LEFT ALONE, AND WHY. A pointer in a live
+    file that names a moved file as the thing to look at is a
+    DEPENDENCY and was retargeted. A mention inside a narrative is a
+    MENTION: it stays true wherever the file lives, and rewriting it
+    would rewrite history to contain the word "archive". Left alone:
+    CHANGELOG.md (the `audit-0.0.21-fixes` waiver line, the
+    `kernel-bugs-v3.4` entry), ROADMAP.md (the
+    `decisions/kernel-bugs-v3.4-2026-10.yaml` line),
+    docs/AUDIT-0.0.21.md (three pointers - an audit report is a
+    report, and the previous tranche left AUDIT-0.0.20.md alone for
+    the same reason), the ID-form relations (which resolve across the
+    live tree and the archive), and the code and test COMMENTS.
+
+    ONE POINTER COULD NOT BE FIXED HERE, AND IT IS NAMED.
+    `lib/codec.ml:943` lists `decisions/cli-cram-tests.yaml` among the
+    files the D4 defect cost the kernel, next to the two that were
+    already moved to the archive in the previous tranche. It is the
+    same kind of pointer as the two test files this tranche retargeted,
+    and it now names a path that no longer exists. `lib/**` was out of
+    scope for this tranche, so the pointer stays and is declared here
+    rather than quietly narrowed: the next reader of that comment sees
+    a stale path, and this decision says why. The same holds for the
+    diagnostic string in `lib/diagnostic.ml:1292`, which names
+    `decisions/corpus-tranche-broken-schemes-2026-11.yaml` as the
+    record of the canonical scheme list - a reader of that diagnostic
+    must be redirected by whoever owns `lib/**`.
+
+    WHAT WAS DELIBERATELY NOT MOVED. Four records stay live, and the
+    reasons are recorded here so that the next tranche does not have
+    to rediscover them.
+
+      (1) `decisions/migrations/3.0-alpha-to-3.2.yaml` and
+          `decisions/migrations/3.2-to-3.2.1.yaml` STAY. Their schema
+          is `math-coding/migration-manifest`, not a decision schema:
+          they are operational INPUT to `mathc migrate`, which reads
+          them to print a per-file plan. A manifest is not a rule the
+          corpus obeys; it is a thing the kernel consumes. The census
+          already excludes them from the decision count for that
+          reason, and this tranche leaves them where they are.
+
+      (2) `decisions/gate-decision.yaml` STAYS. The normative text
+          names it: `spec/semantics.md:321` says "Justification:
+          `decisions/gate-decision.yaml`". The normative text is
+          A3-protected - one decision, one reviewed transition - so
+          the pointer has to move in a transition of its own, and this
+          tranche is not that transition.
+
+      (3) `decisions/kernel-fixes-found-bugs-2026-10.yaml` STAYS, for
+          the same reason: `spec/semantics.md:197` names
+          `decisions/kernel-fixes-found-bugs-2026-10@1`. Same wall,
+          same door.
+
+      (4) THE SEVEN REMAINING RECORDS are the next tranche's work,
+          and three of them need a test redirect before they can
+          move at all:
+            mcp-agent-auto-connect-2026-10 - live reads at
+              `tests/cli/find.t:21,35-36` and
+              `tests/mcp/find-readonly.t:28`;
+            paren-balance-fix-2026-10 - no machine read;
+            render-kernel-fixes-2026-10 - no machine read;
+            render-module-split-phase1a-2026-10 - machine reads at
+              `tests/corpus_no_silent_drops/corpus_no_silent_drops.ml:363`
+              and `tests/yaml_seq_continuation.ml:434`;
+            render-module-split - no machine read;
+            site-redesign-2026-10 - no machine read;
+            unmet-obligations-inventory-2026-10 - the fixture
+              `tests/fixtures/unmet-obligations-are-inventoried.sh:39`
+              requires the live path.
+
+    WHAT THE CORPUS LOOKS LIKE AFTERWARDS. Measured on this tree with
+    the instruments the corpus owns:
+
+      live decision files            145 -> 137
+      live decisions counted active   142 -> 136
+      files in archive/decisions/      132 -> 141
+      archived decisions still active  104 -> 104  (every record that
+                                        entered the archive says
+                                        `state: retired`)
+      paper obligations (kernel cannot execute them)
+                                       35 ->  34
+      dangling relation targets         0 ->   0
+      scope paths matching no tracked file
+                                         0 ->   0
+      promise-debt classes, in three states: before this tranche
+      CHECKED 89, DECLARED 21, UNCHECKED 31, NO-PROMISE 1 over 142
+      decisions; after the nine moves CHECKED 85, DECLARED 19,
+      UNCHECKED 29, NO-PROMISE 0 over 133 decisions; after this
+      decision entered the corpus CHECKED 86, DECLARED 19, UNCHECKED
+      29, NO-PROMISE 0 over 134 decisions (86 + 19 + 29 + 0 = 134).
+
+    The corpus measurement ceiling falls 145 -> 137: nine records left
+    `decisions/` and this tranche's own record entered it. Every other
+    ceiling that moved FELL as well - the paper ceiling 35 -> 34 (one
+    unrunnable obligation left the corpus with the record that owned
+    it), the uncheckable-promise ceiling 31 -> 29 and the declared
+    ceiling 21 -> 19 (four records left the corpus carrying promises
+    the kernel does not run). No ceiling was raised.
+
+    WHAT REMAINS UNCERTAIN. Three things, stated rather than smoothed
+    over.
+
+      THE GENERATED STORE IS ABSENT, so the evidence-side numbers are
+      UNKNOWN, not zero: `tests/fixtures/executed-evidence-census.sh`
+      and `tests/fixtures/legacy-attestation-debt.sh` both answer exit
+      3 on this checkout.
+
+      THE `self-check-debt-ceiling.sh` PIN IS 199 ABOVE ITS
+      MEASUREMENT (34 declared promises against a ceiling of 233). That
+      gap is PRE-EXISTING and is not this tranche's to close: the pin
+      was last moved when the decision-level census removed 64
+      declarations at once, and the class has fallen far since through
+      repairs this tranche did not make. Lowering it by one would hide
+      a 199-wide gap behind a cosmetic fall.
+
+      TWO FIXTURES WERE ALREADY RED BEFORE THIS TRANCHE: at the base
+      commit 3f6ff4a9, `tests/fixtures/skill-copies-identical.sh` and
+      `tests/fixtures/paseo-console-negative-control.sh` both exit 1
+      (the first because the two shipped copies of the skill differ,
+      the second on a Node.js error). They were re-run on a pristine
+      export of that commit to prove it; this tranche did not cause
+      them and did not repair them.
+
+commitment: |
+  After this tranche closes:
+
+  1. Nine records live under archive/decisions/, each with
+     `state: retired`, one comment line naming T2.2b as the archiver,
+     a revision bumped by one, and both digests recomputed with the
+     placeholder-substitution algorithm:
+     adopter-path-2026-10@2, attestation-store-fill@4,
+     audit-0.0.21-fixes@4, ceiling-monotonic@3, cli-cram-tests@3,
+     corpus-tranche-archive-records-2026-11@3,
+     corpus-tranche-broken-schemes-2026-11@2,
+     decision-level-census-2026-10@2, kernel-bugs-v3.4@2.
+     Every one of them answers `parse-ok` to
+     `mathc validate archive/decisions/<file>.yaml`.
+
+  2. No pointer in a live file names a path that no longer exists.
+     The scope paths, the index rows, the convention pointers, the
+     source-map pointer, the two exact-path test reads and the
+     archived waiver's five pointers all name the archive now. The
+     two pointers this tranche could not fix - in `lib/codec.ml` and
+     `lib/diagnostic.ml` - are named in the intent, not hidden.
+
+  3. The relation-target fixture reports zero dangling targets over
+     the live corpus, and the census reports zero dead scope paths.
+     The ID-form relations that point at the moved records resolve in
+     the archive, and the one UNDECLARED relation key that remains
+     (`amends` in mathjax-delimiter-hardening-2026-10) is not hidden
+     by this tranche.
+
+  4. The corpus measurement ceiling moves 145 -> 137, with the fall
+     recorded next to the number. The paper ceiling moves 35 -> 34,
+     the uncheckable-promise ceiling 31 -> 29 and the declared ceiling
+     21 -> 19. No ceiling was raised, and no raise marker was written.
+
+  5. Four records stay live for named reasons: the two migration
+     manifests (operational inputs to `mathc migrate`), `gate-decision`
+     and `kernel-fixes-found-bugs-2026-10` (named by normative text
+     under an A3-protected transition). The seven remaining records are
+     named with the three that need a test redirect first.
+
+  6. The two fixtures that were already red at the base commit are
+     named as pre-existing, and the two numbers that are unknown
+     because the generated store is absent are named as unknown.
+
+counterexample: |
+  The strongest objection against moving a file is navigation: the
+  reader follows a path, the path is gone, and the reader concludes
+  the promise was deleted rather than filed.
+
+  The objection is right about the reader and does not establish a
+  dependency, but it is not empty either, and this tranche did not
+  treat it as empty. Every pointer that told a reader where a CURRENT
+  file is was moved with the file: twelve live files and one archived
+  file were edited. What remained is the class of narrative mentions -
+  a changelog entry, a ROADMAP line, an audit report, a code comment -
+  and those are left with their historical coordinates, because a
+  dated story is true wherever the file lives and rewriting it to say
+  "archive" would make the history say something it never said.
+
+  The honest form of the answer is the one this decision takes: the
+  dependency criterion decides what may move; the navigation cost is
+  paid where it is real and declared where it cannot be paid. Two
+  pointers could not be paid at all, because `lib/**` was out of
+  scope, and they are named rather than left to be discovered by a
+  reader who assumes the corpus is tidy.
+
+  A second objection is arithmetic: the corpus count fell by eight,
+  not nine, because this decision entered it. True, and the corpus
+  count is the wrong number to look at: the ARCHIVE count is what
+  records the moves, and it grew by nine. The census measures the
+  first and reports the second in the same run, so both are visible
+  at once.
+
+  A third objection is the one the inventory itself raises: two of
+  the moved files (`ceiling-monotonic` and `adopter-path-2026-10`)
+  are `superseded` rather than finished, and a superseded rule is
+  still a rule - somebody might still have to read it. The answer is
+  the one the corpus already gave: a superseded decision carries no
+  open obligation in the live corpus (the kernel's audit lists no gap
+  for either), and its ID stays resolvable in the archive, so the
+  history it names can still be reached.
+
+antithesis: |
+  The opposite position is that every path mention is a dependency,
+  every historical record must therefore stay live until all the
+  prose around it is rewritten, and the archive should be reserved for
+  files that no sentence in the repository mentions at all.
+
+  That position keeps the corpus navigable and costs the corpus its
+  ability to answer a question: "what does this repository promise?"
+  A corpus that carries its own completed work as live rules makes
+  every reader do the classification work the inventory already did,
+  and makes the gate keep re-reading work that is finished.
+
+  The position this tranche rejects is not the desire for navigable
+  references. It is the inference that navigability can only be bought
+  by keeping files active. The archive plus the ID resolver buys it
+  more cheaply: the record leaves the rule set, stays addressable by
+  id, and every pointer that was a live dependency was moved with it.
+
+outcomes:
+  - id: nine-records-are-archived
+    statement: |
+      Nine records live under archive/decisions/ with `state: retired`,
+      one archive comment line each, a bumped revision, and recomputed
+      digests; the live corpus fell from 145 files to 137 including
+      this decision.
+  - id: pointers-follow-the-files
+    statement: |
+      Every live pointer that named a moved file as the thing to look
+      at now names the archive; the narrative mentions were left alone
+      and the two pointers that could not be fixed are named.
+  - id: the-two-machine-reads-were-redirected-first
+    statement: |
+      The two tests that read cli-cram-tests by exact path read the
+      archived copy and still assert what they asserted - that the
+      kernel reads the file to EOF and folds its `unknowns:` block.
+  - id: four-records-stay-live-for-named-reasons
+    statement: |
+      The two migration manifests stay because they are operational
+      inputs to `mathc migrate`; gate-decision and
+      kernel-fixes-found-bugs-2026-10 stay because normative text
+      names them under an A3-protected transition.
+  - id: the-next-tranche-has-its-list
+    statement: |
+      The seven remaining records are named, with the three that need a
+      test redirect first named as such.
+  - id: uncertainty-remains-visible
+    statement: |
+      The absent generated store, the 199-wide gap in the
+      self-check-debt pin, and the two fixtures that were red before
+      this tranche are recorded as such.
+
+scope:
+  paths:
+    - "decisions/corpus-tranche-archive-records-2-2026-11.yaml"
+    - "archive/decisions/adopter-path-2026-10.yaml"
+    - "archive/decisions/attestation-store-fill.yaml"
+    - "archive/decisions/audit-0.0.21-fixes.yaml"
+    - "archive/decisions/ceiling-monotonic-2026-10.yaml"
+    - "archive/decisions/cli-cram-tests.yaml"
+    - "archive/decisions/corpus-tranche-archive-records-2026-11.yaml"
+    - "archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml"
+    - "archive/decisions/decision-level-census-2026-10.yaml"
+    - "archive/decisions/kernel-bugs-v3.4-2026-10.yaml"
+    - "archive/decisions/audit-0.0.21-fixes-self-check-waiver-2026-10.yaml"
+    - "decisions/skill-single-source-2026-10.yaml"
+    - "decisions/declared-promises-and-three-numbers-2026-11.yaml"
+    - "decisions/install-tooling-2026-10.yaml"
+    - "decisions/waiver-infrastructure-2026-10.yaml"
+    - "decisions/corpus-growth-lints-2026-11.yaml"
+    - "decisions/attestation-producer-vocab-2026-10.yaml"
+    - "PACKAGES.md"
+    - "OCAML_KERNEL_CONVENTIONS.md"
+    - "attestation-source-map.md"
+    - "tests/corpus_no_silent_drops/corpus_no_silent_drops.ml"
+    - "tests/yaml_seq_continuation.ml"
+    - "tests/fixtures/verifier-schemes-are-canonical.sh"
+    - "tests/fixtures/redundancy-census.sh"
+    - "tests/fixtures/negative-control-debt.sh"
+  exclusions:
+    - "spec/**"
+    - "lib/**"
+    - "bin/**"
+    - "schemas/**"
+    - "axioms/**"
+    - "docs/**"
+
+obligations:
+  - id: every-moved-record-parses
+    outcome: nine-records-are-archived
+    claim: |
+      Each of the nine archived records answers `parse-ok` to
+      `mathc validate` from its archived path.
+    acceptance:
+      all:
+        - verifier: mathc validate archive/decisions/adopter-path-2026-10.yaml
+        - verifier: mathc validate archive/decisions/attestation-store-fill.yaml
+        - verifier: mathc validate archive/decisions/audit-0.0.21-fixes.yaml
+        - verifier: mathc validate archive/decisions/ceiling-monotonic-2026-10.yaml
+        - verifier: mathc validate archive/decisions/cli-cram-tests.yaml
+        - verifier: mathc validate archive/decisions/corpus-tranche-archive-records-2026-11.yaml
+        - verifier: mathc validate archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml
+        - verifier: mathc validate archive/decisions/decision-level-census-2026-10.yaml
+        - verifier: mathc validate archive/decisions/kernel-bugs-v3.4-2026-10.yaml
+
+  - id: every-moved-record-is-retired
+    outcome: nine-records-are-archived
+    claim: |
+      Each of the nine archived records says `state: retired` and
+      carries the line that names T2.2b as the archiver.
+    acceptance:
+      all:
+        - verifier: shell-grep archive/decisions/adopter-path-2026-10.yaml state: retired
+        - verifier: shell-grep archive/decisions/attestation-store-fill.yaml state: retired
+        - verifier: shell-grep archive/decisions/audit-0.0.21-fixes.yaml state: retired
+        - verifier: shell-grep archive/decisions/ceiling-monotonic-2026-10.yaml state: retired
+        - verifier: shell-grep archive/decisions/cli-cram-tests.yaml state: retired
+        - verifier: shell-grep archive/decisions/corpus-tranche-archive-records-2026-11.yaml state: retired
+        - verifier: shell-grep archive/decisions/corpus-tranche-broken-schemes-2026-11.yaml state: retired
+        - verifier: shell-grep archive/decisions/decision-level-census-2026-10.yaml state: retired
+        - verifier: shell-grep archive/decisions/kernel-bugs-v3.4-2026-10.yaml state: retired
+
+  - id: every-relation-target-resolves
+    outcome: pointers-follow-the-files
+    claim: |
+      The relation-target fixture reports zero dangling targets over
+      the live corpus after the nine moves.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/relation-targets-resolve.sh
+
+  - id: the-two-exact-path-reads-follow-the-archive
+    outcome: the-two-machine-reads-were-redirected-first
+    claim: |
+      The two tests that read cli-cram-tests by exact path read the
+      archived copy, and the corpus census reports zero dead scope
+      paths (which is what a stale pointer would produce).
+    acceptance:
+      all:
+        - verifier: dune test tests/corpus_no_silent_drops/corpus_no_silent_drops.exe
+        - verifier: dune test tests/yaml_seq_continuation.exe
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-corpus-census-holds
+    outcome: nine-records-are-archived
+    claim: |
+      The redundancy census measures the shrunk corpus with no paper,
+      broken, dangling or dead-path debt above its ceilings.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/redundancy-census.sh
+
+  - id: the-promise-debt-classes-are-measured
+    outcome: nine-records-are-archived
+    claim: |
+      The promise-debt instrument measures CHECKED 86, DECLARED 19,
+      UNCHECKED 29 and NO-PROMISE 0 over 134 decisions, and the sum
+      invariant holds.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/negative-control-debt.sh
+
+  - id: the-ceilings-are-monotone
+    outcome: nine-records-are-archived
+    claim: |
+      The monotonic checker sees only falls and no growth; every other
+      ceiling holds or falls.
+    acceptance:
+      all:
+        - verifier: scripts/ceiling-monotonic.sh
+
+  - id: the-full-suite-passes
+    outcome: pointers-follow-the-files
+    claim: |
+      The full dune runtest suite exits 0; the exit code is the signal,
+      not a grep for the word FAIL.
+    acceptance:
+      all:
+        - verifier: dune build @runtest
+
+  - id: this-decision-validates
+    outcome: nine-records-are-archived
+    claim: |
+      This tranche decision validates under the current schema.
+    acceptance:
+      all:
+        - verifier: mathc validate decisions/corpus-tranche-archive-records-2-2026-11.yaml
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - a-live-machine-dependency-is-misclassified-as-an-id-mention
+    - a-pointer-to-a-moved-record-is-left-naming-a-dead-path
+    - normative-text-is-edited-without-an-a3-transition
+    - the-corpus-ceiling-is-raised-instead-of-lowered
+    - the-archive-is-walked-by-the-gate
+
+assumptions:
+  - id: ids-resolve-across-live-and-archive
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The corpus's relation-target and census instruments resolve
+      decision IDs across both the live tree and archive/decisions, so
+      an ID-only relation stays resolvable after a record moves.
+    consequence_if_false: |
+      If the instruments stopped reading the archive, the ID-form
+      relations that point at the nine moved records would become
+      dangling and this criterion would have to be re-evaluated record
+      by record.
+    review_on:
+      - signal: the-relation-lint-stops-reading-the-archive
+
+  - id: the-archive-is-not-walked-by-the-gate
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The live gate walks decisions/ and excludes retired and
+      superseded states, so a retired record in archive/decisions/
+      contributes no open obligation.
+    consequence_if_false: |
+      If the gate began walking the archive, moving a record could
+      hide an obligation instead of closing it, and the tranche would
+      need a different retirement protocol.
+    review_on:
+      - signal: the-gate-walks-the-archive
+
+  - id: a-bumped-revision-is-a-new-version-not-a-new-claim
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      The revision field is the document's version coordinate, and a
+      moved record's bytes changed (state, comment line, digests), so
+      its revision is bumped by one. The bodies stay as they were: a
+      record's own sentences about its earlier revisions - "RETIRED at
+      revision 2" in ceiling-monotonic - remain statements about the
+      edit that made them, not about the current header.
+    consequence_if_false: |
+      If a revision is read as the number of the CLAIM rather than of
+      the document, a bumped header would look like a promise that was
+      made again, and a reader could take a record for a live rule.
+    review_on:
+      - signal: a-revision-is-read-as-a-claim-number

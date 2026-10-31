@@ -118,7 +118,9 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   existing rejecting cram as the negative control that catches the
 #   mkdir/layout promise; the inventory's CHECKED class is visible to
 #   the instrument instead of remaining prose
-CEILING=31
+# ceiling-fall: 31 -> 29, two records that promised without a control
+#   left the live corpus with the archive tranche
+CEILING=29
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
@@ -135,7 +137,9 @@ CEILING=31
 # ceiling-raise: 0 -> 21, the tranche declares the uncheckable
 #   promises of twenty-one decisions, so the declared class appears
 #   for the first time and its ceiling is the promised number
-CEILING_DECLARED=21
+# ceiling-fall: 21 -> 19, two records that declared their uncheckable
+#   promises left the live corpus with the archive tranche
+CEILING_DECLARED=19
 
 SCHEMA="schemas/obligation.json"
 DECISIONS_DIR="${MATH_CODING_DECISIONS_DIR:-decisions}"

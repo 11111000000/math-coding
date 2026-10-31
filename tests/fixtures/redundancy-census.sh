@@ -136,7 +136,9 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # ceiling-fall: 36 -> 35, the stale-form tranche rewrote a promise that
 #   named a manual verifier into one that names the cram case that
 #   measures it, and the count followed the truth down
-CEILING_PAPER=35
+# ceiling-fall: 35 -> 34, one obligation the kernel cannot execute left
+#   the corpus with the record that owned it
+CEILING_PAPER=34
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -182,7 +184,9 @@ CEILING_DEAD=0
 #   the corpus it counts
 # ceiling-raise: 144 -> 145, the corpus-tranche-stale-form-3 record is in
 #   the corpus it counts
-CEILING_CORPUS=145
+# ceiling-fall: 145 -> 137, nine records moved to the archive and this
+#   tranche's own record entered the corpus it counts
+CEILING_CORPUS=137
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
