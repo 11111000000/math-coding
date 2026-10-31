@@ -128,11 +128,12 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # raise cannot authorise the next one, and the reason is read up to
 # the next '#': it is one line and carries no '#' of its own.
 
-#   PAPER 44 - obligations the kernel's audit classifies as
+#   PAPER 38 - obligations the kernel's audit classifies as
 #     `not-a-check`, measured with the store deliberately empty.
 #
-# ceiling-fall: 46 -> 44, the number was never what it said it was
-CEILING_PAPER=44
+# ceiling-fall: 44 -> 38, eight promises in the corpus named a verifier
+#   the kernel could not execute; they now name one it can
+CEILING_PAPER=38
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -145,7 +146,8 @@ CEILING_PAPER=44
 # metric changed: the old one counted verifier strings that BEGIN with
 # a quote, which included two that the reader strips correctly. The
 # bound did not disappear - it was measured by the wrong rule.
-CEILING_BROKEN=5
+# ceiling-fall: 5 -> 0, every verifier scheme in the corpus is canonical now
+CEILING_BROKEN=0
 
 #   DANGLING 44 - relation targets in the LIVE corpus that resolve to
 #     neither a decision id nor an existing file. All 44 name
@@ -159,13 +161,13 @@ CEILING_DANGLING=44
 #     docs/plans/), the rest name files the corpus itself deleted.
 CEILING_DEAD=20
 
-#   CORPUS 144 - decision files in the live corpus. A measurement,
+#   CORPUS 145 - decision files in the live corpus. A measurement,
 #     not a verdict: the "about 50 rules" of the 2026-10 census is a
 #     record, not a standing requirement, and this ceiling bounds the
 #     count from above so that growth is visible.
 #
-# ceiling-raise: 143 -> 144, the corpus-growth-lints decision is in the corpus it counts
-CEILING_CORPUS=144
+# ceiling-raise: 144 -> 145, the broken-schemes tranche decision is in the corpus it counts
+CEILING_CORPUS=145
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.

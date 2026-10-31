@@ -125,7 +125,8 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # The ceiling may only fall. It reaches 0 when the corpus carries no
 # obligation whose verifier the kernel cannot execute - the work of
 # tranche T2.3 of docs/plans/redundancy-and-portability-2026-11.md.
-CEILING_NON_CANONICAL_OBLIGATIONS=5
+# ceiling-fall: 5 -> 0, every verifier scheme in the corpus is canonical now
+CEILING_NON_CANONICAL_OBLIGATIONS=0
 
 # --- the kernel --------------------------------------------------------
 kernel_bin() {
