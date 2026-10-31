@@ -4,10 +4,10 @@ id: solo-default-on-2026-10
 revision: 1
 state: active
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:b9e607d4ae1938120bddc3740aa084b32267482f7263f8713662751a86c51ac1"
-yaml_sha: "sha256:b9e607d4ae1938120bddc3740aa084b32267482f7263f8713662751a86c51ac1"
+body_sha: "sha256:31b7f1c9ff38c14754f5870ae387d171edd630218cc900cbc6ad5db125868260"
+yaml_sha: "sha256:31b7f1c9ff38c14754f5870ae387d171edd630218cc900cbc6ad5db125868260"
 intent: |
-  The applicability envelope (`spec/algebra-3.2.md` §28) told a solo
+  The applicability envelope (`spec/kernel-contract.md` §28) told a solo
   maintainer that the protocol was not for them. The normative text
   said "solo_or_small_team ∧ ¬multi_agent_ai_assisted ⇒ Path C";
   `adoption/SKILL.md` shortened that to "A single person maintains it
@@ -57,7 +57,7 @@ antithesis: |
   engages with the position and does not dismiss it — it narrows it.
   The objection is about *volume*, and volume is already a parameter:
   `mode_floor` exists precisely so that the same protocol can be paid
-  at different prices (algebra §2, `lib/policy.ml::mode_floor`). The
+  at different prices (kernel contract §2, `lib/policy.ml::mode_floor`). The
   alternative to a light-mode solo project is not "the same project
   without the record"; it is the ADR-plus-reviewer regime that
   `adoption/SKILL.md` itself told solo projects to use, which leaves
@@ -70,7 +70,7 @@ antithesis: |
   gate.
 
 commitment: |
-  1. `spec/algebra-3.2.md` §28 is default-on. `default_path(P) = Path
+  1. `spec/kernel-contract.md` §28 is default-on. `default_path(P) = Path
      A` unless `P ∈ prototype_or_throwaway(P)`. A new rung
      `solo_ai_assisted(P)` (medium) is inserted above the solo case,
      and the low rung maps to "Path A, light mode floor" instead of
@@ -123,7 +123,7 @@ commitment: |
 
 scope:
   paths:
-    - spec/algebra-3.2.md
+    - spec/kernel-contract.md
     - adoption/SKILL.md
     - .opencode/skills/math-coding/SKILL.md
     - USAGE.md
@@ -248,14 +248,14 @@ obligations:
         - verifier: scripts/check-adoption-doc-freshen.sh
   - id: spec-envelope-single-source
     claim: |
-      `spec/algebra-3.2.md` §28 states `default_path(P) = Path A`
+      `spec/kernel-contract.md` §28 states `default_path(P) = Path A`
       unless `P ∈ prototype_or_throwaway(P)`, and no surviving
       document calls the low rung "Path C".
     outcome: acceptance
     acceptance:
       all:
-        - verifier: shell-grep spec/algebra-3.2.md P ∈ prototype_or_throwaway(P)
-          path: spec/algebra-3.2.md
+        - verifier: shell-grep spec/kernel-contract.md P ∈ prototype_or_throwaway(P)
+          path: spec/kernel-contract.md
           needle: "default_path(P) ≔ Path A unless P ∈ prototype_or_throwaway(P)"
 
 reversal:

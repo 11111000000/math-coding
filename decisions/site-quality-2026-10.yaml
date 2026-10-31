@@ -3,8 +3,8 @@ schema: math-coding/3.2
 id: site-quality-2026-10
 revision: 1
 state: active
-body_sha: "sha256:fcb195d8eaf428cf22ffc1413636fcf301a58f1624fc1b4a450a8617a5d48800"
-yaml_sha: "sha256:fcb195d8eaf428cf22ffc1413636fcf301a58f1624fc1b4a450a8617a5d48800"
+body_sha: "sha256:955a01426ff6a2178c043d8ed420f6ced0bd540f8145cda2e131d650193c49f0"
+yaml_sha: "sha256:955a01426ff6a2178c043d8ed420f6ced0bd540f8145cda2e131d650193c49f0"
 axiom_link:
   - A1
 intent: |
@@ -123,7 +123,7 @@ obligations:
     outcome: spec-in-nav
     claim: |
       The site top navigation carries an "Algebra" link pointing at
-      `spec/algebra-3.2.html` from every page that has the full
+      `spec/kernel-contract.html` from every page that has the full
       nav.
     acceptance:
       all:

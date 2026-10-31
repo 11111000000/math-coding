@@ -37,12 +37,12 @@ commitment: |
   After this decision closes:
 
   1. `adoption/SKILL.md` states the applicability rule once, as an
-     operational instruction, and names `spec/algebra-3.2.md` §28 as
+     operational instruction, and names `spec/kernel-contract.md` §28 as
      its authority. It carries no second copy of the rule and no
      sentence that a reader could act on when §28 says otherwise.
 
   2. The corpus verifies AGREEMENT between the three surfaces
-     (`spec/algebra-3.2.md` §28, `adoption/SKILL.md`,
+     (`spec/kernel-contract.md` §28, `adoption/SKILL.md`,
      `lib/init/init.ml::print_applicability_envelope`), not the
      presence of a phrase in one of them. The check is
      `scripts/check-applicability-agreement.sh`.
@@ -85,7 +85,7 @@ scope:
   paths:
     - "adoption/SKILL.md"
     - ".opencode/skills/math-coding/SKILL.md"
-    - "spec/algebra-3.2.md"
+    - "spec/kernel-contract.md"
     - "lib/init/init.ml"
     - "scripts/check-applicability-agreement.sh"
     - "scripts/check-no-prose-policy-grep.sh"
