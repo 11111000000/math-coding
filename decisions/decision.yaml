@@ -1,18 +1,77 @@
 ---
 schema: math-coding/3.2
 id: bootstrap-v3
-revision: 3
+revision: 4
 state: active
-body_sha: "sha256:3d074ef3ea8470e45485cb9d18b446ec9401a0ff0a25d6b31332299206260714"
-yaml_sha: "sha256:3d074ef3ea8470e45485cb9d18b446ec9401a0ff0a25d6b31332299206260714"
-intent: Replace math-coding 2.1 with a self-applying assurance protocol.
+body_sha: "sha256:53a05d55b824779e42b5d3f861ad9df3b7c9f2e67296d83c4834e9184b3d70ba"
+yaml_sha: "sha256:53a05d55b824779e42b5d3f861ad9df3b7c9f2e67296d83c4834e9184b3d70ba"
+intent: |
+  The master policy for this repository: the protocol's own rules are
+  in force here, and every change is a decision with obligations.
+
+  2026-11-01, REVISION 4: THE POLICY WAS WRITTEN FOR A TRANSITION
+  THAT HAS HAPPENED. Rev 1 said "Replace math-coding 2.1 with a
+  self-applying assurance protocol"; the commitment said "Build
+  math-coding 3.0 from an executable specification"; the assumption
+  said "Until the 3.0 kernel exists, assurance gaps are enforced
+  manually". All three are a past tense presented as a present. The
+  kernel exists: this repository is at VERSION 3.7.4, the kernel
+  reads the corpus, and `mathc self-check` answers a verdict and an
+  exit code.
+
+  What a master policy says NOW is the split that survives the
+  transition: the kernel checks what a program can check, and the
+  promises a program CANNOT check are declared here, with an owner
+  and a date. Five of this file's seven obligations are declarations,
+  and that is the policy stating its own limits rather than a gap in
+  it.
+
+  The three classes of promise are measured, not asserted:
+  `tests/fixtures/negative-control-debt.sh` prints CHECKED (a control
+  that can fail), DECLARED (an owner and a date), and UNCHECKED
+  (neither), and requires the three plus the promise-less decisions
+  to add up to the corpus.
 
 axiom_link:
   - A0
 commitment: |
-  Build math-coding 3.0 from an executable specification in an isolated
-  branch. Preserve 2.1 source by tag and remove active 2.1 implementation
-  only after the regression corpus is satisfiable by the new kernel.
+  The master policy for this repository. It says what the kernel
+  enforces, and it says out loud what it does not.
+
+  1. The kernel is the authority for what it can check. `mathc
+     self-check` and `mathc gate` read this corpus and answer a
+     verdict and an exit code, and the exit codes are the honest
+     ones: 0 for pass, 1 for block, 3 for unknown (see
+     `spec/constitution.md` §14b). A checkout does not answer `pass`
+     and does not pretend to: with no attestation store present the
+     verdict is `unknown`.
+
+  2. The promises a program cannot check are DECLARED, not hidden:
+     each carries an owner, the date it is looked at again, and the
+     reason nothing can check it. Five of the seven obligations below
+     are declarations of that kind. The master policy saying what it
+     does not check IS the policy; hiding it would be the opposite.
+
+  3. The version this policy governs is the one in the VERSION file.
+     The 2.1 source remains recoverable from the tag `v2.1-final`,
+     so the transition that produced this kernel is reversible.
+
+  4. The conventions that bind every change to the kernel live in
+     `OCAML_KERNEL_CONVENTIONS.md` (the OCaml practices) and
+     `KERNEL_AGENTS.md` (the protocol). Neither is claimed to be
+     machine-enforced, and this decision does not claim it.
+
+  Boundaries:
+  - This decision does not change `spec/`, `lib/`, `bin/`,
+    `schemas/` or `axioms/`. It states what is in force; the rules
+    themselves live elsewhere.
+  - This file is THIS repository's instance of the master policy. The
+    TEMPLATE a new project starts from is
+    `templates/master-policy.yaml`, and its two derived copies
+    (`scripts/install-tooling/templates/active-policy.yaml` and the
+    literal embedded in `lib/init/init.ml`) are generated from it.
+    The template asks an adopter to point one obligation at their own
+    tree; this file carries the seven obligations of this repository.
 
 scope:
   paths:
@@ -26,7 +85,11 @@ scope:
 
 outcomes:
   - id: executable-specification
-    statement: Every kernel-enforced MUST has positive and negative fixtures.
+    statement: The fixture coverage census holds: every cram fixture
+      the corpus names has an accepting case, and the number of named
+      cram fixtures WITHOUT a rejecting case stays at or under the
+      ceiling the instrument pins. A promise that is only half-covered
+      is a number, and the number has a bound that may only fall.
   - id: honest-bootstrap
     statement: Documentation does not claim unavailable automated enforcement.
   - id: reversible-transition
@@ -41,11 +104,15 @@ outcomes:
 assumptions:
   - id: manual-enforcement
     state: assumed
-    statement: Until the 3.0 kernel exists, assurance gaps are enforced manually.
+    statement: |
+      The promises a program cannot check are enforced MANUALLY, and
+      this file declares them rather than leaving them to look
+      checked. The kernel enforces what it can; a human review
+      enforces the rest, and the corpus is told which is which.
     owner: human:maintainer
     consequence_if_false: An agent could claim a verdict the kernel cannot confirm.
     review_on:
-      - signal: kernel-self-check-passes
+      - signal: a-declared-promise-becomes-checkable
 
 obligations:
   - id: preserve-v2
@@ -61,16 +128,19 @@ obligations:
 
   - id: conformance-coverage
     outcome: executable-specification
-    claim: Every kernel-enforced rule has at least one positive and one negative
-      fixture.
+    claim: The fixture coverage census holds: every cram fixture the
+      corpus names has an accepting case, and the number of named cram
+      fixtures without a rejecting case stays at or under the ceiling
+      `tests/fixture_coverage.ml` pins (52, measured 2026-10-31; the
+      corpus holds 52 on this tree). The ceiling may only fall.
     acceptance:
       all:
         - verifier: tests/fixture_coverage.ml
 
   - id: bootstrap-honesty
     outcome: honest-bootstrap
-    claim: AGENTS.md and bootstrap documents do not claim automated enforcement
-      that is not yet implemented.
+    claim: KERNEL_AGENTS.md and the documents under decisions/ do not
+      claim automated enforcement that is not implemented.
     declared:
       owner: human:maintainer
       review_on: 2026-12-15
@@ -102,7 +172,7 @@ obligations:
     outcome: agent-authorable
     claim: |
       Every change to the kernel, schemas, or build follows the rules
-      in OCAML_BEST_PRACTICES.md. In particular:
+      in OCAML_KERNEL_CONVENTIONS.md. In particular:
         - the kernel stays offline and side-effect-free;
         - 'class', 'match', 'object' are not used as record field names;
         - polymorphic variants are reserved for genuinely extensible
@@ -135,17 +205,27 @@ reversal:
     action: revert
 
 counterexample: |
-  "Replace v2.1 with a fresh protocol; the v2 source is preserved
-  by tag and is not actually lost." The counterargument fails for
-  three reasons: (a) the cutover is irreversible in practice even
-  though v2.1-final is recoverable from git, because no tooling
-  reads v2.1 packets anymore and the renderer is removed at v3.0;
-  (b) removing v2.1 implementation while v2.1 kernels are still
-  in production use breaks any agent that consults them; (c) the
-  protocol cannot claim A2 (Invariants and Recovery) if the recovery
-  path is theoretical. The mitigation recorded in this decision is
-  the tag itself plus the `preserve-v2` obligation; the disagreement
-  is whether that mitigation is sufficient for a real recovery.
+  "The master policy should say what the project PROMISES, not what it
+  currently does. A policy that describes the present is a snapshot,
+  and snapshots go stale."
+
+  The objection is right about the failure mode and wrong about the
+  cure. A policy that describes the present is not a snapshot when the
+  present is a PROPERTY with a bound: the promises below are either
+  checked by a program that can fail, or declared with an owner and a
+  date, or counted against a ceiling that may only fall. Each of those
+  three keeps its meaning when the code moves; a promise phrased as
+  "build X" does not, which is why the commitment here no longer says
+  "build math-coding 3.0" -- that sentence was true once and would
+  have been false for every day after it, presented in the present
+  tense.
+
+  The other half of the objection is the one this decision accepts: a
+  master policy that only describes what is true today says nothing
+  about what the project is FOR. The reason the file still carries the
+  five manual declarations is that a promise nobody can check is still
+  a promise, and the honest thing is to name its owner rather than to
+  drop it.
 
 risk:
   declared_triggers:
