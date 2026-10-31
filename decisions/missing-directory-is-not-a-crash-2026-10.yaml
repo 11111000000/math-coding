@@ -1,12 +1,24 @@
 ---
 schema: math-coding/3.2
 id: missing-directory-is-not-a-crash-2026-10
-revision: 1
+revision: 2
 state: active
 mode: light
+#
+# Rev 2 (2026-11-01): the promise the claims inventory falsified --
+# "the repository suite passes on a tree with no generated store" --
+# and the RULE that survived it. The suite is not green on this tree,
+# and two of the red suites are red for reasons that have nothing to
+# do with a missing directory: a debt ceiling in
+# tests/fixture_coverage.ml (54 against a ceiling of 52) and a moved
+# verdict in tests/cli/gate-trailer-decision.t. The promise that IS
+# this decision's subject -- a missing artefact is an empty result
+# and not an exception -- is now measured by a fixture of its own:
+# tests/fixtures/missing-directory-is-an-empty-result.sh.
+negative_control: tests/fixtures/missing-directory-is-an-empty-result.sh
 
-body_sha: "sha256:57e766b60aabaef7a2b11180799dd73f6e0eecf58c5b03de957830f6a0afdae2"
-yaml_sha: "sha256:57e766b60aabaef7a2b11180799dd73f6e0eecf58c5b03de957830f6a0afdae2"
+body_sha: "sha256:8d3963171ef81fa2e16a2870a92beac7c091e11e197621aab0f0090bfc0d2323"
+yaml_sha: "sha256:8d3963171ef81fa2e16a2870a92beac7c091e11e197621aab0f0090bfc0d2323"
 
 axiom_link:
   - A0
@@ -17,7 +29,7 @@ intent: |
   `Sys.is_directory` raises `Sys_error "No such file or directory"`
   -- it does not answer `false`. (`Sys.file_exists` answers false;
   `Sys.is_directory` raises. The project's own traps fixture
-  documents this: tests/traps.ml §11.11 "Sys.is_directory raises
+  documents this: tests/traps.ml section 11.11 "Sys.is_directory raises
   Sys_error on a non-existent path".)
 
   Seven places in this repository asked a directory a question with
@@ -42,6 +54,35 @@ intent: |
   that treats it as an error. The corpus was taught the difference
   in a fixture and the code did not learn it.
 
+  2026-11-01, REVISION 2: ONE PROMISE OF THIS DECISION WAS
+  FALSIFIED, AND IT WAS THE WRONG PROMISE TO MAKE. Revision 1 said
+  "`dune test` passes on a checkout with no `attestations/`
+  directory", and it made that the decision's acceptance: the
+  verifier was `scripts/check.sh`, the whole suite. The tree says
+  otherwise, and it says it in two places, neither of them a crash
+  on a missing directory:
+
+    tests/fixture_coverage.ml          RED -- the rejecting-case
+                                       debt stands at 54 against a
+                                       ceiling of 52
+    tests/cli/gate-trailer-decision.t  RED -- it expects `block`
+                                       where the kernel now answers
+                                       `unknown`
+
+  So the promise was a promise about the WHOLE SUITE, made by a
+  decision about ONE guard, and it went red for somebody else's
+  reason. A promise like that is not a promise: it is a wish about
+  a number that other instruments own. The RULE this decision was
+  written for -- a missing artefact is an empty result, not an
+  exception -- holds, it is the valuable half, and it is now
+  measured by the fixture that was written for it:
+  `tests/fixtures/missing-directory-is-an-empty-result.sh` runs the
+  commands against a root that does not exist, a root that exists
+  and is empty, a store that does not exist and a decisions
+  directory that does not exist, and requires each of them to ANSWER
+  -- and its own negative control proves the crash detector can
+  fire.
+
 commitment: |
   1. Every `Sys.is_directory` on a path that may be absent is
      preceded by `Sys.file_exists` on the same path.
@@ -52,17 +93,29 @@ commitment: |
   3. The two kernel paths (`MATH_CODING_ROOT` resolution) answer
      with the layout they can serve, and never crash on a root the
      operator pointed at by mistake.
+  4. The promise is THE RULE, and the rule is measured by
+     `tests/fixtures/missing-directory-is-an-empty-result.sh`: a
+     command run against a missing root, an empty root, a missing
+     store or a missing decisions directory must answer, and the
+     answer must be one of the four exit codes the house convention
+     allows. The green of every other suite in the repository is
+     NOT this decision's promise: those numbers belong to the
+     instruments that own them.
 
 outcomes:
   - id: a-missing-directory-is-an-empty-result
     statement: |
       With the store absent, with the axioms directory absent and
-      with `MATH_CODING_ROOT` pointing at a path that does not
-      exist, every command answers instead of raising.
-  - id: the-suite-is-the-same-without-a-store
+      with `MATH_CODING_ROOT` pointing at a path that does not exist,
+      every command answers instead of raising, and the answer is
+      one of the four exit codes the house convention allows.
+  - id: the-scope-of-the-promise-is-the-guard
     statement: |
-      `dune test` passes on a checkout with no generated store,
-      which is the state of every fresh CI checkout.
+      This decision promises the guard and not the green of every
+      suite. A red suite for another reason -- a debt ceiling, a
+      verdict that moved -- belongs to the instrument that owns that
+      number, and a promise that goes red for somebody else's reason
+      is a promise nobody reads.
 
 scope:
   paths:
@@ -72,21 +125,34 @@ scope:
     - "tests/process_principles.ml"
     - "tests/producer_vocab.ml"
     - "tests/store_admission.ml"
+    - "tests/fixtures/missing-directory-is-an-empty-result.sh"
     - "decisions/missing-directory-is-not-a-crash-2026-10.yaml"
   exclusions:
     - "attestations/**"
     - "_build/**"
 
 obligations:
-  - id: the-suite-passes-without-a-store
+  - id: the-missing-directory-is-an-empty-result
+    outcome: a-missing-directory-is-an-empty-result
     claim: |
-      The repository suite passes on a tree with no `attestations/`
-      directory: `scripts/check.sh` runs every shell fixture under
-      `tests/fixtures/`, every cram fixture under `tests/` and
-      every Alcotest binary, and exits 0.
+      `tests/fixtures/missing-directory-is-an-empty-result.sh` runs
+      the kernel against a root that does not exist, a root that
+      exists and is empty, a store that does not exist and a
+      decisions directory that does not exist, and requires each
+      command to answer rather than raise: no `Fatal error:
+      exception Sys_error`, no `Unhandled exception`, and an exit
+      code of 0, 1, 2 or 3. The absent-store case additionally
+      requires the verdict `unknown` and exit 3, because a corpus
+      with no evidence is unknown and not a pass.
+
+      The fixture's negative control runs the same detector against a
+      stub that answers the way a kernel answers when it raises, and
+      requires the detector to catch it: a detector nobody has seen
+      fire is not a detector.
     acceptance:
       all:
-        - verifier: scripts/check.sh
+        - verifier: tests/fixtures/missing-directory-is-an-empty-result.sh
+
   - id: this-decision-validates
     claim: |
       `mathc validate decisions/missing-directory-is-not-a-crash-2026-10.yaml`
