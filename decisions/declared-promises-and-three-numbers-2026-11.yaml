@@ -17,8 +17,8 @@ state: active
 # went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:6e1966f2c237e73c90a8ced3e02c23fa68f8ab234bfd8411f58c3437a586f873"
-yaml_sha: "sha256:6e1966f2c237e73c90a8ced3e02c23fa68f8ab234bfd8411f58c3437a586f873"
+body_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
+yaml_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -368,7 +368,7 @@ scope:
     - "decisions/gate-verifier-cycle-guard-2026-10.yaml"
     - "decisions/honest-instruments-2026-10.yaml"
     - "decisions/install-tooling-2026-10.yaml"
-    - "decisions/kernel-bugs-v3.4-2026-10.yaml"
+    - "archive/decisions/kernel-bugs-v3.4-2026-10.yaml"
     - "decisions/kernel-conformance-runner.yaml"
     - "decisions/kernel-fixes-found-bugs-2026-10.yaml"
     - "decisions/legacy-attestation-debt-2026-10.yaml"

@@ -1,10 +1,11 @@
 ---
 schema: math-coding/3.2
 id: kernel-bugs-v3.4
-revision: 1
-state: active
-body_sha: "sha256:ac2d1d3411bebe7aa1e7a7ea5b67bdcb2ac0f326b5546021771b488ad2a5d270"
-yaml_sha: "sha256:ac2d1d3411bebe7aa1e7a7ea5b67bdcb2ac0f326b5546021771b488ad2a5d270"
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the six kernel bugs of v3.4, with no live dependency.
+body_sha: "sha256:f52ee26cf777e2080c897442548d2c09b157232459a745b4a3ae21357121555c"
+yaml_sha: "sha256:f52ee26cf777e2080c897442548d2c09b157232459a745b4a3ae21357121555c"
 intent: |
   Close six kernel-level defects surfaced by the 2026-10-16 brownfield
   experiment on httpx and cobra (REPORT.md §3, PLAN.md §3). The defects fall
