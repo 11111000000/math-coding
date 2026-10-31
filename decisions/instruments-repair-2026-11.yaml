@@ -1,0 +1,366 @@
+---
+schema: math-coding/3.3
+id: instruments-repair-2026-11
+revision: 1
+state: active
+mode: light
+negative_control: tests/fixtures/sync-version-mc-version-drift-fails.sh
+body_sha: "sha256:019358683c68fdf40674d8515d11cae52f3c4c5353ad8dfe32600429ce861524"
+yaml_sha: "sha256:019358683c68fdf40674d8515d11cae52f3c4c5353ad8dfe32600429ce861524"
+
+intent:
+  source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T0.2)"
+  text: |
+    Tranche T0.2 of the redundancy-and-portability plan: repair the
+    instruments that do not check themselves. Three of them, and each
+    one is broken in the same shape -- the instrument promises more
+    than it delivers, and the promise is written down where a reader
+    will believe it.
+
+    1. `scripts/sync-version.sh --check` did not check MC_VERSION. The
+       check was switched off on 2026-10-14 (commit 6a05a3ab8) and
+       stayed off for seventeen days. The comment that switched it
+       off named a literal that had MOVED: T6
+       (ux-3-adoption-doc-freshen-2026-10@2) replaced the
+       `wget | chmod` install block in the BODY of `adoption/SKILL.md`
+       -- the block that pinned a release tag -- with the canonical
+       `curl | sh --user-skill` pattern. What the check looked for,
+       `MC_VERSION=<VERSION>`, is in the FRONTMATTER of the same
+       document, where it names the release the skill was cut for, and
+       that line came BACK in v3.7.0 (commit 3232fbae1). So the check
+       was switched off for a literal that had moved, and it stayed
+       off after the literal it was written for came back.
+
+       The consequence was not hypothetical. `--write` (the
+       `write_skill` post-condition at scripts/sync-version.sh:236-247)
+       REQUIRES the same line to be present after the rewrite, so
+       `--write` and `--check` disagreed about what a synced skill
+       looks like -- and `--check` is the mode CI runs (through
+       tests/fixtures/sync-version-clean-passes.sh). The substring
+       form of the check had a second hole: `MC_VERSION=3.7.4` is a
+       substring of `MC_VERSION=3.7.45`, so a version that merely
+       STARTED with the wanted one passed a check written to catch
+       drift.
+
+    2. `tests/fixture_coverage.ml` promised, in its own header, that
+       "every kernel-enforced MUST has at least one accepting and one
+       rejecting conformance fixture", and its implementation checked
+       only that a fixture FILE exists. A file that exists may hold
+       nothing but accepting cases, and a file-existence check cannot
+       tell that from a fixture that exercises both sides. Measured on
+       2026-10-31: the corpus names 77 cram fixtures; 0 of them lack
+       an accepting case; 51 of them lack a rejecting case. The
+       corpus also names 51 shell fixtures, and those are NOT
+       measurable from their text: `if ! cmd; then ... fi` asserts
+       that cmd FAILS and `if cmd; then ... fi` asserts that cmd
+       SUCCEEDS, and the two differ by one character.
+
+       A second finding came out of the measurement and is recorded
+       here because it changes what the instrument can be asked:
+       `classify` answers "declaration" for EVERY `tests/...` string,
+       because `manual_prefixes` contains "tests/" -- the corpus uses
+       `tests/foo.ml::case` to name a TEST CASE rather than a file,
+       and the classifier cannot tell the two apart. The
+       "no obligation points at a missing fixture" check therefore
+       never applied to a single `tests/...` verifier, and a
+       population derived from `classify` is EMPTY for the paths that
+       matter. A check over an empty population is green by
+       construction.
+
+    3. `tests/cli/attest-batch-signature.t` exercised only
+       `--from=decisions`. The obligation that names it --
+       `runtime-kind-without-run-is-refused` in
+       decisions/attest-per-obligation-2026-10.yaml -- is a claim
+       about `mathc attest-batch --manifest=FILE`: "whose rows
+       declare a runtime kind, with no --run, exits 2 and names the
+       kind". The fixture named by that obligation never ran the
+       `--manifest` branch.
+
+    The three defects share one shape: a promise written where it is
+    read, and an implementation that does not keep it. The repair is
+    the same in each case -- make the instrument do what its own
+    header says, and where the promise cannot be kept in full, say so
+    with a number instead of with silence.
+
+commitment: |
+  After this decision closes:
+
+  1. `scripts/sync-version.sh --check` verifies the MC_VERSION line
+     of BOTH copies of the skill -- `adoption/SKILL.md` and the
+     byte-identical `.opencode/skills/math-coding/SKILL.md` -- with
+     a WHOLE-LINE match (`grep -qxF`), so that a value which merely
+     starts with the wanted one (`3.7.45` against `3.7.4`) is drift.
+     A drift is a non-zero exit and a message that names the line it
+     expected. `--write` keeps rewriting the same derived points in
+     the same two files, and its post-condition now uses the same
+     whole-line match, so the write path and the check path cannot
+     disagree about what "in sync" means.
+
+  2. The MC_VERSION check has a NEGATIVE CONTROL:
+     `tests/fixtures/sync-version-mc-version-drift-fails.sh` builds a
+     throwaway copy of the tree the script reads, breaks the
+     MC_VERSION line in it, and requires `--check` to refuse; it then
+     breaks the line in the SECOND copy only and requires the refusal
+     again; it then requires `--write` to repair both and the repaired
+     copy to pass `--check` again. A bound that has never been
+     observed to bind is not known to bind.
+
+  3. `tests/fixture_coverage.ml` measures the case level. It reads
+     the cram fixtures the corpus names (77 of them on 2026-10-31),
+     splits each into its cases, and classifies a case as REJECTING
+     when the expected output asserts a non-zero exit (`exit=N`,
+     `EXIT=N`) or a negative verdict (`"verdict":"reject"`,
+     `"verdict":"block"`, `"verdict":"fail"`). `unknown` is NOT a
+     rejection: the kernel declining to conclude is neither pass nor
+     fail (constitution.md:59), and counting it would make this
+     instrument report a number the kernel itself refuses to report.
+
+  4. The ACCEPTING half of invariant 13 is now ENFORCED: every named
+     cram fixture must have an accepting case, and the population
+     must not be empty (a check over zero fixtures is green by
+     construction). This holds for the whole corpus today -- 77 of 77
+     -- so it is a rule and not a hope.
+
+  5. The REJECTING half is counted and bounded by a CEILING: 51 of
+     the 77 named cram fixtures have no rejecting case. The ceiling
+     may fall and may never rise; a new fixture that only shows the
+     happy path pushes the count over it and the run goes red. The
+     missing cases are NOT written by this decision: a pair invented
+     to make the number smaller asserts nothing, and the instrument
+     would then be measuring its own compliance. The ceiling, the
+     date it was measured and the command that measures it are
+     written next to the check, in the file, where the next person
+     will look.
+
+  6. The shell fixtures (51 of them) are NOT measured, and their
+     number is printed by the same test, so the gap between "what is
+     measured" and "what exists" is a number and not an excuse.
+
+  7. `tests/cli/attest-batch-signature.t` runs the `--manifest`
+     branch: a TSV manifest in the temporary directory
+     (`decision_id<TAB>obligation_id<TAB>kind_<TAB>producer_identity`),
+     a review row that signs itself with the producer the ROW named
+     and no `--producer` flag, a runtime-kind row that is refused
+     with exit 2 and the kind named, the proof that nothing was
+     written for the refused row, and the `--dry-run` preview that
+     writes nothing.
+
+axiom_link:
+  - A0
+  - A1
+  - A4
+
+counterexample: |
+  The strongest objection against this repair is that the case-level
+  measurement in `tests/fixture_coverage.ml` does not measure what
+  the invariant asks for, because the "rejecting case" is defined by
+  the FIXTURE'S TEXT rather than by the kernel's behaviour: a cram
+  case is rejecting because its expected output says `exit=2`, and a
+  fixture that says `exit=2` in a place where the kernel would have
+  exited 0 would still be counted as a rejecting case. The number
+  would then measure the fixtures' grammar and not their coverage.
+
+  The objection is correct about the limitation, and it is why the
+  measurement is not presented as the invariant being satisfied. What
+  the text scan buys is narrower and stated as such: a fixture whose
+  expected output contains no non-zero exit and no negative verdict
+  CANNOT reject anything, whatever the kernel does -- the fixture
+  would go green on a broken kernel exactly as it goes green on a
+  working one. That is the direction the scan is sound in: it
+  produces false NEGATIVES (a pair of cases may be counted as one
+  side), never false positives in the dangerous direction. A fixture
+  with an unmeasurable polarity is counted as debt, not as covered.
+
+  What would change the verdict: a corpus in which a fixture's
+  expected output does not carry the exit code (the corpus's
+  convention is that it does -- `exit=N` appears 41 times across the
+  cram corpus) would make the scan measure nothing, and the ceiling
+  would have to be replaced by a different instrument. The same is
+  true if the corpus moves its exit-code assertions into a helper
+  that the scan cannot see. The trigger for that is in the risk
+  block: a change to the cram corpus's assertion style.
+
+  A second objection: the negative control for the MC_VERSION check
+  copies the tree into a temporary directory, so it proves the CHECK
+  can go red on a copy, and not that it goes red on the real tree.
+  That is deliberate and it is the only safe shape: the fixture runs
+  in CI, where the tree belongs to the build, and a fixture that
+  edited the checked-out `adoption/SKILL.md` would leave the tree
+  modified whenever it was interrupted -- which is the failure
+  mode tests/fixtures/sync-version-stale-fails.sh already had to fix
+  with a restore trap. The script resolves its own root from its own
+  location (scripts/sync-version.sh:42), so a copy is a faithful
+  stand-in: same script, same VERSION, same two skill files, same
+  code path.
+
+antithesis: |
+  The opposite position would be that all three instruments are fine
+  as they are, and that T0.2 is the plan reinventing a problem that
+  the corpus has already answered.
+
+  The position is coherent, and it is right about two of the three
+  instruments in a specific sense: `tests/fixture_coverage.ml` DOES
+  check that every obligation's verifier names a file that exists,
+  and `tests/cli/attest-batch-signature.t` DOES pin the `--producer`
+  requirement, the mass-issue report, the `--run` semantics and the
+  review digest. Both are real checks, and both are green. The
+  counter-position's premise -- "the corpus has already answered" --
+  is what the corpus's own census says about the corpus's SHAPE
+  (139 decisions, 44 dangling relation targets, 20 dead scope paths),
+  and it is exactly the premise the plan rejects: a corpus can be
+  full of green checks and still not know what it checks.
+
+  The position is wrong about the third instrument and about what
+  "checked" means. The MC_VERSION check was switched off for a
+  literal that had moved, and it stayed off for seventeen days after
+  the literal it was written for came back: nothing said so, because
+  the fixture that runs `--check` in CI asserts only the
+  `compatible_with` line. A check that is off cannot catch the drift
+  it was written for, and "the corpus has already answered" is not an
+  answer when the question was never asked. The same holds for the
+  case level: a corpus of 77 fixtures, all green, 51 of which cannot
+  tell a broken kernel from a working one, is a corpus that reports
+  green and means nothing by it.
+
+  The opposite position also has a cost this decision does not pay:
+  it keeps a promise in a header that the implementation does not
+  keep. A reader of `tests/fixture_coverage.ml` is told that every
+  MUST has an accepting and a rejecting fixture. That sentence is
+  false today, and it is false in a way nobody can measure, because
+  the file that is supposed to measure it does not.
+
+outcomes:
+  - id: the-version-check-has-teeth
+    statement: |
+      `scripts/sync-version.sh --check` refuses a drifted MC_VERSION
+      line in either copy of the skill, and a negative-control
+      fixture demonstrates the refusal.
+
+  - id: the-case-level-contract-is-measured
+    statement: |
+      `tests/fixture_coverage.ml` measures the accepting and the
+      rejecting cases of every cram fixture the corpus names, enforces
+      the accepting half, and pins the rejecting half as a ceiling
+      with a number.
+
+  - id: the-manifest-branch-is-exercised
+    statement: |
+      `tests/cli/attest-batch-signature.t` runs the
+      `attest-batch --manifest=...` branch it is the verifier for,
+      including the refusal of a runtime kind with no `--run`.
+
+scope:
+  paths:
+    - "scripts/sync-version.sh"
+    - "tests/fixtures/sync-version-mc-version-drift-fails.sh"
+    - "tests/fixture_coverage.ml"
+    - "tests/cli/attest-batch-signature.t"
+    - "decisions/instruments-repair-2026-11.yaml"
+  exclusions:
+    - "lib/**"
+    - "bin/**"
+    - "spec/**"
+    - "axioms/**"
+    - "docs/plans/**"
+    - "adoption/**"
+    - ".opencode/**"
+    - "scripts/install-tooling/**"
+
+obligations:
+  - id: the-mc-version-check-can-go-red
+    claim: |
+      `scripts/sync-version.sh --check` exits non-zero, with a
+      message that names the line it expected, when the MC_VERSION
+      line of a copy of the skill does not carry the version in
+      `VERSION`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/sync-version-mc-version-drift-fails.sh
+
+  - id: the-second-copy-is-checked-too
+    claim: |
+      The same refusal happens when only
+      `.opencode/skills/math-coding/SKILL.md` drifts, and `--write`
+      repairs both copies so that the repaired tree passes `--check`.
+    acceptance:
+      all:
+        - verifier: tests/fixtures/sync-version-mc-version-drift-fails.sh
+
+  - id: the-case-level-contract-is-measured
+    claim: |
+      `tests/fixture_coverage.ml` reports how many of the cram
+      fixtures the corpus names have an accepting case and how many
+      have a rejecting one, enforces the accepting half, and fails
+      when the rejecting half exceeds its ceiling.
+    acceptance:
+      all:
+        - verifier: tests/fixture_coverage.ml
+
+  - id: the-case-classifier-is-checked
+    claim: |
+      The classifier that reads the cases knows both answers: a case
+      that asserts a non-zero exit or a negative verdict rejects, a
+      case that asserts exit 0 or `unknown` accepts, and prose is not
+      a case.
+    acceptance:
+      all:
+        - verifier: tests/fixture_coverage.ml
+
+  - id: the-manifest-branch-is-exercised
+    claim: |
+      `tests/cli/attest-batch-signature.t` runs
+      `mathc attest-batch --manifest=FILE`: a review row signs
+      itself with the producer the row named, a runtime-kind row with
+      no `--run` is refused with exit 2 and the kind named, nothing
+      is written for the refused row, and `--dry-run` writes nothing.
+    acceptance:
+      all:
+        - verifier: tests/cli/attest-batch-signature.t
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - "the cram corpus stops asserting exit codes in its expected output"
+    - "the skill's frontmatter moves the MC_VERSION line out of the file"
+    - "a second copy of the skill appears and is not named here"
+    - "the release flow starts deriving VERSION from a tag instead of the VERSION file"
+
+assumptions:
+  - id: the-two-copies-are-the-same-document
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      `adoption/SKILL.md` and
+      `.opencode/skills/math-coding/SKILL.md` are the same document,
+      shipped twice: one is what an adopter reads, the other is what
+      `mathc init --agent opencode` installs. tests/cli/init-agent.t
+      and scripts/check-opencode-skill.sh assert the byte-equality,
+      and scripts/sync-version.sh --write has rewritten both since
+      v3.7.0.
+    consequence_if_false: |
+      If the two files are allowed to diverge, then checking MC_VERSION
+      in both is redundant rather than thorough, and the fixture that
+      breaks only the second copy would be asserting a property the
+      project does not hold. The check would then have to name the
+      canonical copy alone -- and the divergence itself would be the
+      defect to fix first.
+    review_on:
+      - signal: skill-copies-diverge
+
+  - id: the-cram-exit-code-is-the-cases-verdict
+    state: assumed
+    owner: human:maintainer
+    statement: |
+      This repository's cram convention is that a case asserts the
+      command's exit code in its expected output -- `exit=N` or
+      `EXIT=N`, 41 occurrences across the cram corpus -- so that a
+      case is decidable from its text.
+    consequence_if_false: |
+      If the corpus stops asserting exit codes, the case-level scan
+      stops being able to tell an accepting case from a rejecting one
+      and the ceiling measures nothing. The fixture would then have
+      to read the kernel's behaviour instead of the fixture's text,
+      which is a different instrument, and the ceiling would have to
+      be withdrawn rather than kept.
+    review_on:
+      - signal: cram-exit-code-convention-dropped

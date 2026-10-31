@@ -13,13 +13,24 @@
 #              Idempotent: re-running on a clean tree produces
 #              no diff.
 #
-# Two derived points in `adoption/SKILL.md`:
+# Two derived points in the frontmatter of `adoption/SKILL.md`:
 #   line 9  : `compatible_with: mathc@>=<X.Y.Z>`
 #             (semver MAJOR.MINOR.PATCH, dropping any prerelease
 #             suffix. Per the existing convention.)
-#   line 55 : `MC_VERSION=<full-string>`
-#             (full contents of VERSION, used in `curl | sh` URLs
-#             that resolve to the GitHub release asset.)
+#   line 10 : `MC_VERSION=<full-string>`
+#             (full contents of VERSION; the release the skill was
+#             cut for. The `curl | sh` install block in the body
+#             resolves the GitHub release asset from it.)
+#
+# THE SAME DOCUMENT IS SHIPPED TWICE. `adoption/SKILL.md` is the
+# canonical copy an adopter reads; `.opencode/skills/math-coding/
+# SKILL.md` is the byte-identical copy the per-user agent skill is
+# installed from (tests/cli/init-agent.t and
+# scripts/check-opencode-skill.sh both assert the byte-equality).
+# `--write` rewrites BOTH; `--check` reads BOTH. A version bump
+# that touches one copy and not the other leaves two documents
+# that disagree about which release they are for, and the second
+# one is the one an agent actually loads.
 #
 # Optional third derived point (only present after Phase-1 W2):
 #   scripts/install-tooling/install.sh:
@@ -135,12 +146,21 @@ check_skill_compatible() {
 }
 
 check_skill_mc_version() {
-  if [ ! -f "$skill" ]; then
+  # $1 = the file to check. The MC_VERSION line is a derived point
+  # in BOTH copies of the skill, so the check is per-file.
+  target="$1"
+  if [ ! -f "$target" ]; then
+    echo "sync-version: $target is missing" >&2
     return 2
   fi
-  if ! grep -qF "$expected_mc_version" "$skill"; then
-    echo "drift: $skill contains:"
-    grep -nF "MC_VERSION=" "$skill" | head -3 >&2
+  # WHOLE-LINE match, not a substring match. `grep -qF
+  # "MC_VERSION=3.7.4"` also matches the line `MC_VERSION=3.7.45`,
+  # so a version that merely STARTS with the wanted one passed a
+  # check that was supposed to catch drift. `-x` anchors the pattern
+  # to the whole line and `-F` keeps the dots literal.
+  if ! grep -qxF "$expected_mc_version" "$target"; then
+    echo "drift: $target contains:" >&2
+    grep -nF "MC_VERSION=" "$target" | head -3 >&2
     echo "expected:" >&2
     echo "  $expected_mc_version" >&2
     return 1
@@ -214,12 +234,17 @@ write_skill() {
   ' "$target" > "$tmp"
 
   # Reject if the warning fired (one or both lines were missing).
+  #
+  # The MC_VERSION post-condition is a WHOLE-LINE match, for the same
+  # reason the check is: `--write` and `--check` have to agree on what
+  # "in sync" means, or a `--write` that leaves the tree in a state
+  # `--check` rejects is a release step that breaks its own gate.
   if ! grep -qF "$expected_compatible" "$tmp"; then
     echo "sync-version: write failed: $target lacks $expected_compatible after rewrite" >&2
     rm -f "$tmp"
     return 1
   fi
-  if ! grep -qF "$expected_mc_version" "$tmp"; then
+  if ! grep -qxF "$expected_mc_version" "$tmp"; then
     echo "sync-version: write failed: $target lacks $expected_mc_version after rewrite" >&2
     rm -f "$tmp"
     return 1
@@ -273,9 +298,25 @@ case "$mode" in
   check)
     rc=0
     check_skill_compatible  || rc=1
-    # check_skill_mc_version skipped: T6 ux-3-adoption-doc-freshen-2026-10@2 replaced
-    # the wget|chmod MC_VERSION= literal with the curl | sh --user-skill pattern.
-    # check_skill_mc_version  || rc=1
+    # The MC_VERSION line is checked in BOTH copies of the skill.
+    #
+    # It was unchecked from 2026-10-14 to 2026-10-31, and the
+    # reason was recorded here: "T6 ux-3-adoption-doc-freshen-2026-10@2
+    # replaced the wget|chmod MC_VERSION= literal with the curl | sh
+    # --user-skill pattern". That was true of the BODY of the skill,
+    # where the install snippet used to pin a release tag; it was never
+    # true of the FRONTMATTER, where `MC_VERSION=<VERSION>` has been
+    # the release the skill was cut for since v3.7.0.
+    #
+    # The check was therefore switched off for a literal that had
+    # moved, and it stayed off after the literal came BACK -- so
+    # `--write` (which REQUIRES the line: see write_skill's
+    # post-condition) and `--check` (which did not) disagreed about
+    # what a synced skill looks like. A check that is off cannot
+    # catch the drift it was written for, and `--check` is the mode
+    # CI runs.
+    check_skill_mc_version "$skill"       || rc=1
+    check_skill_mc_version "$agent_skill"  || rc=1
     check_install_sh        || rc=1
     if [ "$rc" = 0 ]; then
       echo "sync-version: ok (VERSION=$VERSION_FULL, semver=$VERSION_SEMVER)"
