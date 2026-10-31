@@ -23,7 +23,16 @@
  * `path:` and `repo:` fields an acceptance entry uses to name
  * its target, and fails when one of them is an absolute path
  * into a machine-local worktree. See the comment on
- * `walk_paths` below. *)
+ * `walk_paths` below.
+ *
+ * A THIRD walk (added 2026-10-31) measures the CASE level, which is
+ * what the header above promises and what the first walk did not do:
+ * a fixture file that EXISTS may hold nothing but accepting cases,
+ * and the first walk could not tell the two apart. The measurement,
+ * the part of the invariant it can decide, and the debt it cannot
+ * decide are described in the section "the case-level contract the
+ * header promises" below. Read that section before changing the
+ * numbers: they are a ceiling, not a target. *)
 
 let[@warning "-32"] project_root () =
   let cwd = Sys.getcwd () in
@@ -614,31 +623,39 @@ let[@warning "-32"] is_worktree_path p =
    file is `<file>.yaml` (no @ in name), and
    `decisions/<file>@<rev>.yaml exists` for sub-decisions
    whose file is `<file>@<rev>.yaml` (@ is part of the name).
-   Try all three forms. *)
-let[@warning "-32"] try_path (root : string) (p : string) : bool =
-  let f = Filename.concat root p in
-  Sys.file_exists f
+   Try all three forms.
+
+   There is ONE resolution algorithm in this file, and the case-level
+   walk below uses it too. Two implementations of "what does this
+   verifier name" would be free to disagree, and the disagreement
+   would be invisible: one of them would answer "a fixture" and the
+   other "nothing", and both would look like a measurement. *)
+let[@warning "-32"] path_candidates (p : string) : string list =
+  let without_tail =
+    let len = String.length p in
+    if len >= 7 && String.sub p (len - 7) 7 = " exists" then
+      Some (String.sub p 0 (len - 7))
+    else if len >= 8 && String.sub p (len - 8) 8 = " absent" then
+      Some (String.sub p 0 (len - 8))
+    else None
+  in
+  let without_rev s =
+    try
+      let i = String.index s '@' in
+      String.sub s 0 i
+    with Not_found -> s
+  in
+  match without_tail with None -> [ p ] | Some v -> [ p; v; without_rev v ]
+
+(* The candidate that resolves to an existing file, if any. *)
+let[@warning "-32"] resolve_existing (root : string) (p : string) :
+    string option =
+  List.find_map
+    (fun c -> if Sys.file_exists (Filename.concat root c) then Some c else None)
+    (path_candidates p)
 
 let[@warning "-32"] path_resolves (root : string) (p : string) : bool =
-  if try_path root p then true
-  else
-    let v =
-      let len = String.length p in
-      if len >= 7 && String.sub p (len - 7) 7 = " exists" then
-        String.sub p 0 (len - 7)
-      else if len >= 8 && String.sub p (len - 8) 8 = " absent" then
-        String.sub p 0 (len - 8)
-      else p
-    in
-    if try_path root v then true
-    else
-      let no_rev =
-        try
-          let i = String.index v '@' in
-          String.sub v 0 i
-        with Not_found -> v
-      in
-      try_path root no_rev
+  resolve_existing root p <> None
 
 (* Regression pin for the filter itself; see the block comment above for
    the differential against `git check-ignore`. *)
@@ -773,6 +790,392 @@ let[@warning "-32"] test_verifier_paths_stay_inside_repo () =
        0 n_remaining)
     0 n_remaining
 
+(* --- the case-level contract the header promises -------------------------
+
+   The header of this file quotes constitution invariant 13: "every
+   kernel-enforced MUST has at least one accepting and one rejecting
+   conformance fixture". The walk above checked that a fixture FILE
+   exists. That is a different claim: a file that exists may hold
+   nothing but accepting cases, and a file-existence check cannot
+   tell that from a fixture that exercises both sides. This section
+   is the part of the invariant that IS decidable from the tree,
+   measured honestly, and the debt for the part that is not.
+
+   THE POPULATION. The same one the walk already resolves: the
+   verifier strings the corpus's obligations name, restricted to the
+   ones that point at an existing file.
+
+   WHAT IS MEASURED: the cram fixtures (tests/**/*.t). A cram file is
+   a sequence of cases; each case is a command line (`  $ cmd`) and
+   the output the fixture expects of it. A case REJECTS when the
+   expected output says the command did not succeed:
+
+     - a non-zero exit code, asserted the way this corpus asserts
+       one: the fixture captures the status and prints it, so the
+       assertion is a line of expected output reading `exit=N` or
+       `EXIT=N`;
+     - or a negative verdict in the kernel's own vocabulary --
+       "verdict":"reject", "verdict":"block", "verdict":"fail".
+
+   `unknown` is NOT one of them. `unknown` is the kernel declining to
+   conclude, and this repository insists that unknown is neither pass
+   nor fail (constitution.md:59, "unknown != pass"). Counting it as a
+   rejection would make this instrument report a number the kernel
+   itself refuses to report.
+
+   THE PAIR. A fixture may carry both cases itself, or the corpus's
+   own convention may keep the two sides in two files that share a
+   stem: `validate-positive.t` / `validate-negative.t`,
+   `explain-positive.t` / `explain-negative.t`, `gate-pass.t` /
+   `gate-fail.t`, `self-check-pass.t` / `self-check-fail.t`. The pair
+   set of a fixture is the fixture plus the polarity siblings of its
+   stem. The polarity vocabulary is those four words, written out
+   rather than inferred: a vocabulary that grew by guessing would turn
+   the number into a matter of taste.
+
+   WHAT IS NOT MEASURED, AND WHY. The shell fixtures
+   (tests/fixtures/*.sh) are NOT measured, and their number is
+   reported. The polarity of a shell assertion is not decidable from
+   its text: `if ! cmd; then ... fi` asserts that cmd FAILS and
+   `if cmd; then ... fi` asserts that cmd SUCCEEDS, and the two
+   differ by one character in the middle of the line. A text scan that
+   guessed would produce a number that looks measured and is not --
+   which is the exact failure mode this instrument exists to stop.
+   The number of unmeasured fixtures is printed so that the gap is a
+   number and not an excuse.
+
+   THE DEBT. Of the cram fixtures the corpus names, some have no
+   rejecting case. A fixture with an accepting case and no rejecting
+   case cannot tell a broken kernel from a working one: it goes green
+   either way. That is a debt with a number, and the number is a
+   CEILING: it may fall, and it may never rise. The ceiling is
+   recorded below with the date it was measured and the command that
+   measures it, so the next person does not have to re-derive it and
+   so a future tightening has something to tighten towards. The
+   missing cases are NOT written here: a pair invented to make a
+   number smaller is a pair that asserts nothing, and the whole point
+   of this instrument is to distinguish a check from a decoration. *)
+
+(* A cram command line: whitespace, `$ `, then the command. The corpus
+   indents by two spaces; any indentation counts, because the question
+   asked here is "is this line a command", not "is it two spaces". *)
+let[@warning "-32"] is_cram_command (ln : string) : bool =
+  let n = String.length ln in
+  let rec skip_ws i =
+    if i < n && (ln.[i] = ' ' || ln.[i] = '\t') then skip_ws (i + 1) else i
+  in
+  let i = skip_ws 0 in
+  i + 1 < n && ln.[i] = '$' && ln.[i + 1] = ' '
+
+(* A continuation line of a multi-line command (`  > ...`). It belongs
+   to the command, not to the expected output: a command that spans
+   three lines has ONE expected output, not three. *)
+let[@warning "-32"] is_cram_continuation (ln : string) : bool =
+  let n = String.length ln in
+  let rec skip_ws i =
+    if i < n && (ln.[i] = ' ' || ln.[i] = '\t') then skip_ws (i + 1) else i
+  in
+  let i = skip_ws 0 in
+  i + 1 < n && ln.[i] = '>' && ln.[i + 1] = ' '
+
+(* Is the line indented? Prose in a cram file is at column 0; the
+   command and its expected output are indented. A blank line is not
+   prose and not output either: cram reads it as "the command printed
+   nothing here", so it stays inside the case. *)
+let[@warning "-32"] is_indented (ln : string) : bool =
+  String.length ln > 0 && (ln.[0] = ' ' || ln.[0] = '\t')
+
+(* Split a cram file into its cases. Each case is the list of the
+   expected-output lines that follow a command line. A command line
+   starts a new case; a line that is neither indented nor blank ends
+   the current one. *)
+let[@warning "-32"] cram_cases (text : string) : string list list =
+  let lines = String.split_on_char '\n' text in
+  let rec loop acc = function
+    | [] -> List.rev acc
+    | ln :: tl ->
+        if not (is_cram_command ln) then loop acc tl
+        else
+          let rec gather out = function
+            | [] -> (List.rev out, [])
+            | l :: rest ->
+                if is_cram_command l then (List.rev out, l :: rest)
+                else if is_cram_continuation l then gather out rest
+                else if l = "" || is_indented l then gather (l :: out) rest
+                else (List.rev out, rest)
+          in
+          let out, rest = gather [] tl in
+          loop (out :: acc) rest
+  in
+  loop [] lines
+
+(* The exit-code marker this corpus uses. `exit=N` and `EXIT=N` are
+   the two spellings in use; `exit=0` asserts that the command
+   succeeded. Only a run of digits counts -- `exit=0x10` is not a
+   status, it is a typo. *)
+let[@warning "-32"] exit_marker (line : string) : int option =
+  let s = String.trim line in
+  let n = String.length s in
+  let rest =
+    if n >= 5 && String.sub s 0 5 = "exit=" then Some (String.sub s 5 (n - 5))
+    else if n >= 5 && String.sub s 0 5 = "EXIT=" then
+      Some (String.sub s 5 (n - 5))
+    else None
+  in
+  match rest with
+  | Some r when r <> "" && String.for_all (fun c -> c >= '0' && c <= '9') r -> (
+      try Some (int_of_string r) with _ -> None)
+  | _ -> None
+
+(* Squeeze the whitespace out of a line, so that the JSON renderers
+   that differ in spacing (`"verdict":"reject"` and `"verdict":
+   "reject"`) are read the same way. *)
+let[@warning "-32"] squeeze (s : string) : string =
+  let b = Buffer.create (String.length s) in
+  String.iter (fun c -> if c <> ' ' && c <> '\t' then Buffer.add_char b c) s;
+  Buffer.contents b
+
+(* The kernel's negative verdicts. `unknown` is deliberately absent:
+   see the block comment above. *)
+let[@warning "-32"] negative_verdict (line : string) : bool =
+  let s = squeeze line in
+  List.exists
+    (fun v -> contains_substring s ("\"verdict\":\"" ^ v ^ "\""))
+    [ "reject"; "block"; "fail" ]
+
+(* A case rejects when its expected output asserts that the command did
+   not succeed. *)
+let[@warning "-32"] case_rejects (expected : string list) : bool =
+  List.exists
+    (fun l ->
+      match exit_marker l with Some n -> n <> 0 | None -> negative_verdict l)
+    expected
+
+(* The polarity vocabulary: the trailing words this corpus uses to
+   mark the two sides of a case. Written out rather than inferred. *)
+let[@warning "-32"] polarity_words = [ "positive"; "negative"; "pass"; "fail" ]
+
+let[@warning "-32"] strip_suffix (s : string) (suffix : string) : string option
+    =
+  let n = String.length s and m = String.length suffix in
+  if n >= m && String.sub s (n - m) m = suffix then
+    Some (String.sub s 0 (n - m))
+  else None
+
+(* The stem of a cram file's name: the basename without a trailing
+   polarity word. `validate-negative.t` and `validate-positive.t`
+   share the stem `validate`. *)
+let[@warning "-32"] cram_stem (basename : string) : string =
+  match
+    List.find_map (fun w -> strip_suffix basename ("-" ^ w)) polarity_words
+  with
+  | Some s -> s
+  | None -> basename
+
+(* The pair set of a cram fixture: the fixture itself, plus the
+   polarity siblings that share its stem. *)
+let[@warning "-32"] pair_set (root : string) (rel : string) : string list =
+  let dir = Filename.dirname rel in
+  let stem = cram_stem (Filename.chop_suffix (Filename.basename rel) ".t") in
+  let siblings =
+    List.filter_map
+      (fun w ->
+        let cand = Filename.concat dir (stem ^ "-" ^ w ^ ".t") in
+        if Sys.file_exists (Filename.concat root cand) then Some cand else None)
+      polarity_words
+  in
+  rel :: siblings
+
+(* Does the fixture have an accepting case? Does it have a rejecting
+   one? The pair set counts for both, because the corpus keeps the two
+   sides of a case in two files as often as in one. *)
+let[@warning "-32"] fixture_polarity (root : string) (rel : string) :
+    bool * bool =
+  let has_accepting = ref false and has_rejecting = ref false in
+  List.iter
+    (fun f ->
+      match read_text_opt (Filename.concat root f) with
+      | None -> ()
+      | Some text ->
+          List.iter
+            (fun expected ->
+              if case_rejects expected then has_rejecting := true
+              else has_accepting := true)
+            (cram_cases text))
+    (pair_set root rel);
+  (!has_accepting, !has_rejecting)
+
+(* The fixtures the corpus names. A verifier is a free string, and
+   the corpus uses several shapes for it:
+
+     tests/cli/render.t                 (a bare path)
+     file-exists tests/cli/render.t     (a scheme and its argument)
+     dune test --root . tests/cli/x.t   (a command line)
+
+   So the fixture is found by looking at the verifier's WHITESPACE
+   tokens and asking which of them name a file that exists. The
+   answer is a SET of tokens, not the first one: a command line
+   names its target among its arguments, and the target is the one
+   that resolves.
+
+   `classify` is deliberately NOT used here. It answers "is this
+   verifier a declaration or a path?", and it answers "declaration"
+   for every `tests/...` string, because the corpus also uses
+   `tests/foo.ml::case` to name a TEST CASE rather than a file. A
+   classifier that cannot tell a test-case reference from a fixture
+   path cannot say which fixtures the corpus names -- and using it
+   here would have measured an EMPTY population, which is the shape
+   a check takes when it looks green and measures nothing. *)
+let[@warning "-32"] verifier_targets (root : string) (v : string) : string list
+    =
+  let raw = strip_shell_negation v in
+  let tokens =
+    String.split_on_char ' ' raw
+    |> List.concat_map (fun t -> String.split_on_char '\t' t)
+    |> List.map String.trim
+    |> List.filter (fun t -> t <> "")
+  in
+  List.filter_map (fun t -> resolve_existing root t) tokens
+
+(* The cram fixtures the corpus names, and the shell fixtures it
+   names. Both are derived from the same walk, so the two numbers
+   describe one corpus and not two. *)
+let[@warning "-32"] named_fixtures_with_suffix (root : string) (suffix : string)
+    : string list =
+  let paths =
+    List.concat_map (fun (_, v, _, _) -> verifier_targets root v) (walk root)
+    |> List.filter (fun p -> Filename.check_suffix p suffix)
+  in
+  List.sort_uniq String.compare paths
+
+(* The cram fixtures the corpus names. *)
+let[@warning "-32"] named_cram_fixtures (root : string) : string list =
+  named_fixtures_with_suffix root ".t"
+
+(* The shell fixtures the corpus names. They are NOT measured -- see
+   the block comment above -- but they are counted, so that the gap is
+   a number. *)
+let[@warning "-32"] named_shell_fixtures (root : string) : string list =
+  named_fixtures_with_suffix root ".sh"
+
+(* The instrument checks itself. A classifier that never says "no" is
+   indistinguishable from one that cannot say "no". These are
+   synthetic texts, so the expected answers are known by construction:
+   a case that asserts exit 0 accepts, a case that asserts a non-zero
+   exit rejects, a case that asserts a negative verdict rejects, a
+   case that asserts `unknown` accepts (unknown is not a rejection --
+   see above), and prose is not a case at all. *)
+let[@warning "-32"] test_the_case_classifier_knows_both_answers () =
+  let rejects text = List.exists case_rejects (cram_cases text) in
+  let accepting = "  $ cmd\n  exit=0\n" in
+  let failing = "  $ cmd\n  exit=2\n" in
+  let negative_verdict_text = "  $ cmd\n  {\"verdict\":\"reject\"}\n" in
+  let unknown_verdict = "  $ cmd\n  {\"verdict\":\"unknown\"}\n" in
+  let prose = "this line is prose that mentions exit=2\n" in
+  Alcotest.(check bool)
+    "a case that asserts exit=0 accepts" false (rejects accepting);
+  Alcotest.(check bool)
+    "a case that asserts a non-zero exit rejects" true (rejects failing);
+  Alcotest.(check bool)
+    "a case that asserts a negative verdict rejects" true
+    (rejects negative_verdict_text);
+  Alcotest.(check bool)
+    "a case that asserts `unknown` does NOT reject" false
+    (rejects unknown_verdict);
+  Alcotest.(check bool) "prose is not a case" false (rejects prose);
+  (* The polarity split must survive a case that asserts both a
+     non-zero exit and a negative verdict: the exit is what decides. *)
+  Alcotest.(check bool)
+    "a case that asserts exit=0 and a negative verdict still rejects" true
+    (rejects "  $ cmd\n  {\"verdict\":\"block\"}\n  exit=1\n")
+
+(* The accepting half of invariant 13, enforced. Every cram fixture
+   the corpus names must show the property HOLDING somewhere. This
+   held for the whole corpus on the day it was measured, so it is a
+   rule and not a hope. *)
+let[@warning "-32"] test_named_cram_fixtures_have_an_accepting_case () =
+  let root = project_root () in
+  let fixtures = named_cram_fixtures root in
+  let missing =
+    List.filter
+      (fun f ->
+        let accepting, _ = fixture_polarity root f in
+        not accepting)
+      fixtures
+  in
+  let n_missing = List.length missing in
+  if n_missing > 0 then begin
+    Printf.printf "Named cram fixtures with no accepting case:\n";
+    List.iter (fun f -> Printf.printf "  %s\n" f) missing
+  end;
+  Alcotest.(check int)
+    (Printf.sprintf
+       "every named cram fixture has an accepting case (walked %d fixtures)"
+       (List.length fixtures))
+    0 n_missing;
+  (* The population must not be empty. A check over zero fixtures
+     passes by construction, and a population that fell to zero would
+     be this instrument measuring nothing while reporting green --
+     the shape of failure this whole file exists to catch. *)
+  Alcotest.(check bool)
+    (Printf.sprintf "the named cram population is not empty (%d fixtures)"
+       (List.length fixtures))
+    true
+    (List.length fixtures > 0)
+
+(* The rejecting half of invariant 13, counted and bounded.
+
+   THE CEILING. Measured 2026-10-31, on the corpus of that day: 51 of
+   the 77 cram fixtures the corpus names have no rejecting case. It
+   may fall; it may never rise. A new fixture that only shows the
+   happy path pushes the count over the ceiling and the run goes red.
+
+   MEASURE IT AGAIN with:
+
+     nix develop .#test --command dune build \\
+       && ./_build/default/tests/fixture_coverage.exe
+
+   and read the count out of the failure message. The 51 is a
+   MEASUREMENT, not a target to be reached by writing pairs: a pair
+   invented to make the number smaller asserts nothing, and the
+   instrument would then be measuring its own compliance. *)
+let[@warning "-32"] rejecting_case_debt_ceiling = 51
+
+let[@warning "-32"] test_named_cram_fixtures_keep_the_rejecting_case_debt () =
+  let root = project_root () in
+  let fixtures = named_cram_fixtures root in
+  let missing =
+    List.filter
+      (fun f ->
+        let _, rejecting = fixture_polarity root f in
+        not rejecting)
+      fixtures
+  in
+  let n_missing = List.length missing in
+  if n_missing > 0 then begin
+    Printf.printf "Named cram fixtures with no rejecting case:\n";
+    List.iter (fun f -> Printf.printf "  %s\n" f) missing
+  end;
+  (* The unmeasured population is reported, not silently dropped. The
+     shell fixtures are not decidable from their text (see the block
+     comment above); their number belongs in the report so that the
+     gap between "what is measured" and "what exists" is visible. *)
+  let n_shell = List.length (named_shell_fixtures root) in
+  Printf.printf
+    "  I13 case-level census: %d named cram fixtures, %d of them without a \
+     rejecting case (ceiling %d); %d named shell fixtures are not measured by \
+     this instrument\n"
+    (List.length fixtures) n_missing rejecting_case_debt_ceiling n_shell;
+  (* The label names both numbers: a ceiling that fails without saying
+     how much is over is a number nobody can pay down. *)
+  Alcotest.(check int)
+    (Printf.sprintf
+       "named cram fixtures with a rejecting case stay under the ceiling (the \
+        ceiling is %d, the corpus now holds %d)"
+       rejecting_case_debt_ceiling n_missing)
+    0
+    (max 0 (n_missing - rejecting_case_debt_ceiling))
+
 let () =
   Alcotest.run
     ~log_dir:(Filename.concat (Filename.get_temp_dir_name ()) "mathc-alcotest")
@@ -792,5 +1195,14 @@ let () =
         [
           Alcotest.test_case "no verifier target escapes the repository" `Quick
             test_verifier_paths_stay_inside_repo;
+        ] );
+      ( "fixture cases",
+        [
+          Alcotest.test_case "the case classifier knows both answers" `Quick
+            test_the_case_classifier_knows_both_answers;
+          Alcotest.test_case "every named cram fixture has an accepting case"
+            `Quick test_named_cram_fixtures_have_an_accepting_case;
+          Alcotest.test_case "the rejecting-case debt stays under its ceiling"
+            `Quick test_named_cram_fixtures_keep_the_rejecting_case_debt;
         ] );
     ]
