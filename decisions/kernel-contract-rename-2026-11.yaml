@@ -1,12 +1,12 @@
 ---
 schema: math-coding/3.3
 id: kernel-contract-rename-2026-11
-revision: 3
+revision: 4
 state: active
 mode: standard
 negative_control: tests/fixtures/kernel-contract-rename-2026-11.sh
-body_sha: "sha256:dcadedd89e2b071e57148bd91995ee1053ca1cbeeab715d3cfdae0a447379ba5"
-yaml_sha: "sha256:dcadedd89e2b071e57148bd91995ee1053ca1cbeeab715d3cfdae0a447379ba5"
+body_sha: "sha256:d6222befc713d90d3b78cc92d8c874fd8021dfbe2bd6f6c4fbdd0589d5535276"
+yaml_sha: "sha256:d6222befc713d90d3b78cc92d8c874fd8021dfbe2bd6f6c4fbdd0589d5535276"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#9.1 (tranche T3.1)"
@@ -80,6 +80,20 @@ intent:
     in the same commit. Every normative-text edit of this tranche
     lands in ONE commit, under THIS decision, and nowhere else.
 
+    THE FILES OF THAT COMMIT, named, so that the claim can be checked
+    rather than believed:
+
+      axioms/care.md            axioms/feedback.md
+      axioms/invariants.md      axioms/self-application.md
+      axioms/separation.md      spec/semantics.md
+
+    The axiom pages link to the RENDERED page, because that is what
+    the site writes and what a reader in a browser follows; the link
+    text names the SOURCE, because that is the file the section lives
+    in. The contract's own text is NOT among the files: its bytes are
+    the bytes it had before the move, and the tranche that rewrites
+    that text is a different decision with its own review.
+
     HISTORY OF THIS TRANSITION (each step is one commit, and each
     step is revertable on its own):
 
@@ -90,6 +104,9 @@ intent:
       rev 3  the live corpus: thirty decisions, the five schema files,
              the site, the documentation and the installer template
              follow the file.
+      rev 4  the normative text: the five axiom pages and
+             spec/semantics.md move, in ONE commit that carries this
+             decision.
 
 counterexample: |
   The strongest objection against this transition is that it changes

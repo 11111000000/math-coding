@@ -592,7 +592,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
   required; the empty path list is an input error.
 - **Output**: a single JSON object on stdout with sorted
   keys carrying the risk classification of the given
-  paths per `lib/risk.ml` (algebra §2). Fields:
+  paths per `lib/risk.ml` (kernel contract §2). Fields:
   `files[]` (input paths), `impact` (max `classify(p)`,
   `0 ≤ impact ≤ 1`), `probability` (default 0.5 unless a
   policy override applies), `irreversibility` (max marker
@@ -606,7 +606,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
   a path that does not exist on disk, or an unknown
   `--format` value.
 - **Justification**: `decisions/3-2-cli-catalog.yaml`
-  obligation `mode-subcommand-spec-row` (algebra §2).
+  obligation `mode-subcommand-spec-row` (kernel contract §2).
 
 ### `rebuttals COMMIT_SHA`
 
@@ -614,7 +614,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
 - **Input**: `COMMIT_SHA` is a 7+ character git commit
   prefix. The command walks
   `rebuttals/<sha>.yaml` (sibling YAML artefact) and the
-  forge mirror (`forge_api.comments_for` in algebra §10,
+  forge mirror (`forge_api.comments_for` in kernel contract §10,
   currently returns `[]` in this revision; see
   `lib/rebuttal.ml:forge_mirror`).
 - **Output**: a single JSON object on stdout with the keys
@@ -622,7 +622,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
   `rebuttals[]` (each entry carrying `rebutter`, `objection`,
   `evidence`, `outcome`, `trust_level_at_rebuttal`,
   `binding`, `timestamp`, and an optional `domain`).
-  `binding` is computed per algebra §10
+  `binding` is computed per kernel contract §10
   (`trust(r.rebutter, obligation_domain(c)) ≥
   authority(c.mode)`).
 - **Exit code**: `0` on success; `2` on missing `COMMIT_SHA`
@@ -630,7 +630,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
   characters), or an unreadable `rebuttals/<sha>.yaml`
   file.
 - **Justification**: `decisions/3-2-cli-catalog.yaml`
-  obligation `rebuttals-subcommand-spec-row` (algebra §10).
+  obligation `rebuttals-subcommand-spec-row` (kernel contract §10).
 
 ### `re-evaluate DECISION_ID AXIOM_ID`
 
@@ -642,7 +642,7 @@ is a kernel verdict, not a CLI invocation fault). The table is
 - **Output**: a single JSON object on stdout carrying
   `decision` (the id), `axiom` (the id), `status`
   (`compatible` | `inconclusive` | `stale_claim` per
-  algebra §17), and `obligations[]` (per-obligation
+  kernel contract §17), and `obligations[]` (per-obligation
   sub-status). `inconclusive` indicates a manual-style
   verifier needs follow-up review; `stale_claim` blocks
   the change per the gate's `re_evaluation_status(c) ≠
@@ -837,7 +837,7 @@ means by "MUST NOT outlive its expiry".
 
 The two endpoints are asymmetric on purpose and MUST NOT be
 "harmonised": attestation currency is closed at both ends
-(`spec/algebra-3.2.md` §14, `current(a) ≔ a.issued_at ≤ now ≤
+(`spec/kernel-contract.md` §14, `current(a) ≔ a.issued_at ≤ now ≤
 a.valid_until`), while a waiver's term is closed at its start and
 open at its deadline. A waiver grants from its issue time and stops
 at its expiry time; the two rules govern different artefacts.

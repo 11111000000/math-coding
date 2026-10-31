@@ -70,7 +70,7 @@ which is decided by an explicit `Decision` carrying a `supersedes` relation.
 
 ## Formalization
 
-The seven kinds live in [`spec/algebra-3.2.html`](spec/algebra-3.2.html) as the
+The seven kinds live in [`spec/kernel-contract.html`](spec/kernel-contract.html) as the
 universal sets of §1 (`𝓒-rule`, `𝓓-flow`, `𝓡-axiom`, `𝓡-trail`) and the
 `Decision` record of §7. Counter-example requirements follow §11.
 
@@ -91,7 +91,7 @@ Each kind is a sealed variant in `lib/domain.ml`; the JSON Schemas
 under `schemas/` declare `additionalProperties: false` so a payload
 that names an unknown field is rejected before the parser sees it.
 The counterexample obligation \(|C(D)| \ge 1\) for every decision
-at mode \(\ne \text{tiny}\) (algebra §11) is the formal restatement
+at mode \(\ne \text{tiny}\) (kernel contract §11) is the formal restatement
 of the prose "no object of one kind implies another".
 
 ## Counter-example that would violate this axiom
@@ -131,7 +131,7 @@ claim (human sign-off) is not an `observed` claim (runtime signal).
 The kernel cannot promote a claim from a weaker class to a stronger
 one without an artifact that establishes the stronger class — see
 [spec/constitution.md §Epistemic Separation](spec/constitution.html)
-and [`spec/algebra-3.2.md §0 honest_uncertainty`](spec/algebra-3.2.html).
+and [`spec/kernel-contract.md §0 honest_uncertainty`](spec/kernel-contract.html).
 
 <figure class="mathc-figure mathc-figure-epistemic">
 <img src="assets/epistemic-separation.svg"
@@ -143,7 +143,7 @@ ladder with `OBSERVED` (runtime signal, strongest) at the bottom and
 `DECLARED` (advisor statement, weakest) at the top. The forbidden
 up-arrows between layers mark the boundary that an artifact must cross:
 absent an artifact, a claim stays where it was produced. The
-`honest_uncertainty` principle (algebra §0) makes the same point in
+`honest_uncertainty` principle (kernel contract §0) makes the same point in
 the verdict space — `Pass ≠ Fail ≠ Inconclusive ≠ InfrastructureError`
 — so that absence of evidence is reported as `Inconclusive`, never
 `Pass`.

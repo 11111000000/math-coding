@@ -53,7 +53,7 @@ operations bounded by time and authority.
 
 ## Formalization
 
-The fourteen invariants live in [`spec/algebra-3.2.html`](spec/algebra-3.2.html)
+The fourteen invariants live in [`spec/kernel-contract.html`](spec/kernel-contract.html)
 §19. Six of the fourteen are stated below verbatim; together they
 span determinism, identity, the revision DAG, status honesty, prior
 authority, fixture coverage, and the exit-honesty rule that pairs
