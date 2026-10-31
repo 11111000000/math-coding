@@ -405,12 +405,15 @@ Merged into `main`, each with its own decision and its own evidence:
 | T2.1 | twelve records moved to `archive/decisions/` with `state: retired`; two stayed for reasons that are not taste | the corpus criterion, and the pointer repairs each move needed |
 | T2.2a | the corpus's relation and scope debt paid: 44 dangling targets and 20 dead scope paths, both zero now | both instruments report zero, and the census lists no item |
 | T4.1 | the transferable boundary became a script: `scripts/export-core.sh` cuts the protocol out of the repository by an exact allowlist, and `tests/fixtures/exportable-core-boundary.sh` plants one project file of each kind in a copy and requires the checker to reject every copy | the exported `mathc` accepts a decision; the negative control rejects six kinds of contamination |
+| T4.2 | one master policy (`templates/master-policy.yaml`) with the installer template and `mathc init`'s literal generated from it, and a build id: the hash of the binary's own bytes, so one file always answers the same and two files answer differently | `master-policy-one-source.sh` and `build-id-distinguishes.sh`, both with negative controls |
+| T3.1 | the normative contract was renamed `spec/algebra-3.2.md` -> `spec/kernel-contract.md`: 176 mentions of the old path in the live tree are zero, the normative text moved in ONE protected transition under its own decision, and the contract's own bytes did not change | `kernel-contract-rename-2026-11.sh`, with six exclusions that are each a RECORD, and a negative control for each |
+| T2.2b (the inventory) | 136 live decisions read one at a time: 73 still true, 9 falsified, 34 stale in form, 20 records; and in the same pass, 78 checked, 24 declared, 34 unchecked | the report carries the evidence per decision; the orchestrator re-measured its five headline findings, and one had the wrong cause - and it was a real defect in this plan's own instrument |
 
 The numbers after the wave (2026-10-31):
 
 | number | before | now |
 |---|---|---|
-| CORPUS - decisions in the live corpus | 144 | 136 |
+| CORPUS - decisions in the live corpus | 144 | 139 |
 | PAPER - obligations the kernel cannot execute | 44 | 36 |
 | BROKEN - verifier schemes the kernel does not know | 5 | 0 |
 | DANGLING - relation targets that resolve to nothing | 44 | 0 |
@@ -456,7 +459,10 @@ the defect: the next edition of the contract makes the name a lie, and
 the fix is a rename - of the file and of the 322 places that name it.
 
 Measured on 2026-10-31, the path appears 322 times in 120 tracked
-files. The split that decides what happens to each mention:
+files. The tranche re-measured it on its own tree and found 331 in 123
+- the plan's count was taken before the wave-3 commits landed, and it
+counted the path alone. The split that decides what happens to each
+mention:
 
 | what it is | how many | what happens |
 |---|---|---|
