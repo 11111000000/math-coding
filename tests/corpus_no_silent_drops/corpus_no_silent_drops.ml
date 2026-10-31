@@ -321,7 +321,7 @@ let[@warning "-32"] seq_items value key =
 
 let d4_repaired =
   [
-    ("decisions/cli-cram-tests.yaml", "unknowns", 2);
+    ("archive/decisions/cli-cram-tests.yaml", "unknowns", 2);
     ("archive/decisions/p8-hook-deficit-2026-10.yaml", "unknowns", 1);
     ("archive/decisions/render-module-split-phase1-2026-10.yaml", "unknowns", 1);
   ]

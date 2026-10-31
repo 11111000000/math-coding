@@ -1580,7 +1580,7 @@ OCaml binary defined elsewhere in the project. Symptom: cram
 diff shows the binary path as `No such file or directory` even
 though the file exists in `_build/default/bin/`. Cited in
 `doc/AUDIT-0.0.11.md:561` as a top-5 recent entry. Referenced
-from `decisions/cli-cram-tests.yaml:31-32, 90, 135` (the cram
+from `archive/decisions/cli-cram-tests.yaml:31-32, 90, 135` (the cram
 RETIRED → active → documented cycle is recorded here).
 
 ### 11.21 `dune fmt` exits 0 even when files would be reformatted

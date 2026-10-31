@@ -107,7 +107,7 @@ that authorises all other decisions. Its obligations are tracked in
 | `decisions/portable-linux-musl.yaml` | `portable-linux-musl` | 3 | RETIRED | attempted kernel contract §30 closure via Alpine container build; CI runs #81/#83/#84/#85 broke on opam setup; reversal signal `alpine-ci-build-fails` fired per the decision file. Re-enable when Alpine image debugged. |
 | `decisions/agent-onboarding.yaml` | `agent-onboarding` | 2 | RESOLVED | locks ADR location + first-file convention |
 | `decisions/formal-verifier-conventions.yaml` | `formal-verifier-conventions` | 2 | RESOLVED | locks tla:/coq:/alloy: prefix convention (no tool added) |
-| `decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 2 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
+| `archive/decisions/cli-cram-tests.yaml` | `cli-cram-tests` | 3 | RESOLVED | replaces 14 cli-*.sh fixtures with cram .t |
 | `decisions/site-deploy.yaml` | `site-deploy` | 5 | RESOLVED | restores the project's published surface under its own gate |
 | `decisions/cli-canonical-name.yaml` | `cli-canonical-name` | 2 | RESOLVED | collapses mc/mathc/mathc.exe CLI referents into one |
 | `decisions/3-2-cli-catalog.yaml` | `3-2-cli-catalog` | 2 | RESOLVED | closes 3.2-cli-catalog drift (mode, rebuttals, re-evaluate subcommands added) |
@@ -183,7 +183,7 @@ scrubbed with `jq -c 'del(.now)'` before comparison.
 
 | Cram test | Obligation | Decision |
 |---|---|---|
-| `version.t` | mathc prints bootstrap hello on `version` | `decisions/cli-cram-tests.yaml` |
+| `version.t` | mathc prints bootstrap hello on `version` | `archive/decisions/cli-cram-tests.yaml` |
 | `validate-positive.t` | valid decision accepted | `decisions/validate-and-context.yaml` |
 | `validate-negative.t` | invalid decision rejected | `decisions/validate-and-context.yaml` |
 | `validate-error-actionable.t` | validator names the missing required field | `archive/decisions/validator-actionable-error.yaml` |
