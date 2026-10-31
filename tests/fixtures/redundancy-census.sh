@@ -114,9 +114,21 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # Each number is what the corpus actually holds today; the point of
 # the ceiling is that it may only fall from here.
 #
+# A raise is recorded as a marker ON THE LINE ABOVE the number, in the
+# form scripts/ceiling-monotonic.sh reads:
+#
+#     # ceiling-raise: <old> -> <new>, <the reason it had to grow>
+#
+# The marker names both values, so a reason recorded for an earlier
+# raise cannot authorise the next one, and the reason is read up to
+# the next '#': it is one line and carries no '#' of its own.
+
 #   PAPER 44 - obligations the kernel's audit classifies as
 #     `not-a-check`, measured with the store deliberately empty.
 #
+# ceiling-fall: 46 -> 44, the number was never what it said it was
+CEILING_PAPER=44
+
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
 #     two single-quoted values whose scheme reached the kernel as
@@ -124,36 +136,35 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #     (`mathc-self-check-verdict-pass`), and one quoted value with a
 #     `#` comment inside it, which YAML ate.
 #
+# The name changed from QUOTED to BROKEN on 2026-10-31, because the
+# metric changed: the old one counted verifier strings that BEGIN with
+# a quote, which included two that the reader strips correctly. The
+# bound did not disappear - it was measured by the wrong rule.
+CEILING_BROKEN=5
+
 #   DANGLING 44 - relation targets in the LIVE corpus that resolve to
 #     neither a decision id nor an existing file. All 44 name
 #     decisions that were deleted (commit 9a1e23cbf) or paths that
 #     never existed.
-#
+CEILING_DANGLING=44
+
 #   DEAD 20 - scope paths in the LIVE corpus that match no tracked
 #     file. Five name AGENTS.md (renamed to KERNEL_AGENTS.md), four
 #     name decisions/plan-2026-10-improvements/* (moved to
 #     docs/plans/), the rest name files the corpus itself deleted.
-#
+CEILING_DEAD=20
+
 #   CORPUS 141 - decision files in the live corpus. The declared
 #     target is about 50 rules (decisions/corpus-final-state-2026-10
 #     .yaml); the census measures the distance, the plan closes it.
 #
-#     ceiling-raise: 139 -> 140, the census's own decision is a
-#     decision: the record of the census is in the corpus it counts.
-#     ceiling-raise: 140 -> 141, the skill-single-source decision
-#     (the adoption rule gets one owner) is likewise in the corpus.
-#
+# ceiling-raise: 140 -> 141, the skill-single-source decision is in the corpus it counts
+CEILING_CORPUS=141
+
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
 #
-#     ceiling-raise: 112 -> 104, the earlier count included eight
-#     archived files that are not decisions (seven waiver files and a
-#     migration manifest); the instrument now counts decisions.
-CEILING_PAPER=44
-CEILING_BROKEN=5
-CEILING_DANGLING=44
-CEILING_DEAD=20
-CEILING_CORPUS=141
+# ceiling-fall: 112 -> 104, the old count included eight files that are not decisions
 CEILING_ARCHIVE_ACTIVE=104
 
 # --- the kernel --------------------------------------------------------
