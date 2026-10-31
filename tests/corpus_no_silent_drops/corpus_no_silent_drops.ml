@@ -359,8 +359,10 @@ let test_schema_keys_recovered_from_behind_a_d4_tail () =
      but a contract test pins a property on it, and the census's own
      rule is that a file something depends on is not archived until
      the dependency is fixed. The dependency is this test, so the file
-     stays and the property stays pinned on it. *)
-  let rel = "decisions/render-module-split-phase1a-2026-10.yaml" in
+     stays while the pin lives -- and when the pin is redirected at the
+     ARCHIVED copy (tranche T2.2b), the file may move and the property
+     stays pinned on the same bytes. *)
+  let rel = "archive/decisions/render-module-split-phase1a-2026-10.yaml" in
   let value = Codec.load_yaml_string (read rel) in
   match value with
   | Jsonl.Object ps ->

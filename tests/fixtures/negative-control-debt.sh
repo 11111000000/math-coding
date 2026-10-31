@@ -120,7 +120,9 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 #   the instrument instead of remaining prose
 # ceiling-fall: 31 -> 29, two records that promised without a control
 #   left the live corpus with the archive tranche
-CEILING=29
+# ceiling-fall: 29 -> 27, two more records that promised without a control
+#   left the live corpus with the archive tranche
+CEILING=27
 
 # CEILING_DECLARED is the DECLARED bound: the decisions that carry a
 # promise nobody can check, with an owner and a date. It falls
@@ -139,7 +141,9 @@ CEILING=29
 #   for the first time and its ceiling is the promised number
 # ceiling-fall: 21 -> 19, two records that declared their uncheckable
 #   promises left the live corpus with the archive tranche
-CEILING_DECLARED=19
+# ceiling-fall: 19 -> 17, two more records that declared their uncheckable
+#   promises left the live corpus with the archive tranche
+CEILING_DECLARED=17
 
 SCHEMA="schemas/obligation.json"
 DECISIONS_DIR="${MATH_CODING_DECISIONS_DIR:-decisions}"

@@ -16,16 +16,23 @@ read-only allowlist, so when the gate is OFF the method still
 works while the four read-write methods are rejected with
 -32601.
 
+The keyword is `packages`, and the decision the response must
+name is `mathc-packages-subcommand`. It used to be `mcp` and
+`mcp-agent-auto-connect-2026-10`, which the archive tranche
+T2.2b moved to `archive/decisions/`: the MCP method searches the
+LIVE corpus, and the claim under test is that the method answers
+at all, not which record it names.
+
 The fixture invokes mathc_mcp as a subprocess.
 
   $ cd "$DUNE_SOURCEROOT"
   $ unset MCP_READ_WRITE
   $ if printf '%s\n' \
-  >     '{"jsonrpc":"2.0","id":1,"method":"mathc/find","params":{"keyword":"mcp"}}' \
+  >     '{"jsonrpc":"2.0","id":1,"method":"mathc/find","params":{"keyword":"packages"}}' \
   >     | $INSIDE_DUNE/bin/mathc_mcp.exe \
   >     > /tmp/find-readonly-1.json 2>/dev/null; then \
   >   grep -q '"id":1' /tmp/find-readonly-1.json \
-  >     && grep -q 'mcp-agent-auto-connect-2026-10' /tmp/find-readonly-1.json \
+  >     && grep -q 'mathc-packages-subcommand' /tmp/find-readonly-1.json \
   >     && echo "mathc/find MCP method: returns a packages-shaped JSON" \
   >     || echo "FAIL: mathc/find response missing"; \
   > else echo "FAIL: $INSIDE_DUNE/bin/mathc_mcp.exe exit non-zero"; fi
@@ -33,7 +40,7 @@ The fixture invokes mathc_mcp as a subprocess.
 
   $ cd "$DUNE_SOURCEROOT"
   $ if printf '%s\n' \
-  >     '{"jsonrpc":"2.0","id":2,"method":"mathc/find","params":{"keyword":"mcp"}}' \
+  >     '{"jsonrpc":"2.0","id":2,"method":"mathc/find","params":{"keyword":"packages"}}' \
   >     | env MCP_READ_WRITE=off $INSIDE_DUNE/bin/mathc_mcp.exe 2>&1 \
   >     | grep -q '"id":2'; then \
   >   echo "mathc/find (gate=off): read-only method still reachable"; \

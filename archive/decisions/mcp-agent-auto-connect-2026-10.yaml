@@ -1,11 +1,12 @@
 ---
 schema: math-coding/3.2
 id: mcp-agent-auto-connect-2026-10
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the MCP agent integration, with no live dependency.
 negative_control: tests/fixtures/shell-grep-negative-control.sh
-body_sha: "sha256:41a3ee221d284b8a44ecfd8ab36fcccc5ec730e451cfc663cfab58bf3ae87ede"
-yaml_sha: "sha256:41a3ee221d284b8a44ecfd8ab36fcccc5ec730e451cfc663cfab58bf3ae87ede"
+body_sha: "sha256:5760f1a0a877bb97a49facd5e3c4dc7dd9b0e647b91f25c2eb86175f6be8c8d4"
+yaml_sha: "sha256:5760f1a0a877bb97a49facd5e3c4dc7dd9b0e647b91f25c2eb86175f6be8c8d4"
 
 intent: |
   Document the documented-but-not-yet-wired path that lets
@@ -92,7 +93,7 @@ scope:
     - "adoption/SKILL.md"
     - ".opencode/skills/math-coding/SKILL.md"
     - "USAGE.md"
-    - "decisions/mcp-agent-auto-connect-2026-10.yaml"
+    - "archive/decisions/mcp-agent-auto-connect-2026-10.yaml"
   exclusions:
     - "lib/mcp/**"
     - "bin/mathc_mcp.ml"

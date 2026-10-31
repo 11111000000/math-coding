@@ -498,7 +498,7 @@ Verifiers named by the obligation:
 
 ### `unmet-obligations-inventory-2026-10/the-inventory-covers-every-unsigned-obligation`
 
-- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
+- decision file: `archive/decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
 - recommendation: `investigate`
 - why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
@@ -532,7 +532,7 @@ mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obli
 
 ### `unmet-obligations-inventory-2026-10/the-count-and-the-breakdown-are-recorded`
 
-- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
+- decision file: `archive/decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
 - recommendation: `investigate`
 - why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below
@@ -566,7 +566,7 @@ mathc verify: output of `/home/az/Projects/math-coding/tests/fixtures/unmet-obli
 
 ### `unmet-obligations-inventory-2026-10/an-unsigned-obligation-is-a-gap`
 
-- decision file: `decisions/unmet-obligations-inventory-2026-10.yaml`
+- decision file: `archive/decisions/unmet-obligations-inventory-2026-10.yaml`
 - verdict: `broken`
 - recommendation: `investigate`
 - why: no mechanical repair applies: the verifier names a target that does not exist and no unique replacement is derivable from the repository, so the right target has to be decided by a human. The evidence is quoted below

@@ -73,7 +73,7 @@ batch (`decisions/install-tooling-default-tag-edge-2026-10.yaml`,
 `archive/decisions/print-usage-complete-2026-10.yaml`,
 `decisions/ux-3-adoption-doc-freshen-2026-10.yaml`,
 `decisions/ux-3-new-decision-subcommand-2026-10.yaml`,
-`decisions/mcp-agent-auto-connect-2026-10.yaml`,
+`archive/decisions/mcp-agent-auto-connect-2026-10.yaml`,
 `archive/decisions/ux-3-init-release-binary-noop-skill-2026-10.yaml`),
 the two deferred designs (`decisions/update-check-notify-2026-10.yaml`,
 `decisions/ux-3-init-copies-ci-workflow-2026-10.yaml`), the 3.2-ideal

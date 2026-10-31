@@ -7,8 +7,8 @@ mode: light
 axiom_link:
   - A4
 negative_control: tests/render_kernel.ml
-body_sha: "sha256:0ba91953b5cb9b71b264f3fb81dc4ea8ab7b9dfdac9053635b8d989007884935"
-yaml_sha: "sha256:0ba91953b5cb9b71b264f3fb81dc4ea8ab7b9dfdac9053635b8d989007884935"
+body_sha: "sha256:66bb4a1708d77476990ae8be6eda267c940db6159edf36c26b0bcc97f8afb6b6"
+yaml_sha: "sha256:66bb4a1708d77476990ae8be6eda267c940db6159edf36c26b0bcc97f8afb6b6"
 intent: |
   The hand-rolled Markdown subset in the render kernel previously
   recognised only `- ` unordered lists. Lines starting with `<digits>. `
@@ -130,7 +130,7 @@ assumptions: []
 counterexample: |
   Use a real markdown library (`omd`, `caml-markdown`, `cmarkit`)
   instead of a hand-rolled parser. This objection is on file in
-  `decisions/render-kernel-fixes-2026-10.yaml`, was explicitly
+  `archive/decisions/render-kernel-fixes-2026-10.yaml`, was explicitly
   considered and rejected, but for the wrong reason: the rejection
   cited dependency-surface concerns rather than correctness, so the
   same objection re-surfaces every time a new corner case (ordered

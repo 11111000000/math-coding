@@ -17,8 +17,8 @@ state: active
 # went 88 -> 52.
 mode: standard
 negative_control: tests/fixtures/negative-control-debt.sh
-body_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
-yaml_sha: "sha256:86185c97dbc6c82bf5350b4898a1db0a2d2ba0c256144a5381335cd859e1049e"
+body_sha: "sha256:0cd0c95c29e166f4cdcf3fba23877037908753285f5a60184d8c7fa6a220df6b"
+yaml_sha: "sha256:0cd0c95c29e166f4cdcf3fba23877037908753285f5a60184d8c7fa6a220df6b"
 
 intent:
   source: "plan:docs/plans/redundancy-and-portability-2026-11.md#4 (tranche T2.4)"
@@ -381,14 +381,14 @@ scope:
     - "decisions/process-principles-close-branches.yaml"
     - "decisions/process-principles.yaml"
     - "decisions/record-proportionality-2026-10.yaml"
-    - "decisions/render-kernel-fixes-2026-10.yaml"
-    - "decisions/render-module-split-phase1a-2026-10.yaml"
+    - "archive/decisions/render-kernel-fixes-2026-10.yaml"
+    - "archive/decisions/render-module-split-phase1a-2026-10.yaml"
     - "decisions/render-ordered-lists-2026-10.yaml"
     - "decisions/site-broken-links-2026-10.yaml"
     - "decisions/site-deploy.yaml"
     - "decisions/site-quality-2026-10.yaml"
     - "decisions/site-quality-distribution-2026-10.yaml"
-    - "decisions/site-redesign-2026-10.yaml"
+    - "archive/decisions/site-redesign-2026-10.yaml"
     - "decisions/stub-lint-real-2026-10.yaml"
     - "decisions/time-honesty-storage.yaml"
     - "decisions/validate-and-context.yaml"

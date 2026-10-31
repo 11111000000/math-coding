@@ -5,8 +5,8 @@ revision: 1
 state: active
 mode: standard
 
-body_sha: "sha256:cba40f6784899c53757bf391badc2eea191e4ac9bd5528b2ca8e9cd4276105a2"
-yaml_sha: "sha256:cba40f6784899c53757bf391badc2eea191e4ac9bd5528b2ca8e9cd4276105a2"
+body_sha: "sha256:3c07480c7c0b41d456dc2cbf14afead2b7523f7bdee2b8bb2ca28fbe51f7073e"
+yaml_sha: "sha256:3c07480c7c0b41d456dc2cbf14afead2b7523f7bdee2b8bb2ca28fbe51f7073e"
 
 axiom_link:
   - A0
@@ -79,9 +79,9 @@ scope:
     - "docs/plans/t4-1.yaml"
     - "docs/plans/t6-2.yaml"
     - "docs/plans/t1-2.yaml"
-    - "decisions/paren-balance-fix-2026-10.yaml"
+    - "archive/decisions/paren-balance-fix-2026-10.yaml"
     - "decisions/process-principles.yaml"
-    - "decisions/site-redesign-2026-10.yaml"
+    - "archive/decisions/site-redesign-2026-10.yaml"
     - "decisions/verifier-strings-the-kernel-can-read-2026-10.yaml"
   exclusions:
     - "attestations/**"

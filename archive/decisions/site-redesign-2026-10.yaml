@@ -1,11 +1,12 @@
 ---
 schema: math-coding/3.2
 id: site-redesign-2026-10
-revision: 1
-state: active
+revision: 2
+state: retired
+# Archived by T2.2b: a record of the landing-page redesign, with no live dependency.
 mode: standard
-body_sha: "sha256:879c5492a656107ccd75e06f741961e7106fb50b9fef4ed2c1dc087cca77256a"
-yaml_sha: "sha256:879c5492a656107ccd75e06f741961e7106fb50b9fef4ed2c1dc087cca77256a"
+body_sha: "sha256:f5d6cb53f075a5b55ee99def4e0d564f4731dd5d066b23e01f466f0b3a624607"
+yaml_sha: "sha256:f5d6cb53f075a5b55ee99def4e0d564f4731dd5d066b23e01f466f0b3a624607"
 axiom_link:
   - A0
   - A1

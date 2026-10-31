@@ -429,9 +429,13 @@ let test_corpus_files_are_read_to_eof () =
 (* render-module-split-phase1a also lost two SCHEMA keys behind the
    same continuation, not just prose: `planned_evidence:` and
    `estimated_class:` sat below the `unknowns:` block. This is the
-   case that shows the loss was not cosmetic. *)
+   case that shows the loss was not cosmetic. The file itself is a
+   record and lives in the archive since tranche T2.2b; the pin reads
+   it where it lives, and reads the same bytes. *)
 let test_corpus_schema_keys_were_recovered () =
-  let path = in_repo "decisions/render-module-split-phase1a-2026-10.yaml" in
+  let path =
+    in_repo "archive/decisions/render-module-split-phase1a-2026-10.yaml"
+  in
   let raw = In_channel.with_open_bin path In_channel.input_all in
   match Codec.load_yaml_string raw with
   | Jsonl.Object ps ->

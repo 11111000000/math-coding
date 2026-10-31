@@ -4,8 +4,8 @@ id: mathjax-delimiter-hardening-2026-10
 revision: 2
 state: active
 negative_control: tests/render_kernel.ml
-body_sha: "sha256:39a7a3c8ce43a29cb45e9888d2781f17d946eaa35db2f520a20bf5bed85a5267"
-yaml_sha: "sha256:39a7a3c8ce43a29cb45e9888d2781f17d946eaa35db2f520a20bf5bed85a5267"
+body_sha: "sha256:5829b8dd1e6d7031b2a0eee379a99c839cc3145304d6e4fc27f38f4266bb414e"
+yaml_sha: "sha256:5829b8dd1e6d7031b2a0eee379a99c839cc3145304d6e4fc27f38f4266bb414e"
 intent: |
   Harden the MathJax 3 wiring so that the dollar sign is no longer an
   active math delimiter.
@@ -71,7 +71,7 @@ intent: |
   History:
     rev 1: initial adoption. Closes the
     "$`-`active MathJax delimiter" failure mode catalogued in
-    `decisions/render-kernel-fixes-2026-10.yaml` obligation
+    `archive/decisions/render-kernel-fixes-2026-10.yaml` obligation
     `mathjax-default-off` (assumption `mathjax-off-default-is-acceptable`).
     The follow-up `t5-2-spec-mathjax` obligation in
     `decisions/plan-2026-10-improvements.yaml:602-620` becomes
