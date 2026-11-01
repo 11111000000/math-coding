@@ -201,7 +201,9 @@ CEILING_DEAD=0
 #   it counts
 # ceiling-raise: 132 -> 133, the-no-new-python record is in the corpus
 #   it counts
-CEILING_CORPUS=133
+# ceiling-raise: 133 -> 134, the kernel-contract-shrink record is in the
+#   corpus it counts
+CEILING_CORPUS=134
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.
