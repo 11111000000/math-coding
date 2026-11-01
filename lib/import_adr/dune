@@ -1,5 +1,0 @@
-(library
- (name mathcoding_import_adr)
- (wrapped false)
- (modules import_adr)
- (libraries mathcoding_core str unix))

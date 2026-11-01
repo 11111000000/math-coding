@@ -1,5 +1,0 @@
-(library
- (name mathcoding_mcp)
- (wrapped false)
- (modules protocol transport dispatch)
- (libraries mathcoding_core str unix))

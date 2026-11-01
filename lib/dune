@@ -1,32 +1,5 @@
 (library
- (name mathcoding_core)
+ (name mathcoding)
  (wrapped false)
- (modules
-  domain
-  canonical
-  jsonl
-  schema
-  templates_embedded
-  diagnostic
-  digest
-  reference
-  codec
-  decision
-  memory
-  capsule
-  gate
-  packages
-  policy
-  protected_paths
-  project_strings
-  re_evaluation
-  rebuttal
-  risk
-  waiver
-  forge
-  migrate
-  path_config)
- (libraries str unix))
-
-; lib/render/ is now a separate dune library (`mathcoding_render`);
-; the old flat `render` module has been moved under lib/render/render.ml.
+ (modules verdict)
+ (libraries unix))

@@ -1,128 +1,174 @@
-# math-coding 3.7
+# math-coding
 
-[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Release](https://img.shields.io/github/v/release/11111000000/math-coding?sort=semver)](https://github.com/11111000000/math-coding/releases/latest)
-[![Subcommands](https://img.shields.io/badge/subcommands-39-blueviolet)](PACKAGES.md)
-[![Site](https://img.shields.io/website?url=https%3A%2F%2F11111000000.github.io%2Fmath-coding%2F)](https://11111000000.github.io/math-coding/)
+> Математика в дисциплине протокола (типы, законы, доказательства), кодинг — в
+> первой предметной области.
 
-> Author: Petr Kosov <p.b.kosov@yandex.ru>
-> Status: 3.7.4, current release v3.7.4. Bootstrap gate
-> expired at v3.0.0.19 (2026-09-29). The 3.2-ideal algebra
-> (`spec/kernel-contract.md`) is normative alongside the prose specs.
-> License: Apache-2.0 (see `LICENSE`, `NOTICE`).
-> Ethics: [`ETHICS.md`](ETHICS.md).
-> Kernel implementation: OCaml. Runtime is a portable binary — users of math-coding in other languages do not need OCaml, `dune`, `nix`, or any tool listed below.
+**math-coding** — протокол, который держит спецификацию проекта и проверяет
+её против кода. Он измеряет, что в проекте действительно проверено, и
+отвечает на вопрос, что не проверено никем.
 
-## Are you applying math-coding to your own project?
+Метод рассчитан на работу агентов с кодом. Первая поставляемая предметная
+область — репозитории.
 
-If yes, **stop reading this file** and go to [`adoption/SKILL.md`](adoption/SKILL.md).
-That is the only document you need. Everything else in this repository — this
-README, `KERNEL_AGENTS.md`, `OCAML_KERNEL_CONVENTIONS.md`, `spec/`, `axioms/`,
-`lib/`, `bin/` — exists for the people who maintain the math-coding kernel
-itself. Random reading will surface OCaml-specific conventions that do not
-apply to your project.
+## Три документа, с которых начинается всё
 
-The math-coding kernel is the OCaml program that implements the protocol
-(`mathc` CLI, schemas, conformance runner). Adopters do not compile it; they
-download a binary from the [GitHub release](https://github.com/11111000000/math-coding/releases/latest)
-and run `mathc` against their own (Go / Python / Rust / JS / anything) project.
-
-
-Math-coding is a protocol that ties every change to a written
-commitment, a list of obligations, and bounded evidence that they
-hold. It is for teams who want their CI to refuse a change for a
-named rule, not a vague feeling. It does not prove software correctness.
-
-## The chain
-
-```text
-intent -> decision -> obligation -> change -> attestation -> revision
-```
-
-- **intent**: what should become true.
-- **decision**: a written commitment, recorded under the active policy.
-- **obligation**: what the decision promises; each one names a fixture.
-- **change**: the diff that implements the decision.
-- **attestation**: bounded evidence that the obligation holds.
-- **revision**: the next decision that updates or supersedes the last.
-
-The kernel checks the chain. Humans write it.
-
-## Why bootstrap-gate expiry matters
-
-Before v3.0.0.19, every change had to satisfy eight manual bootstrap
-checks in lieu of a working kernel. From v3.0.0.19 onward,
-`mathc self-check` is a blocking CI step. The kernel is now the
-authoritative source of the verdict on a clean tree. The verdicts
-are bounded by the source class of each attestation in the store
-(`kind_` ∈ `test | review | build | analysis | observation`); a
-`review`-class attestation is a human declaration, not a runtime
-observation, so "verdict: pass" reflects that every obligation has
-at least one attestation — it does not by itself assert that every
-attestation is a `test`-class automated check. Routine checks are
-free; protected-policy transitions keep the manual checklist on top.
-
-## CLI
-
-| Subcommand | Purpose |
+| Файл | О чём |
 |---|---|
-| `mathc validate FILE` | Schema check on a decision |
-| `mathc verify FILE` | Execute the verifiers a decision declares, in a sandbox |
-| `mathc context BASE HEAD --budget N` | Bounded context capsule for an agent |
-| `mathc explain REF` | Resolve a `kind:id` reference to its body |
-| `mathc explain-diagnostic CODE` | Describe an `MC-*` diagnostic code |
-| `mathc assess BASE HEAD` | List changed files between two git refs |
-| `mathc attest FILE` | Import a JUnit XML report as JSON |
-| `mathc import-junit FILE` | Import a JUnit XML report (canonical name for `mathc attest`) |
-| `mathc attest-batch` | Generate attestation JSONs from TSV manifest or by walking decisions |
-| `mathc gate BASE HEAD` | Assurance verdict for the diff |
-| `mathc self-check` | Kernel passes its own repository + corpus |
-| `mathc gaps [--format=json\|text]` | List every open promise: obligation, class, state, action |
-| `mathc negative-control` | Run the negative controls that prove the corpus can fail |
-| `mathc packages` | Index of decisions, obligations, verdicts |
-| `mathc find KEYWORD` | Search decisions and obligations by substring |
-| `mathc precommit [PATH...]` | Batch-validate the listed decision files |
-| `mathc graph` | Emit the decision/obligation relation graph |
-| `mathc decision-state <id> <action>` | Move one decision through its lifecycle states |
-| `mathc render` | Build the static site under `dist/` |
-| `mathc time-estimate` | Honest duration claim from a reference class |
-| `mathc mode PATH ...` | 3.2-ideal risk classification (kernel contract §2) |
-| `mathc rebuttals SHA` | Walk `rebuttals/<sha>.yaml` (kernel contract §10) |
-| `mathc re-evaluate DEC AXIOM` | Re-evaluation oracle (kernel contract §17) |
-| `mathc re-evaluate-decisions AXIOM` | Walk decisions/ and emit post-run verdicts + attestations (T1.2, kernel contract §17) |
-| `mathc version` | Print the bootstrap hello and exit 0 |
-| `mathc update [--channel=...] [--yes]` | Self-update the binary from the release channel |
-| `mathc session-start` | Write `.local/session-start` ISO timestamp |
-| `mathc record --decision-id ID ...` | Append event to `decisions/execution-logs.jsonl` |
-| `mathc stats [--class N] [--scale S]` | Emit empirical aggregate JSON |
-| `mathc forge-verify [--org ORG] [--team TEAM] [--user USER]` | Query forge_mirror for committer team membership |
-| `mathc counters` | Live counters JSON (decisions, obligations, attestations, cram, CLI) |
-| `mathc doctor [--json]` | Print the install-coverage diagnostic |
-| `mathc init [PATH] [--agent NAME] [--from-adr PATH] [--no-install] [--merge]` | Scaffold new math-coding project |
-| `mathc import-adr PATH [--write]` | Convert existing MADR/adr-tools ADR to a math-coding decision |
-| `mathc adopt [PATH] [--only=CONV] [--dry-run]` | Detect existing ADR corpus and offer merge path |
-| `mathc new-decision <id> [--write] [--interactive] [--force]` | Scaffold a decision YAML from canonical template |
-| `mathc rehash [--write] [--dry-run] [PATH...]` | Recompute `body_sha`/`yaml_sha` from each file's own bytes |
-| `mathc telemetry status` | Print telemetry state (Phase 2 stub) |
-| `mathc migrate --from=X --to=Y [--root=DIR] [--format=text|json] [--explain] [--manifest=PATH] [--write|--dry-run]` | Declarative migration plan reader |
+| [`GOAL.md`](GOAL.md) | назначение, критерий успеха, что методом не является, нулевая карма, контрпример |
+| [`PHILOSOPHY.md`](PHILOSOPHY.md) | пять оснований, четырнадцать принципов, границы применимости |
+| [`README.md`](README.md) | этот файл: правила проекта, инструмент, план, состояние |
 
-Full catalog and exit codes: [`spec/semantics.md`](spec/semantics.md).
+Спецификацией является код. Основания и принципы становятся типами и
+исполняемыми свойствами; документы объясняют, почему так.
 
-## Pointers — **for kernel maintainers**
+## Правила проекта
 
-These are not for adopters. If you are applying math-coding to your own
-project, [`adoption/SKILL.md`](adoption/SKILL.md) is the only document you
-need; everything below is documentation for the people who maintain the
-math-coding kernel itself.
+1. **Только OCaml.** В репозитории нет исполняемых скриптов: ни shell, ни
+   Python. Каждая исполняемая единица — программа на OCaml или подкоманда
+   бинаря. Проверки, которые метод запускает в чужом проекте, могут вызывать
+   что угодно: чужой сборочный инструмент не обязан быть OCaml.
+2. **Никакой самописный парсер.** Любая работа с форматами — через
+   проверенную библиотеку. Самописный парсер — источник тихих потерь.
+3. **Ядро маленькое и чистое.** Чистое ядро не содержит эффектов: ни часов,
+   ни случайности, ни ввода-вывода. Всё, что выше, — обычный код. Потолок
+   ядра — 800 строк; он задан до того, как код появился, чтобы ограничивать
+   код, а не описывать его.
+4. **Ноль кармы.** Пустой проект зелёный и не содержит ни одного обещания.
+   Внедрение никогда не увеличивает долг.
+5. **Человек в истоке.** Цель выскана человеком; план и утверждения — агентом;
+   пересмотр цели требует полномочий.
+6. **Никаких готовых библиотек ради совместимости.** Совместимость с
+   прежними версиями метода не является целью.
+7. **Бинарь различает себя по build-id.** Имя бинаря — `mathc`; хеш его
+   собственных байт печатается рядом с версией, чтобы два разных бинаря
+   одной версии нельзя было спутать.
+8. **У каждой проверки есть отрицательный контроль.** Проверка, которая не
+   может краснеть, — комментарий. Каждый файл в `test/` обязан содержать
+   доказательство того, что он ловит свой собственный провал; это проверяет
+   линт, а не ревью.
 
-- [`KERNEL_AGENTS.md`](KERNEL_AGENTS.md): kernel-maintainer protocol. Renamed at v3.3.3; the OCaml, `dune`, `nix` content was previously here and is still here.
-- [`OCAML_KERNEL_CONVENTIONS.md`](OCAML_KERNEL_CONVENTIONS.md): OCaml conventions for `lib/`, `bin/`, `tests/`, plus the §11 trap log. Renamed at v3.3.3.
-- [`ROADMAP.md`](ROADMAP.md): priority queue and process principles.
-- [`PACKAGES.md`](PACKAGES.md): what exists in this repository.
-- [`spec/constitution.md`](spec/constitution.md): 14 invariants the kernel preserves.
-- [`axioms/`](axioms/index.md): A0 separation, A1 feedback, A2 invariants, A3 self-application, A4 care.
-- [`site/`](site/): published surface, built by `mathc render` and
-  deployed to [GitHub Pages](https://11111000000.github.io/math-coding/)
-  by `.github/workflows/site.yml`.
-- [`QUICKSTART.md`](QUICKSTART.md): first read (kernel maintainers, not adopters — adopters use `adoption/SKILL.md`).
-- [`USAGE.md`](USAGE.md): full runbook.
+## Состояние
+
+Первая волна закрыта частично: есть ядро с законами вердикта, проверка
+пустоты и линты репозитория. Утверждений нет, долга нет.
+
+| Что | Состояние |
+|---|---|
+| Ядро | `lib/verdict.ml` — четыре исхода, агрегация, маршрут, коды выхода |
+| Проверка пустоты | написана, проходит; проверена мутациями — краснеет |
+| Линты репозитория | написаны, проходят: ноль скриптов, чистота ядра, потолок ядра, у каждой проверки есть отрицательный контроль |
+| Инструмент | не начат (`mathc`, имя зафиксировано) |
+| Панель | не начата |
+| Утверждения | нет |
+| Корпус | пуст — это законное состояние, а не дефект |
+| Потолки | размер ядра — 800 строк; остальные не заданы |
+
+Как запустить: `dune build && dune runtest --force`. Флаг `--force`
+обязателен: линты читают дерево, а dune кэширует по исходникам — без
+флага добавление запрещённого скрипта даст зелёный результат. Это
+свойство любой проверки, которая смотрит на что-то, кроме себя.
+
+## Инструмент
+
+Семь глаголов. Каждый возвращает не данные, а следующий шаг: инструмент,
+который только читает хранилище, — это архив; инструмент, который ведёт, —
+это метод.
+
+| Глагол | Кто вызывает | Что делает | Что возвращает |
+|---|---|---|---|
+| `mathc goal` | человек | фиксирует цель: что должно стать истинным | цель с версией и автором; от агента принимает как цель — отказывает |
+| `mathc add` | агент | объявляет утверждение: предмет, проверка, чем опровергается | запись в стоящую спецификацию |
+| `mathc run` | все и хуки | исполняет проверки, связывает свидетельства с состоянием | вердикт, карта, маршрут, след |
+| `mathc close` | агент | закрывает волну или утверждение: вердикт, след, повышение или снятие | запись в след и обновление спецификации |
+| `mathc route` | человек | что требует решения | 3–5 пунктов с причинами и средствами |
+| `mathc map` | человек | стоящая спецификация проекта | живые утверждения, их состояние, непокрытое |
+| `mathc next` | агент | следующая работа | очередь, ранжированная внешним свидетельством |
+
+## План
+
+Волны устроены фрактально: каждая — законченный работающий срез, после
+которого дерево остаётся зелёным и проверяемым.
+
+1. **Хребет автоматизации** — формат волны, очередь, исполнитель волны,
+   минимальные линты, hermetic-сборка. Первым идёт хребет, а не ядро:
+   автоматизация требует, чтобы у волны был формат, у очереди —
+   машиночитаемый вид, а у исполнителя — одна команда. Иначе получится метод,
+   которым нельзя пользоваться для его собственной разработки.
+   *Начато:* линты репозитория и проверка пустоты написаны; формат волны,
+   очередь и исполнитель — нет.
+2. **Доменные типы и законы** — написанные через хребет, как обычные волны.
+   Типы: предмет, проверка, утверждение, слот, результат, карта, находка,
+   маршрут. Законы — исполняемые свойства.
+3. **Исполнение** — запуск проверок, связка с состоянием, доказательство,
+   что проверка умеет не сойтись.
+4. **Карта и маршрут** — очередь начинает питаться собственной картой;
+   `next` возвращает следующий элемент, а не весь список.
+5. **Интерфейс и панель** — MCP-методы, каждый возвращает следующий шаг.
+6. **Внешняя петля** — проекты-адоптеры; измерительный стенд как часть
+   поставки; внешнее свидетельство в ранжировании; импорт чужих спецификаций
+   и тестов.
+7. **Рекурсия** — волна метода оформляется тем же способом, что и волна
+   адоптера; процедура самоулучшения как исполняемый сценарий.
+
+Внешняя петля идёт раньше рекурсии: метод, объявивший себя
+самосовершенствующимся до того, как его чем-то проверили снаружи, —
+оптимизация внутренней элегантности.
+
+## Предохранители
+
+Что автоматика не вправе:
+
+- **Законы и проверки метода защищены.** Волна не может изменить ни закон,
+  ни проверку, ни список защищённых путей. Изменение — только по явному
+  разрешению человека и только с объявлением меняющихся вердиктов и сверкой
+  с предыдущей версией. Агент, ослабляющий проверку, которую сам же
+  проходит, — самая опасная петля, потому что она выглядит как прогресс.
+- **Публикация — человеческий акт.** Агент вправе слить волну в ветку
+  разработки; он не вправе публиковать релиз, навык или панель.
+- **Бюджет волны** — время, токены, шаги. Исчерпание — эскалация, а не
+  тихий срыв.
+- **Объявленные границы** — волна объявляет, что вправе трогать; выход за
+  них — находка, и волна не закрывается, пока причина не названа.
+- **Право остановиться.** Если карта пуста и внешних сигналов нет, правильный
+  ход — объявить, что улучшать нечего. Рекурсия без права остановиться —
+  не саморазвитие, а рак.
+
+## Корпус
+
+Корпус — не журнал изменений, а скомпилированная спецификация проекта: что
+про него утверждается, чем это проверено, что не покрыто. Он не хранится, а
+выводится: правило выходит из оборота само, когда предмет изменился. Отсюда
+и размер — не запись о каждом коммите, а несколько десятков живых правил.
+
+Различение обязательно: **запись и правило — разные вещи.** Запись отвечает
+на вопрос «что менялось» и не отвечает ни на какой вопрос о проекте. Правило
+отвечает на вопрос «что верно» и может быть проверено против кода. Корпус,
+смешивающий их, — это гора макулатуры; корпус, где только правила, — это
+сторона для сравнения.
+
+Именно этот корпус и есть проектная документация, собираемая машиной: её
+нельзя расходиться с кодом, потому что она и есть набор правил, проверяемый
+против кода.
+
+## Три ратчета
+
+Волна, нарушающая хоть один, отклоняется — даже если улучшает что-то ещё.
+
+| Ратчет | Что не может вырасти |
+|---|---|
+| Стоимость | пойманные дефекты на единицу затрат |
+| Покрытие | число дыр в собственной карте |
+| Сложность | размер чистого ядра |
+
+## Как читать
+
+Философия — `PHILOSOPHY.md`, от начала до конца; она короткая и рассчитана
+на спор, а не на согласие. Если формулировка принципа вызывает сомнение,
+несуществующий код — худшее место для его проверки: спорить надо сейчас, на
+прозе, пока утверждение ещё можно переписать.
+
+---
+
+Метод применяется к себе с первого коммита. Это не фигура речи: собственная
+карта метода — его повестка, а полезность измеряется на чужих проектах.
+Никакое подтверждение от самого себя не считается доказательством.

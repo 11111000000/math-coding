@@ -1,5 +1,0 @@
-(library
- (name mathcoding_find)
- (wrapped false)
- (modules find)
- (libraries mathcoding_core))

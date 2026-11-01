@@ -1,4 +1,0 @@
-(library
- (name mathcoding_junit)
- (wrapped false)
- (libraries mathcoding_core))

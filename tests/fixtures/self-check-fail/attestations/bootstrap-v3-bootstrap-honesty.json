@@ -1,1 +1,0 @@
-{"id":"sha256:0000000000000000000000000000000000000000000000000000000000000001","subject":{"decision":"bootstrap-v3","obligation":"bootstrap-honesty","materials_digest":""},"kind_":"test","producer":{"identity":"ci:fixture"},"result":"pass","issued_at":"2026-09-29T00:00:00Z"}

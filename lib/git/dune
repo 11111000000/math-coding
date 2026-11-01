@@ -1,4 +1,0 @@
-(library
- (name mathcoding_git)
- (wrapped false)
- (libraries mathcoding_core))
