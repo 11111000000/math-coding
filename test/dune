@@ -4,4 +4,4 @@
 
 (test
  (name repository_lints)
- (libraries mathcoding str))
+ (libraries mathcoding str unix))
