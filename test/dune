@@ -1,0 +1,7 @@
+(test
+ (name empty_is_green)
+ (libraries mathcoding))
+
+(test
+ (name repository_lints)
+ (libraries mathcoding str))
