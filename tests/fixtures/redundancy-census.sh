@@ -143,7 +143,11 @@ bad() { printf 'FAIL: %s\n' "$1"; fail=1; }
 # ceiling-raise: 28 -> 29, the-cost-of-the-method carries three obligations
 #   the kernel cannot execute: its verifiers are shell commands, and the
 #   corpus counts them the way it counts every such promise
-CEILING_PAPER=29
+# ceiling-raise: 29 -> 32, the-no-new-python record carries three more
+#   obligations the kernel cannot execute, for the same reason: their
+#   verifier is a shell fixture, and the kernel classifies a shell
+#   fixture as a check it cannot run
+CEILING_PAPER=32
 
 #   BROKEN 5 - obligations whose verifier scheme the kernel does not
 #     recognise. The kernel names 6 such verifiers in 5 obligations:
@@ -195,7 +199,9 @@ CEILING_DEAD=0
 #   tranche's own record entered the corpus it counts
 # ceiling-raise: 131 -> 132, the-cost-of-the-method is in the corpus
 #   it counts
-CEILING_CORPUS=132
+# ceiling-raise: 132 -> 133, the-no-new-python record is in the corpus
+#   it counts
+CEILING_CORPUS=133
 
 #   ARCHIVE_ACTIVE 104 - archived DECISIONS that still say
 #     `state: active`.

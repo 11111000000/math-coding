@@ -1,0 +1,209 @@
+---
+schema: math-coding/3.3
+id: no-new-python-in-the-tree-2026-11
+revision: 1
+state: active
+mode: standard
+negative_control: tests/fixtures/no-new-python-in-the-tree.sh
+body_sha: "sha256:e6382e91205214436ad8c776289e88416c21760311260b68409a4b1035d1238c"
+yaml_sha: "sha256:e6382e91205214436ad8c776289e88416c21760311260b68409a4b1035d1238c"
+
+axiom_link:
+  - A0
+  - A3
+  - A4
+
+intent:
+  source: "task:the repository admits the Python it admits - delete the dead helper, add the lint that keeps the count honest"
+  text: |
+    THE COMPLAINT, taken at its strongest. The project is written in
+    OCaml, and the repository carried eleven Python files. A reader
+    who counts them is right to ask what they are, and the answer was
+    not written down anywhere: ten were live tooling and one was dead.
+
+    THE DEAD ONE. `tools/attest-helper.py` was added on 2026-10-15
+    as the older twin of `scripts/generate-attestations.py` - its own
+    docstring says "Per `scripts/generate-attestations.py`" - and
+    nothing in the repository referred to it: no fixture, no CI step,
+    no script, no decision, no document. It was a helper for a helper
+    that already existed. It is deleted.
+
+    THE TEN THAT STAY are the tooling around the kernel, and each is
+    named in `scripts/python-allowlist.txt`: the attestation
+    generator the CI runs, two linters the fixtures run, two seeders
+    the cram suite runs, two ADR importers the tests run, and three
+    release-manifest renderers the maintainer runs at release time.
+
+    THE RULE THAT WAS ALREADY THERE, AND WAS NOT KEPT. The corpus
+    says in `decisions/mathc-counters-subcommand-2026-10.yaml` that
+    "no kernel call path requires a Python interpreter" - a sentence
+    that became true when a counter moved from a Python script into
+    the `mathc counters` subcommand. It stayed true by not being
+    tested. This decision adds the test and the list.
+
+counterexample: |
+  The obvious objection: "a lint that forbids a language is a lint
+  that forbids the next good idea; the kernel needs OCaml, but tooling
+  is a free choice and a list of ten files is a straitjacket."
+
+  That objection is right about the shape of the rule and wrong about
+  what this rule is. The rule is not "no Python"; it is "every Python
+  file is a decision that was written down". A new Python file does
+  not fail because it is Python - it fails because nobody said why the
+  kernel could not do it. The edit that admits it is visible in the
+  diff beside the file, and the corpus's own habit is the same: the
+  protected-path list, the verifier-scheme list, the project-strings
+  list are all allowlists, and all of them are edited the same way.
+
+  The second objection: "the kernel is OCaml, so the kernel check is
+  the only one that matters." That is true, and it is why the kernel
+  check is in the same fixture and runs first in the reading order of
+  the file: `lib/` and `bin/` may not name a Python interpreter at all.
+  The list covers the rest, which is the part nobody had written
+  down.
+
+antithesis: |
+  The position against this decision: "the ten files are not a debt.
+  They are tools, they are documented, they are tested where they
+  matter, and a fixture that counts them adds a number nobody acts on."
+
+  The first half is true and is why this decision does not propose to
+  port them. The second half is what the fixture is for: the number
+  nobody acted on is exactly what the corpus's other lints are - a
+  bound that can be checked, so that a change that crosses it is a
+  visible act rather than an accumulation. The tenth Python file
+  arrived without a decision, and nobody noticed for a month; the
+  eleventh is the one that was dead.
+
+  The sharper version of the objection: "then the lint will be
+  ignored the way the census was." The census was ignored because
+  its number could not be acted on. This one can: a Python file in
+  the tree is either on the list or it is a finding with a name and a
+  path.
+
+commitment: |
+  1. `tools/attest-helper.py` is deleted, and the deletion is recorded
+     here rather than in a changelog: nothing referred to it, and a
+     file that refers only to itself is not a dependency.
+
+  2. `scripts/python-allowlist.txt` is the ONE answer to "which
+     Python files does this repository admit". A Python file not on
+     the list fails the lint; an entry naming a file that is gone
+     fails the lint too, because a list nobody reads rots silently.
+
+  3. The kernel requires no Python interpreter, and the lint keeps it
+     that way: no file under `lib/` or `bin/` may name one.
+
+  4. The lint has teeth of its own. It catches a synthetic Python
+     file the list does not admit; it catches a list entry that names
+     a file that is not there; and with the list unreadable it
+     reports UNKNOWN and exits 3, never "no offenders" and never a
+     zero.
+
+outcomes:
+  - id: the-dead-helper-is-gone
+    statement: |
+      `tools/attest-helper.py` (51 lines, added 2026-10-15) is
+      deleted. A search over the whole tree - source, fixtures, CI,
+      decisions, plans, archive - found no reference to it outside
+      itself. It was the older twin of `scripts/generate-attestations.py`
+      and said so in its own docstring.
+  - id: the-python-files-are-named
+    statement: |
+      Ten Python files remain, 2130 lines, and each is named in
+      `scripts/python-allowlist.txt` with the reason it exists in the
+      file's comment block. Seven of the ten are executed by the live
+      tree (the attestation generator, two linters, two seeders, two
+      importers); the three release-manifest renderers are run by the
+      maintainer at release time, as `tools/*/PUBLISH.md` documents.
+  - id: the-kernel-stays-ocaml
+    statement: |
+      Measured 2026-11-01: no file under `lib/` or `bin/` names a
+      Python interpreter. The corpus's own sentence - "no kernel call
+      path requires a Python interpreter" - is now a check rather than
+      a claim.
+  - id: the-bound-binds
+    statement: |
+      The lint was observed to fail on a real stray file
+      (`scripts/stray-helper.py`, planted and removed during the
+      tranche), and its two synthetic controls - an unadmitted file and
+      a stale list entry - are caught by construction.
+
+scope:
+  paths:
+    - scripts/python-allowlist.txt
+    - tests/fixtures/no-new-python-in-the-tree.sh
+
+obligations:
+  - id: the-list-is-the-one-answer
+    outcome: the-python-files-are-named
+    claim: |
+      Every Python file in the tree is named in
+      `scripts/python-allowlist.txt`, and every entry of that list
+      names a file that exists. The lint fails on either kind of
+      mismatch, and it is the only place the question is answered.
+    acceptance:
+      all:
+        - verifier: bash tests/fixtures/no-new-python-in-the-tree.sh
+  - id: the-kernel-needs-no-interpreter
+    outcome: the-kernel-stays-ocaml
+    claim: |
+      No file under `lib/` or `bin/` names a Python interpreter, so no
+      kernel call path requires one.
+    acceptance:
+      all:
+        - verifier: bash tests/fixtures/no-new-python-in-the-tree.sh
+  - id: the-lint-has-teeth
+    outcome: the-bound-binds
+    claim: |
+      The lint catches a Python file the list does not admit, catches a
+      list entry that names a file that is not there, and reports
+      unknown - not zero - when the list cannot be read.
+    acceptance:
+      all:
+        - verifier: bash tests/fixtures/no-new-python-in-the-tree.sh
+
+risk:
+  owner: human:maintainer
+  declared_triggers:
+    - the-list-grows-without-a-reason-next-to-it
+    - the-list-is-edited-to-hide-a-file-rather-than-to-admit-it
+    - the-kernel-check-is-removed-as-redundant
+    - a-python-file-is-added-by-a-tool-that-writes-the-tree
+    - the-lint-is-not-run-by-ci
+
+assumptions:
+  - id: ten-files-are-the-tooling-not-the-debt
+    state: held
+    owner: human:maintainer
+    statement: >
+      The ten files are tools around the kernel, not obligations the
+      kernel carries, and the portable core - lib/, bin/, adoption/ -
+      contains none of them. Measured 2026-11-01 by
+      `scripts/export-core.sh`: the exported core carries zero Python
+      files.
+    consequence_if_false: >
+      An adopter's tree needs a Python interpreter, and the kernel's
+      portability is a claim about the repository rather than about
+      the core.
+    review_on: 2026-12-15
+  - id: the-list-is-not-a-ban
+    state: held
+    owner: human:maintainer
+    statement: >
+      The list is a record of decisions, not a prohibition. The way to
+      add a Python file is to edit the list in the same commit, and
+      the edit is where the reason lives.
+    consequence_if_false: >
+      The list becomes a prohibition by custom, and a future
+      maintainer ports a tool to Python without saying why, or avoids
+      a good tool because the list is read as a wall.
+    review_on: 2026-12-15
+
+relations:
+  addresses:
+    - mathc-counters-subcommand-2026-10@1
+  refines: []
+  contradicts: []
+  supersedes: []
+  superseded_by: []
