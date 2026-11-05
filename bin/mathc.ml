@@ -235,19 +235,28 @@ let usage () =
   print_endline "";
   print_endline "  --root DIR               the project (default: the working directory)"
 
-let () =
-  let root_flag = ref "" in
-  let args = Array.to_list Sys.argv |> List.tl in
-  let rec take_root acc = function
-    | "--root" :: dir :: rest -> root_flag := dir; take_root acc rest
+(** The command line. The only option is the project root; everything
+    else is a verb. An unknown option is an error rather than a verb,
+    because a typo that silently becomes a verb is a method that
+    reports something the user did not ask for. *)
+let parse_args (args : string list) : string list =
+  let rec loop acc = function
+    | [] -> List.rev acc
+    | "--root" :: dir :: rest ->
+        set_root dir;
+        loop acc rest
     | "--root" :: [] ->
         Printf.eprintf "mathc: --root needs a directory\n";
         exit 2
-    | rest -> (acc, rest)
+    | ("-" | "--") :: _ ->
+        Printf.eprintf "mathc: unknown option\n";
+        exit 2
+    | a :: rest -> loop (a :: acc) rest
   in
-  let positional, rest = take_root [] args in
-  ignore rest;
-  if !root_flag <> "" then set_root !root_flag;
+  loop [] args
+
+let () =
+  let positional = parse_args (Array.to_list Sys.argv |> List.tl) in
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();

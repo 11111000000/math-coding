@@ -7,5 +7,13 @@
  (libraries mathcoding))
 
 (test
+ (name exit_codes)
+ (libraries mathcoding mathcoding_adapter))
+
+(test
+ (name spec_format)
+ (libraries mathcoding yojson))
+
+(test
  (name repository_lints)
  (libraries mathcoding str unix))
