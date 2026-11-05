@@ -1,5 +1,5 @@
 (library
  (name mathcoding)
  (wrapped false)
- (modules verdict)
+ (modules domain verdict)
  (libraries unix))

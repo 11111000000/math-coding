@@ -3,5 +3,9 @@
  (libraries mathcoding))
 
 (test
+ (name laws)
+ (libraries mathcoding))
+
+(test
  (name repository_lints)
  (libraries mathcoding str unix))
