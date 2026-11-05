@@ -198,3 +198,5 @@ let laws_hold () =
   let absorbing = List.for_all (law_absorbing combine) d in
   commutative && associative && unit && absorbing && law_order combine
   && law_exit_codes_distinct () && law_vacancy_is_green aggregate
+
+(* a change to the core, which the claims are about *)
