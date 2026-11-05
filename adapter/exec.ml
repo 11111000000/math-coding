@@ -32,7 +32,25 @@ let outcome_of_exit (code : int) : Domain.outcome * string option =
 (** Run a check. The command is the project's own - a test suite, a
     linter, a script it already has. The method does not bring its own
     checks to a foreign project, because a project that does not run
-    its own checks has nothing for the method to check. *)
+    its own checks has nothing for the method to check.
+
+    The register of the claim is applied to the outcome here, and not
+    in the core, because this is where the check becomes a fact about
+    the world: a judgment's check may run and say yes, and the answer
+    is still not the machine's to give. *)
 let run_check (command : string) : Domain.outcome * string option =
   let code = Sys.command command in
   outcome_of_exit code
+
+(** Run the check of a claim, with the register applied. A judgment
+    whose check says yes becomes refused rather than verified, and the
+    reason says why. *)
+let run_claim (claim : Domain.claim) : Domain.outcome * string option =
+  let outcome, reason = run_check claim.Domain.check in
+  let applied = Verdict.apply_register claim.Domain.register outcome in
+  if applied = outcome then (outcome, reason)
+  else
+    ( applied,
+      Some
+        "the check passed, but the claim is a judgment: what should be true \
+         about meaning is not the machine's to decide" )

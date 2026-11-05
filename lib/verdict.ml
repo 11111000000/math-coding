@@ -168,6 +168,48 @@ let law_exit_codes_distinct () =
     adoption cost nothing. *)
 let law_vacancy_is_green (aggregate' : evidence list -> verdict) = aggregate' [] = Green
 
+(** The law of the register: a judgment is not the machine's to decide.
+
+    A judgment - a decision about meaning, an interface, a priority -
+    has no canary. There is no procedure that breaks it, because
+    breaking it is not what would disprove it. So a check that says
+    "yes" to a judgment does not establish the judgment; it
+    establishes that some procedure ran, which is a different fact.
+
+    The rule is therefore applied to the outcome, not to the check: a
+    verified judgment becomes refused, and a refusal reaches the human
+    with the reason attached. *)
+let apply_register (r : register) (o : outcome) : outcome =
+  match r, o with
+  | Judgment, Verified -> Refused
+  | _ -> o
+
+(** The law, stated over the function it constrains: no register lets a
+    judgment read as verified. *)
+let law_judgment_is_never_verified
+    (apply' : register -> outcome -> outcome)
+    (r : register)
+    (o : outcome) =
+  r <> Judgment || apply' r o <> Verified
+
+(** The law of the price of uncertainty: an unresolved or refused claim
+    costs something, and the cost is counted rather than asserted. *)
+let cost_of_outcome (o : outcome) : int =
+  match o with
+  | Verified | Falsified -> 0
+  | Unresolved | Refused -> 1
+
+(** The law of the price of uncertainty: an unresolved or refused claim
+    costs something, and only an answer is free.
+
+    Both halves are needed. "Answers are free" alone is satisfied by a
+    cost function that charges nothing for anything, and that is
+    exactly the world the principle forbids: an uncertainty that costs
+    nothing makes "I do not know" cheaper than checking. *)
+let law_only_answers_are_free (cost' : outcome -> int) =
+  List.for_all (fun o -> cost' o = 0) [ Verified; Falsified ]
+  && List.for_all (fun o -> cost' o > 0) [ Unresolved; Refused ]
+
 (* ------------------------------------------------------------------ *)
 (* The proof.                                                           *)
 (* ------------------------------------------------------------------ *)
@@ -196,5 +238,21 @@ let laws_hold () =
   in
   let unit = List.for_all (law_unit combine) d in
   let absorbing = List.for_all (law_absorbing combine) d in
+  let registers = [ Fact; Hypothesis; Judgment; Undeclared ] in
+  let outcomes = [ Verified; Falsified; Unresolved; Refused ] in
+  let judgment =
+    List.for_all
+      (fun r ->
+        List.for_all
+          (fun o -> law_judgment_is_never_verified apply_register r o)
+          outcomes)
+      registers
+  in
+  let price =
+    List.for_all
+      (fun o -> law_only_answers_are_free cost_of_outcome)
+      outcomes
+  in
   commutative && associative && unit && absorbing && law_order combine
-  && law_exit_codes_distinct () && law_vacancy_is_green aggregate
+  && law_exit_codes_distinct () && law_vacancy_is_green aggregate && judgment
+  && price

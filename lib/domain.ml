@@ -140,3 +140,57 @@ type wave = {
   claims : string list;
   verdicts_changed : string list;
 }
+
+(** The aim: what should become true.
+
+    It is written by a person, and the method refuses claims that fall
+    outside it. That refusal is the whole mechanism, and it needs no
+    authentication to work: an agent that optimises toward what it can
+    measure cannot widen its own field of operations, because the
+    boundary is the aim, and changing the aim is visible in the
+    history.
+
+    The method cannot tell a person from an agent at the keyboard. It
+    can attribute the aim, and it can make the aim's changes visible.
+    It cannot authenticate, and it does not pretend to. *)
+type goal = {
+  text : string;
+  scope : scope;
+  by : string;
+  at : string;
+}
+
+(** Is a path inside a directory?
+
+    The comparison is on path boundaries, not on the letters: "library/"
+    is not inside "lib/". Getting this wrong would let a claim about a
+    similarly named directory pass as one about the intended one, and
+    the mistake would be invisible - the claim would simply bind to
+    the wrong files.
+
+    Trailing slashes are removed first, so that "lib/" and "lib" name
+    the same directory, and a directory contains itself. *)
+let path_contains ~(dir : string) ~(path : string) : bool =
+  let trim s =
+    if String.length s > 1 && s.[String.length s - 1] = '/' then
+      String.sub s 0 (String.length s - 1)
+    else s
+  in
+  let d = trim dir and p = trim path in
+  if p = d then true
+  else if String.length p > String.length d && String.sub p 0 (String.length d) = d then
+    p.[String.length d] = '/'
+  else false
+
+(** The standing specification of a project: the aim, the price of
+    uncertainty that the project has agreed to pay, and the claims.
+
+    The budget is required rather than defaulted. A budget nobody
+    declared is not finite, and an uncertainty that costs nothing is
+    the free escalation the principle exists to stop: "I do not know"
+    would be cheaper than checking. *)
+type spec = {
+  goal : goal option;
+  budget : int;
+  claims : claim list;
+}

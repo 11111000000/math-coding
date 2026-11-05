@@ -52,6 +52,15 @@ let state_outdated_as_verified (_current : binding option) (_e : evidence option
    before it had measured anything. *)
 let aggregate_not_vacant (_results : evidence list) = Unknown
 
+(* A judgment may be verified after all. The whole point of the
+   register is that what should be true about meaning is not the
+   machine's to decide. *)
+let apply_register_lets_judgments_through (_r : register) (o : outcome) = o
+
+(* Uncertainty is free. Then "I do not know" is cheaper than checking,
+   and the method stops being worth anything. *)
+let cost_of_outcome_free (_o : outcome) = 0
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -74,6 +83,8 @@ let check_laws_hold () =
 
   (* Each law, instantiated with the real implementation. *)
   assert (law_vacancy_is_green aggregate);
+  assert (law_judgment_is_never_verified apply_register Judgment Verified);
+  assert (law_only_answers_are_free cost_of_outcome);
   assert (law_outdated_is_never_verified state_of (sample_evidence Verified "old")
            (Some "new"))
 
@@ -133,7 +144,22 @@ let check_negative_controls () =
          (Some "digest-of-today")));
 
   (* Vacancy. *)
-  assert (not (law_vacancy_is_green aggregate_not_vacant))
+  assert (not (law_vacancy_is_green aggregate_not_vacant));
+
+  (* The register. A judgment whose check says yes must not read as
+     verified; the broken version lets it through. *)
+  assert (law_judgment_is_never_verified apply_register Judgment Verified);
+  assert
+    (not
+      (law_judgment_is_never_verified apply_register_lets_judgments_through Judgment
+         Verified));
+  (* And a fact whose check says yes is verified - the rule must not
+     swallow the cases it should not touch. *)
+  assert (law_judgment_is_never_verified apply_register Fact Verified);
+
+  (* The price of uncertainty. Only an answer is free. *)
+  assert (law_only_answers_are_free cost_of_outcome);
+  assert (not (law_only_answers_are_free cost_of_outcome_free))
 
 let () =
   check_laws_hold ();

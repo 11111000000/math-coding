@@ -15,5 +15,9 @@
  (libraries mathcoding yojson))
 
 (test
+ (name paths)
+ (libraries mathcoding))
+
+(test
  (name repository_lints)
  (libraries mathcoding str unix))
