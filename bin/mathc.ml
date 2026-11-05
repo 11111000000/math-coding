@@ -257,13 +257,21 @@ let verb_close id =
           1)
         else
           let states = states_of claims in
+          (* A verdict is established when the claim reached the state
+             its register calls for. For a fact that is [holds]. For
+             a judgment it is [not checkable]: the machine has run the
+             check, has said that what should be true about meaning is
+             not its to decide, and the claim has reached the human.
+             That is not a failure of the wave - it is the wave's
+             subject arriving where it was always going to arrive. *)
+          let established claim_id =
+            match (List.assoc_opt claim_id states, List.find_opt (fun (c : Domain.claim) -> c.id = claim_id) claims) with
+            | Some Domain.Holds, _ -> true
+            | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
+            | _ -> false
+          in
           let unestablished =
-            List.filter
-              (fun claim_id ->
-                match List.assoc_opt claim_id states with
-                | Some Domain.Holds -> false
-                | _ -> true)
-              wave.verdicts_changed
+            List.filter (fun claim_id -> not (established claim_id)) wave.verdicts_changed
           in
           if unestablished <> [] then (
             Printf.eprintf
@@ -286,7 +294,17 @@ let verb_close id =
           else (
             Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
             List.iter
-              (fun claim_id -> Printf.printf "  %s: holds\n" claim_id)
+              (fun claim_id ->
+                let state = List.assoc_opt claim_id states in
+                Printf.printf "  %s: %s\n" claim_id
+                  (match state with
+                  | Some Domain.Holds -> "holds"
+                  | Some Domain.NotCheckable -> "not checkable, and routed to the person"
+                  | Some Domain.Refuted -> "refuted"
+                  | Some Domain.Inconclusive -> "inconclusive"
+                  | Some Domain.Outdated -> "outdated"
+                  | Some Domain.NeverChecked -> "never checked"
+                  | None -> "no such claim"))
               wave.verdicts_changed;
             0))
 
