@@ -1,0 +1,3 @@
+(executable
+ (name mathc)
+ (libraries mathcoding mathcoding_adapter unix yojson))
