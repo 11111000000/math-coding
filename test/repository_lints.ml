@@ -269,7 +269,7 @@ let[@warning "-32"] check_checks_have_teeth () =
     |> under_directory "test"
     |> with_extension ".ml"
     |> List.filter (fun path ->
-        let src = read_file (in_repo path) in
+        let src = String.lowercase_ascii (read_file (in_repo path)) in
         not
           (let re = Str.regexp "negative control" in
            try

@@ -1,0 +1,8 @@
+{
+  "id": "wave-1",
+  "title": "the spine on two real claims: an algebra with laws, and the first claims about this repository",
+  "touches": ["lib/", "test/", "adapter/", "bin/", "spec.json", "waves/"],
+  "checks": ["dune runtest --root . --force"],
+  "claims": ["no-scripts", "core-is-pure"],
+  "verdicts_changed": ["no-scripts", "core-is-pure"]
+}

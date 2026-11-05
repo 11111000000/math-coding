@@ -1,0 +1,10 @@
+; The adapter is where the effects live: git, processes, files. The
+; core in lib/ stays pure, and the lint that enforces it watches lib/
+; and nothing else. The split is the point - a law about a value is a
+; fact about the method, and a law about an effect is a fact about a
+; machine.
+(library
+ (name mathcoding_adapter)
+ (wrapped false)
+ (modules git exec trail)
+ (libraries mathcoding unix yojson))
