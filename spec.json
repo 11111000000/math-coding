@@ -3,7 +3,12 @@
     {
       "id": "no-scripts",
       "subject": "в каталогах lib/, test/, adapter/ и bin/ нет исполняемых скриптов: метод написан на OCaml",
-      "scope": ["lib/", "test/", "adapter/", "bin/"],
+      "scope": [
+        "lib/",
+        "test/",
+        "adapter/",
+        "bin/"
+      ],
       "check": "dune runtest --root . --force",
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
       "register": "fact"
@@ -11,9 +16,21 @@
     {
       "id": "core-is-pure",
       "subject": "ядро метода не содержит эффектов: ни часов, ни случайности, ни ввода-вывода",
-      "scope": ["lib/"],
+      "scope": [
+        "lib/"
+      ],
       "check": "dune runtest --root . --force",
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
+      "register": "fact"
+    },
+    {
+      "id": "missing-tool",
+      "subject": "проверка, которой не существует, не должна считаться пройденной",
+      "scope": [
+        "lib/"
+      ],
+      "check": "mathc-no-such-command --run",
+      "falsifier": "проверка, завершившаяся кодом 127, будет засчитана как прошедшая",
       "register": "fact"
     }
   ]
