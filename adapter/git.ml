@@ -101,20 +101,7 @@ let scope_names_something (root : string) (scope : Domain.scope) : bool =
 
 (** The tracked files a scope covers. *)
 let files_under (scope : Domain.scope) (files : string list) : string list =
-  List.filter
-    (fun file ->
-      List.exists
-        (fun prefix ->
-          let prefix =
-            if String.length prefix > 1 && prefix.[String.length prefix - 1] = '/' then
-              String.sub prefix 0 (String.length prefix - 1)
-            else prefix
-          in
-          String.length file > String.length prefix
-          && String.sub file 0 (String.length prefix) = prefix
-          && file.[String.length prefix] = '/')
-        scope)
-    files
+  List.filter (fun file -> List.exists (fun prefix -> Domain.path_contains ~dir:prefix ~path:file) scope) files
 
 (** The tracked files no claim covers: the uncovered surface. This is
     the main artifact of the method, and it is computed, not

@@ -96,8 +96,8 @@ let check_the_good_cases () =
     | Error e ->
         Printf.eprintf "spec.json does not parse: %s\n" (Spec.result_of (Error e));
         exit 1
-    | Ok claims ->
-        assert (List.length claims > 0);
+    | Ok spec ->
+        assert (List.length spec.Domain.claims > 0);
         List.iter
           (fun (c : claim) ->
             assert (c.id <> "");
@@ -105,7 +105,7 @@ let check_the_good_cases () =
             assert (c.subject.scope <> []);
             assert (c.check <> "");
             assert (c.falsifier <> ""))
-          claims
+          spec.Domain.claims
 
 let () =
   check_strictness ();

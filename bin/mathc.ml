@@ -35,16 +35,27 @@ let read_file path =
 
 let spec_path () = Filename.concat (root ()) "spec.json"
 
-let load_spec () : Domain.claim list =
+let load_spec () : Domain.spec =
   let path = spec_path () in
-  if not (Sys.file_exists path) then []
+  if not (Sys.file_exists path) then
+    { goal = None; budget = 0; claims = [] }
   else
     match Spec.parse_spec_string (read_file path) with
-    | Ok claims -> claims
+    | Ok spec -> spec
     | Error e ->
         Printf.eprintf "mathc: the standing specification is not readable: %s\n"
           (Spec.result_of (Error e));
         exit 2
+
+(** Save the specification. The file is machine-managed, so it is
+    written whole; the aim and the claims in it are data, and the
+    method is what manages them. *)
+let save_spec (spec : Domain.spec) =
+  let json = Spec.spec_to_json spec in
+  let channel = open_out (spec_path ()) in
+  output_string channel (Yojson.Safe.pretty_to_string json);
+  output_char channel '\n';
+  close_out channel
 
 (** The newest evidence for each claim. The trail may hold many runs of
     the same claim; the last one is the one that counts. *)
@@ -73,6 +84,19 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
       (claim.id, Verdict.state_of (binding_of claim) e))
     claims
 
+(** How much of the uncertainty budget the project has spent. Only an
+    answer is free: a claim that was refuted is answered, and a claim
+    that was not checked, or whose subject moved, or that cannot be
+    checked at all, is not. *)
+let consumption_of (claims : Domain.claim list) : int =
+  let states = states_of claims in
+  List.fold_left
+    (fun n (_, state) ->
+      match state with
+      | Domain.Holds | Domain.Refuted -> n
+      | _ -> n + 1)
+    0 states
+
 (* ------------------------------------------------------------------ *)
 (* The verbs.                                                           *)
 (* ------------------------------------------------------------------ *)
@@ -80,7 +104,8 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
 let verb_map () =
-  let claims = load_spec () in
+  let spec = load_spec () in
+  let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
@@ -100,14 +125,16 @@ let verb_map () =
         | Domain.Outdated -> "outdated"
         | Domain.NeverChecked -> "never checked"))
     states;
+  Printf.printf "uncertainty: %d of %d consumed\n"
+    (consumption_of claims) spec.Domain.budget;
   Printf.printf "uncovered: %d tracked file(s) no claim covers\n" (List.length uncovered);
   List.iter (fun f -> Printf.printf "  %s\n" f) uncovered;
   Verdict.verdict_to_exit verdict
 
 (** route: what needs a person, and why. *)
 let verb_route () =
-  let claims = load_spec () in
-  let evidence = latest_evidence claims in
+  let spec = load_spec () in
+  let evidence = latest_evidence spec.Domain.claims in
   let findings = Verdict.route evidence in
   if findings = [] then print_endline "nothing needs a person"
   else
@@ -127,7 +154,8 @@ let verb_route () =
 (** run: execute the checks, bind the results to the subject as it
     stands, and write them to the trail. *)
 let verb_run () =
-  let claims = load_spec () in
+  let spec = load_spec () in
+  let claims = spec.Domain.claims in
   if claims = [] then (
     print_endline "nothing to run: the standing specification is empty";
     0)
@@ -142,7 +170,7 @@ let verb_run () =
                 claim.id;
               (claim, Domain.Unresolved, None, None)
           | Some binding ->
-              let outcome, reason = Exec.run_check claim.check in
+              let outcome, reason = Exec.run_claim claim in
               Printf.printf "%s: %s\n" claim.id
                 (match outcome with
                 | Domain.Verified -> "verified"
@@ -164,7 +192,8 @@ let verb_run () =
 
 (** next: the next work. Not a list to choose from - one item. *)
 let verb_next () =
-  let claims = load_spec () in
+  let spec = load_spec () in
+  let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
@@ -211,7 +240,8 @@ let verb_close id =
         Printf.eprintf "mathc: the wave is not readable: %s\n" (Spec.result_of (Error e));
         2
     | Ok wave -> (
-        let claims = load_spec () in
+        let spec = load_spec () in
+        let claims = spec.Domain.claims in
         let failing =
           List.filter
             (fun check ->
@@ -260,41 +290,192 @@ let verb_close id =
               wave.verdicts_changed;
             0))
 
+(** The aim. This is the human's move, and the method cannot tell a
+    human from an agent at the keyboard - it can only attribute the
+    aim and make its changes visible. What it CAN enforce is that the
+    aim does not change silently: replacing one needs a reason, and
+    the reason is recorded.
+
+    The aim carries a scope, and that scope is the boundary of the
+    work: a claim outside it is refused. An agent that optimises
+    toward what it can measure must not be able to widen its own field
+    of operations. *)
+let verb_goal text scope by reason =
+  let spec = load_spec () in
+  let problem =
+    if text = "" then Some "the aim needs a text"
+    else if scope = [] then
+      Some "the aim needs a scope: an aim about nothing aims at nothing"
+    else if reason = "" && spec.goal <> None then
+      Some
+        "there is already an aim, and replacing it needs a reason: --reason \"...\""
+    else None
+  in
+  match problem with
+  | Some why ->
+      Printf.eprintf "mathc: %s\n" why;
+      2
+  | None ->
+      let goal =
+        { Domain.text; scope; by; at = string_of_int (int_of_float (Unix.time ())) }
+      in
+      save_spec { spec with goal = Some goal };
+      (match spec.goal with
+      | Some old ->
+          Printf.printf "the aim was replaced, and the reason is recorded:\n";
+          Printf.printf "  was: %s\n" old.text;
+          Printf.printf "  now: %s\n" goal.text;
+          Printf.printf "  reason: %s\n" reason
+      | None ->
+          Printf.printf "the aim is set:\n  %s\n  by %s\n" goal.text goal.by);
+      0
+
+(** Declare a claim. This is the agent's move, and it is where the
+    method puts most of its friction - because this is where agents
+    make their mistakes.
+
+    The refusals, and why each one is here:
+
+    - no aim: the method does not accept claims before there is
+      something to be true about. Work without an aim optimises
+      toward whatever happens to be measurable.
+    - the scope names nothing: a claim that cannot be bound cannot be
+      falsified either, and an unbound claim is the door the third
+      version's wildcard came through.
+    - the scope is outside the aim: see above.
+    - an empty check or an empty falsifier: a promise with no
+      procedure and nothing that would refute it is a request, not a
+      claim.
+    - the identifier is taken: two claims with one name cannot both be
+      checked, and the map would lie about one of them.
+    - the budget of uncertainty is spent: at that point there are three
+      ways out - find a check, ask for authority, or stop - and adding
+      a claim is none of them. *)
+let verb_add id subject scope check falsifier register =
+  let spec = load_spec () in
+  let refuse why =
+    Printf.eprintf "mathc: the claim is not accepted: %s\n" why;
+    2
+  in
+  (* Is the claim inside the aim? The aim's scope is the boundary of
+     the work, and an agent that optimises toward what it can measure
+     must not be able to widen its own field of operations. *)
+  let inside_aim =
+    match spec.goal with
+    | None -> false
+    | Some goal ->
+        List.exists
+          (fun prefix ->
+            List.exists
+              (fun claim_prefix -> Domain.path_contains ~dir:prefix ~path:claim_prefix)
+              scope)
+          goal.Domain.scope
+  in
+  let problem =
+    match spec.goal with
+    | None ->
+        Some "there is no aim yet. State one first: mathc goal"
+    | Some _ ->
+        if scope = [] then
+          Some "the scope is empty: a claim about nothing is not a claim"
+        else if check = "" then
+          Some "the check is empty: a promise with no procedure is not a claim"
+        else if falsifier = "" then
+          Some "the falsifier is empty: nothing would refute this claim"
+        else if List.exists (fun (c : Domain.claim) -> c.Domain.id = id) spec.Domain.claims then
+          Some (Printf.sprintf "the claim %S already exists" id)
+        else if not inside_aim then
+          Some
+            (Printf.sprintf
+               "the scope is outside the aim. The aim covers %s; this claim is about %s"
+               (String.concat ", " (match spec.goal with Some g -> g.Domain.scope | None -> []))
+               (String.concat ", " scope))
+        else if not (Git.scope_names_something (root ()) scope) then
+          Some "the scope names nothing in this tree, so nothing could be bound to it"
+        else
+          let consumption = consumption_of spec.Domain.claims in
+          if consumption >= spec.Domain.budget then
+            Some
+              (Printf.sprintf
+                 "the uncertainty budget is spent: %d of %d are consumed. Find a check, \
+                  ask for authority, or stop"
+                 consumption spec.Domain.budget)
+          else None
+  in
+  match problem with
+  | Some why -> refuse why
+  | None ->
+      let register =
+        match register with
+        | "fact" -> Domain.Fact
+        | "hypothesis" -> Domain.Hypothesis
+        | "judgment" -> Domain.Judgment
+        | "unknown" -> Domain.Undeclared
+        | other -> failwith ("unknown register: " ^ other)
+      in
+      let claim =
+        { Domain.id; subject = { text = subject; scope }; check; falsifier; register }
+      in
+      save_spec { spec with claims = spec.Domain.claims @ [ claim ] };
+      Printf.printf "claim %s declared\n" id;
+      0
+
 (* ------------------------------------------------------------------ *)
 
 let usage () =
   print_endline "mathc - the protocol of math-coding";
   print_endline "";
+  print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
+  print_endline "  mathc add ID SUBJECT SCOPE CHECK FALSIFIER REGISTER";
+  print_endline "                               declare a claim (an agent does this)";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
   print_endline "  mathc route             what needs a person, and why";
   print_endline "  mathc run                execute the checks, bind the results, write the trail";
   print_endline "  mathc next               the next work, one item";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "";
-  print_endline "  --root DIR               the project (default: the working directory)"
+  print_endline "  --root DIR               the project (default: the working directory)";
+  print_endline "  --reason TEXT            why an aim is being replaced"
 
-(** The command line. The only option is the project root; everything
-    else is a verb. An unknown option is an error rather than a verb,
-    because a typo that silently becomes a verb is a method that
-    reports something the user did not ask for. *)
-let parse_args (args : string list) : string list =
+(** The command line. The only options are the project root and the
+    reason an aim is being replaced; everything else is a verb. An
+    unknown option is an error rather than a verb, because a typo that
+    silently becomes a verb is a method that reports something the
+    user did not ask for. *)
+let parse_args (args : string list) : string list * string =
+  let root_flag = ref "" in
+  let reason = ref "" in
   let rec loop acc = function
-    | [] -> List.rev acc
+    | [] -> (List.rev acc, !reason)
     | "--root" :: dir :: rest ->
-        set_root dir;
+        root_flag := dir;
         loop acc rest
     | "--root" :: [] ->
         Printf.eprintf "mathc: --root needs a directory\n";
+        exit 2
+    | "--reason" :: text :: rest ->
+        reason := text;
+        loop acc rest
+    | "--reason" :: [] ->
+        Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
     | ("-" | "--") :: _ ->
         Printf.eprintf "mathc: unknown option\n";
         exit 2
     | a :: rest -> loop (a :: acc) rest
   in
-  loop [] args
+  let positional, reason = loop [] args in
+  if !root_flag <> "" then set_root !root_flag;
+  (positional, reason)
+
+(** A comma-separated list of paths. The scope of a claim is a list of
+    path prefixes, and the list is written the way a shell would write
+    it: comma-separated. *)
+let split_scope (text : string) : string list =
+  String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional = parse_args (Array.to_list Sys.argv |> List.tl) in
+  let positional, reason = parse_args (Array.to_list Sys.argv |> List.tl) in
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();
@@ -302,6 +483,21 @@ let () =
   | verb :: _ -> (
       let code =
         match verb with
+        | "goal" -> (
+            match positional with
+            | _ :: text :: scope :: by :: _ ->
+                verb_goal text (split_scope scope) by reason
+            | _ ->
+                Printf.eprintf "mathc: goal needs TEXT SCOPE BY\n";
+                2)
+        | "add" -> (
+            match positional with
+            | _ :: id :: subject :: scope :: check :: falsifier :: register :: _ ->
+                verb_add id subject (split_scope scope) check falsifier register
+            | _ ->
+                Printf.eprintf
+                  "mathc: add needs ID SUBJECT SCOPE CHECK FALSIFIER REGISTER\n";
+                2)
         | "map" -> verb_map ()
         | "route" -> verb_route ()
         | "run" -> verb_run ()

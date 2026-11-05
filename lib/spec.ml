@@ -116,11 +116,59 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
              "must not be empty: a claim about nothing is not a claim")
       else Ok { id; subject = { text; scope }; check; falsifier; register }
 
-(** Parse the standing specification: the claims of a project. *)
-let parse_spec (json : Yojson.Safe.t) : (claim list, error) result =
-  match read_object ~what:"spec" json ~fields:[ "claims" ] with
+(** Parse the aim. It is optional in the file - a project that has not
+    stated one yet is a project the method accepts claims from
+    nowhere, and [mathc add] is where that is refused. *)
+let parse_goal (json : Yojson.Safe.t) : (goal, error) result =
+  let what = "goal" in
+  match read_object ~what json ~fields:[ "text"; "scope"; "by"; "at" ] with
+  | Error e -> Error e
+  | Ok pairs ->
+      let* text = require_string ~what "text" pairs in
+      let* scope = require_string_list ~what "scope" pairs in
+      let* by = require_string ~what "by" pairs in
+      let* at = require_string ~what "at" pairs in
+      if scope = [] then
+        Error
+          (error (what ^ ".scope")
+             "must not be empty: an aim about nothing aims at nothing")
+      else Ok { text; scope; by; at }
+
+(** Parse the standing specification: the aim, the price of uncertainty
+    the project agreed to pay, and the claims.
+
+    The budget is required. A budget nobody declared is not finite, and
+    an uncertainty that costs nothing makes "I do not know" cheaper
+    than checking - which is the free escalation the principle exists
+    to stop. *)
+let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
+  match
+    read_object ~what:"spec" json
+      ~fields:[ "goal"; "uncertainty_budget"; "claims" ]
+  with
   | Error e -> Error e
   | Ok pairs -> (
+      let* goal =
+        match List.assoc_opt "goal" pairs with
+        | None -> Ok None
+        | Some (`Null) -> Ok None
+        | Some json ->
+            let* g = parse_goal json in
+            Ok (Some g)
+      in
+      let* budget =
+        match List.assoc_opt "uncertainty_budget" pairs with
+        | Some (`Int n) when n >= 0 -> Ok n
+        | Some (`Int n) ->
+            Error
+              (error "spec.uncertainty_budget"
+                 (Printf.sprintf "must not be negative; got %d" n))
+        | Some _ -> Error (error "spec.uncertainty_budget" "expected an integer")
+        | None ->
+            Error
+              (error "spec.uncertainty_budget"
+                 "is required: an uncertainty nobody priced is free, and a free uncertainty is why \"I do not know\" would be cheaper than checking")
+      in
       match List.assoc_opt "claims" pairs with
       | Some (`List items) ->
           let rec claims acc = function
@@ -130,14 +178,50 @@ let parse_spec (json : Yojson.Safe.t) : (claim list, error) result =
                 | Ok c -> claims (c :: acc) rest
                 | Error e -> Error e)
           in
-          claims [] items
+          let* cs = claims [] items in
+          Ok { goal; budget; claims = cs }
       | Some _ -> Error (error "spec.claims" "expected a list")
       | None -> Error (error "spec.claims" "is required"))
 
-let parse_spec_string (text : string) : (claim list, error) result =
+let parse_spec_string (text : string) : (spec, error) result =
   match Yojson.Safe.from_string text with
   | json -> parse_spec json
   | exception Yojson.Json_error msg -> Error (error "spec" msg)
+
+(** Write the specification back. The file is machine-managed: it is
+    read and written by the method, and the aim and the claims are
+    data in it. *)
+let spec_to_json (s : spec) : Yojson.Safe.t =
+  `Assoc
+    [ ( "goal",
+        match s.goal with
+        | None -> `Null
+        | Some g ->
+            `Assoc
+              [ ("text", `String g.text);
+                ("scope", `List (List.map (fun p -> `String p) g.scope));
+                ("by", `String g.by);
+                ("at", `String g.at) ] );
+      ("uncertainty_budget", `Int s.budget);
+      ( "claims",
+        `List
+          (List.map
+             (fun (c : claim) ->
+               `Assoc
+                 [ ("id", `String c.id);
+                   ("subject", `String c.subject.text);
+                   ( "scope",
+                     `List (List.map (fun p -> `String p) c.subject.scope) );
+                   ("check", `String c.check);
+                   ("falsifier", `String c.falsifier);
+                   ( "register",
+                     `String
+                       (match c.register with
+                       | Fact -> "fact"
+                       | Hypothesis -> "hypothesis"
+                       | Judgment -> "judgment"
+                       | Undeclared -> "unknown") ) ])
+             s.claims) )]
 
 (* ------------------------------------------------------------------ *)
 (* The wave.                                                            *)
