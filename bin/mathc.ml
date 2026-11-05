@@ -188,8 +188,18 @@ let verb_next () =
       print_endline "next: nothing to do - every claim is known and everything is covered";
       0
 
-(** close: close a wave or a claim. A wave that changes no verdict is
-    not closed; it is left open with the reason. *)
+(** close: close a wave.
+
+    A wave declares which verdicts it changes. Closing it means two
+    things were true: the wave's checks pass, and the verdicts it
+    declared are now established. A wave whose checks fail is not
+    closed; a wave that declared a verdict it did not establish is
+    not closed either, and the reason says which.
+
+    The comparison is against the DECLARATION, not against the state
+    a moment before the checks ran. A wave does work over hours, and
+    the verdicts it establishes are established when the work is done,
+    not in the second before somebody remembers to close it. *)
 let verb_close id =
   let path = Filename.concat (root ()) (Filename.concat "waves" (id ^ ".json")) in
   if not (Sys.file_exists path) then (
@@ -202,25 +212,53 @@ let verb_close id =
         2
     | Ok wave -> (
         let claims = load_spec () in
-        let before = states_of claims in
-        List.iter
-          (fun check -> ignore (Exec.run_check check))
-          wave.checks;
-        let after = states_of claims in
-        let changed =
+        let failing =
           List.filter
-            (fun (id, state) ->
-              let before_state = List.assoc_opt id before in
-              before_state <> Some state)
-            after
+            (fun check ->
+              let outcome, _ = Exec.run_check check in
+              outcome <> Domain.Verified)
+            wave.checks
         in
-        if changed = [] then (
-          Printf.eprintf "mathc: wave %s changed no verdict, and is therefore not closed\n" wave.id;
+        if failing <> [] then (
+          Printf.eprintf
+            "mathc: wave %s is not closed: %d of its checks did not pass\n" wave.id
+            (List.length failing);
+          List.iter (fun c -> Printf.eprintf "  %s\n" c) failing;
           1)
-        else (
-          Printf.printf "wave %s closed; changed:\n" wave.id;
-          List.iter (fun (id, state) -> Printf.printf "  %s -> %s\n" id (match state with Domain.Holds -> "holds" | Domain.Refuted -> "refuted" | Domain.Inconclusive -> "inconclusive" | Domain.NotCheckable -> "not checkable" | Domain.Outdated -> "outdated" | Domain.NeverChecked -> "never checked")) changed;
-          0))
+        else
+          let states = states_of claims in
+          let unestablished =
+            List.filter
+              (fun claim_id ->
+                match List.assoc_opt claim_id states with
+                | Some Domain.Holds -> false
+                | _ -> true)
+              wave.verdicts_changed
+          in
+          if unestablished <> [] then (
+            Printf.eprintf
+              "mathc: wave %s is not closed: %d of the verdicts it declared are not established\n"
+              wave.id (List.length unestablished);
+            List.iter
+              (fun claim_id ->
+                let state = List.assoc_opt claim_id states in
+                Printf.eprintf "  %s: %s\n" claim_id
+                  (match state with
+                  | Some Domain.Holds -> "holds"
+                  | Some Domain.Refuted -> "refuted"
+                  | Some Domain.Inconclusive -> "inconclusive"
+                  | Some Domain.NotCheckable -> "not checkable"
+                  | Some Domain.Outdated -> "outdated"
+                  | Some Domain.NeverChecked -> "never checked"
+                  | None -> "no such claim"))
+              unestablished;
+            1)
+          else (
+            Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
+            List.iter
+              (fun claim_id -> Printf.printf "  %s: holds\n" claim_id)
+              wave.verdicts_changed;
+            0))
 
 (* ------------------------------------------------------------------ *)
 
