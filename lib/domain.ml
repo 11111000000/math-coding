@@ -184,6 +184,22 @@ type state =
   | NeverChecked (* required, and never checked *)
   | Accepted (* a person took responsibility for this uncertainty *)
 
+(** The name of a state, as it is written and read outside.
+
+    The name belongs to the state, not to the format that happens to
+    read it: the map writes these names, and the wave's promises are
+    written in them, and two places that spelled them differently would
+    be two truths about the same seven things. *)
+let state_name (s : state) : string =
+  match s with
+  | Holds -> "holds"
+  | Refuted -> "refuted"
+  | Inconclusive -> "inconclusive"
+  | NotCheckable -> "not checkable"
+  | Outdated -> "outdated"
+  | NeverChecked -> "never checked"
+  | Accepted -> "accepted by a person"
+
 (** The map: the standing specification, computed. What is claimed,
     what is known, what is not covered. *)
 type map = {
@@ -191,15 +207,38 @@ type map = {
   uncovered : string list;
 }
 
+(** What a wave promises: this claim will be in this state when the
+    wave is done.
+
+    The promise is a VALUE, so it can be checked: the wave closes only
+    when every promise is met, and the state it names is the state the
+    claim must actually reach. The third version had this in prose -
+    a commitment written out at length, each obligation carrying a
+    MUST-list of exit codes and keys - and the prose was never checked
+    against the code. Here the promise says which claim and which
+    state, and the state is compared with the state the claim has.
+
+    A wave may promise that a claim will be REFUTED, which the older
+    rule could not say: it demanded that every claim it touched end up
+    holding, so a wave whose work disproves something could never be
+    closed. *)
+type commitment = { claim : string; state : state }
+
 (** A wave: a finished, green slice of work. The format is data and
     lives in [Spec]; this is the shape it parses into. *)
 type wave = {
   id : string;
   title : string;
+  (* WHY this unit of work, and what it assumes. The reasoning of the
+     plan. The third version kept it in every one of its 134 records,
+     and that is where the corpus grew; here it is one field of one
+     unit of work, and the wave is the unit of work. *)
+  intent : string;
   touches : scope;
   checks : string list;
   claims : string list;
-  verdicts_changed : string list;
+  (* What the wave promises. See [commitment]. *)
+  commitment : commitment list;
   (* The dialectic of the plan. Not on every claim - on the unit of
      work, where there is one thought to object to. The strongest
      objection to this approach, and what would refute it. A wave

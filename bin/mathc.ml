@@ -44,7 +44,7 @@ let load_spec () : Domain.spec =
     | Ok spec -> spec
     | Error e ->
         Printf.eprintf "mathc: the standing specification is not readable: %s\n"
-          (Spec.result_of (Error e));
+          (Spec.message_of e);
         exit 2
 
 (** Save the specification. The file is machine-managed, so it is
@@ -148,15 +148,10 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
-  let state_name = function
-    | Domain.Holds -> "holds"
-    | Domain.Refuted -> "refuted"
-    | Domain.Inconclusive -> "inconclusive"
-    | Domain.NotCheckable -> "not checkable"
-    | Domain.Outdated -> "outdated"
-    | Domain.NeverChecked -> "never checked"
-    | Domain.Accepted -> "accepted by a person"
-  in
+  (* The names of the states live in the codec: the map and the wave's
+     promises must say the same thing about them, and a name written
+     twice is two truths. *)
+  let state_name = Domain.state_name in
   `Assoc
     [ ( "verdict",
         `String
@@ -568,22 +563,31 @@ let verb_next () =
         1)
       else
         let after = states_of claims in
-        let established id =
-          match (List.assoc_opt id after, List.find_opt (fun (c : Domain.claim) -> c.id = id) claims) with
-          | Some Domain.Holds, _ -> true
-          | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
-          | _ -> false
+        (* The same criterion the closing uses: every promise met. *)
+        let unmet =
+          List.filter
+            (fun (promise : Domain.commitment) ->
+              match List.assoc_opt promise.claim after with
+              | Some state -> state <> promise.state
+              | None -> true)
+            wave.Domain.commitment
         in
-        let unestablished =
-          List.filter (fun id -> not (established id)) wave.Domain.verdicts_changed
-        in
-        if unestablished = [] then (
-          Printf.printf "  the wave is finished: its checks pass and its verdicts hold\n";
+        if unmet = [] then (
+          Printf.printf "  the wave is finished: its checks pass and every promise is met\n";
           0)
         else (
-          Printf.printf "  the wave is not finished: %d of the verdicts it declared are not established\n"
-            (List.length unestablished);
-          List.iter (fun id -> Printf.printf "    %s\n" id) unestablished;
+          Printf.printf
+            "  the wave is not finished: %d of its promises are not met\n"
+            (List.length unmet);
+          List.iter
+            (fun (promise : Domain.commitment) ->
+              let state = List.assoc_opt promise.claim after in
+              Printf.printf "    %s: promised %s, has %s\n" promise.claim
+                (Domain.state_name promise.state)
+                (match state with
+                | Some s -> Domain.state_name s
+                | None -> "no such claim"))
+            unmet;
           0)
   | [], id :: _, _, _ ->
       Printf.printf "next: the claim %s is refuted - it was believed and is not\n" id;
@@ -627,7 +631,7 @@ let verb_close id =
   else
     match Spec.parse_wave_string (read_file path) with
     | Error e ->
-        Printf.eprintf "mathc: the wave is not readable: %s\n" (Spec.result_of (Error e));
+        Printf.eprintf "mathc: the wave is not readable: %s\n" (Spec.message_of e);
         2
     | Ok wave -> (
         let spec = load_spec () in
@@ -654,40 +658,37 @@ let verb_close id =
           1)
         else
           let states = states_of claims in
-          (* A verdict is established when the claim reached the state
-             its register calls for. For a fact that is [holds]. For
-             a judgment it is [not checkable]: the machine has run the
-             check, has said that what should be true about meaning is
-             not its to decide, and the claim has reached the human.
-             That is not a failure of the wave - it is the wave's
-             subject arriving where it was always going to arrive. *)
-          let established claim_id =
-            match (List.assoc_opt claim_id states, List.find_opt (fun (c : Domain.claim) -> c.id = claim_id) claims) with
-            | Some Domain.Holds, _ -> true
-            | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
-            | _ -> false
+          (* THE PROMISE IS THE CRITERION. A wave says which claims
+             will be in which state when it is done, and it closes only
+             when every promise is met. The older rule demanded that
+             every claim the wave touched end up holding, which could
+             not say what a wave whose work disproves something
+             promises - and a promise nobody checks is a wish.
+
+             The promise names the state explicitly, so the states are
+             compared with the states the claims actually have, and
+             the comparison is mechanical. *)
+          let unmet =
+            List.filter
+              (fun (promise : Domain.commitment) ->
+                match List.assoc_opt promise.claim states with
+                | Some state -> state <> promise.state
+                | None -> true)
+              wave.Domain.commitment
           in
-          let unestablished =
-            List.filter (fun claim_id -> not (established claim_id)) wave.verdicts_changed
-          in
-          if unestablished <> [] then (
+          if unmet <> [] then (
             Printf.eprintf
-              "mathc: wave %s is not closed: %d of the verdicts it declared are not established\n"
-              wave.id (List.length unestablished);
+              "mathc: wave %s is not closed: %d of its promises are not met\n"
+              wave.id (List.length unmet);
             List.iter
-              (fun claim_id ->
-                let state = List.assoc_opt claim_id states in
-                Printf.eprintf "  %s: %s\n" claim_id
+              (fun (promise : Domain.commitment) ->
+                let state = List.assoc_opt promise.claim states in
+                Printf.eprintf "  %s: promised %s, has %s\n" promise.claim
+                  (Domain.state_name promise.state)
                   (match state with
-                  | Some Domain.Holds -> "holds"
-                  | Some Domain.Refuted -> "refuted"
-                  | Some Domain.Inconclusive -> "inconclusive"
-                  | Some Domain.NotCheckable -> "not checkable"
-                  | Some Domain.Outdated -> "outdated"
-                  | Some Domain.NeverChecked -> "never checked"
-                  | Some Domain.Accepted -> "accepted by a person"
+                  | Some s -> Domain.state_name s
                   | None -> "no such claim"))
-              unestablished;
+              unmet;
             1)
           else (
             (* The closure is recorded in the standing specification, so
@@ -695,23 +696,14 @@ let verb_close id =
                the progress of the plan survives a fresh clone, because
                the specification is committed and the trail is not. *)
             save_spec { spec with Domain.closed_waves = spec.Domain.closed_waves @ [ id ] };
-            Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
+            Printf.printf "wave %s closed; every promise it made is met:\n" wave.id;
             Printf.printf "  the objection it carried: %s\n" wave.objection;
             Printf.printf "  what would refute it: %s\n" wave.refuted_by;
             List.iter
-              (fun claim_id ->
-                let state = List.assoc_opt claim_id states in
-                Printf.printf "  %s: %s\n" claim_id
-                  (match state with
-                  | Some Domain.Holds -> "holds"
-                  | Some Domain.NotCheckable -> "not checkable, and routed to the person"
-                  | Some Domain.Refuted -> "refuted"
-                  | Some Domain.Inconclusive -> "inconclusive"
-                  | Some Domain.Outdated -> "outdated"
-                  | Some Domain.NeverChecked -> "never checked"
-                  | Some Domain.Accepted -> "accepted by a person"
-                  | None -> "no such claim"))
-              wave.verdicts_changed;
+              (fun (promise : Domain.commitment) ->
+                Printf.printf "  %s: %s\n" promise.claim
+                  (Domain.state_name promise.state))
+              wave.Domain.commitment;
             0))
 
 (** A requirement, as it is written on the command line: a kind, a

@@ -130,7 +130,7 @@ let write_wave root id =
   let channel = open_out path in
   output_string channel
     (Printf.sprintf
-       {|{"id": "%s", "title": "a wave of the test", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "verdicts_changed": ["c1"], "objection": "the tool may not work at all", "refuted_by": "the battery below"}|}
+       {|{"id": "%s", "title": "a wave of the test", "intent": "to check that the tool works at all", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "commitment": [{"claim": "c1", "state": "holds"}], "objection": "the tool may not work at all", "refuted_by": "the battery below"}|}
        id);
   close_out channel
 
