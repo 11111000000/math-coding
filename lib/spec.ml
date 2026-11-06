@@ -101,7 +101,10 @@ let require_register ~what name (pairs : (string * Yojson.Safe.t) list) =
     on top of it. *)
 let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
   let what = "claim" in
-  match read_object ~what json ~fields:[ "id"; "subject"; "scope"; "check"; "falsifier"; "register" ] with
+  match
+    read_object ~what json
+      ~fields:[ "id"; "subject"; "scope"; "check"; "falsifier"; "register"; "accepted" ]
+  with
   | Error e -> Error e
   | Ok pairs ->
       let* id = require_string ~what "id" pairs in
@@ -110,11 +113,21 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
       let* check = require_string ~what "check" pairs in
       let* falsifier = require_string ~what "falsifier" pairs in
       let* register = require_register ~what "register" pairs in
+      let* accepted =
+        match List.assoc_opt "accepted" pairs with
+        | None -> Ok None
+        | Some (`Null) -> Ok None
+        | Some (`Assoc fields) -> (
+            let* by = require_string ~what "accepted.by" fields in
+            let* reason = require_string ~what "accepted.reason" fields in
+            Ok (Some (by, reason)))
+        | Some _ -> Error (error (what ^ ".accepted") "expected an object or null")
+      in
       if scope = [] then
         Error
           (error (what ^ ".scope")
              "must not be empty: a claim about nothing is not a claim")
-      else Ok { id; subject = { text; scope }; check; falsifier; register }
+      else Ok { id; subject = { text; scope }; check; falsifier; register; accepted }
 
 (** Parse the aim. It is optional in the file - a project that has not
     stated one yet is a project the method accepts claims from
@@ -220,7 +233,12 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                        | Fact -> "fact"
                        | Hypothesis -> "hypothesis"
                        | Judgment -> "judgment"
-                       | Undeclared -> "unknown") ) ])
+                       | Undeclared -> "unknown") );
+                   ( "accepted",
+                     match c.accepted with
+                     | None -> `Null
+                     | Some (by, reason) ->
+                         `Assoc [ ("by", `String by); ("reason", `String reason) ] ) ])
              s.claims) )]
 
 (* ------------------------------------------------------------------ *)

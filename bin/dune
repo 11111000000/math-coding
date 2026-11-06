@@ -1,3 +1,10 @@
 (executable
  (name mathc)
  (libraries mathcoding mathcoding_adapter unix yojson))
+
+; The measurement stand: the harness the third version lacked. It runs
+; the protocol over projects that are not this one and reports what it
+; can actually measure - and says plainly what it cannot.
+(executable
+ (name stand)
+ (libraries mathcoding mathcoding_adapter unix yojson))
