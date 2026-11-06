@@ -134,6 +134,46 @@ let write_wave root id =
        id);
   close_out channel
 
+(** The proof is anchored to the act: the commit its content was read
+    from, and the moment it was produced.
+
+    The content the method binds to is the content of HEAD, so the
+    commit is exactly the one the proof is about - not an approximation
+    of it. The third version carried this anchor in every attestation
+    and the fourth lost it with the whole corpus; without a check it
+    would be lost again silently, because a field nobody reads and
+    nobody checks is a field that disappears.
+
+    So the check is here: the trail line must name the very commit the
+    temporary repository is at. If the anchor were dropped, the line
+    would have no commit and this would fail. *)
+let check_the_trail_anchors_the_act (root : string) =
+  let path = Filename.concat root ".math/trail.jsonl" in
+  let text = read_file path in
+  let line = String.split_on_char '\n' text |> List.hd in
+  let json = Yojson.Safe.from_string line in
+  let get name =
+    match json with
+    | `Assoc pairs -> (
+        match List.assoc_opt name pairs with
+        | Some (`String s) -> Some s
+        | _ -> None)
+    | _ -> None
+  in
+  (* The commit the repository is at. *)
+  let out = Filename.temp_file "mathc-head" ".txt" in
+  let cmd =
+    Printf.sprintf "git -C %s rev-parse HEAD > %s 2>/dev/null"
+      (Filename.quote root) (Filename.quote out)
+  in
+  ignore (Sys.command cmd);
+  let head = String.trim (read_file out) in
+  Sys.remove out;
+  assert (head <> "");
+  assert (get "at_commit" = Some head);
+  (* And the moment of production is there too. *)
+  assert (get "at" <> None)
+
 let check_the_tool (binary : string) (prefix : string list) =
   with_repository (fun root ->
       let call args = run_tool binary root (prefix @ args) in
@@ -240,7 +280,10 @@ let check_the_tool (binary : string) (prefix : string list) =
       (* A flag that belongs to one verb must not be accepted by
          another. *)
       expect_refusal "--requirement outside add"
-        (call [ "map"; "--requirement"; "verifier:true" ]))
+        (call [ "map"; "--requirement"; "verifier:true" ]);
+
+      (* And the proof is anchored to the act. *)
+      check_the_trail_anchors_the_act root)
 
 (* --- the documentation -------------------------------------------------- *)
 

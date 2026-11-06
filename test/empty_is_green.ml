@@ -36,7 +36,7 @@ let claim subject =
   }
 
 let checked subject outcome =
-  { claim = claim subject; requirement = Domain.Verified_by "true"; outcome; bound_to = "digest"; producer = "the method"; reason = None }
+  { claim = claim subject; requirement = Domain.Verified_by "true"; outcome; bound_to = "digest"; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
 
 let check_empty_is_green () =
   (* The rule under test. *)

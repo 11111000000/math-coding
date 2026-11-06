@@ -94,6 +94,18 @@ let latest_evidence (claims : Domain.claim list) : Domain.evidence list =
 let binding_of (claim : Domain.claim) : Domain.binding option =
   Git.digest_of_scope (root ()) claim.subject.scope
 
+(** The production facts of a proof: the commit the content was read
+    from and the moment of production.
+
+    The content the method binds to is the content of HEAD - the
+    committed tree - so the commit is exactly the one the proof is
+    about, and not an approximation of it. A repository with no commits
+    has no HEAD, and then there is nothing to anchor to: the field is
+    absent rather than empty. *)
+let production_facts () =
+  ( Git.head_commit (root ()),
+    Some (Printf.sprintf "%.0f" (Unix.time ())) )
+
 (** The state of every claim, computed. *)
 let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   let evidence = latest_evidence claims in
@@ -166,7 +178,32 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
         `List
           (List.map
              (fun (id, state) ->
-               `Assoc [ ("id", `String id); ("state", `String (state_name state)) ])
+               `Assoc
+                 [ ("id", `String id);
+                   ("state", `String (state_name state));
+                   (* The act the proof belongs to: the commit its
+                      content was read from, and who produced it. A
+                      state says what is known; this says where the
+                      knowing came from. *)
+                   ( "at_commit",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e -> (
+                         match e.at_commit with
+                         | Some c -> `String c
+                         | None -> `Null)
+                     | None -> `Null );
+                   ( "produced_by",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e -> `String e.producer
+                     | None -> `Null ) ])
              states) );
       ( "uncovered_paths",
         `List (List.map (fun f -> `String f) uncovered) )]
@@ -191,7 +228,22 @@ let verb_map json =
     Printf.printf "claims: %d\n" (List.length claims);
     List.iter
       (fun (id, state) ->
-        Printf.printf "  %-24s %s\n" id
+        (* The commit the proof was produced from, when there is one: the
+           state says what is known, the commit says where the knowing
+           came from. *)
+        let anchor =
+          match
+            List.find_opt
+              (fun (e : Domain.evidence) -> e.claim.id = id)
+              (latest_evidence claims)
+          with
+          | Some e -> (
+              match e.at_commit with
+              | Some c -> " " ^ String.sub c 0 (min 7 (String.length c))
+              | None -> "")
+          | None -> ""
+        in
+        Printf.printf "  %-24s %s%s\n" id
           (match state with
           | Domain.Holds -> "holds"
           | Domain.Refuted -> "refuted"
@@ -199,7 +251,8 @@ let verb_map json =
           | Domain.NotCheckable -> "not checkable"
           | Domain.Outdated -> "outdated"
           | Domain.NeverChecked -> "never checked"
-          | Domain.Accepted -> "accepted by a person"))
+          | Domain.Accepted -> "accepted by a person")
+          anchor)
       states;
     Printf.printf "uncertainty: %d of %d consumed\n"
       (consumption_of claims) spec.Domain.budget;
@@ -274,6 +327,7 @@ let verb_run () =
                         | Domain.Falsified -> "falsified"
                         | Domain.Unresolved -> "unresolved"
                         | Domain.Refused -> "refused");
+                      let at_commit, at = production_facts () in
                       Some
                         ( {
                           Domain.claim;
@@ -282,6 +336,9 @@ let verb_run () =
                           bound_to = binding;
                           producer = command;
                           reason;
+                          at_commit;
+                          at;
+                          valid_until = None;
                         } ))
                 claim.requirements)
         claims
@@ -358,6 +415,7 @@ let verb_record claim_id spec by outcome (reason : string) =
               refuse "the scope names no existing path, so nothing could be bound"
           | Some binding ->
               let e =
+                let at_commit, at = production_facts () in
                 {
                   Domain.claim;
                   requirement;
@@ -365,6 +423,9 @@ let verb_record claim_id spec by outcome (reason : string) =
                   bound_to = binding;
                   producer = by;
                   reason = (if reason = "" then None else Some reason);
+                  at_commit;
+                  at;
+                  valid_until = None;
                 }
               in
               Trail.append (root ()) e;
