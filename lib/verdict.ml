@@ -84,6 +84,16 @@ let expired (now : float) (e : evidence) : bool =
       | Some t -> t <= now
       | None -> false)
 
+(** What an outcome means for the state of a claim. ONE mapping for
+    every proof, so that a proof from a person and a proof from a
+    machine cannot come to mean different things. *)
+let state_of_outcome (o : outcome) : state =
+  match o with
+  | Verified -> Holds
+  | Falsified -> Refuted
+  | Unresolved -> Inconclusive
+  | Refused -> NotCheckable
+
 let state_of_evidence (current : binding option) (now : float)
     (evidence : evidence option) : state =
   match evidence with
@@ -91,13 +101,7 @@ let state_of_evidence (current : binding option) (now : float)
   | Some e -> (
       match current with
       | Some b when e.bound_to = b ->
-          if expired now e then Outdated
-          else
-            (match e.outcome with
-            | Verified -> Holds
-            | Falsified -> Refuted
-            | Unresolved -> Inconclusive
-            | Refused -> NotCheckable)
+          if expired now e then Outdated else state_of_outcome e.outcome
       | _ -> Outdated)
 
 let verdict_of_state = function
@@ -125,6 +129,38 @@ let verdict_of_states (states : state list) : verdict =
     missing. That is the answer to the question the third version could
     not state: what is the state of a thing that needs two kinds of
     confirmation and has one? *)
+(** Seconds since the epoch, as a number. The moments of two proofs
+    are compared, and the comparison must not depend on the order the
+    files were read in. *)
+let at_seconds (text : string) : float =
+  match float_of_string_opt text with Some t -> t | None -> 0.0
+
+(** The moment of a proof, when it has one. A trail written before the
+    moment was recorded has none, and an absent moment is older than
+    any recorded one. *)
+let at_of (moment : string option) : float =
+  match moment with Some t -> at_seconds t | None -> 0.0
+
+(** The state of a requirement closed by an attestation: a proof from
+    outside, bound to the subject as it stands. It carries the same
+    freshness rules as any other proof - the subject may have moved,
+    and the attestation may have expired. *)
+let state_of_attestation (current : binding option) (now : float)
+    (a : attestation) : state =
+  let expired_now =
+    match a.valid_until with
+    | None -> false
+    | Some until_ -> (
+        match float_of_string_opt until_ with
+        | Some t -> t <= now
+        | None -> false)
+  in
+  if expired_now then Outdated
+  else
+    match current with
+    | Some b when b = a.bound_to -> state_of_outcome a.outcome
+    | _ -> Outdated
+
 let state_of_requirements (claim : claim) (current : binding option) (now : float)
     (evidence : evidence list) : state =
   let for_requirement (r : requirement) =
@@ -146,7 +182,31 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
              | None -> Some e)
            None
     in
-    state_of_evidence current now latest
+    (* AN ATTESTATION OUTRANKS THE TRAIL WHEN IT IS NEWER. A proof from
+       outside is in the standing specification, and a proof the machine
+       ran is in the trail; both may speak about the same requirement,
+       and the later one is the one that counts - they are compared by
+       the moment they were produced, and not by kind. *)
+    let spec_of (r : requirement) =
+      match r with Verified_by spec -> spec | Reviewed_by spec -> spec
+    in
+    let latest_attestation =
+      List.filter (fun (a : attestation) -> a.requirement = spec_of r) claim.attestations
+      |> List.fold_left
+           (fun acc (a : attestation) ->
+             match acc with
+             | Some (prev : attestation) ->
+                 if at_seconds a.at >= at_seconds prev.at then Some a else Some prev
+             | None -> Some a)
+           None
+    in
+    match (latest, latest_attestation) with
+    | None, None -> state_of_evidence current now None
+    | Some e, None -> state_of_evidence current now (Some e)
+    | None, Some a -> state_of_attestation current now a
+    | Some e, Some a ->
+        if at_seconds a.at >= at_of e.at then state_of_attestation current now a
+        else state_of_evidence current now (Some e)
   in
   let states = List.map for_requirement claim.requirements in
   (* The refinement of the fold. The fold answers "is anything
@@ -162,21 +222,6 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
   else if List.for_all (fun s -> s = Outdated) states then Outdated
   else Inconclusive
 
-(** The acceptance, as a separate step over the computed state.
-
-    A person may take responsibility for an UNCERTAINTY, and for
-    nothing else. They may not take responsibility for an answer: a
-    refuted claim is not uncertain, it is false, and accepting it does
-    not un-refute it. An acceptance that covered answers would let a
-    person bury a finding, which is the opposite of what an acceptance
-    is for.
-
-    The step is separate from the computation for a reason that is not
-    tidiness: a law that talks about acceptance can only be refuted if
-    the acceptance is a function of the state, and not of everything
-    at once. Stated over the whole computation, a broken function that
-    ignores its input would satisfy the law by being broken in the same
-    way twice. *)
 let apply_acceptance (c : claim) (computed : state) : state =
   match c.accepted with
   | Some _ when computed = Holds || computed = Refuted -> computed
@@ -204,18 +249,6 @@ let law_acceptance_never_changes_an_answer
 
 (** The verdict of a set of states. An outdated claim is unknown, never
     green: the proof was about yesterday's subject. *)
-(** What the human is asked to decide.
-
-    Two kinds of item, and the second is the one that was missing. A
-    requirement that only a person can close - a review - and that
-    nobody has closed yet, is NOT an absence of evidence: it is a
-    request. A route built from evidence alone would never show it, and
-    the method would keep a promise to the human that it never
-    delivered and never asked for.
-
-    So the route is computed from the CLAIMS, not from the evidence:
-    what the evidence could not settle, and what is waiting for a
-    person. *)
 let route (binding_of : claim -> binding option) (claims : claim list)
     (evidence : evidence list) : finding list =
   let for_claim (claim : claim) =
@@ -269,16 +302,6 @@ let verdict_to_exit = function Green -> 0 | Red -> 1 | Unknown -> 3
 (* The laws, as executable properties.                                *)
 (* ------------------------------------------------------------------ *)
 
-(* Each law is stated over the function it constrains, not over the
-   implementation directly. That is not a stylistic choice: a law that
-   can only be evaluated on the code it constrains is a description of
-   that code, and a description cannot be refuted. Stated over the
-   function, the law can be checked against a broken one as well as
-   against the real one, and a law that accepts a broken
-   implementation is exposed.
-
-   The broken implementations live in the test suite, where they are
-   required to be REJECTED. *)
 
 (** Commutativity: the order of the results does not matter. *)
 let law_commutative (combine' : verdict -> verdict -> verdict) a b =
@@ -310,16 +333,6 @@ let law_outdated_is_never_verified
   (* "if the subject moved, the claim cannot read as verified". *)
   current = Some e.bound_to || state_of' current 0.0 (Some e) <> Holds
 
-(** The law of the term: a proof whose term is over is not a proof.
-
-    The binding says whether the content is the same; the term says
-    whether the proof still counts. A proof can be about exactly the
-    right content and still be too old to stand - the deployment
-    moved, the dependency changed, the review was for the release that
-    is over. Neither the content nor the truth can see that.
-
-    So the law is stated over the function that decides, and the broken
-    version - one that ignores the term - must be rejected by it. *)
 let law_expired_is_never_verified
     (state_of' : binding option -> float -> evidence option -> state)
     (e : evidence) (current : binding option) =
@@ -339,23 +352,6 @@ let law_expired_is_never_verified
 let law_no_vacant_subject (is_subject : scope -> bool) (s : scope) =
   (not (is_subject s)) || s <> []
 
-(** A subject is whole or it is not: a scope with a path that is not in
-    the tree is a subject with a hole in it, and a digest of such a
-    subject says nothing about the part that is missing.
-
-    The core cannot see the tree - that is the adapter's business - so
-    the law is stated over the two functions that decide: the one that
-    computes the digest of a scope, and the one that says whether a
-    path is there. The law says that a digest exists only for a scope
-    whose every path exists. A subject that is partly missing has no
-    digest, and a claim that cannot be bound cannot be run.
-
-    This law exists because the defect was real and quiet: the adapter
-    used to hash the paths it found and drop the ones it did not, so a
-    scope of one real directory and one missing path produced a digest
-    and a green verdict, and the part that was missing was invisible.
-    The broken version of the adapter is offered to this law in the
-    test suite, and the law has to reject it. *)
 let law_no_partial_subject (digest : scope -> string option)
     (exists : string -> bool) (s : scope) =
   match digest s with
@@ -371,23 +367,6 @@ let law_exit_codes_distinct () =
     adoption cost nothing. *)
 let law_vacancy_is_green (aggregate' : evidence list -> verdict) = aggregate' [] = Green
 
-(** The law of the register: a judgment is not the machine's to decide.
-
-    A judgment - a decision about meaning, an interface, a priority -
-    has no canary. There is no procedure that breaks it, because
-    breaking it is not what would disprove it. So a check that says
-    "yes" to a judgment does not establish the judgment; it
-    establishes that some procedure ran, which is a different fact.
-
-    And a check that says "no" does not refute it either. A failed
-    procedure is a fact about the procedure, not about what should be
-    true about meaning. So the rule is applied to the outcome in both
-    directions: whatever the machine finds, a judgment arrives at the
-    person.
-
-    What is NOT changed is a check that could not run at all: that is
-    a gap in the evidence, and a gap stays a gap whoever owns the
-    claim. *)
 let apply_register (r : register) (o : outcome) : outcome =
   match r, o with
   | Judgment, Verified -> Refused

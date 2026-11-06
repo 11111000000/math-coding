@@ -440,41 +440,63 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
           | None ->
               refuse "the scope names no existing path, so nothing could be bound"
           | Some binding ->
-              let e =
-                let at_commit, at = production_facts () in
-                (* The term: how many days the proof counts. Absent
-                   means it does not expire - and the reason it may be
-                   absent is worth saying: the binding already covers
-                   the case where the CONTENT changed, and what the
-                   term covers is the case where the content is the
-                   same and the world is not. *)
-                let valid_until =
-                  match int_of_string_opt valid_for with
-                  | Some days ->
-                      Some
-                        (Printf.sprintf "%.0f"
-                           (Unix.time () +. (float_of_int days *. 86400.0)))
-                  | None -> None
-                in
+              (* THE ATTESTATION GOES TO THE SPECIFICATION, NOT TO THE
+                 TRAIL. The trail holds what a machine can produce
+                 again, and a person's word cannot be produced again
+                 by anybody - so a review that lived only in the trail
+                 was lost the moment the trail was rebuilt, and the
+                 claim fell back to never checked. The specification is
+                 committed; the trail is not.
+
+                 The requirement is named by the thing it names, the
+                 way `record` names it, and the state is the one the
+                 proof leaves the requirement in. *)
+              let at_commit, at = production_facts () in
+              let at = match at with Some t -> t | None -> "0" in
+              let valid_until =
+                match int_of_string_opt valid_for with
+                | Some days ->
+                    Some
+                      (Printf.sprintf "%.0f"
+                         (Unix.time () +. (float_of_int days *. 86400.0)))
+                | None -> None
+              in
+              let spec_of (r : Domain.requirement) =
+                match r with
+                | Domain.Verified_by spec -> spec
+                | Domain.Reviewed_by spec -> spec
+              in
+              let attestation =
                 {
-                  Domain.claim;
-                  requirement;
+                  Domain.requirement = spec_of requirement;
+                  who = by;
                   outcome;
-                  bound_to = binding;
-                  producer = by;
                   reason = (if reason = "" then None else Some reason);
-                  at_commit;
+                  bound_to = binding;
                   at;
                   valid_until;
                 }
               in
-              Trail.append (root ()) e;
+              save_spec
+                {
+                  spec_loaded with
+                  Domain.claims =
+                    List.map
+                      (fun (c : Domain.claim) ->
+                        if c.id = claim_id then
+                          { c with attestations = c.attestations @ [ attestation ] }
+                        else c)
+                      spec_loaded.Domain.claims;
+                };
               Printf.printf "recorded: %s closed by %s (%s)\n" claim_id by
                 (match outcome with
                 | Domain.Verified -> "verified"
                 | Domain.Falsified -> "falsified"
                 | Domain.Unresolved -> "unresolved"
                 | Domain.Refused -> "refused");
+              Printf.printf
+                "  the attestation is in the specification, and the subject it was produced against is %s\n"
+                (String.sub binding 0 (min 12 (String.length binding)));
               0))
 
 (** The waves of a project, in the order they were declared. A wave is
@@ -857,6 +879,7 @@ let verb_add id subject scope requirements falsifier register =
           falsifier;
           register;
           accepted = None;
+          attestations = [];
         }
       in
       save_spec { spec with claims = spec.Domain.claims @ [ claim ] };
@@ -980,7 +1003,14 @@ let parse_args (args : string list) :
         Printf.eprintf "mathc: --root needs a directory\n";
         exit 2
     | "--reason" :: text :: rest ->
+        (* ONE FLAG, TWO USES, AND NEITHER MAY BE LOST. The reason
+           belongs to the aim that is being replaced, and to the proof
+           that is being recorded. They are never used together - one
+           verb at a time - and before this the flag filled only the
+           first of the two, so a recorded proof kept no reason at all
+           and said nothing about it. *)
         reason := text;
+        recorded_reason := text;
         loop acc rest
     | "--by" :: text :: rest ->
         by := text;

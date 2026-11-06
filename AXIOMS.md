@@ -378,3 +378,96 @@ exit_code(check) = 0 ⟹ Verified      1 ⟹ Falsified
 
 Расхождение ловится: каждый закон выше имеет сломанную реализацию в
 `test/laws.ml`, которую закон обязан отвергнуть, — и набор краснеет.
+
+## Как устроено ядро — словами, которые стоит у кода
+
+Это пересказ кода: те же законы, те же решения, те же границы.
+Код — спецификация для исполнения; этот раздел — для чтения.
+
+The acceptance, as a separate step over the computed state.
+
+    A person may take responsibility for an UNCERTAINTY, and for
+    nothing else. They may not take responsibility for an answer: a
+    refuted claim is not uncertain, it is false, and accepting it does
+    not un-refute it. An acceptance that covered answers would let a
+    person bury a finding, which is the opposite of what an acceptance
+    is for.
+
+    The step is separate from the computation for a reason that is not
+    tidiness: a law that talks about acceptance can only be refuted if
+    the acceptance is a function of the state, and not of everything
+    at once. Stated over the whole computation, a broken function that
+    ignores its input would satisfy the law by being broken in the same
+    way twice.
+
+What the human is asked to decide.
+
+    Two kinds of item, and the second is the one that was missing. A
+    requirement that only a person can close - a review - and that
+    nobody has closed yet, is NOT an absence of evidence: it is a
+    request. A route built from evidence alone would never show it, and
+    the method would keep a promise to the human that it never
+    delivered and never asked for.
+
+    So the route is computed from the CLAIMS, not from the evidence:
+    what the evidence could not settle, and what is waiting for a
+    person.
+
+(* Each law is stated over the function it constrains, not over the
+   implementation directly. That is not a stylistic choice: a law that
+   can only be evaluated on the code it constrains is a description of
+   that code, and a description cannot be refuted. Stated over the
+   function, the law can be checked against a broken one as well as
+   against the real one, and a law that accepts a broken
+   implementation is exposed.
+
+   The broken implementations live in the test suite, where they are
+   required to be REJECTED.
+
+The law of the term: a proof whose term is over is not a proof.
+
+    The binding says whether the content is the same; the term says
+    whether the proof still counts. A proof can be about exactly the
+    right content and still be too old to stand - the deployment
+    moved, the dependency changed, the review was for the release that
+    is over. Neither the content nor the truth can see that.
+
+    So the law is stated over the function that decides, and the broken
+    version - one that ignores the term - must be rejected by it.
+
+A subject is whole or it is not: a scope with a path that is not in
+    the tree is a subject with a hole in it, and a digest of such a
+    subject says nothing about the part that is missing.
+
+    The core cannot see the tree - that is the adapter's business - so
+    the law is stated over the two functions that decide: the one that
+    computes the digest of a scope, and the one that says whether a
+    path is there. The law says that a digest exists only for a scope
+    whose every path exists. A subject that is partly missing has no
+    digest, and a claim that cannot be bound cannot be run.
+
+    This law exists because the defect was real and quiet: the adapter
+    used to hash the paths it found and drop the ones it did not, so a
+    scope of one real directory and one missing path produced a digest
+    and a green verdict, and the part that was missing was invisible.
+    The broken version of the adapter is offered to this law in the
+    test suite, and the law has to reject it.
+
+The law of the register: a judgment is not the machine's to decide.
+
+    A judgment - a decision about meaning, an interface, a priority -
+    has no canary. There is no procedure that breaks it, because
+    breaking it is not what would disprove it. So a check that says
+    "yes" to a judgment does not establish the judgment; it
+    establishes that some procedure ran, which is a different fact.
+
+    And a check that says "no" does not refute it either. A failed
+    procedure is a fact about the procedure, not about what should be
+    true about meaning. So the rule is applied to the outcome in both
+    directions: whatever the machine finds, a judgment arrives at the
+    person.
+
+    What is NOT changed is a check that could not run at all: that is
+    a gap in the evidence, and a gap stays a gap whoever owns the
+    claim.
+

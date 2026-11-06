@@ -127,7 +127,7 @@ let read (root : string) : Domain.evidence list =
                                 requirements = [];
                                 falsifier = "";
                                 register = Domain.Undeclared;
-                                accepted = None;
+                                accepted = None; attestations = [];
                               };
                             requirement = r;
                             outcome = o;

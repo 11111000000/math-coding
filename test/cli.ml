@@ -256,9 +256,19 @@ let check_the_tool (binary : string) (prefix : string list) =
       assert (contains text "owner");
 
       (* record: evidence from outside closes the review requirement.
-         The requirement is named by what it names - the authority. *)
+         The requirement is named by what it names - the authority. It
+         goes to the SPECIFICATION: the trail is rebuilt by running
+         the checks, and a person's word cannot be produced again by
+         anybody. The reason must not be lost either. *)
       expect_ok "record"
-        (call [ "record"; "c1"; "owner"; "--by"; "owner"; "--outcome"; "verified" ]);
+        (call
+           [
+             "record"; "c1"; "owner"; "--by"; "owner"; "--outcome"; "verified";
+             "--reason"; "the owner looked";
+           ]);
+      let spec = read_file (Filename.concat root "spec.json") in
+      assert (contains spec "attestations");
+      assert (contains spec "the owner looked");
       let _, text = call [ "map" ] in
       assert (contains text "holds");
 
