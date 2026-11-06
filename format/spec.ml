@@ -1,36 +1,12 @@
-(** The formats, and the only place they are read.
-
-    A format is read by a library, never by a parser of our own. The
-    third version wrote its own YAML reader and lost data in ways
-    nobody noticed for months; the rule against hand-written parsers
-    came out of that loss, and this file is the rule being kept.
-
-    The two formats are the standing specification of a project and the
-    wave. Both are strict: an unknown field is an error, not silence.
-    A format that silently ignores what it does not understand is a
-    format that lets an agent believe it did something it did not.
-
-    The shapes are chosen so that a translation into a formal modelling
-    language is a mapping and not a rewrite. A claim, a scope of paths,
-    an evidence, a verdict: four entities and three relations. That is
-    all a temporal model of this method needs. *)
 
 open Domain
 
-(** A parse failure, with the reason a human can act on. *)
 type error = { field : string; problem : string }
 
 let error field problem = { field; problem }
 
-(* Sequencing for results. Reading a format is a sequence of
-   requirements, and the first failure is the one worth reporting. *)
 let ( let* ) r f = match r with Ok v -> f v | Error e -> Error e
 
-(** The error, as a sentence. A refusal must be READABLE: the callers
-    print this, and before this function existed they had to raise an
-    exception to get a string out of an error - so a malformed file
-    killed the tool with a stack trace instead of saying what was
-    wrong with it. *)
 let message_of (e : error) : string =
   Printf.sprintf "%s: %s" (if e.field = "" then "spec" else e.field) e.problem
 
@@ -38,14 +14,7 @@ let result_of = function
   | Ok v -> v
   | Error e -> failwith (message_of e)
 
-(* ------------------------------------------------------------------ *)
-(* Strict object reading.                                              *)
-(* ------------------------------------------------------------------ *)
 
-(** Read an object with exactly the given fields. An unknown field is
-    an error: the whole point of a strict format is that a typo is
-    loud. A format that silently ignores what it does not understand is
-    a format that lets an agent believe it did something it did not. *)
 let read_object ~what (json : Yojson.Safe.t) ~(fields : string list) :
     ((string * Yojson.Safe.t) list, error) result =
   match json with
@@ -96,19 +65,7 @@ let require_register ~what name (pairs : (string * Yojson.Safe.t) list) =
   | Some _ -> Error (error (what ^ "." ^ name) "expected a string")
   | None -> Error (error (what ^ "." ^ name) "is required")
 
-(* ------------------------------------------------------------------ *)
-(* The standing specification.                                          *)
-(* ------------------------------------------------------------------ *)
 
-(** Parse one claim. Every field is required, and the scope must not be
-    empty: a claim about nothing is not a claim. Whether the scope
-    names anything in the tree is the adapter's business - see
-    [Verdict.law_no_vacant_subject] and the rule the adapter enforces
-    on top of it. *)
-(** The requirements of a claim: how it must be closed. Each one names
-    a kind - a command, or an authority - and the thing itself. All of
-    them are required: a rule closed by one of two means is not the
-    rule that was stated. *)
 let require_requirements ~what (pairs : (string * Yojson.Safe.t) list) =
   match List.assoc_opt "requirements" pairs with
   | Some (`List items) ->
@@ -131,13 +88,52 @@ let require_requirements ~what (pairs : (string * Yojson.Safe.t) list) =
   | Some _ -> Error (error (what ^ ".requirements") "expected a list")
   | None -> Error (error (what ^ ".requirements") "is required")
 
+let require_outcome ~what (fields : (string * Yojson.Safe.t) list) =
+  let* outcome = require_string ~what "outcome" fields in
+  match outcome with
+  | "verified" -> Ok Verified
+  | "falsified" -> Ok Falsified
+  | "unresolved" -> Ok Unresolved
+  | "refused" -> Ok Refused
+  | other ->
+      Error
+        (error (what ^ ".attestations.outcome")
+           (Printf.sprintf "expected verified, falsified, unresolved or refused; got %S" other))
+
+let require_attestations ~what (pairs : (string * Yojson.Safe.t) list) =
+  match List.assoc_opt "attestations" pairs with
+  | None -> Ok []
+  | Some (`List items) ->
+      let rec go acc = function
+        | [] -> Ok (List.rev acc)
+        | `Assoc fields :: rest -> (
+            let* requirement = require_string ~what "requirement" fields in
+            let* who = require_string ~what "who" fields in
+            let* outcome = require_outcome ~what fields in
+            let* bound_to = require_string ~what "bound_to" fields in
+            let* at = require_string ~what "at" fields in
+            let text name =
+              match List.assoc_opt name fields with
+              | Some (`String t) -> Some t
+              | _ -> None
+            in
+            go
+              ({ requirement; who; outcome; reason = text "reason"; bound_to; at;
+                 valid_until = text "valid_until" }
+               :: acc)
+              rest)
+        | _ -> Error (error (what ^ ".attestations") "expected a list of objects")
+      in
+      go [] items
+  | Some _ -> Error (error (what ^ ".attestations") "expected a list")
+
 let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
   let what = "claim" in
   match
     read_object ~what json
       ~fields:
         [ "id"; "subject"; "scope"; "requirements"; "falsifier"; "register";
-          "accepted" ]
+          "accepted"; "attestations" ]
   with
   | Error e -> Error e
   | Ok pairs ->
@@ -157,6 +153,7 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
             Ok (Some (by, reason)))
         | Some _ -> Error (error (what ^ ".accepted") "expected an object or null")
       in
+      let* attestations = require_attestations ~what pairs in
       if scope = [] then
         Error
           (error (what ^ ".scope")
@@ -170,11 +167,9 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
             falsifier;
             register;
             accepted;
+            attestations;
           }
 
-(** Parse the aim. It is optional in the file - a project that has not
-    stated one yet is a project the method accepts claims from
-    nowhere, and [mathc add] is where that is refused. *)
 let parse_goal (json : Yojson.Safe.t) : (goal, error) result =
   let what = "goal" in
   match read_object ~what json ~fields:[ "text"; "scope"; "by"; "at" ] with
@@ -190,13 +185,6 @@ let parse_goal (json : Yojson.Safe.t) : (goal, error) result =
              "must not be empty: an aim about nothing aims at nothing")
       else Ok { text; scope; by; at }
 
-(** Parse the standing specification: the aim, the price of uncertainty
-    the project agreed to pay, and the claims.
-
-    The budget is required. A budget nobody declared is not finite, and
-    an uncertainty that costs nothing makes "I do not know" cheaper
-    than checking - which is the free escalation the principle exists
-    to stop. *)
 let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
   match
     read_object ~what:"spec" json
@@ -225,9 +213,6 @@ let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
               (error "spec.uncertainty_budget"
                  "is required: an uncertainty nobody priced is free, and a free uncertainty is why \"I do not know\" would be cheaper than checking")
       in
-      (* The closed waves are optional: a specification written before
-         this field existed is still a specification, and the plan's
-         progress starts empty. *)
       let* closed_waves =
         match List.assoc_opt "closed_waves" pairs with
         | None -> Ok []
@@ -259,9 +244,6 @@ let parse_spec_string (text : string) : (spec, error) result =
   | json -> parse_spec json
   | exception Yojson.Json_error msg -> Error (error "spec" msg)
 
-(** Write the specification back. The file is machine-managed: it is
-    read and written by the method, and the aim and the claims are
-    data in it. *)
 let spec_to_json (s : spec) : Yojson.Safe.t =
   `Assoc
     [ ( "goal",
@@ -306,19 +288,37 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                      match c.accepted with
                      | None -> `Null
                      | Some (by, reason) ->
-                         `Assoc [ ("by", `String by); ("reason", `String reason) ] ) ])
+                         `Assoc [ ("by", `String by); ("reason", `String reason) ] );
+                   ( "attestations",
+                     `List
+                       (List.map
+                          (fun (a : Domain.attestation) ->
+                            `Assoc
+                              [
+                                ("requirement", `String a.requirement);
+                                ("who", `String a.who);
+                                ( "outcome",
+                                  `String
+                                    (match a.outcome with
+                                    | Domain.Verified -> "verified"
+                                    | Domain.Falsified -> "falsified"
+                                    | Domain.Unresolved -> "unresolved"
+                                    | Domain.Refused -> "refused") );
+                                ( "reason",
+                                  match a.reason with
+                                  | Some r -> `String r
+                                  | None -> `Null );
+                                ("bound_to", `String a.bound_to);
+                                ("at", `String a.at);
+                                ( "valid_until",
+                                  match a.valid_until with
+                                  | Some t -> `String t
+                                  | None -> `Null );
+                              ])
+                          c.attestations) ) ])
              s.claims) )]
 
-(* ------------------------------------------------------------------ *)
-(* The wave.                                                            *)
-(* ------------------------------------------------------------------ *)
 
-(** The state, as the outside writes it.
-
-    The names are the shape of the outside, so they live in the codec
-    and not in the core: the core holds the states as values, and two
-    places - the map and the wave's promises - have to say the same
-    thing about them. A name written twice is two truths. *)
 let state_of_name (text : string) : Domain.state option =
   match text with
   | "holds" -> Some Domain.Holds
@@ -330,8 +330,6 @@ let state_of_name (text : string) : Domain.state option =
   | "accepted by a person" -> Some Domain.Accepted
   | _ -> None
 
-(** The promises of a wave: which claim, and which state it will be in
-    when the wave is done. *)
 let require_commitment ~what (pairs : (string * Yojson.Safe.t) list) =
   match List.assoc_opt "commitment" pairs with
   | Some (`List items) ->
@@ -352,14 +350,6 @@ let require_commitment ~what (pairs : (string * Yojson.Safe.t) list) =
   | Some _ -> Error (error (what ^ ".commitment") "expected a list")
   | None -> Error (error (what ^ ".commitment") "is required")
 
-(** Parse a wave: a finished, green slice of work.
-
-    The wave carries THREE things the older format kept in a file per
-    decision: the intent (why this unit of work), the promise (which
-    claim will be in which state when it is done) and the dialectic
-    (the strongest objection and what would refute it). The promise
-    is the part that can be checked, and the check is the closing of
-    the wave. *)
 let parse_wave (json : Yojson.Safe.t) : (wave, error) result =
   let what = "wave" in
   match

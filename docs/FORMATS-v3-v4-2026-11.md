@@ -174,3 +174,120 @@ METHODOLOGY-LINEAGE-2026-11.md`, раздел «Расхождения»). Пр�
 Поэтому число 18 в чужой прозе не повторяется здесь как факт. Число,
 у которого нет носителя, — это ровно то, чем был этот замер до
 06.11.
+
+## Как устроены форматы — словами, которые стоят у кода
+
+Это пересказ кодекa: как читаются и пишутся обе формы. Код —
+спецификация для исполнения; этот раздел — для чтения.
+
+The formats, and the only place they are read.
+
+    A format is read by a library, never by a parser of our own. The
+    third version wrote its own YAML reader and lost data in ways
+    nobody noticed for months; the rule against hand-written parsers
+    came out of that loss, and this file is the rule being kept.
+
+    The two formats are the standing specification of a project and the
+    wave. Both are strict: an unknown field is an error, not silence.
+    A format that silently ignores what it does not understand is a
+    format that lets an agent believe it did something it did not.
+
+    The shapes are chosen so that a translation into a formal modelling
+    language is a mapping and not a rewrite. A claim, a scope of paths,
+    an evidence, a verdict: four entities and three relations. That is
+    all a temporal model of this method needs.
+
+A parse failure, with the reason a human can act on.
+
+(* Sequencing for results. Reading a format is a sequence of
+   requirements, and the first failure is the one worth reporting.
+
+The error, as a sentence. A refusal must be READABLE: the callers
+    print this, and before this function existed they had to raise an
+    exception to get a string out of an error - so a malformed file
+    killed the tool with a stack trace instead of saying what was
+    wrong with it.
+
+(* ------------------------------------------------------------------
+
+(* Strict object reading.
+
+(* ------------------------------------------------------------------
+
+Read an object with exactly the given fields. An unknown field is
+    an error: the whole point of a strict format is that a typo is
+    loud. A format that silently ignores what it does not understand is
+    a format that lets an agent believe it did something it did not.
+
+(* ------------------------------------------------------------------
+
+(* The standing specification.
+
+(* ------------------------------------------------------------------
+
+Parse one claim. Every field is required, and the scope must not be
+    empty: a claim about nothing is not a claim. Whether the scope
+    names anything in the tree is the adapter's business - see
+    [Verdict.law_no_vacant_subject] and the rule the adapter enforces
+    on top of it.
+
+The requirements of a claim: how it must be closed. Each one names
+    a kind - a command, or an authority - and the thing itself. All of
+    them are required: a rule closed by one of two means is not the
+    rule that was stated.
+
+What an attestation concluded.
+
+The proofs that came from outside, and must not be lost.
+
+    They are optional: a specification written before this field
+    existed is still a specification, and the attestations start
+    empty. Each one names the requirement it closes - by the thing it
+    names, the way `record` does - who produced it, what it concluded,
+    the subject it was produced against, and when.
+
+Parse the aim. It is optional in the file - a project that has not
+    stated one yet is a project the method accepts claims from
+    nowhere, and [mathc add] is where that is refused.
+
+Parse the standing specification: the aim, the price of uncertainty
+    the project agreed to pay, and the claims.
+
+    The budget is required. A budget nobody declared is not finite, and
+    an uncertainty that costs nothing makes "I do not know" cheaper
+    than checking - which is the free escalation the principle exists
+    to stop.
+
+(* The closed waves are optional: a specification written before
+         this field existed is still a specification, and the plan's
+         progress starts empty.
+
+Write the specification back. The file is machine-managed: it is
+    read and written by the method, and the aim and the claims are
+    data in it.
+
+(* ------------------------------------------------------------------
+
+(* The wave.
+
+(* ------------------------------------------------------------------
+
+The state, as the outside writes it.
+
+    The names are the shape of the outside, so they live in the codec
+    and not in the core: the core holds the states as values, and two
+    places - the map and the wave's promises - have to say the same
+    thing about them. A name written twice is two truths.
+
+The promises of a wave: which claim, and which state it will be in
+    when the wave is done.
+
+Parse a wave: a finished, green slice of work.
+
+    The wave carries THREE things the older format kept in a file per
+    decision: the intent (why this unit of work), the promise (which
+    claim will be in which state when it is done) and the dialectic
+    (the strongest objection and what would refute it). The promise
+    is the part that can be checked, and the check is the closing of
+    the wave.
+

@@ -20,7 +20,8 @@
       ],
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "core-is-pure",
@@ -31,7 +32,8 @@
       ],
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-aim-is-a-persons",
@@ -40,7 +42,27 @@
       "requirements": [ { "kind": "review", "spec": "owner" } ],
       "falsifier": "цель выводится из сделанного, а не сформулирована: это видно по тому, что смена цели не требует основания",
       "register": "judgment",
-      "accepted": null
+      "accepted": null,
+      "attestations": [
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "4a549a0bdbdcbbbe9d957b7ecfafd6b5acb60900",
+          "at": "1794005365",
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
+          "at": "1794005390",
+          "valid_until": null
+        }
+      ]
     },
     {
       "id": "verbs-work",
@@ -51,7 +73,8 @@
       ],
       "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-tool-is-documented",
@@ -62,7 +85,8 @@
       ],
       "falsifier": "глагол есть в бинаре, но не назван в README",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "formal-part-matches-the-code",
@@ -73,7 +97,8 @@
       ],
       "falsifier": "в ядре есть закон, которого нет в AXIOMS.md",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-plan-carries-its-objection",
@@ -84,7 +109,8 @@
       ],
       "falsifier": "волна без возражения или без того, что его опровергнет",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-specification-is-readable",
@@ -95,7 +121,8 @@
       ],
       "falsifier": "спецификация не читается или в ней есть утверждение без предмета, требований или опровержителя",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-proof-is-anchored-to-the-act",
@@ -106,7 +133,8 @@
       ],
       "falsifier": "в следе нет коммита, из которого взято содержимое, или срок проигнорирован",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     },
     {
       "id": "the-wave-says-why-and-promises-what-can-be-checked",
@@ -117,7 +145,8 @@
       ],
       "falsifier": "волна без замысла или без обязательства, либо волна закрывается с невыполненным обещанием",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "attestations": []
     }
   ]
 }
