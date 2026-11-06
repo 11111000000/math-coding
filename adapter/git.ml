@@ -81,23 +81,43 @@ let hash_content (root : string) (content : string) : string =
     attestation that could ever pass was the one carrying no evidence
     at all. The method rewards dishonesty when the digest is empty, so
     the digest is never empty here: a scope that names nothing has no
-    digest, and a claim with no digest cannot be run. *)
+    digest, and a claim with no digest cannot be run.
+
+    AND A SUBJECT IS WHOLE OR IT IS NOT. Every path of the scope must
+    exist. A scope that names one real directory and one path that is
+    not in the tree describes a subject with a hole in it, and the
+    digest of such a subject says nothing whatever about the part that
+    is missing - it is a digest of the part that happens to be there.
+    The third version's wildcard was the same mistake in a worse form:
+    evidence that could be about anything was evidence about nothing.
+
+    So the paths are collected first and the digest is computed only if
+    every one of them is there. A missing path makes the whole subject
+    unbound, and an unbound subject cannot be run. *)
 let digest_of_scope (root : string) (scope : Domain.scope) : string option =
-  let lines =
-    List.filter_map
-      (fun prefix ->
+  let rec collect acc = function
+    | [] -> Some (List.rev acc)
+    | prefix :: rest -> (
         match object_id root prefix with
         | None -> None
-        | Some oid -> Some (prefix ^ " " ^ oid))
-      scope
+        | Some oid -> collect ((prefix ^ " " ^ oid) :: acc) rest)
   in
-  if lines = [] then None
-  else Some (hash_content root (String.concat "\n" (List.sort compare lines) ^ "\n"))
+  match collect [] scope with
+  | None -> None
+  | Some [] -> None
+  | Some lines ->
+      Some (hash_content root (String.concat "\n" (List.sort compare lines) ^ "\n"))
 
-(** Does the scope name anything at all? The check that keeps a claim
-    from being made about nothing. *)
-let scope_names_something (root : string) (scope : Domain.scope) : bool =
-  List.exists (fun prefix -> object_id root prefix <> None) scope
+(** Does the scope name anything that exists? The check that keeps a
+    claim from being made about nothing - and from being made about HALF
+    of nothing: every path of the scope must be there, because a scope
+    with a missing path is a subject with a hole in it.
+
+    This is the adapter's half of the law [Verdict.law_no_partial_subject]:
+    the core cannot see the tree, so it states the law over the two
+    functions that decide, and the adapter supplies them. *)
+let scope_exists (root : string) (scope : Domain.scope) : bool =
+  scope <> [] && List.for_all (fun prefix -> object_id root prefix <> None) scope
 
 (** The tracked files a scope covers. *)
 let files_under (scope : Domain.scope) (files : string list) : string list =

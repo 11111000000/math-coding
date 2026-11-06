@@ -251,7 +251,8 @@ let verb_run () =
           match binding_of claim with
           | None ->
               Printf.printf
-                "%s: no digest - the scope names nothing, so nothing can be bound\n"
+                "%s: no digest - the scope names no existing path, so nothing can be \
+                 bound\n"
                 claim.id;
               []
           | Some binding ->
@@ -354,7 +355,7 @@ let verb_record claim_id spec by outcome (reason : string) =
       | Some requirement -> (
           match binding_of claim with
           | None ->
-              refuse "the scope names nothing, so nothing could be bound"
+              refuse "the scope names no existing path, so nothing could be bound"
           | Some binding ->
               let e =
                 {
@@ -695,8 +696,10 @@ let verb_add id subject scope requirements falsifier register =
                "the scope is outside the aim. The aim covers %s; this claim is about %s"
                (String.concat ", " (match spec.goal with Some g -> g.Domain.scope | None -> []))
                (String.concat ", " scope))
-        else if not (Git.scope_names_something (root ()) scope) then
-          Some "the scope names nothing in this tree, so nothing could be bound to it"
+        else if not (Git.scope_exists (root ()) scope) then
+          Some
+            "the scope names a path that is not in this tree, so the subject would \
+             have a hole in it and nothing could be bound to it"
         else
           let consumption = consumption_of spec.Domain.claims in
           if consumption >= spec.Domain.budget then

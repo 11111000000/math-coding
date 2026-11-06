@@ -21,3 +21,10 @@
 (test
  (name repository_lints)
  (libraries mathcoding str unix))
+
+; The subject is whole or it is not: a scope with a path that is not in
+; the tree has no digest, and the adapter that hashed only the paths it
+; found is offered to the law and rejected.
+(test
+ (name adapter_scope)
+ (libraries mathcoding mathcoding_adapter unix))

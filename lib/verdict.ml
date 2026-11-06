@@ -290,8 +290,40 @@ let law_outdated_is_never_verified
 
 (** A scope that names nothing is not a subject. The scope must not be
     empty; whether it names anything in the tree is the adapter's
-    business, and this law is the part that can be stated here. *)
-let law_no_vacant_subject (s : scope) = s <> []
+    business, and this law is the part that can be stated here.
+
+    It is stated over the FUNCTION that decides, like every other law
+    here, and it used not to be: it was a bare predicate over a scope,
+    which no broken implementation could be offered to, and so it had
+    no negative control and nobody had ever tried to break it. A law
+    that cannot be offered a counterexample is a description of the
+    code. The function is the one that says whether a scope names a
+    subject at all; the law says that such a scope is not empty. *)
+let law_no_vacant_subject (is_subject : scope -> bool) (s : scope) =
+  (not (is_subject s)) || s <> []
+
+(** A subject is whole or it is not: a scope with a path that is not in
+    the tree is a subject with a hole in it, and a digest of such a
+    subject says nothing about the part that is missing.
+
+    The core cannot see the tree - that is the adapter's business - so
+    the law is stated over the two functions that decide: the one that
+    computes the digest of a scope, and the one that says whether a
+    path is there. The law says that a digest exists only for a scope
+    whose every path exists. A subject that is partly missing has no
+    digest, and a claim that cannot be bound cannot be run.
+
+    This law exists because the defect was real and quiet: the adapter
+    used to hash the paths it found and drop the ones it did not, so a
+    scope of one real directory and one missing path produced a digest
+    and a green verdict, and the part that was missing was invisible.
+    The broken version of the adapter is offered to this law in the
+    test suite, and the law has to reject it. *)
+let law_no_partial_subject (digest : scope -> string option)
+    (exists : string -> bool) (s : scope) =
+  match digest s with
+  | None -> true
+  | Some _ -> s <> [] && List.for_all exists s
 
 (** Every verdict leaves the method with a distinct exit code. *)
 let law_exit_codes_distinct () =

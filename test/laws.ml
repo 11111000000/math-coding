@@ -70,6 +70,11 @@ let cost_of_outcome_free (_o : outcome) = 0
    what an acceptance is for. *)
 let apply_acceptance_accepts_anything (_c : claim) (_s : state) = Accepted
 
+(* A scope that names nothing is accepted as a subject. Then a claim
+   about nothing could be declared, bound and run - the door the third
+   version's wildcard came through. *)
+let scope_never_empty (_s : scope) = true
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -199,7 +204,18 @@ let check_negative_controls () =
   assert (unknown = Domain.Inconclusive);
   assert
     (law_acceptance_never_changes_an_answer Verdict.apply_acceptance accepted_claim
-       unknown)
+       unknown);
+
+  (* A scope that names nothing is not a subject. This law was in the
+     core from the start and had NO control: it was stated as a bare
+     predicate over a scope, so no broken implementation could be
+     offered to it, and nothing ever tried to break it. A law with no
+     counterexample offered to it is a description of the code, not a
+     law about it. The law is now stated over the function that
+     decides, like every other one. *)
+  assert (law_no_vacant_subject (fun _ -> true) [ "lib/" ]);
+  assert (law_no_vacant_subject (fun _ -> false) []);
+  assert (not (law_no_vacant_subject scope_never_empty []))
 
 (** Two claims often share one check - the same test suite verifies
     several rules - and their evidence must not answer for each other.
