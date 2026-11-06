@@ -434,6 +434,10 @@ let verb_next () =
       Printf.printf "next: wave %s - %s\n" wave.Domain.id wave.Domain.title;
       Printf.printf "  the objection it carries: %s\n" wave.Domain.objection;
       Printf.printf "  what would refute it: %s\n" wave.Domain.refuted_by;
+      (* The output of the checks follows, and it is theirs, not ours.
+         Ours must come first even when both go into one pipe, so ours
+         is flushed before the checks run. *)
+      flush stdout;
       let failing =
         List.filter
           (fun check ->
