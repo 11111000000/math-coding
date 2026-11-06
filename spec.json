@@ -52,6 +52,15 @@
           "bound_to": "4a549a0bdbdcbbbe9d957b7ecfafd6b5acb60900",
           "at": "1794005365",
           "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
+          "at": "1794005390",
+          "valid_until": null
         }
       ]
     },
