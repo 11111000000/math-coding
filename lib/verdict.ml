@@ -61,31 +61,61 @@ let aggregate (results : evidence list) : verdict =
     (fun v (r : evidence) -> combine v (verdict_of_outcome r.outcome))
     Green results
 
-(** The state of one claim, given its evidence and the subject's
-    current binding. The binding is the crux: evidence obtained
-    against a subject that has since moved is evidence about a subject
-    that no longer exists, and it can never read as verified.
+(** The state of one claim, from its evidence and the subject's current
+    binding. The binding is the crux: evidence obtained against a
+    subject that has since moved is evidence about a subject that no
+    longer exists, and it can never read as verified. *)
+let state_of_evidence (current : binding option) (evidence : evidence option) : state =
+  match evidence with
+  | None -> NeverChecked
+  | Some e -> (
+      match current with
+      | Some b when e.bound_to = b -> (
+          match e.outcome with
+          | Verified -> Holds
+          | Falsified -> Refuted
+          | Unresolved -> Inconclusive
+          | Refused -> NotCheckable)
+      | _ -> Outdated)
 
-    A claim a person has taken responsibility for is [Accepted] before
-    anything else is considered. That is not an answer - the claim is
-    still not known - and the verdict still counts it as unknown. It is
-    a decision about whose problem the uncertainty is. *)
+(** The acceptance, as a separate step over the computed state.
+
+    A person may take responsibility for an UNCERTAINTY, and for
+    nothing else. They may not take responsibility for an answer: a
+    refuted claim is not uncertain, it is false, and accepting it does
+    not un-refute it. An acceptance that covered answers would let a
+    person bury a finding, which is the opposite of what an acceptance
+    is for.
+
+    The step is separate from the computation for a reason that is not
+    tidiness: a law that talks about acceptance can only be refuted if
+    the acceptance is a function of the state, and not of everything
+    at once. Stated over the whole computation, a broken function that
+    ignores its input would satisfy the law by being broken in the same
+    way twice. *)
+let apply_acceptance (c : claim) (computed : state) : state =
+  match c.accepted with
+  | Some _ when computed = Holds || computed = Refuted -> computed
+  | Some _ -> Accepted
+  | None -> computed
+
+(** The state of one claim: the computed state, with the acceptance
+    applied. *)
 let state_of (claim : claim) (current : binding option) (evidence : evidence option) :
     state =
-  match claim.accepted with
-  | Some _ -> Accepted
-  | None -> (
-      match evidence with
-      | None -> NeverChecked
-      | Some e -> (
-          match current with
-          | Some b when e.bound_to = b -> (
-              match e.outcome with
-              | Verified -> Holds
-              | Falsified -> Refuted
-              | Unresolved -> Inconclusive
-              | Refused -> NotCheckable)
-          | _ -> Outdated))
+  apply_acceptance claim (state_of_evidence current evidence)
+
+(** The law of the acceptance: it covers uncertainty and never an
+    answer. Stated over the step it constrains, so that the broken
+    version - one that accepts anything - can be offered to it and
+    rejected. *)
+let law_acceptance_never_changes_an_answer
+    (apply' : claim -> state -> state)
+    (c : claim)
+    (s : state) =
+  match s with
+  | Holds | Refuted -> apply' c s = s
+  | _ -> apply' c s = Accepted || apply' c s = s
 
 (** The verdict of a set of states. An outdated claim is unknown, never
     green: the proof was about yesterday's subject. *)

@@ -251,7 +251,8 @@ let parse_wave (json : Yojson.Safe.t) : (wave, error) result =
   match
     read_object ~what json
       ~fields:
-        [ "id"; "title"; "touches"; "checks"; "claims"; "verdicts_changed" ]
+        [ "id"; "title"; "touches"; "checks"; "claims"; "verdicts_changed";
+          "objection"; "refuted_by" ]
   with
   | Error e -> Error e
   | Ok pairs ->
@@ -261,7 +262,9 @@ let parse_wave (json : Yojson.Safe.t) : (wave, error) result =
       let* checks = require_string_list ~what "checks" pairs in
       let* claims = require_string_list ~what "claims" pairs in
       let* verdicts_changed = require_string_list ~what "verdicts_changed" pairs in
-      Ok { id; title; touches; checks; claims; verdicts_changed }
+      let* objection = require_string ~what "objection" pairs in
+      let* refuted_by = require_string ~what "refuted_by" pairs in
+      Ok { id; title; touches; checks; claims; verdicts_changed; objection; refuted_by }
 
 let parse_wave_string (text : string) : (wave, error) result =
   match Yojson.Safe.from_string text with

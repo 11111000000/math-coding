@@ -305,6 +305,8 @@ let verb_next () =
          run, and if its declared verdicts are established afterwards,
          the wave is finished and the method says so. *)
       Printf.printf "next: wave %s - %s\n" wave.Domain.id wave.Domain.title;
+      Printf.printf "  the objection it carries: %s\n" wave.Domain.objection;
+      Printf.printf "  what would refute it: %s\n" wave.Domain.refuted_by;
       let failing =
         List.filter
           (fun check ->
@@ -426,6 +428,8 @@ let verb_close id =
             1)
           else (
             Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
+            Printf.printf "  the objection it carried: %s\n" wave.objection;
+            Printf.printf "  what would refute it: %s\n" wave.refuted_by;
             List.iter
               (fun claim_id ->
                 let state = List.assoc_opt claim_id states in

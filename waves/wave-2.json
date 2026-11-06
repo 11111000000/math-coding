@@ -1,8 +1,27 @@
 {
   "id": "wave-2",
   "title": "the beginning of the protocol and its friction: the aim, the declaration, the register, the price of uncertainty",
-  "touches": ["lib/", "test/", "adapter/", "bin/", "spec.json", "waves/"],
-  "checks": ["dune runtest --root . --force"],
-  "claims": ["no-scripts", "core-is-pure", "the-aim-is-a-persons"],
-  "verdicts_changed": ["no-scripts", "core-is-pure", "the-aim-is-a-persons"]
+  "touches": [
+    "lib/",
+    "test/",
+    "adapter/",
+    "bin/",
+    "spec.json",
+    "waves/"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "no-scripts",
+    "core-is-pure",
+    "the-aim-is-a-persons"
+  ],
+  "verdicts_changed": [
+    "no-scripts",
+    "core-is-pure",
+    "the-aim-is-a-persons"
+  ],
+  "objection": "объявление утверждения требует цели, а цель выскал человек: агент не может начать, если человек ещё не высказался",
+  "refuted_by": "агент получает право объявлять без цели, и это оказывается полезнее"
 }
