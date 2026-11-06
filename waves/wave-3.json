@@ -1,0 +1,8 @@
+{
+  "id": "wave-3",
+  "title": "the beginning of adoption and the measurement of the method: init, accept, the map as data, and the stand",
+  "touches": ["lib/", "test/", "adapter/", "bin/", "spec.json", "waves/", "README.md"],
+  "checks": ["dune runtest --root . --force"],
+  "claims": ["no-scripts", "core-is-pure", "the-aim-is-a-persons"],
+  "verdicts_changed": ["no-scripts", "core-is-pure", "the-aim-is-a-persons"]
+}

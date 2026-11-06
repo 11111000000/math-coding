@@ -84,7 +84,7 @@ let read (root : string) : Domain.evidence list =
                          | "refused" -> Domain.Refused
                          | _ -> Domain.Unresolved
                        in
-                       Some { Domain.claim = { id; subject = { text = ""; scope = [] }; check = ""; falsifier = ""; register = Domain.Undeclared }; outcome = o; bound_to = bound; reason = get "reason" }
+                       Some { Domain.claim = { id; subject = { text = ""; scope = [] }; check = ""; falsifier = ""; register = Domain.Undeclared; accepted = None }; outcome = o; bound_to = bound; reason = get "reason" }
                    | _ -> None)
                | _ -> None)
            | exception Yojson.Json_error _ -> None)

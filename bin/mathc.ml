@@ -81,7 +81,7 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   List.map
     (fun (claim : Domain.claim) ->
       let e = List.find_opt (fun (x : Domain.evidence) -> x.claim.id = claim.id) evidence in
-      (claim.id, Verdict.state_of (binding_of claim) e))
+      (claim.id, Verdict.state_of claim (binding_of claim) e))
     claims
 
 (** How much of the uncertainty budget the project has spent. Only an
@@ -93,7 +93,7 @@ let consumption_of (claims : Domain.claim list) : int =
   List.fold_left
     (fun n (_, state) ->
       match state with
-      | Domain.Holds | Domain.Refuted -> n
+      | Domain.Holds | Domain.Refuted | Domain.Accepted -> n
       | _ -> n + 1)
     0 states
 
@@ -103,33 +103,91 @@ let consumption_of (claims : Domain.claim list) : int =
 
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
-let verb_map () =
-  let spec = load_spec () in
+(** The map, as data. The same map the human reads, in a form a program
+    can read: the measurement stand consumes this, and so can an
+    agent that wants to decide what to do next without parsing prose.
+
+    The map is the method's main artifact, and an artifact that only a
+    person can read is an artifact that no program can check. *)
+let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
-  Printf.printf "verdict: %s (exit %d)\n"
-    (match verdict with Domain.Green -> "green" | Domain.Red -> "red" | Domain.Unknown -> "unknown")
-    (Verdict.verdict_to_exit verdict);
-  Printf.printf "claims: %d\n" (List.length claims);
-  List.iter
-    (fun (id, state) ->
-      Printf.printf "  %-24s %s\n" id
-        (match state with
-        | Domain.Holds -> "holds"
-        | Domain.Refuted -> "refuted"
-        | Domain.Inconclusive -> "inconclusive"
-        | Domain.NotCheckable -> "not checkable"
-        | Domain.Outdated -> "outdated"
-        | Domain.NeverChecked -> "never checked"))
-    states;
-  Printf.printf "uncertainty: %d of %d consumed\n"
-    (consumption_of claims) spec.Domain.budget;
-  Printf.printf "uncovered: %d tracked file(s) no claim covers\n" (List.length uncovered);
-  List.iter (fun f -> Printf.printf "  %s\n" f) uncovered;
-  Verdict.verdict_to_exit verdict
+  let state_name = function
+    | Domain.Holds -> "holds"
+    | Domain.Refuted -> "refuted"
+    | Domain.Inconclusive -> "inconclusive"
+    | Domain.NotCheckable -> "not checkable"
+    | Domain.Outdated -> "outdated"
+    | Domain.NeverChecked -> "never checked"
+    | Domain.Accepted -> "accepted by a person"
+  in
+  `Assoc
+    [ ( "verdict",
+        `String
+          (match verdict with
+          | Domain.Green -> "green"
+          | Domain.Red -> "red"
+          | Domain.Unknown -> "unknown") );
+      ("exit", `Int (Verdict.verdict_to_exit verdict));
+      ("claims", `Int (List.length claims));
+      ("uncertainty_consumed", `Int (consumption_of claims));
+      ("uncertainty_budget", `Int spec.Domain.budget);
+      ("uncovered", `Int (List.length uncovered));
+      ( "goal",
+        match spec.Domain.goal with
+        | None -> `Null
+        | Some g ->
+            `Assoc
+              [ ("text", `String g.text);
+                ("scope", `List (List.map (fun p -> `String p) g.Domain.scope));
+                ("by", `String g.by) ] );
+      ( "states",
+        `List
+          (List.map
+             (fun (id, state) ->
+               `Assoc [ ("id", `String id); ("state", `String (state_name state)) ])
+             states) );
+      ( "uncovered_paths",
+        `List (List.map (fun f -> `String f) uncovered) )]
+
+let verb_map json =
+  let spec = load_spec () in
+  if json then (
+    print_endline (Yojson.Safe.pretty_to_string (map_to_json spec));
+    Verdict.verdict_to_exit (Verdict.verdict_of_states (List.map snd (states_of spec.Domain.claims))))
+  else
+    let claims = spec.Domain.claims in
+    let states = states_of claims in
+    let files = Git.tracked_files (root ()) in
+    let uncovered = Git.uncovered claims files in
+    let verdict = Verdict.verdict_of_states (List.map snd states) in
+    Printf.printf "verdict: %s (exit %d)\n"
+      (match verdict with
+      | Domain.Green -> "green"
+      | Domain.Red -> "red"
+      | Domain.Unknown -> "unknown")
+      (Verdict.verdict_to_exit verdict);
+    Printf.printf "claims: %d\n" (List.length claims);
+    List.iter
+      (fun (id, state) ->
+        Printf.printf "  %-24s %s\n" id
+          (match state with
+          | Domain.Holds -> "holds"
+          | Domain.Refuted -> "refuted"
+          | Domain.Inconclusive -> "inconclusive"
+          | Domain.NotCheckable -> "not checkable"
+          | Domain.Outdated -> "outdated"
+          | Domain.NeverChecked -> "never checked"
+          | Domain.Accepted -> "accepted by a person"))
+      states;
+    Printf.printf "uncertainty: %d of %d consumed\n"
+      (consumption_of claims) spec.Domain.budget;
+    Printf.printf "uncovered: %d tracked file(s) no claim covers\n" (List.length uncovered);
+    List.iter (fun f -> Printf.printf "  %s\n" f) uncovered;
+    Verdict.verdict_to_exit verdict
 
 (** route: what needs a person, and why. *)
 let verb_route () =
@@ -170,7 +228,7 @@ let verb_run () =
                 claim.id;
               (claim, Domain.Unresolved, None, None)
           | Some binding ->
-              let outcome, reason = Exec.run_claim claim in
+              let outcome, reason = Exec.run_claim ~root:(root ()) claim in
               Printf.printf "%s: %s\n" claim.id
                 (match outcome with
                 | Domain.Verified -> "verified"
@@ -197,6 +255,15 @@ let verb_next () =
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
+  (* A refuted claim is the most urgent work there is: something that
+     was believed is now known to be false. It comes first, before the
+     claims nobody has looked at. *)
+  let refuted =
+    List.filter_map
+      (fun (id, state) ->
+        match state with Domain.Refuted -> Some id | _ -> None)
+      states
+  in
   let needs_check =
     List.filter_map
       (fun (id, state) ->
@@ -205,15 +272,18 @@ let verb_next () =
         | _ -> None)
       states
   in
-  match (needs_check, uncovered) with
-  | id :: _, _ ->
+  match (refuted, needs_check, uncovered) with
+  | id :: _, _, _ ->
+      Printf.printf "next: the claim %s is refuted - it was believed and is not\n" id;
+      0
+  | [], id :: _, _ ->
       Printf.printf "next: check the claim %s - it is not known now\n" id;
       0
-  | [], first :: _ ->
+  | [], [], first :: _ ->
       Printf.printf "next: nothing is unverified; %d tracked file(s) are uncovered, starting with %s\n"
         (List.length uncovered) first;
       0
-  | [], [] ->
+  | [], [], [] ->
       print_endline "next: nothing to do - every claim is known and everything is covered";
       0
 
@@ -245,7 +315,7 @@ let verb_close id =
         let failing =
           List.filter
             (fun check ->
-              let outcome, _ = Exec.run_check check in
+              let outcome, _ = Exec.run_check_in ~root:(root ()) check in
               outcome <> Domain.Verified)
             wave.checks
         in
@@ -288,6 +358,7 @@ let verb_close id =
                   | Some Domain.NotCheckable -> "not checkable"
                   | Some Domain.Outdated -> "outdated"
                   | Some Domain.NeverChecked -> "never checked"
+                  | Some Domain.Accepted -> "accepted by a person"
                   | None -> "no such claim"))
               unestablished;
             1)
@@ -304,6 +375,7 @@ let verb_close id =
                   | Some Domain.Inconclusive -> "inconclusive"
                   | Some Domain.Outdated -> "outdated"
                   | Some Domain.NeverChecked -> "never checked"
+                  | Some Domain.Accepted -> "accepted by a person"
                   | None -> "no such claim"))
               wave.verdicts_changed;
             0))
@@ -432,20 +504,97 @@ let verb_add id subject scope check falsifier register =
         | other -> failwith ("unknown register: " ^ other)
       in
       let claim =
-        { Domain.id; subject = { text = subject; scope }; check; falsifier; register }
+        {
+          Domain.id;
+          subject = { text = subject; scope };
+          check;
+          falsifier;
+          register;
+          accepted = None;
+        }
       in
       save_spec { spec with claims = spec.Domain.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;
       0
+
+(** accept: a person takes responsibility for one claim's uncertainty.
+
+    This is the second of the three ways out the principle leaves when
+    the budget is spent: find a check, ask for authority, or stop. It
+    is not an answer - the claim is still not known, and the verdict
+    still counts it as unknown - it is a decision about whose problem
+    the uncertainty is. The reason is required, because an acceptance
+    without one is a shrug with a date on it.
+
+    The acceptance is recorded in the standing specification, so the
+    map can show it, and in the trail, so the history of who took
+    responsibility for what can be read later. *)
+let verb_accept id by reason =
+  let spec = load_spec () in
+  let problem =
+    if by = "" then Some "an acceptance needs a name: who took responsibility"
+    else if reason = "" then Some "an acceptance needs a reason"
+    else None
+  in
+  match problem with
+  | Some why ->
+      Printf.eprintf "mathc: %s\n" why;
+      2
+  | None -> (
+  match List.find_opt (fun (c : Domain.claim) -> c.id = id) spec.Domain.claims with
+  | None ->
+      Printf.eprintf "mathc: there is no claim %S\n" id;
+      2
+  | Some claim ->
+      let accepted = Some (by, reason) in
+      save_spec
+        {
+          spec with
+          claims =
+            List.map
+              (fun (c : Domain.claim) -> if c.id = id then { c with accepted } else c)
+              spec.Domain.claims;
+        };
+      Printf.printf "claim %s: accepted by %s\n" id by;
+      Printf.printf "  %s\n" reason;
+      0)
+
+(** init: prepare a project for the method.
+
+    Adoption must cost nothing, and this is what that means in
+    practice: one file, with no aim and no claims, so that the first
+    thing the method says is "there is nothing to check yet" rather
+    than a list of things to fill in. The aim is the person's, and it
+    is not set here.
+
+    The file is the PROJECT's own - its specification of itself, in the
+    same way a test suite is the project's own. Nothing else is added:
+    no scripts, no configuration the project did not ask for, no
+    artifact that travels by inertia. *)
+let verb_init budget =
+  let path = spec_path () in
+  if Sys.file_exists path then (
+    Printf.eprintf "mathc: there is already a standing specification\n";
+    2)
+  else (
+    save_spec { goal = None; budget; claims = [] };
+    Printf.printf "the standing specification is created:\n";
+    Printf.printf "  %s\n" path;
+    Printf.printf "  uncertainty budget: %d\n\n" budget;
+    print_endline "next: state the aim (a person does this)";
+    print_endline "  mathc goal \"...\" lib/,test/ \"who\"";
+    0)
 
 (* ------------------------------------------------------------------ *)
 
 let usage () =
   print_endline "mathc - the protocol of math-coding";
   print_endline "";
+  print_endline "  mathc init [BUDGET]      prepare a project; adoption costs one file";
   print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
   print_endline "  mathc add ID SUBJECT SCOPE CHECK FALSIFIER REGISTER";
   print_endline "                               declare a claim (an agent does this)";
+  print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
   print_endline "  mathc route             what needs a person, and why";
   print_endline "  mathc run                execute the checks, bind the results, write the trail";
@@ -453,18 +602,20 @@ let usage () =
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "";
   print_endline "  --root DIR               the project (default: the working directory)";
-  print_endline "  --reason TEXT            why an aim is being replaced"
+  print_endline "  --reason TEXT            why an aim is being replaced";
+  print_endline "  --json                   the map as data, for programs"
 
 (** The command line. The only options are the project root and the
     reason an aim is being replaced; everything else is a verb. An
     unknown option is an error rather than a verb, because a typo that
     silently becomes a verb is a method that reports something the
     user did not ask for. *)
-let parse_args (args : string list) : string list * string =
+let parse_args (args : string list) : string list * string * bool =
   let root_flag = ref "" in
   let reason = ref "" in
+  let json = ref false in
   let rec loop acc = function
-    | [] -> (List.rev acc, !reason)
+    | [] -> (List.rev acc, !reason, !json)
     | "--root" :: dir :: rest ->
         root_flag := dir;
         loop acc rest
@@ -474,6 +625,9 @@ let parse_args (args : string list) : string list * string =
     | "--reason" :: text :: rest ->
         reason := text;
         loop acc rest
+    | "--json" :: rest ->
+        json := true;
+        loop acc rest
     | "--reason" :: [] ->
         Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
@@ -482,9 +636,9 @@ let parse_args (args : string list) : string list * string =
         exit 2
     | a :: rest -> loop (a :: acc) rest
   in
-  let positional, reason = loop [] args in
+  let positional, reason, json = loop [] args in
   if !root_flag <> "" then set_root !root_flag;
-  (positional, reason)
+  (positional, reason, json)
 
 (** A comma-separated list of paths. The scope of a claim is a list of
     path prefixes, and the list is written the way a shell would write
@@ -493,7 +647,7 @@ let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional, reason = parse_args (Array.to_list Sys.argv |> List.tl) in
+  let positional, reason, json = parse_args (Array.to_list Sys.argv |> List.tl) in
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();
@@ -516,7 +670,22 @@ let () =
                 Printf.eprintf
                   "mathc: add needs ID SUBJECT SCOPE CHECK FALSIFIER REGISTER\n";
                 2)
-        | "map" -> verb_map ()
+        | "init" -> (
+            match positional with
+            | _ :: budget :: _ -> (
+                match int_of_string_opt budget with
+                | Some b when b >= 0 -> verb_init b
+                | _ ->
+                    Printf.eprintf "mathc: the budget must be a non-negative integer\n";
+                    2)
+            | _ -> verb_init 3)
+        | "accept" -> (
+            match positional with
+            | _ :: id :: by :: reason :: _ -> verb_accept id by reason
+            | _ ->
+                Printf.eprintf "mathc: accept needs ID BY REASON\n";
+                2)
+        | "map" -> verb_map json
         | "route" -> verb_route ()
         | "run" -> verb_run ()
         | "next" -> verb_next ()

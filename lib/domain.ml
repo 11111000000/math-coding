@@ -73,6 +73,10 @@ type claim = {
   check : string;
   falsifier : string;
   register : register;
+  (* A person took responsibility for this claim's uncertainty, and
+     said why. It is not an answer: the claim is still not known. It
+     is a decision about whose problem it is. *)
+  accepted : (string * string) option;
 }
 
 (** The digest of a subject, as it stands now. Evidence is bound to
@@ -122,6 +126,7 @@ type state =
   | NotCheckable (* no canary: the claim is a judgment, not the machine's *)
   | Outdated (* there is evidence, but the subject moved since *)
   | NeverChecked (* required, and never checked *)
+  | Accepted (* a person took responsibility for this uncertainty *)
 
 (** The map: the standing specification, computed. What is claimed,
     what is known, what is not covered. *)

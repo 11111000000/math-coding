@@ -45,7 +45,8 @@ let combine_not_absorbing a b = match a with Red -> b | _ -> combine a b
 
 (* An outdated claim reads as verified - the bug the binding exists to
    stop. *)
-let state_outdated_as_verified (_current : binding option) (_e : evidence option) =
+let state_outdated_as_verified (_claim : claim) (_current : binding option)
+    (_e : evidence option) =
   Holds
 
 (* The empty result is no longer green: adoption would cost something
@@ -56,6 +57,10 @@ let aggregate_not_vacant (_results : evidence list) = Unknown
    register is that what should be true about meaning is not the
    machine's to decide. *)
 let apply_register_lets_judgments_through (_r : register) (o : outcome) = o
+
+(* A judgment may be refuted after all. A failed procedure is a fact
+   about the procedure, not about what should be true about meaning. *)
+let apply_register_refutes_judgments (_r : register) (o : outcome) = o
 
 (* Uncertainty is free. Then "I do not know" is cheaper than checking,
    and the method stops being worth anything. *)
@@ -70,6 +75,7 @@ let sample_claim =
     check = "true";
     falsifier = "the sample stops holding";
     register = Fact;
+    accepted = None;
   }
 
 let sample_evidence outcome bound_to =
@@ -134,9 +140,10 @@ let check_negative_controls () =
      a subject that has since moved, and the broken state function calls
      it verified anyway - so the law rejects that function. *)
   let outdated = sample_evidence Verified "digest-of-yesterday" in
-  assert (state_of (Some "digest-of-today") (Some outdated) = Outdated);
+  assert (state_of outdated.claim (Some "digest-of-today") (Some outdated) = Outdated);
   assert
-    (state_outdated_as_verified (Some "digest-of-today") (Some outdated)
+    (state_outdated_as_verified outdated.claim (Some "digest-of-today")
+       (Some outdated)
     = Holds);
   assert
     (not
@@ -156,6 +163,16 @@ let check_negative_controls () =
   (* And a fact whose check says yes is verified - the rule must not
      swallow the cases it should not touch. *)
   assert (law_judgment_is_never_verified apply_register Fact Verified);
+
+  (* A judgment is not refuted either: a failed procedure is a fact
+     about the procedure. *)
+  assert (law_judgment_is_never_verified apply_register Judgment Falsified);
+  assert
+    (not
+      (law_judgment_is_never_verified apply_register_refutes_judgments Judgment
+         Falsified));
+  (* But a gap in the evidence stays a gap, whoever owns the claim. *)
+  assert (law_judgment_is_never_verified apply_register Judgment Unresolved);
 
   (* The price of uncertainty. Only an answer is free. *)
   assert (law_only_answers_are_free cost_of_outcome);

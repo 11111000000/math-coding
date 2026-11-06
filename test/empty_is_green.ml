@@ -32,6 +32,7 @@ let claim subject =
     check = "true";
     falsifier = "the sample stops holding";
     register = Fact;
+    accepted = None;
   }
 
 let checked subject outcome =

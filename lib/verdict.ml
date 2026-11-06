@@ -64,19 +64,28 @@ let aggregate (results : evidence list) : verdict =
 (** The state of one claim, given its evidence and the subject's
     current binding. The binding is the crux: evidence obtained
     against a subject that has since moved is evidence about a subject
-    that no longer exists, and it can never read as verified. *)
-let state_of (current : binding option) (evidence : evidence option) : state =
-  match evidence with
-  | None -> NeverChecked
-  | Some e -> (
-      match current with
-      | Some b when e.bound_to = b -> (
-          match e.outcome with
-          | Verified -> Holds
-          | Falsified -> Refuted
-          | Unresolved -> Inconclusive
-          | Refused -> NotCheckable)
-      | _ -> Outdated)
+    that no longer exists, and it can never read as verified.
+
+    A claim a person has taken responsibility for is [Accepted] before
+    anything else is considered. That is not an answer - the claim is
+    still not known - and the verdict still counts it as unknown. It is
+    a decision about whose problem the uncertainty is. *)
+let state_of (claim : claim) (current : binding option) (evidence : evidence option) :
+    state =
+  match claim.accepted with
+  | Some _ -> Accepted
+  | None -> (
+      match evidence with
+      | None -> NeverChecked
+      | Some e -> (
+          match current with
+          | Some b when e.bound_to = b -> (
+              match e.outcome with
+              | Verified -> Holds
+              | Falsified -> Refuted
+              | Unresolved -> Inconclusive
+              | Refused -> NotCheckable)
+          | _ -> Outdated))
 
 (** The verdict of a set of states. An outdated claim is unknown, never
     green: the proof was about yesterday's subject. *)
@@ -87,6 +96,7 @@ let verdict_of_state = function
   | NotCheckable -> Unknown
   | Outdated -> Unknown
   | NeverChecked -> Unknown
+  | Accepted -> Unknown
 
 (** The verdict of the map, as a whole. *)
 let verdict_of_states (states : state list) : verdict =
@@ -149,10 +159,10 @@ let law_order (combine' : verdict -> verdict -> verdict) =
     binding machinery exists to make true, and the one that the third
     version broke by treating an empty digest as a wildcard. *)
 let law_outdated_is_never_verified
-    (state_of' : binding option -> evidence option -> state)
+    (state_of' : claim -> binding option -> evidence option -> state)
     (e : evidence) (current : binding option) =
   (* "if the subject moved, the claim cannot read as verified". *)
-  current = Some e.bound_to || state_of' current (Some e) <> Holds
+  current = Some e.bound_to || state_of' e.claim current (Some e) <> Holds
 
 (** A scope that names nothing is not a subject. The scope must not be
     empty; whether it names anything in the tree is the adapter's
@@ -176,21 +186,28 @@ let law_vacancy_is_green (aggregate' : evidence list -> verdict) = aggregate' []
     "yes" to a judgment does not establish the judgment; it
     establishes that some procedure ran, which is a different fact.
 
-    The rule is therefore applied to the outcome, not to the check: a
-    verified judgment becomes refused, and a refusal reaches the human
-    with the reason attached. *)
+    And a check that says "no" does not refute it either. A failed
+    procedure is a fact about the procedure, not about what should be
+    true about meaning. So the rule is applied to the outcome in both
+    directions: whatever the machine finds, a judgment arrives at the
+    person.
+
+    What is NOT changed is a check that could not run at all: that is
+    a gap in the evidence, and a gap stays a gap whoever owns the
+    claim. *)
 let apply_register (r : register) (o : outcome) : outcome =
   match r, o with
   | Judgment, Verified -> Refused
+  | Judgment, Falsified -> Refused
   | _ -> o
 
 (** The law, stated over the function it constrains: no register lets a
-    judgment read as verified. *)
+    judgment read as verified, and none lets it read as refuted. *)
 let law_judgment_is_never_verified
     (apply' : register -> outcome -> outcome)
     (r : register)
     (o : outcome) =
-  r <> Judgment || apply' r o <> Verified
+  r <> Judgment || (apply' r o <> Verified && apply' r o <> Falsified)
 
 (** The law of the price of uncertainty: an unresolved or refused claim
     costs something, and the cost is counted rather than asserted. *)

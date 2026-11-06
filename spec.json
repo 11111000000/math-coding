@@ -25,7 +25,8 @@
       ],
       "check": "dune runtest --root . --force",
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
-      "register": "fact"
+      "register": "fact",
+      "accepted": null
     },
     {
       "id": "core-is-pure",
@@ -35,7 +36,8 @@
       ],
       "check": "dune runtest --root . --force",
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
-      "register": "fact"
+      "register": "fact",
+      "accepted": null
     },
     {
       "id": "the-aim-is-a-persons",
@@ -45,7 +47,8 @@
       ],
       "check": "dune runtest --root . --force",
       "falsifier": "цель выводится из сделанного, а не выскана: это видно по тому, что смена цели не требует основания",
-      "register": "judgment"
+      "register": "judgment",
+      "accepted": null
     }
   ]
 }
