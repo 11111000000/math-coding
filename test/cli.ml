@@ -134,6 +134,20 @@ let write_wave root id =
        id);
   close_out channel
 
+(* A wave whose promise is not met. The promise is the criterion of
+   the closing, so a wave that promises something the claims do not
+   deliver must not close - and must stay in the queue. *)
+let write_wave_promising root id state =
+  let dir = Filename.concat root "waves" in
+  if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+  let path = Filename.concat dir (id ^ ".json") in
+  let channel = open_out path in
+  output_string channel
+    (Printf.sprintf
+       {|{"id": "%s", "title": "a wave whose promise is not met", "intent": "to check that the promise is the criterion", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "commitment": [{"claim": "c1", "state": "%s"}], "objection": "a promise nobody checks is a wish", "refuted_by": "the closing refuses it"}|}
+       id state);
+  close_out channel
+
 (** The proof is anchored to the act: the commit its content was read
     from, and the moment it was produced.
 
@@ -277,6 +291,15 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_code "next" 0 (code, text);
       assert (contains text "nothing to do");
 
+      (* A wave whose promise is not met does not close, and it stays
+         in the queue. The promise is the criterion: a wave that
+         promises what the claims do not deliver is a wish, and a wish
+         is not a wave. *)
+      write_wave_promising root "wave-p" "refuted";
+      expect_refusal "close a wave whose promise is not met"
+        (call [ "close"; "wave-p" ]);
+      let _, text = call [ "next" ] in
+      assert (contains text "wave wave-p");
       (* A flag that belongs to one verb must not be accepted by
          another. *)
       expect_refusal "--requirement outside add"
