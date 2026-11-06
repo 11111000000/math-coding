@@ -12,7 +12,7 @@
 
 (test
  (name spec_format)
- (libraries mathcoding yojson))
+ (libraries mathcoding mathcoding_format yojson))
 
 (test
  (name paths)

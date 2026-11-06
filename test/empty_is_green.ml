@@ -29,14 +29,14 @@ let claim subject =
   {
     id = "sample";
     subject = { text = subject; scope = [ "lib/" ] };
-    check = "true";
+    requirements = [ Domain.Verified_by "true" ];
     falsifier = "the sample stops holding";
     register = Fact;
     accepted = None;
   }
 
 let checked subject outcome =
-  { claim = claim subject; outcome; bound_to = "digest"; reason = None }
+  { claim = claim subject; requirement = Domain.Verified_by "true"; outcome; bound_to = "digest"; producer = "the method"; reason = None }
 
 let check_empty_is_green () =
   (* The rule under test. *)

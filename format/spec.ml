@@ -99,18 +99,46 @@ let require_register ~what name (pairs : (string * Yojson.Safe.t) list) =
     names anything in the tree is the adapter's business - see
     [Verdict.law_no_vacant_subject] and the rule the adapter enforces
     on top of it. *)
+(** The requirements of a claim: how it must be closed. Each one names
+    a kind - a command, or an authority - and the thing itself. All of
+    them are required: a rule closed by one of two means is not the
+    rule that was stated. *)
+let require_requirements ~what (pairs : (string * Yojson.Safe.t) list) =
+  match List.assoc_opt "requirements" pairs with
+  | Some (`List items) ->
+      let rec go acc = function
+        | [] -> Ok (List.rev acc)
+        | `Assoc fields :: rest ->
+            let* kind = require_string ~what "kind" fields in
+            let* spec = require_string ~what "spec" fields in
+            (match kind with
+            | "verifier" -> go (Verified_by spec :: acc) rest
+            | "review" -> go (Reviewed_by spec :: acc) rest
+            | _ ->
+                Error
+                  (error (what ^ ".requirements.kind")
+                     (Printf.sprintf "expected verifier or review; got %S" kind)))
+        | _ :: rest ->
+            Error (error (what ^ ".requirements") "expected a list of objects")
+      in
+      go [] items
+  | Some _ -> Error (error (what ^ ".requirements") "expected a list")
+  | None -> Error (error (what ^ ".requirements") "is required")
+
 let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
   let what = "claim" in
   match
     read_object ~what json
-      ~fields:[ "id"; "subject"; "scope"; "check"; "falsifier"; "register"; "accepted" ]
+      ~fields:
+        [ "id"; "subject"; "scope"; "requirements"; "falsifier"; "register";
+          "accepted" ]
   with
   | Error e -> Error e
   | Ok pairs ->
       let* id = require_string ~what "id" pairs in
       let* text = require_string ~what "subject" pairs in
       let* scope = require_string_list ~what "scope" pairs in
-      let* check = require_string ~what "check" pairs in
+      let* requirements = require_requirements ~what pairs in
       let* falsifier = require_string ~what "falsifier" pairs in
       let* register = require_register ~what "register" pairs in
       let* accepted =
@@ -127,7 +155,16 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
         Error
           (error (what ^ ".scope")
              "must not be empty: a claim about nothing is not a claim")
-      else Ok { id; subject = { text; scope }; check; falsifier; register; accepted }
+      else
+        Ok
+          {
+            id;
+            subject = { text; scope };
+            requirements;
+            falsifier;
+            register;
+            accepted;
+          }
 
 (** Parse the aim. It is optional in the file - a project that has not
     stated one yet is a project the method accepts claims from
@@ -225,7 +262,16 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                    ("subject", `String c.subject.text);
                    ( "scope",
                      `List (List.map (fun p -> `String p) c.subject.scope) );
-                   ("check", `String c.check);
+                   ( "requirements",
+                     `List
+                       (List.map
+                          (fun (r : requirement) ->
+                            match r with
+                            | Verified_by spec ->
+                                `Assoc [ ("kind", `String "verifier"); ("spec", `String spec) ]
+                            | Reviewed_by spec ->
+                                `Assoc [ ("kind", `String "review"); ("spec", `String spec) ])
+                          c.requirements) );
                    ("falsifier", `String c.falsifier);
                    ( "register",
                      `String

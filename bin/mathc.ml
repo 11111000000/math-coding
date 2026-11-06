@@ -59,15 +59,34 @@ let save_spec (spec : Domain.spec) =
 
 (** The newest evidence for each claim. The trail may hold many runs of
     the same claim; the last one is the one that counts. *)
+(** The latest evidence for each requirement of each claim.
+
+    The trail says what happened: which requirement of which claim was
+    closed, with which outcome, bound to which digest, produced by whom.
+    The DEFINITION of the claim - its subject, its requirements, its
+    register - lives in the standing specification, and the trail only
+    points at it. So the claim is taken from the specification and the
+    evidence is attached to it; the trail's own copy of the claim is
+    not trusted for anything but the identifier.
+
+    The latest line for a requirement wins: an older run does not
+    overrule a newer one. But a newer one does not overrule a subject
+    that has since moved either - that is the binding's work, and it
+    happens in [Verdict.state_of_evidence]. *)
 let latest_evidence (claims : Domain.claim list) : Domain.evidence list =
-  let ids = List.map (fun (c : Domain.claim) -> c.id) claims in
+  let find id = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
   let trail = Trail.read (root ()) in
   List.fold_left
     (fun (acc : Domain.evidence list) (e : Domain.evidence) ->
-      let id = e.claim.id in
-      if List.mem id ids then
-        List.filter (fun (x : Domain.evidence) -> x.claim.id <> id) acc @ [ e ]
-      else acc)
+      match find e.claim.id with
+      | None -> acc
+      | Some claim ->
+          let e = { e with Domain.claim } in
+          List.filter
+            (fun (x : Domain.evidence) ->
+              x.claim.id <> e.claim.id || x.requirement <> e.requirement)
+            acc
+          @ [ e ])
     [] trail
 
 (** The current digest of a claim's subject, if the scope names
@@ -80,8 +99,7 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   let evidence = latest_evidence claims in
   List.map
     (fun (claim : Domain.claim) ->
-      let e = List.find_opt (fun (x : Domain.evidence) -> x.claim.id = claim.id) evidence in
-      (claim.id, Verdict.state_of claim (binding_of claim) e))
+      (claim.id, Verdict.state_of_requirements claim (binding_of claim) evidence))
     claims
 
 (** How much of the uncertainty budget the project has spent. Only an
@@ -210,7 +228,15 @@ let verb_route () =
   0
 
 (** run: execute the checks, bind the results to the subject as it
-    stands, and write them to the trail. *)
+    stands, and write them to the trail.
+
+    Only the VERIFIER requirements are run here: they are commands, and
+    the method runs commands. A REVIEW requirement is closed by a
+    person, and the method cannot be one - it records what a person
+    says, with [mathc record], and it does not pretend to have looked.
+
+    That is the whole difference between the two kinds, and it is the
+    difference the third version enforced and this one had lost. *)
 let verb_run () =
   let spec = load_spec () in
   let claims = spec.Domain.claims in
@@ -226,27 +252,127 @@ let verb_run () =
               Printf.printf
                 "%s: no digest - the scope names nothing, so nothing can be bound\n"
                 claim.id;
-              (claim, Domain.Unresolved, None, None)
+              []
           | Some binding ->
-              let outcome, reason = Exec.run_claim ~root:(root ()) claim in
-              Printf.printf "%s: %s\n" claim.id
+              List.filter_map
+                (fun (r : Domain.requirement) ->
+                  match r with
+                  | Reviewed_by authority ->
+                      Printf.printf "%s: reviewed by %s - not the method's to do\n"
+                        claim.id authority;
+                      None
+                  | Verified_by command ->
+                      let outcome, reason =
+                        Exec.run_claim_command ~root:(root ()) command
+                          claim.register
+                      in
+                      Printf.printf "%s: %s\n" claim.id
+                        (match outcome with
+                        | Domain.Verified -> "verified"
+                        | Domain.Falsified -> "falsified"
+                        | Domain.Unresolved -> "unresolved"
+                        | Domain.Refused -> "refused");
+                      Some
+                        ( {
+                          Domain.claim;
+                          requirement = r;
+                          outcome;
+                          bound_to = binding;
+                          producer = command;
+                          reason;
+                        } ))
+                claim.requirements)
+        claims
+    in
+    List.iter (fun e -> Trail.append (root ()) e) (List.concat results);
+    let states = states_of claims in
+    Verdict.verdict_to_exit (Verdict.verdict_of_states (List.map snd states))
+
+(** record: take evidence from outside.
+
+    The method runs commands, and it can record what it ran. It cannot
+    be a person who looked, and it cannot be a CI run, and it cannot be
+    an observation from a deployment. The third version had a separate
+    kind of record for each of those, and this one had no way to
+    accept any evidence it did not produce itself - which is a strange
+    thing for a method whose subject is other people's work.
+
+    So: [mathc record CLAIM SPEC --by WHO --outcome OUTCOME] closes the
+    requirement of CLAIM that names SPEC, and says who produced it. A
+    verifier requirement is closed by a record of the same command;
+    a review requirement is closed by the authority's word. The binding
+    is the subject's digest as it stands now, so the record is about
+    the subject as it is, not as it was. *)
+let verb_record claim_id spec by outcome (reason : string) =
+  let spec_loaded = load_spec () in
+  let refuse why =
+    Printf.eprintf "mathc: %s\n" why;
+    2
+  in
+  let problem =
+    if by = "" then Some "a record needs a producer: --by"
+    else if spec = "" then Some "a record needs the requirement it closes"
+    else None
+  in
+  match problem with
+  | Some why -> refuse why
+  | None ->
+  let outcome =
+    match outcome with
+    | "verified" -> Domain.Verified
+    | "falsified" -> Domain.Falsified
+    | "unresolved" -> Domain.Unresolved
+    | "refused" -> Domain.Refused
+    | other -> failwith ("unknown outcome: " ^ other)
+  in
+  match
+    List.find_opt (fun (c : Domain.claim) -> c.id = claim_id) spec_loaded.Domain.claims
+  with
+  | None -> refuse (Printf.sprintf "there is no claim %S" claim_id)
+  | Some claim -> (
+      match
+        List.find_opt
+          (fun (r : Domain.requirement) ->
+            match r with
+            | Verified_by c -> c = spec
+            | Reviewed_by a -> a = spec)
+          claim.requirements
+      with
+      | None ->
+          refuse
+            (Printf.sprintf
+               "the claim %s has no requirement %S; its requirements are: %s" claim_id
+               spec
+               (String.concat ", "
+                  (List.map
+                     (fun (r : Domain.requirement) ->
+                       match r with
+                       | Verified_by c -> c
+                       | Reviewed_by a -> a)
+                     claim.requirements)))
+      | Some requirement -> (
+          match binding_of claim with
+          | None ->
+              refuse "the scope names nothing, so nothing could be bound"
+          | Some binding ->
+              let e =
+                {
+                  Domain.claim;
+                  requirement;
+                  outcome;
+                  bound_to = binding;
+                  producer = by;
+                  reason = (if reason = "" then None else Some reason);
+                }
+              in
+              Trail.append (root ()) e;
+              Printf.printf "recorded: %s closed by %s (%s)\n" claim_id by
                 (match outcome with
                 | Domain.Verified -> "verified"
                 | Domain.Falsified -> "falsified"
                 | Domain.Unresolved -> "unresolved"
                 | Domain.Refused -> "refused");
-              (claim, outcome, Some binding, reason))
-        claims
-    in
-    List.iter
-      (fun (claim, outcome, binding, reason) ->
-        match binding with
-        | None -> ()
-        | Some binding ->
-            Trail.append (root ()) { claim; outcome; bound_to = binding; reason })
-      results;
-    let states = states_of claims in
-    Verdict.verdict_to_exit (Verdict.verdict_of_states (List.map snd states))
+              0))
 
 (** The waves of a project, in the order they were declared. A wave is
     a slice of work; the queue is these waves that are not yet
@@ -446,6 +572,24 @@ let verb_close id =
               wave.verdicts_changed;
             0))
 
+(** A requirement, as it is written on the command line: a kind, a
+    colon, and the thing itself. The kind is what makes the evidence
+    countable - a command and a person are different kinds of
+    confirmation, and a rule that asks for both is asking for a
+    confirmation that does not come from one place. *)
+let parse_requirement (text : string) : (Domain.requirement, string) result =
+  match String.index_opt text ':' with
+  | None -> Error ("expected verifier:SPEC or review:SPEC, got " ^ text)
+  | Some i ->
+      let kind = String.sub text 0 i in
+      let spec = String.sub text (i + 1) (String.length text - i - 1) in
+      if spec = "" then Error "the requirement names nothing"
+      else
+        match kind with
+        | "verifier" -> Ok (Domain.Verified_by spec)
+        | "review" -> Ok (Domain.Reviewed_by spec)
+        | other -> Error (Printf.sprintf "unknown kind %S: verifier or review" other)
+
 (** The aim. This is the human's move, and the method cannot tell a
     human from an agent at the keyboard - it can only attribute the
     aim and make its changes visible. What it CAN enforce is that the
@@ -507,7 +651,7 @@ let verb_goal text scope by reason =
     - the budget of uncertainty is spent: at that point there are three
       ways out - find a check, ask for authority, or stop - and adding
       a claim is none of them. *)
-let verb_add id subject scope check falsifier register =
+let verb_add id subject scope requirements falsifier register =
   let spec = load_spec () in
   let refuse why =
     Printf.eprintf "mathc: the claim is not accepted: %s\n" why;
@@ -534,8 +678,8 @@ let verb_add id subject scope check falsifier register =
     | Some _ ->
         if scope = [] then
           Some "the scope is empty: a claim about nothing is not a claim"
-        else if check = "" then
-          Some "the check is empty: a promise with no procedure is not a claim"
+        else if requirements = [] then
+          Some "the requirements are empty: a promise with no way to be closed is not a claim"
         else if falsifier = "" then
           Some "the falsifier is empty: nothing would refute this claim"
         else if List.exists (fun (c : Domain.claim) -> c.Domain.id = id) spec.Domain.claims then
@@ -573,7 +717,7 @@ let verb_add id subject scope check falsifier register =
         {
           Domain.id;
           subject = { text = subject; scope };
-          check;
+          requirements;
           falsifier;
           register;
           accepted = None;
@@ -658,12 +802,15 @@ let usage () =
   print_endline "";
   print_endline "  mathc init [BUDGET]      prepare a project; adoption costs one file";
   print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
-  print_endline "  mathc add ID SUBJECT SCOPE CHECK FALSIFIER REGISTER";
-  print_endline "                               declare a claim (an agent does this)";
+  print_endline "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
+  print_endline "                               declare a claim (an agent does this);";
+  print_endline "                               --requirement may be repeated, and may be review:WHO";
   print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
   print_endline "  mathc route             what needs a person, and why";
   print_endline "  mathc run                execute the checks, bind the results, write the trail";
+  print_endline "  mathc record CLAIM REQ --by WHO --outcome V";
+  print_endline "                               take evidence from outside: a person, a CI run";
   print_endline "  mathc next               the next work, one item";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "";
@@ -676,10 +823,15 @@ let usage () =
     unknown option is an error rather than a verb, because a typo that
     silently becomes a verb is a method that reports something the
     user did not ask for. *)
-let parse_args (args : string list) : string list * string * bool =
+let parse_args (args : string list) :
+    string list * string * bool * string * string * string * string list =
   let root_flag = ref "" in
   let reason = ref "" in
   let json = ref false in
+  let by = ref "" in
+  let recorded_outcome = ref "verified" in
+  let recorded_reason = ref "" in
+  let requirements = ref [] in
   let rec loop acc = function
     | [] -> (List.rev acc, !reason, !json)
     | "--root" :: dir :: rest ->
@@ -690,6 +842,12 @@ let parse_args (args : string list) : string list * string * bool =
         exit 2
     | "--reason" :: text :: rest ->
         reason := text;
+        loop acc rest
+    | "--by" :: text :: rest ->
+        by := text;
+        loop acc rest
+    | "--outcome" :: text :: rest ->
+        recorded_outcome := text;
         loop acc rest
     | "--json" :: rest ->
         json := true;
@@ -704,7 +862,13 @@ let parse_args (args : string list) : string list * string * bool =
   in
   let positional, reason, json = loop [] args in
   if !root_flag <> "" then set_root !root_flag;
-  (positional, reason, json)
+  ( positional,
+    reason,
+    json,
+    !by,
+    !recorded_outcome,
+    !recorded_reason,
+    List.rev !requirements )
 
 (** A comma-separated list of paths. The scope of a claim is a list of
     path prefixes, and the list is written the way a shell would write
@@ -713,7 +877,9 @@ let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional, reason, json = parse_args (Array.to_list Sys.argv |> List.tl) in
+  let positional, reason, json, by, recorded_outcome, recorded_reason, requirements =
+    parse_args (Array.to_list Sys.argv |> List.tl)
+  in
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();
@@ -730,8 +896,20 @@ let () =
                 2)
         | "add" -> (
             match positional with
-            | _ :: id :: subject :: scope :: check :: falsifier :: register :: _ ->
-                verb_add id subject (split_scope scope) check falsifier register
+            | _ :: id :: subject :: scope :: falsifier :: register :: _ ->
+                let rec parse_all acc = function
+                  | [] -> Ok (List.rev acc)
+                  | text :: rest -> (
+                      match parse_requirement text with
+                      | Ok r -> parse_all (r :: acc) rest
+                      | Error e -> Error e)
+                in
+                (match parse_all [] requirements with
+                | Error e ->
+                    Printf.eprintf "mathc: %s\n" e;
+                    2
+                | Ok rs ->
+                    verb_add id subject (split_scope scope) rs falsifier register)
             | _ ->
                 Printf.eprintf
                   "mathc: add needs ID SUBJECT SCOPE CHECK FALSIFIER REGISTER\n";
@@ -754,6 +932,14 @@ let () =
         | "map" -> verb_map json
         | "route" -> verb_route ()
         | "run" -> verb_run ()
+        | "record" -> (
+            match positional with
+            | _ :: claim_id :: spec :: _ ->
+                verb_record claim_id spec by recorded_outcome recorded_reason
+            | _ ->
+                Printf.eprintf
+                  "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";
+                2)
         | "next" -> verb_next ()
         | "close" -> (
             match positional with

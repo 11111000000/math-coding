@@ -56,13 +56,17 @@ let run_check_in ~(root : string) (command : string) : Domain.outcome * string o
     in
     outcome_of_exit code
 
-(** Run the check of a claim, with the register applied. A judgment
-    whose check says yes becomes refused rather than verified, and the
-    reason says why. *)
-let run_claim ~(root : string) (claim : Domain.claim) :
-    Domain.outcome * string option =
-  let outcome, reason = run_check_in ~root claim.Domain.check in
-  let applied = Verdict.apply_register claim.Domain.register outcome in
+(** Run a command and apply the register of the claim it belongs to.
+
+    A judgment's command may run and say yes, and the answer is still
+    not the machine's: the outcome becomes refused, and the reason says
+    why. The same holds in the other direction - a command that failed
+    says something about the command, not about what should be true
+    about meaning. *)
+let run_claim_command ~(root : string) (command : string)
+    (register : Domain.register) : Domain.outcome * string option =
+  let outcome, reason = run_check_in ~root command in
+  let applied = Verdict.apply_register register outcome in
   if applied = outcome then (outcome, reason)
   else
     ( applied,

@@ -77,14 +77,14 @@ let sample_claim =
   {
     id = "sample";
     subject = { text = "a sample subject"; scope = [ "lib/" ] };
-    check = "true";
+    requirements = [ Domain.Verified_by "true" ];
     falsifier = "the sample stops holding";
     register = Fact;
     accepted = None;
   }
 
 let sample_evidence outcome bound_to =
-  { claim = sample_claim; outcome; bound_to; reason = None }
+  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None }
 
 (* --- the proof ------------------------------------------------------ *)
 
@@ -203,7 +203,33 @@ let check_negative_controls () =
     (law_acceptance_never_changes_an_answer Verdict.apply_acceptance accepted_claim
        unknown)
 
+(** Two claims often share one check - the same test suite verifies
+    several rules - and their evidence must not answer for each other.
+    The bug this pins was found by running the method, not by reading
+    it: the second claim of a pair turned unknown with no visible
+    cause, because the evidence of one was matched to the other by
+    the requirement alone. *)
+let check_evidence_does_not_crosstalk () =
+  let shared = Domain.Verified_by "the same command" in
+  let other = { sample_claim with id = "another"; subject = { text = "another"; scope = [ "lib/" ] } } in
+  let claim_a = { sample_claim with id = "a"; requirements = [ shared ] } in
+  let claim_b = { other with requirements = [ shared ] } in
+  let digest_a = "digest-a" and digest_b = "digest-b" in
+  let ev_a =
+    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None }
+  in
+  let ev_b =
+    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None }
+  in
+  let evidence = [ ev_a; ev_b ] in
+  (* Each claim sees only its own evidence. *)
+  assert (Verdict.state_of_requirements claim_a (Some digest_a) evidence = Domain.Holds);
+  assert (Verdict.state_of_requirements claim_b (Some digest_b) evidence = Domain.Refuted);
+  (* And a claim whose subject moved sees neither as its own. *)
+  assert (Verdict.state_of_requirements claim_a (Some "moved") evidence = Domain.Outdated)
+
 let () =
   check_laws_hold ();
   check_negative_controls ();
+  check_evidence_does_not_crosstalk ();
   print_endline "laws: PASS"

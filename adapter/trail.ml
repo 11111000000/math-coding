@@ -31,11 +31,19 @@ let append (root : string) (e : Domain.evidence) : unit =
     | Domain.Unresolved -> "unresolved"
     | Domain.Refused -> "refused"
   in
+  let requirement =
+    match e.requirement with
+    | Domain.Verified_by spec -> ("verifier", spec)
+    | Domain.Reviewed_by spec -> ("review", spec)
+  in
   let json =
     `Assoc
       [ ("claim", `String e.claim.id);
+        ("kind", `String (fst requirement));
+        ("requirement", `String (snd requirement));
         ("outcome", `String outcome);
         ("bound_to", `String e.bound_to);
+        ("producer", `String e.producer);
         ( "reason",
           match e.reason with Some r -> `String r | None -> `Null );
         (* Seconds since the epoch. The trail is read by a program,
@@ -74,8 +82,15 @@ let read (root : string) : Domain.evidence list =
                      | Some (`String s) -> Some s
                      | _ -> None
                    in
-                   (match (get "claim", get "outcome", get "bound_to") with
-                   | Some id, Some outcome, Some bound ->
+                   (match
+                      ( get "claim",
+                        get "kind",
+                        get "requirement",
+                        get "outcome",
+                        get "bound_to",
+                        get "producer" )
+                    with
+                   | Some id, Some kind, Some requirement, Some outcome, Some bound, Some producer ->
                        let o =
                          match outcome with
                          | "verified" -> Domain.Verified
@@ -84,7 +99,28 @@ let read (root : string) : Domain.evidence list =
                          | "refused" -> Domain.Refused
                          | _ -> Domain.Unresolved
                        in
-                       Some { Domain.claim = { id; subject = { text = ""; scope = [] }; check = ""; falsifier = ""; register = Domain.Undeclared; accepted = None }; outcome = o; bound_to = bound; reason = get "reason" }
+                       let r =
+                         match kind with
+                         | "review" -> Domain.Reviewed_by requirement
+                         | _ -> Domain.Verified_by requirement
+                       in
+                       Some
+                         {
+                           Domain.claim =
+                             {
+                               id;
+                               subject = { text = ""; scope = [] };
+                               requirements = [];
+                               falsifier = "";
+                               register = Domain.Undeclared;
+                               accepted = None;
+                             };
+                           requirement = r;
+                           outcome = o;
+                           bound_to = bound;
+                           producer;
+                           reason = get "reason";
+                         }
                    | _ -> None)
                | _ -> None)
            | exception Yojson.Json_error _ -> None)

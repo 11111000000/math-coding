@@ -1,0 +1,8 @@
+; The codec: strict readers and writers of the standing specification
+; and the wave. Pure - a string in, a value out - but not part of the
+; core: it says how the outside is shaped, not what is true.
+(library
+ (name mathcoding_format)
+ (wrapped false)
+ (modules spec)
+ (libraries mathcoding yojson))

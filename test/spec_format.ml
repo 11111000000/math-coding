@@ -103,7 +103,7 @@ let check_the_good_cases () =
             assert (c.id <> "");
             assert (c.subject.text <> "");
             assert (c.subject.scope <> []);
-            assert (c.check <> "");
+            assert (c.requirements <> []);
             assert (c.falsifier <> ""))
           spec.Domain.claims
 

@@ -65,12 +65,33 @@ type subject = {
   scope : scope;
 }
 
-(** A claim: a proposition about a subject, the procedure that could
-    falsify it, and what that falsifier would look like. *)
+(** How a claim must be closed.
+
+    Two kinds, and the difference is not cosmetic. A command that exits
+    zero and a person who looked are different kinds of evidence: the
+    first is mechanical and the second is not, and a rule that asks for
+    both is asking for a confirmation that does not come from one
+    place. The third version knew this - it refused to let one object
+    claim to be both, and it counted a review as a review only when a
+    person produced it. The fourth version had one check string and
+    could not say it at all.
+
+    The point of having two kinds is not ceremony. It is that the
+    method can then ask a question it could not ask before: **who
+    closed this?** If the answer is always "the method ran the command
+    in the claim", then every claim in every project is confirmed by
+    the same kind of thing, and a rule confirmed by the agent's own
+    script is worth no more than the agent's confidence. *)
+type requirement =
+  | Verified_by of string (* the command that must pass *)
+  | Reviewed_by of string (* the authority that must look *)
+
+(** A claim: a proposition about a subject, the ways it must be
+    closed, and what that falsifier would look like. *)
 type claim = {
   id : string;
   subject : subject;
-  check : string;
+  requirements : requirement list;
   falsifier : string;
   register : register;
   (* A person took responsibility for this claim's uncertainty, and
@@ -86,11 +107,20 @@ type binding = string
 
 (** A result, and the subject it was obtained against. The reason says
     why the outcome is what it is - "the check exited 127" is a fact the
-    human needs; a bare [Unresolved] is not. *)
+    human needs; a bare [Unresolved] is not.
+
+    The evidence names WHICH requirement it closes, and who produced
+    it. Both matter: the requirement says what kind of confirmation
+    this is, and the producer says whether it is the confirmation that
+    was asked for. Evidence the method produced by running a command
+    has the command as its producer; evidence that came from outside -
+    a person, a CI run, a deployment - has whoever gave it. *)
 type evidence = {
   claim : claim;
+  requirement : requirement;
   outcome : outcome;
   bound_to : binding;
+  producer : string;
   reason : string option;
 }
 

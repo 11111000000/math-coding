@@ -224,6 +224,12 @@ let[@warning "-32"] called_in tree name =
 let[@warning "-32"] core_files () =
   repository_files () |> under_directory "lib" |> with_extension ".ml"
 
+(* The codec is pure as well - a string in, a value out - so it is
+   checked for the same impurity. It is not part of the core: it says
+   how the outside is shaped, not what is true. *)
+let[@warning "-32"] codec_files () =
+  repository_files () |> under_directory "format" |> with_extension ".ml"
+
 let[@warning "-32"] check_core_is_pure () =
   List.iter
     (fun path ->
@@ -240,17 +246,29 @@ let[@warning "-32"] check_core_is_pure () =
    core nobody has read, and an unread core is where the laws stop being
    laws. The number is a decision, not a measurement: it is set before
    the code exists, so that it constrains the code rather than
-   describing it. *)
+   describing it.
+
+   And it is NOT raised when the code grows. That is the whole point of
+   setting it first: the answer to "the core outgrew its ceiling" is
+   to move code out of the core, not to move the ceiling. When the
+   requirements of the claims needed their own vocabulary, that
+   vocabulary went to the codec, and the core kept the algebra. *)
 let[@warning "-32"] core_line_ceiling = 800
 
+(* The codec has its own ceiling, smaller and stated. It is mechanical
+   code - readers and writers - and mechanical code grows by accretion
+   unless something stops it. *)
+let[@warning "-32"] codec_line_ceiling = 400
+
+let[@warning "-32"] lines_of (files : string list) =
+  files
+  |> List.map (fun path ->
+         List.length (String.split_on_char '\n' (read_file (in_repo path))))
+  |> List.fold_left ( + ) 0
+
 let[@warning "-32"] check_core_is_small () =
-  let lines =
-    core_files ()
-    |> List.map (fun path ->
-        List.length (String.split_on_char '\n' (read_file (in_repo path))))
-    |> List.fold_left ( + ) 0
-  in
-  assert (lines <= core_line_ceiling)
+  assert (lines_of (core_files ()) <= core_line_ceiling);
+  assert (lines_of (codec_files ()) <= codec_line_ceiling)
 
 (* Every check carries a proof that it can fail. A check file that does
    not mention the words below has no negative control, and a check

@@ -61,10 +61,10 @@ let aggregate (results : evidence list) : verdict =
     (fun v (r : evidence) -> combine v (verdict_of_outcome r.outcome))
     Green results
 
-(** The state of one claim, from its evidence and the subject's current
-    binding. The binding is the crux: evidence obtained against a
-    subject that has since moved is evidence about a subject that no
-    longer exists, and it can never read as verified. *)
+(** The state of ONE REQUIREMENT, from its evidence and the subject's
+    current binding. The binding is the crux: evidence obtained
+    against a subject that has since moved is evidence about a subject
+    that no longer exists, and it can never read as verified. *)
 let state_of_evidence (current : binding option) (evidence : evidence option) : state =
   match evidence with
   | None -> NeverChecked
@@ -77,6 +77,72 @@ let state_of_evidence (current : binding option) (evidence : evidence option) : 
           | Unresolved -> Inconclusive
           | Refused -> NotCheckable)
       | _ -> Outdated)
+
+let verdict_of_state = function
+  | Holds -> Green
+  | Refuted -> Red
+  | Inconclusive -> Unknown
+  | NotCheckable -> Unknown
+  | Outdated -> Unknown
+  | NeverChecked -> Unknown
+  | Accepted -> Unknown
+
+(** The verdict of the map, as a whole. *)
+let verdict_of_states (states : state list) : verdict =
+  List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
+
+(** What the human is asked to decide: the claims that a machine cannot
+    settle. An unresolved claim and a refused claim both need a
+    person; nothing else does. *)
+(** The state of a claim, from the states of its requirements.
+
+    The claim's state is the FOLD of the requirement states, and the
+    fold is the monoid above. A claim with two requirements, one closed
+    and one open, is not "closed" and not "unknown" - it is partly
+    known, which is [Inconclusive], and the map shows which part is
+    missing. That is the answer to the question the third version could
+    not state: what is the state of a thing that needs two kinds of
+    confirmation and has one? *)
+let state_of_requirements (claim : claim) (current : binding option)
+    (evidence : evidence list) : state =
+  let for_requirement (r : requirement) =
+    (* The evidence is matched by the claim AND the requirement. Two
+       claims often share one check - the same test suite verifies
+       several rules - and matching by the requirement alone would let
+       one claim's evidence answer for another. The digests differ, so
+       the mismatch would show up as "outdated" rather than as a
+       wrong answer, which is how it was found: on the second claim of
+       a pair, the verdict turned unknown with no visible cause. *)
+    let latest =
+      List.filter
+        (fun (e : evidence) -> e.claim.id = claim.id && e.requirement = r)
+        evidence
+      |> List.fold_left
+           (fun acc (e : evidence) ->
+             match acc with
+             | Some (prev : evidence) -> Some e
+             | None -> Some e)
+           None
+    in
+    state_of_evidence current latest
+  in
+  let states = List.map for_requirement claim.requirements in
+  let verdict =
+    List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
+  in
+  match verdict with
+  | Red -> Refuted
+  | Green -> Holds
+  | Unknown -> (
+      match states with
+      | [] -> NeverChecked
+      | _ -> (
+          match List.for_all (fun s -> s = NeverChecked) states with
+          | true -> NeverChecked
+          | false -> (
+              match List.for_all (fun s -> s = Outdated) states with
+              | true -> Outdated
+              | false -> Inconclusive)))
 
 (** The acceptance, as a separate step over the computed state.
 
@@ -119,22 +185,6 @@ let law_acceptance_never_changes_an_answer
 
 (** The verdict of a set of states. An outdated claim is unknown, never
     green: the proof was about yesterday's subject. *)
-let verdict_of_state = function
-  | Holds -> Green
-  | Refuted -> Red
-  | Inconclusive -> Unknown
-  | NotCheckable -> Unknown
-  | Outdated -> Unknown
-  | NeverChecked -> Unknown
-  | Accepted -> Unknown
-
-(** The verdict of the map, as a whole. *)
-let verdict_of_states (states : state list) : verdict =
-  List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
-
-(** What the human is asked to decide: the claims that a machine cannot
-    settle. An unresolved claim and a refused claim both need a
-    person; nothing else does. *)
 let route (results : evidence list) : finding list =
   List.filter_map
     (fun (r : evidence) ->

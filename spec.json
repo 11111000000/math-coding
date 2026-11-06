@@ -23,10 +23,15 @@
         "adapter/",
         "bin/"
       ],
-      "check": "dune runtest --root . --force",
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force"
+        }
+      ]
     },
     {
       "id": "core-is-pure",
@@ -34,10 +39,15 @@
       "scope": [
         "lib/"
       ],
-      "check": "dune runtest --root . --force",
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
       "register": "fact",
-      "accepted": null
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force"
+        }
+      ]
     },
     {
       "id": "the-aim-is-a-persons",
@@ -45,10 +55,15 @@
       "scope": [
         "lib/"
       ],
-      "check": "dune runtest --root . --force",
       "falsifier": "цель выводится из сделанного, а не выскана: это видно по тому, что смена цели не требует основания",
       "register": "judgment",
-      "accepted": null
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "review",
+          "spec": "owner"
+        }
+      ]
     }
   ]
 }

@@ -126,13 +126,19 @@ let measure (root : string) : measurement option =
           let claims = claims_of root in
           List.fold_left
             (fun (total, failed) (claim : Domain.claim) ->
-              let started = Unix.gettimeofday () in
-              let code =
-                Sys.command
-                  (Printf.sprintf "cd %s && %s" (Filename.quote root) claim.Domain.check)
-              in
-              (total +. (Unix.gettimeofday () -. started),
-               if code = 0 then failed else failed + 1))
+              List.fold_left
+                (fun (total, failed) (r : Domain.requirement) ->
+                  match r with
+                  | Domain.Reviewed_by _ -> (total, failed)
+                  | Domain.Verified_by command ->
+                      let started = Unix.gettimeofday () in
+                      let code =
+                        Sys.command
+                          (Printf.sprintf "cd %s && %s" (Filename.quote root) command)
+                      in
+                      (total +. (Unix.gettimeofday () -. started),
+                       if code = 0 then failed else failed + 1))
+                (total, failed) claim.Domain.requirements)
             (0.0, 0) claims
     in
     match json with
