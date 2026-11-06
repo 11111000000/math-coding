@@ -28,3 +28,11 @@
 (test
  (name adapter_scope)
  (libraries mathcoding mathcoding_adapter unix))
+
+; The tool itself: the ten verbs, end to end, against a temporary git
+; repository. The tool is built first, so the test always runs against
+; the tool of this tree and not against something left over.
+(test
+ (name cli)
+ (libraries mathcoding unix)
+ (deps %{exe:../bin/mathc.exe}))

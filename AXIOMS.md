@@ -104,7 +104,7 @@ combine(Unknown, Green)  = Unknown        combine(Green, Unknown) = Unknown
 
 *Носитель:* `Verdict.combine` (`lib/verdict.ml`).
 *Контроль:* `Verdict.law_commutative`, `law_associative`, `law_unit`,
-`law_absorbing`.
+`law_absorbing`, `law_order`.
 
 ### A2. Пустое множество — зелёное
 

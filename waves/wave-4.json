@@ -1,0 +1,34 @@
+{
+  "id": "wave-4",
+  "title": "the method covers its own protocol: the verbs, the documentation, the formal part, and the closure of the plan",
+  "touches": [
+    "lib/",
+    "test/",
+    "adapter/",
+    "bin/",
+    "format/",
+    "spec.json",
+    "waves/",
+    "AXIOMS.md",
+    "README.md",
+    "docs/"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "no-scripts",
+    "core-is-pure",
+    "the-aim-is-a-persons",
+    "verbs-work",
+    "the-tool-is-documented",
+    "formal-part-matches-the-code"
+  ],
+  "verdicts_changed": [
+    "verbs-work",
+    "the-tool-is-documented",
+    "formal-part-matches-the-code"
+  ],
+  "objection": "карта покрытия метода собой растёт, а каждое новое утверждение о самом методе требует своей проверки: не превратится ли самоприложение в способ производить карту ради карты",
+  "refuted_by": "утверждение о самом методе, у которого нет проверки, которая умеет не сойтись, не добавляется вовсе: карта остаётся диагностикой, а не целью"
+}

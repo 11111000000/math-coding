@@ -2,68 +2,100 @@
   "goal": {
     "text": "метод держит спецификацию проекта и проверяет её против кода: то, что заявлено, должно быть проверено, а то, что не проверено, должно быть видно",
     "scope": [
-      "lib/",
-      "test/",
-      "adapter/",
-      "bin/",
-      "spec.json",
-      "waves/"
+      "lib/", "test/", "adapter/", "bin/", "format/", "spec.json", "waves/",
+      "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md", "docs/"
     ],
     "by": "p.b.kosov@yandex.ru",
-    "at": "1761964800"
+    "at": "1793951564"
   },
   "uncertainty_budget": 3,
+  "closed_waves": [ "wave-1", "wave-4" ],
   "claims": [
     {
       "id": "no-scripts",
       "subject": "в каталогах lib/, test/, adapter/ и bin/ нет исполняемых скриптов: метод написан на OCaml",
-      "scope": [
-        "lib/",
-        "test/",
-        "adapter/",
-        "bin/"
+      "scope": [ "lib/", "test/", "adapter/", "bin/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
       "register": "fact",
-      "accepted": null,
-      "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest --root . --force"
-        }
-      ]
+      "accepted": null
     },
     {
       "id": "core-is-pure",
       "subject": "ядро метода не содержит эффектов: ни часов, ни случайности, ни ввода-вывода",
-      "scope": [
-        "lib/"
+      "scope": [ "lib/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
       "register": "fact",
-      "accepted": null,
-      "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest --root . --force"
-        }
-      ]
+      "accepted": null
     },
     {
       "id": "the-aim-is-a-persons",
       "subject": "цель метода выскана человеком и не выводится из того, что оказалось сделано",
-      "scope": [
-        "lib/"
-      ],
+      "scope": [ "lib/" ],
+      "requirements": [ { "kind": "review", "spec": "owner" } ],
       "falsifier": "цель выводится из сделанного, а не выскана: это видно по тому, что смена цели не требует основания",
       "register": "judgment",
-      "accepted": null,
+      "accepted": null
+    },
+    {
+      "id": "verbs-work",
+      "subject": "десять глаголов инструмента работают: каждый исполняется, и у каждого есть отрицательный контроль",
+      "scope": [ "lib/", "adapter/", "format/", "bin/" ],
       "requirements": [
-        {
-          "kind": "review",
-          "spec": "owner"
-        }
-      ]
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
+      "register": "fact",
+      "accepted": null
+    },
+    {
+      "id": "the-tool-is-documented",
+      "subject": "каждый глагол инструмента назван в README: документация инструмента не разошлась с ним",
+      "scope": [ "bin/", "README.md" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "глагол есть в бинаре, но не назван в README",
+      "register": "fact",
+      "accepted": null
+    },
+    {
+      "id": "formal-part-matches-the-code",
+      "subject": "каждый закон, доказанный в ядре, назван в формальной части: спецификация для доказательства не разошлась с кодом",
+      "scope": [ "lib/", "AXIOMS.md" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "в ядре есть закон, которого нет в AXIOMS.md",
+      "register": "fact",
+      "accepted": null
+    },
+    {
+      "id": "the-plan-carries-its-objection",
+      "subject": "каждая волна плана несёт сильнейшее возражение своему подходу и то, что его опровергнет: диалектика живёт на плане",
+      "scope": [ "waves/", "format/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "волна без возражения или без того, что его опровергнет",
+      "register": "fact",
+      "accepted": null
+    },
+    {
+      "id": "the-specification-is-readable",
+      "subject": "стоящая спецификация проекта читается методом, и каждое её утверждение имеет предмет, требования и опровержитель",
+      "scope": [ "spec.json", "format/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "спецификация не читается или в ней есть утверждение без предмета, требований или опровержителя",
+      "register": "fact",
+      "accepted": null
     }
   ]
 }
