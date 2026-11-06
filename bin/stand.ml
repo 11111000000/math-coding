@@ -72,10 +72,21 @@ type measurement = {
   uncovered : int;
   seconds : float;
   exit : int;
-  found : int;
-  (* The control arm: the same checks, run directly, without the
-     protocol. The difference between the two is what the protocol
-     costs and what it adds. *)
+  (* A DEFECT CAUGHT: a claim that was refuted. Nothing else counts.
+     An outdated claim is not a catch - it is a claim nobody has
+     re-checked since the subject moved, and calling that a catch
+     would put unverified work into the numerator of the measure. *)
+  caught : int;
+  (* Claims that need work but are not catches: the subject moved, or
+     the check could not tell. *)
+  stale : int;
+  (* The price arm: the same checks, run directly, without the
+     protocol. It answers "what does the protocol cost" - and nothing
+     more. It is NOT the agent arm: an agent without the protocol
+     solves the task and not merely the checks, and it will be faster,
+     because it keeps no bookkeeping. That arm is a separate
+     measurement, and the difference between it and this one is what
+     the protocol adds. *)
   control_seconds : float;
   control_failed : int;
 }
@@ -145,7 +156,7 @@ let measure (root : string) : measurement option =
     | Some (`Assoc fields) ->
         let get name = List.assoc_opt name fields in
         let int_of name = match get name with Some (`Int n) -> n | _ -> 0 in
-        let found =
+        let count wanted =
           match get "states" with
           | Some (`List states) ->
               List.length
@@ -154,13 +165,14 @@ let measure (root : string) : measurement option =
                      match s with
                      | `Assoc kv ->
                          (match List.assoc_opt "state" kv with
-                         | Some (`String st) ->
-                             st = "refuted" || st = "inconclusive" || st = "outdated"
+                         | Some (`String st) -> st = wanted
                          | _ -> false)
                      | _ -> false)
                    states)
           | _ -> 0
         in
+        let caught = count "refuted" in
+        let stale = count "outdated" + count "inconclusive" in
         Some
           {
             project = root;
@@ -169,7 +181,8 @@ let measure (root : string) : measurement option =
             uncovered = int_of "uncovered";
             seconds;
             exit;
-            found;
+            caught;
+            stale;
             control_seconds;
             control_failed;
           }
@@ -276,39 +289,46 @@ let () =
     print_endline "usage: stand PROJECT [PROJECT ...]";
     print_endline "  each project must have a standing specification and a built method";
     exit 2);
-  Printf.printf "%-34s %6s %9s %6s %9s %9s %8s\n" "project" "claims" "uncovered"
-    "found" "protocol" "control" "overhead";
+  Printf.printf "%-34s %6s %9s %7s %6s %9s %9s %8s\n" "project" "claims" "uncovered"
+    "caught" "stale" "protocol" "price-arm" "overhead";
   List.iter
     (fun (m : measurement) ->
-      Printf.printf "%-34s %6d %9d %6d %9.1f %9.1f %8.1f\n" m.project m.claims
-        m.uncovered m.found m.seconds m.control_seconds
+      Printf.printf "%-34s %6d %9d %7d %6d %9.1f %9.1f %8.1f\n" m.project m.claims
+        m.uncovered m.caught m.stale m.seconds m.control_seconds
         (m.seconds -. m.control_seconds))
     measurements;
   let total_uncovered =
     List.fold_left (fun n (m : measurement) -> n + m.uncovered) 0 measurements
   in
-  let total_found =
-    List.fold_left (fun n (m : measurement) -> n + m.found) 0 measurements
+  let total_caught =
+    List.fold_left (fun n (m : measurement) -> n + m.caught) 0 measurements
+  in
+  let total_stale =
+    List.fold_left (fun n (m : measurement) -> n + m.stale) 0 measurements
   in
   let total_seconds =
     List.fold_left (fun t (m : measurement) -> t +. m.seconds) 0.0 measurements
   in
-  let total_control =
+  let total_price_arm =
     List.fold_left (fun t (m : measurement) -> t +. m.control_seconds) 0.0 measurements
   in
   Printf.printf
-    "\nprojects: %d, uncovered: %d, found: %d\nprotocol seconds: %.1f, control seconds: %.1f, overhead: %.1f\n"
-    (List.length measurements) total_uncovered total_found total_seconds total_control
-    (total_seconds -. total_control);
+    "\nprojects: %d, uncovered: %d, caught: %d, needs work: %d\nprotocol seconds: %.1f, price-arm seconds: %.1f, overhead: %.1f\n"
+    (List.length measurements) total_uncovered total_caught total_stale total_seconds
+    total_price_arm (total_seconds -. total_price_arm);
   print_endline "";
   print_endline
-    "The control arm is the same checks, run directly, without the protocol. The";
+    "The price arm is the same checks, run directly, without the protocol: it says";
   print_endline
-    "overhead is what the protocol costs; the uncovered count and the found count are";
-  print_endline "what it adds. What it does not settle is the human question: whether";
+    "what the protocol costs. It does not say what the protocol is worth, because";
   print_endline
-    "a person working without the protocol would have found the same things, and how";
-  print_endline "long that would have taken. That needs a human control arm.";
+    "that needs the AGENT arm - the same task solved by an agent with no protocol.";
+  print_endline
+    "That agent will be faster, and it should be: it keeps no bookkeeping. So the";
+  print_endline
+    "comparison is not about speed. It is about what the method caught that the agent";
+  print_endline
+    "without the protocol did not - and whether that was worth what it cost.";
   print_endline "";
   match !declared_costs with
   | Some costs ->
@@ -325,7 +345,7 @@ let () =
         print_endline "ratio: not computable - the denominator is zero"
       else
         Printf.printf "cost: %.4f; ratio (defects caught per unit of cost): %.4f\n"
-          denominator (float_of_int total_found /. denominator)
+          denominator (float_of_int total_caught /. denominator)
   | None ->
       print_endline "ratio: not computed. The person-minutes and the agent's tokens are";
       print_endline
