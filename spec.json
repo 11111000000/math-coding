@@ -9,7 +9,7 @@
     "at": "1793951564"
   },
   "uncertainty_budget": 3,
-  "closed_waves": [ "wave-1", "wave-4" ],
+  "closed_waves": [ "wave-1", "wave-4", "wave-2", "wave-3" ],
   "claims": [
     {
       "id": "no-scripts",
@@ -36,7 +36,7 @@
     {
       "id": "the-aim-is-a-persons",
       "subject": "цель метода сформулирована человеком и не выведена из того, что оказалось сделано",
-      "scope": [ "lib/" ],
+      "scope": [ "bin/mathc.ml" ],
       "requirements": [ { "kind": "review", "spec": "owner" } ],
       "falsifier": "цель выводится из сделанного, а не сформулирована: это видно по тому, что смена цели не требует основания",
       "register": "judgment",
