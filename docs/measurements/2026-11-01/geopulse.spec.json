@@ -1,0 +1,50 @@
+{
+  "goal": {
+    "text": "сервис мониторинга работает: код собирается и импортируется, а данные о геопозиции соответствуют тому, что сервис о них утверждает",
+    "scope": [
+      "src/",
+      "tests/",
+      "setup.py",
+      "pyproject.toml"
+    ],
+    "by": "agent (тестовый цикл)",
+    "at": "1793924046"
+  },
+  "uncertainty_budget": 5,
+  "claims": [
+    {
+      "id": "compiles",
+      "subject": "весь код на Python компилируется",
+      "scope": [
+        "src/",
+        "tests/"
+      ],
+      "falsifier": "compileall завершается с ненулевым кодом",
+      "register": "fact",
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "python3 -m compileall -q src tests"
+        }
+      ]
+    },
+    {
+      "id": "data-is-true",
+      "subject": "данные, которые сервис отдаёт, соответствуют тому, что он о них утверждает",
+      "scope": [
+        "src/",
+        "tests/"
+      ],
+      "falsifier": "человек увидит в данных то, чего там быть не должно",
+      "register": "judgment",
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "python3 -m compileall -q src tests"
+        }
+      ]
+    }
+  ]
+}
