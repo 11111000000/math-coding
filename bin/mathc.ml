@@ -812,7 +812,8 @@ let usage () =
   print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
   print_endline "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
   print_endline "                               declare a claim (an agent does this);";
-  print_endline "                               --requirement may be repeated, and may be review:WHO";
+  print_endline "                               --requirement may be repeated, and may be review:WHO;";
+  print_endline "                               a claim without a requirement is refused";
   print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
   print_endline "  mathc route             what needs a person, and why";
@@ -857,9 +858,28 @@ let parse_args (args : string list) :
     | "--outcome" :: text :: rest ->
         recorded_outcome := text;
         loop acc rest
+    | "--requirement" :: text :: rest ->
+        (* The requirements of a claim. They are named on the command
+           line, because a requirement is the way a claim is closed and
+           it must be said out loud: a command that exits zero and a
+           person who looked are different kinds of confirmation.
+
+           This branch was MISSING once, and the flag was documented in
+           the usage text while the parser dropped it on the floor. The
+           consequence was that `add` could never be given a
+           requirement, so it refused every claim with "the requirements
+           are empty", and the only way to declare a claim was to edit
+           the specification by hand. The defect was invisible because
+           the usage text said the flag worked, and a usage text is a
+           description, not a check. *)
+        requirements := text :: !requirements;
+        loop acc rest
     | "--json" :: rest ->
         json := true;
         loop acc rest
+    | "--requirement" :: [] ->
+        Printf.eprintf "mathc: --requirement needs a requirement\n";
+        exit 2
     | "--reason" :: [] ->
         Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
@@ -893,6 +913,12 @@ let () =
       usage ();
       exit 0
   | verb :: _ -> (
+      (* A flag that belongs to one verb and is accepted by another is a
+         flag that is silently ignored, and a method that ignores what
+         it was told reports something the user did not ask for. *)
+      if verb <> "add" && requirements <> [] then (
+        Printf.eprintf "mathc: --requirement belongs to add\n";
+        exit 2);
       let code =
         match verb with
         | "goal" -> (
