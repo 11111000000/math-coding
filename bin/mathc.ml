@@ -248,7 +248,33 @@ let verb_run () =
     let states = states_of claims in
     Verdict.verdict_to_exit (Verdict.verdict_of_states (List.map snd states))
 
-(** next: the next work. Not a list to choose from - one item. *)
+(** The waves of a project, in the order they were declared. A wave is
+    a slice of work; the queue is these waves that are not yet
+    finished. *)
+let waves_of () : Domain.wave list =
+  let dir = Filename.concat (root ()) "waves" in
+  if not (Sys.file_exists dir) then []
+  else
+    Sys.readdir dir |> Array.to_list
+    |> List.filter (fun name -> Filename.check_suffix name ".json")
+    |> List.sort compare
+    |> List.filter_map (fun name ->
+           match Spec.parse_wave_string (read_file (Filename.concat dir name)) with
+           | Ok wave -> Some wave
+           | Error _ -> None)
+
+(** next: the next work. Not a list to choose from - one item.
+
+    It is a WAVE when there is one, and a claim when there is not. A
+    wave is the larger unit: it carries the checks that must pass and
+    the verdicts it declares, and it is what an agent is given to
+    carry out. When the waves are exhausted, what remains is a claim
+    that needs checking, or a part of the tree nobody has claimed.
+
+    And it EXECUTES: a wave whose checks pass and whose declared
+    verdicts are established is finished, and the method says so. A
+    queue that only names work is a list; a queue that finishes work is
+    a protocol. *)
 let verb_next () =
   let spec = load_spec () in
   let claims = spec.Domain.claims in
@@ -272,18 +298,54 @@ let verb_next () =
         | _ -> None)
       states
   in
-  match (refuted, needs_check, uncovered) with
-  | id :: _, _, _ ->
+  let waves = waves_of () in
+  match (waves, refuted, needs_check, uncovered) with
+  | wave :: _, _, _, _ ->
+      (* A wave is the unit of work. It is executed here: its checks
+         run, and if its declared verdicts are established afterwards,
+         the wave is finished and the method says so. *)
+      Printf.printf "next: wave %s - %s\n" wave.Domain.id wave.Domain.title;
+      let failing =
+        List.filter
+          (fun check ->
+            let outcome, _ = Exec.run_check_in ~root:(root ()) check in
+            outcome <> Domain.Verified)
+          wave.Domain.checks
+      in
+      if failing <> [] then (
+        Printf.printf "  its checks did not pass:\n";
+        List.iter (fun c -> Printf.printf "    %s\n" c) failing;
+        1)
+      else
+        let after = states_of claims in
+        let established id =
+          match (List.assoc_opt id after, List.find_opt (fun (c : Domain.claim) -> c.id = id) claims) with
+          | Some Domain.Holds, _ -> true
+          | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
+          | _ -> false
+        in
+        let unestablished =
+          List.filter (fun id -> not (established id)) wave.Domain.verdicts_changed
+        in
+        if unestablished = [] then (
+          Printf.printf "  the wave is finished: its checks pass and its verdicts hold\n";
+          0)
+        else (
+          Printf.printf "  the wave is not finished: %d of the verdicts it declared are not established\n"
+            (List.length unestablished);
+          List.iter (fun id -> Printf.printf "    %s\n" id) unestablished;
+          0)
+  | [], id :: _, _, _ ->
       Printf.printf "next: the claim %s is refuted - it was believed and is not\n" id;
       0
-  | [], id :: _, _ ->
+  | [], [], id :: _, _ ->
       Printf.printf "next: check the claim %s - it is not known now\n" id;
       0
-  | [], [], first :: _ ->
+  | [], [], [], first :: _ ->
       Printf.printf "next: nothing is unverified; %d tracked file(s) are uncovered, starting with %s\n"
         (List.length uncovered) first;
       0
-  | [], [], [] ->
+  | [], [], [], [] ->
       print_endline "next: nothing to do - every claim is known and everything is covered";
       0
 
