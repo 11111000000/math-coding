@@ -64,18 +64,40 @@ let aggregate (results : evidence list) : verdict =
 (** The state of ONE REQUIREMENT, from its evidence and the subject's
     current binding. The binding is the crux: evidence obtained
     against a subject that has since moved is evidence about a subject
-    that no longer exists, and it can never read as verified. *)
-let state_of_evidence (current : binding option) (evidence : evidence option) : state =
+    that no longer exists, and it can never read as verified.
+
+    The proof's TERM is the second crux. The binding answers "is the
+    content the same?"; the term answers "does this proof still
+    count?". A proof can be about exactly the right content and still
+    be too old to stand - the deployment moved, the dependency
+    changed, the review was for the release that is over. Neither the
+    content nor the truth can see that; only the term can.
+
+    The moment is a VALUE, not a reading of the clock: the core has no
+    clock, and a law that read the clock would be a law about the
+    machine rather than about the value. *)
+let expired (now : float) (e : evidence) : bool =
+  match e.valid_until with
+  | None -> false
+  | Some until_ -> (
+      match float_of_string_opt until_ with
+      | Some t -> t <= now
+      | None -> false)
+
+let state_of_evidence (current : binding option) (now : float)
+    (evidence : evidence option) : state =
   match evidence with
   | None -> NeverChecked
   | Some e -> (
       match current with
-      | Some b when e.bound_to = b -> (
-          match e.outcome with
-          | Verified -> Holds
-          | Falsified -> Refuted
-          | Unresolved -> Inconclusive
-          | Refused -> NotCheckable)
+      | Some b when e.bound_to = b ->
+          if expired now e then Outdated
+          else
+            (match e.outcome with
+            | Verified -> Holds
+            | Falsified -> Refuted
+            | Unresolved -> Inconclusive
+            | Refused -> NotCheckable)
       | _ -> Outdated)
 
 let verdict_of_state = function
@@ -103,7 +125,7 @@ let verdict_of_states (states : state list) : verdict =
     missing. That is the answer to the question the third version could
     not state: what is the state of a thing that needs two kinds of
     confirmation and has one? *)
-let state_of_requirements (claim : claim) (current : binding option)
+let state_of_requirements (claim : claim) (current : binding option) (now : float)
     (evidence : evidence list) : state =
   let for_requirement (r : requirement) =
     (* The evidence is matched by the claim AND the requirement. Two
@@ -124,7 +146,7 @@ let state_of_requirements (claim : claim) (current : binding option)
              | None -> Some e)
            None
     in
-    state_of_evidence current latest
+    state_of_evidence current now latest
   in
   let states = List.map for_requirement claim.requirements in
   (* The refinement of the fold. The fold answers "is anything
@@ -164,9 +186,9 @@ let apply_acceptance (c : claim) (computed : state) : state =
 (** The state of one claim, with the acceptance applied. The computed
     state comes from the requirements; the acceptance may only cover
     an uncertainty, never an answer (A7). *)
-let state_of_claim (claim : claim) (current : binding option)
+let state_of_claim (claim : claim) (current : binding option) (now : float)
     (evidence : evidence list) : state =
-  apply_acceptance claim (state_of_requirements claim current evidence)
+  apply_acceptance claim (state_of_requirements claim current now evidence)
 
 (** The law of the acceptance: it covers uncertainty and never an
     answer. Stated over the step it constrains, so that the broken
@@ -283,10 +305,25 @@ let law_order (combine' : verdict -> verdict -> verdict) =
     binding machinery exists to make true, and the one that the third
     version broke by treating an empty digest as a wildcard. *)
 let law_outdated_is_never_verified
-    (state_of' : binding option -> evidence option -> state)
+    (state_of' : binding option -> float -> evidence option -> state)
     (e : evidence) (current : binding option) =
   (* "if the subject moved, the claim cannot read as verified". *)
-  current = Some e.bound_to || state_of' current (Some e) <> Holds
+  current = Some e.bound_to || state_of' current 0.0 (Some e) <> Holds
+
+(** The law of the term: a proof whose term is over is not a proof.
+
+    The binding says whether the content is the same; the term says
+    whether the proof still counts. A proof can be about exactly the
+    right content and still be too old to stand - the deployment
+    moved, the dependency changed, the review was for the release that
+    is over. Neither the content nor the truth can see that.
+
+    So the law is stated over the function that decides, and the broken
+    version - one that ignores the term - must be rejected by it. *)
+let law_expired_is_never_verified
+    (state_of' : binding option -> float -> evidence option -> state)
+    (e : evidence) (current : binding option) =
+  state_of' current 1_000_000_000.0 (Some e) <> Holds
 
 (** A scope that names nothing is not a subject. The scope must not be
     empty; whether it names anything in the tree is the adapter's

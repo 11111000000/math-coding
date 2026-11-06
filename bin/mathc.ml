@@ -109,9 +109,12 @@ let production_facts () =
 (** The state of every claim, computed. *)
 let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   let evidence = latest_evidence claims in
+  (* The moment, once, for the whole computation: two claims must not
+     be judged against two different nows. *)
+  let now = Unix.time () in
   List.map
     (fun (claim : Domain.claim) ->
-      (claim.id, Verdict.state_of_claim claim (binding_of claim) evidence))
+      (claim.id, Verdict.state_of_claim claim (binding_of claim) now evidence))
     claims
 
 (** How much of the uncertainty budget the project has spent. Only an
@@ -203,7 +206,21 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                          (latest_evidence claims)
                      with
                      | Some e -> `String e.producer
-                     | None -> `Null ) ])
+                     | None -> `Null );
+                   (* WHY the proof does not count, when it does not:
+                     the content moved under it, or its term is over.
+                     Two different faults, and the map must not merge
+                     them. *)
+                   ( "outdated_because",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e when state = Domain.Outdated ->
+                         if Verdict.expired (Unix.time ()) e then `String "the term is over"
+                         else `String "the subject moved"
+                     | _ -> `Null ) ])
              states) );
       ( "uncovered_paths",
         `List (List.map (fun f -> `String f) uncovered) )]
@@ -231,19 +248,31 @@ let verb_map json =
         (* The commit the proof was produced from, when there is one: the
            state says what is known, the commit says where the knowing
            came from. *)
+        let evidence_of_claim =
+          List.find_opt
+            (fun (e : Domain.evidence) -> e.claim.id = id)
+            (latest_evidence claims)
+        in
         let anchor =
-          match
-            List.find_opt
-              (fun (e : Domain.evidence) -> e.claim.id = id)
-              (latest_evidence claims)
-          with
+          match evidence_of_claim with
           | Some e -> (
               match e.at_commit with
               | Some c -> " " ^ String.sub c 0 (min 7 (String.length c))
               | None -> "")
           | None -> ""
         in
-        Printf.printf "  %-24s %s%s\n" id
+        (* Why a proof does not count: the content moved under it, or
+           its term is over. The two faults are told apart, because the
+           map that merges them reports a week-old proof and a proof
+           nobody may rely on as the same thing. *)
+        let why =
+          match (state, evidence_of_claim) with
+          | Domain.Outdated, Some e ->
+              if Verdict.expired (Unix.time ()) e then " (the term is over)"
+              else " (the subject moved)"
+          | _ -> ""
+        in
+        Printf.printf "  %-24s %s%s%s\n" id
           (match state with
           | Domain.Holds -> "holds"
           | Domain.Refuted -> "refuted"
@@ -252,7 +281,7 @@ let verb_map json =
           | Domain.Outdated -> "outdated"
           | Domain.NeverChecked -> "never checked"
           | Domain.Accepted -> "accepted by a person")
-          anchor)
+          anchor why)
       states;
     Printf.printf "uncertainty: %d of %d consumed\n"
       (consumption_of claims) spec.Domain.budget;
@@ -362,7 +391,7 @@ let verb_run () =
     a review requirement is closed by the authority's word. The binding
     is the subject's digest as it stands now, so the record is about
     the subject as it is, not as it was. *)
-let verb_record claim_id spec by outcome (reason : string) =
+let verb_record claim_id spec by outcome (reason : string) (valid_for : string) =
   let spec_loaded = load_spec () in
   let refuse why =
     Printf.eprintf "mathc: %s\n" why;
@@ -371,6 +400,8 @@ let verb_record claim_id spec by outcome (reason : string) =
   let problem =
     if by = "" then Some "a record needs a producer: --by"
     else if spec = "" then Some "a record needs the requirement it closes"
+    else if valid_for <> "" && int_of_string_opt valid_for = None then
+      Some "the term of a proof is a number of days"
     else None
   in
   match problem with
@@ -416,6 +447,20 @@ let verb_record claim_id spec by outcome (reason : string) =
           | Some binding ->
               let e =
                 let at_commit, at = production_facts () in
+                (* The term: how many days the proof counts. Absent
+                   means it does not expire - and the reason it may be
+                   absent is worth saying: the binding already covers
+                   the case where the CONTENT changed, and what the
+                   term covers is the case where the content is the
+                   same and the world is not. *)
+                let valid_until =
+                  match int_of_string_opt valid_for with
+                  | Some days ->
+                      Some
+                        (Printf.sprintf "%.0f"
+                           (Unix.time () +. (float_of_int days *. 86400.0)))
+                  | None -> None
+                in
                 {
                   Domain.claim;
                   requirement;
@@ -425,7 +470,7 @@ let verb_record claim_id spec by outcome (reason : string) =
                   reason = (if reason = "" then None else Some reason);
                   at_commit;
                   at;
-                  valid_until = None;
+                  valid_until;
                 }
               in
               Trail.append (root ()) e;
@@ -910,7 +955,8 @@ let usage () =
   print_endline "  mathc route             what needs a person, and why";
   print_endline "  mathc run                execute the checks, bind the results, write the trail";
   print_endline "  mathc record CLAIM REQ --by WHO --outcome V";
-  print_endline "                               take evidence from outside: a person, a CI run";
+  print_endline "                               take evidence from outside: a person, a CI run;";
+  print_endline "                               --valid-for DAYS says how long the proof counts";
   print_endline "  mathc next               the next work, one item";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "";
@@ -924,13 +970,14 @@ let usage () =
     silently becomes a verb is a method that reports something the
     user did not ask for. *)
 let parse_args (args : string list) :
-    string list * string * bool * string * string * string * string list =
+    string list * string * bool * string * string * string * string * string list =
   let root_flag = ref "" in
   let reason = ref "" in
   let json = ref false in
   let by = ref "" in
   let recorded_outcome = ref "verified" in
   let recorded_reason = ref "" in
+  let valid_for = ref "" in
   let requirements = ref [] in
   let rec loop acc = function
     | [] -> (List.rev acc, !reason, !json)
@@ -948,6 +995,13 @@ let parse_args (args : string list) :
         loop acc rest
     | "--outcome" :: text :: rest ->
         recorded_outcome := text;
+        loop acc rest
+    | "--valid-for" :: text :: rest ->
+        (* How long the proof counts. The content may be exactly the
+           right one and the proof still too old to stand: the
+           deployment moved, the dependency changed, the review was for
+           a release that is over. The term is what says so. *)
+        valid_for := text;
         loop acc rest
     | "--requirement" :: text :: rest ->
         (* The requirements of a claim. They are named on the command
@@ -974,6 +1028,9 @@ let parse_args (args : string list) :
     | "--reason" :: [] ->
         Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
+    | "--valid-for" :: [] ->
+        Printf.eprintf "mathc: --valid-for needs a number of days\n";
+        exit 2
     | ("-" | "--") :: _ ->
         Printf.eprintf "mathc: unknown option\n";
         exit 2
@@ -987,6 +1044,7 @@ let parse_args (args : string list) :
     !by,
     !recorded_outcome,
     !recorded_reason,
+    !valid_for,
     List.rev !requirements )
 
 (** A comma-separated list of paths. The scope of a claim is a list of
@@ -996,7 +1054,8 @@ let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional, reason, json, by, recorded_outcome, recorded_reason, requirements =
+  let positional, reason, json, by, recorded_outcome, recorded_reason, valid_for,
+      requirements =
     parse_args (Array.to_list Sys.argv |> List.tl)
   in
   match positional with
@@ -1061,6 +1120,7 @@ let () =
             match positional with
             | _ :: claim_id :: spec :: _ ->
                 verb_record claim_id spec by recorded_outcome recorded_reason
+                  valid_for
             | _ ->
                 Printf.eprintf
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";
