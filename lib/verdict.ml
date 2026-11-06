@@ -129,6 +129,11 @@ let verdict_of_states (states : state list) : verdict =
     missing. That is the answer to the question the third version could
     not state: what is the state of a thing that needs two kinds of
     confirmation and has one? *)
+(** What a requirement names - the thing `record` and the attestations
+    call it by. *)
+let spec_of (r : requirement) : string =
+  match r with Verified_by spec -> spec | Reviewed_by spec -> spec
+
 (** Seconds since the epoch, as a number. The moments of two proofs
     are compared, and the comparison must not depend on the order the
     files were read in. *)
@@ -182,14 +187,8 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
              | None -> Some e)
            None
     in
-    (* AN ATTESTATION OUTRANKS THE TRAIL WHEN IT IS NEWER. A proof from
-       outside is in the standing specification, and a proof the machine
-       ran is in the trail; both may speak about the same requirement,
-       and the later one is the one that counts - they are compared by
-       the moment they were produced, and not by kind. *)
-    let spec_of (r : requirement) =
-      match r with Verified_by spec -> spec | Reviewed_by spec -> spec
-    in
+    (* AN ATTESTATION OUTRANKS THE TRAIL WHEN IT IS NEWER: both may
+       speak about the same requirement, and the later one counts. *)
     let latest_attestation =
       List.filter (fun (a : attestation) -> a.requirement = spec_of r) claim.attestations
       |> List.fold_left
@@ -268,16 +267,27 @@ let route (binding_of : claim -> binding option) (claims : claim list)
           match r with
           | Verified_by _ -> None
           | Reviewed_by authority ->
+              (* A review is closed either by a proof in the trail or by
+                 an attestation in the specification - and by nothing
+                 else. The attestation counts only while it is fresh:
+                 a review of a subject that has since moved is not a
+                 review of the subject as it stands. *)
+              let fresh bound_to =
+                match binding_of claim with
+                | Some b -> bound_to = b
+                | None -> false
+              in
               let closed =
                 List.exists
                   (fun (e : evidence) ->
-                    e.requirement = r
-                    && e.outcome = Verified
-                    &&
-                    match binding_of claim with
-                    | Some b -> e.bound_to = b
-                    | None -> false)
+                    e.requirement = r && e.outcome = Verified && fresh e.bound_to)
                   evs
+                || List.exists
+                     (fun (a : attestation) ->
+                       a.requirement = spec_of r
+                       && a.outcome = Verified
+                       && fresh a.bound_to)
+                     claim.attestations
               in
               if closed then None
               else
