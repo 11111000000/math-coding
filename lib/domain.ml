@@ -144,6 +144,14 @@ type wave = {
   checks : string list;
   claims : string list;
   verdicts_changed : string list;
+  (* The dialectic of the plan. Not on every claim - on the unit of
+     work, where there is one thought to object to. The strongest
+     objection to this approach, and what would refute it. A wave
+     without them is not parsed: the plan is where the dialectic
+     lives, and a plan that cannot state the objection against itself
+     has not thought. *)
+  objection : string;
+  refuted_by : string;
 }
 
 (** The aim: what should become true.

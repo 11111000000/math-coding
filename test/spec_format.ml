@@ -107,7 +107,40 @@ let check_the_good_cases () =
             assert (c.falsifier <> ""))
           spec.Domain.claims
 
+(** The wave carries the dialectic of the plan. A plan that cannot state
+    the objection against itself has not thought, so the fields are
+    required - and the wave is where the dialectic lives, not on every
+    claim. *)
+let check_wave_dialectic () =
+  let wave fields =
+    `Assoc
+      (("id", `String "w")
+      :: ("title", `String "t")
+      :: ("touches", `List [ `String "lib/" ])
+      :: ("checks", `List [ `String "true" ])
+      :: ("claims", `List [ `String "c" ])
+      :: ("verdicts_changed", `List [ `String "c" ])
+      :: fields)
+  in
+  let complete =
+    [ ("objection", `String "the strongest objection");
+      ("refuted_by", `String "what would refute it") ]
+  in
+  (* Without the objection, the wave is not a wave. *)
+  expect_error "a wave without an objection" (Spec.parse_wave (wave [ ("refuted_by", `String "x") ]));
+  expect_error "a wave without what would refute it"
+    (Spec.parse_wave (wave [ ("objection", `String "x") ]));
+  (* And it parses when both are there. *)
+  match Spec.parse_wave (wave complete) with
+  | Error e ->
+      Printf.eprintf "a complete wave does not parse: %s\n" (Spec.result_of (Error e));
+      exit 1
+  | Ok w ->
+      assert (w.objection = "the strongest objection");
+      assert (w.refuted_by = "what would refute it")
+
 let () =
   check_strictness ();
   check_the_good_cases ();
+  check_wave_dialectic ();
   print_endline "spec-format: PASS"

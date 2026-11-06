@@ -66,6 +66,11 @@ let apply_register_refutes_judgments (_r : register) (o : outcome) = o
    and the method stops being worth anything. *)
 let cost_of_outcome_free (_o : outcome) = 0
 
+(* An acceptance covers everything, including a finding. Then a person
+   can bury a refuted claim by accepting it, which is the opposite of
+   what an acceptance is for. *)
+let apply_acceptance_accepts_anything (_c : claim) (_s : state) = Accepted
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -176,7 +181,27 @@ let check_negative_controls () =
 
   (* The price of uncertainty. Only an answer is free. *)
   assert (law_only_answers_are_free cost_of_outcome);
-  assert (not (law_only_answers_are_free cost_of_outcome_free))
+  assert (not (law_only_answers_are_free cost_of_outcome_free));
+
+  (* The acceptance covers uncertainty and never an answer. *)
+  let accepted_claim = { sample_claim with accepted = Some ("a person", "reason") } in
+  let refuted = Verdict.state_of_evidence (Some "digest") (Some (sample_evidence Falsified "digest")) in
+  assert (refuted = Domain.Refuted);
+  assert
+    (law_acceptance_never_changes_an_answer Verdict.apply_acceptance accepted_claim
+       refuted);
+  assert
+    (not
+      (law_acceptance_never_changes_an_answer apply_acceptance_accepts_anything
+         accepted_claim refuted));
+  (* And it does cover an uncertainty. *)
+  let unknown =
+    Verdict.state_of_evidence (Some "digest") (Some (sample_evidence Unresolved "digest"))
+  in
+  assert (unknown = Domain.Inconclusive);
+  assert
+    (law_acceptance_never_changes_an_answer Verdict.apply_acceptance accepted_claim
+       unknown)
 
 let () =
   check_laws_hold ();
