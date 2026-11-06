@@ -99,7 +99,7 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   let evidence = latest_evidence claims in
   List.map
     (fun (claim : Domain.claim) ->
-      (claim.id, Verdict.state_of_requirements claim (binding_of claim) evidence))
+      (claim.id, Verdict.state_of_claim claim (binding_of claim) evidence))
     claims
 
 (** How much of the uncertainty budget the project has spent. Only an
@@ -210,8 +210,9 @@ let verb_map json =
 (** route: what needs a person, and why. *)
 let verb_route () =
   let spec = load_spec () in
-  let evidence = latest_evidence spec.Domain.claims in
-  let findings = Verdict.route evidence in
+  let claims = spec.Domain.claims in
+  let evidence = latest_evidence claims in
+  let findings = Verdict.route binding_of claims evidence in
   if findings = [] then print_endline "nothing needs a person"
   else
     List.iter

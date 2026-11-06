@@ -110,9 +110,9 @@ let state_of_requirements (claim : claim) (current : binding option)
        claims often share one check - the same test suite verifies
        several rules - and matching by the requirement alone would let
        one claim's evidence answer for another. The digests differ, so
-       the mismatch would show up as "outdated" rather than as a
-       wrong answer, which is how it was found: on the second claim of
-       a pair, the verdict turned unknown with no visible cause. *)
+       the mismatch would show up as "outdated" rather than as a wrong
+       answer, which is how it was found: on the second claim of a
+       pair, the verdict turned unknown with no visible cause. *)
     let latest =
       List.filter
         (fun (e : evidence) -> e.claim.id = claim.id && e.requirement = r)
@@ -127,22 +127,18 @@ let state_of_requirements (claim : claim) (current : binding option)
     state_of_evidence current latest
   in
   let states = List.map for_requirement claim.requirements in
-  let verdict =
-    List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
-  in
-  match verdict with
-  | Red -> Refuted
-  | Green -> Holds
-  | Unknown -> (
-      match states with
-      | [] -> NeverChecked
-      | _ -> (
-          match List.for_all (fun s -> s = NeverChecked) states with
-          | true -> NeverChecked
-          | false -> (
-              match List.for_all (fun s -> s = Outdated) states with
-              | true -> Outdated
-              | false -> Inconclusive)))
+  (* The refinement of the fold. The fold answers "is anything
+     refuted, and is everything known"; the states say WHICH kind of
+     not-knowing it is, because the human acts differently in each
+     case: nobody looked, we looked and the subject moved, we looked
+     and could not tell, or the machine is not the one to decide. *)
+  if List.exists (fun s -> s = Refuted) states then Refuted
+  else if List.exists (fun s -> s = NotCheckable) states then NotCheckable
+  else if List.for_all (fun s -> s = Holds) states then Holds
+  else if states = [] then NeverChecked
+  else if List.for_all (fun s -> s = NeverChecked) states then NeverChecked
+  else if List.for_all (fun s -> s = Outdated) states then Outdated
+  else Inconclusive
 
 (** The acceptance, as a separate step over the computed state.
 
@@ -165,11 +161,12 @@ let apply_acceptance (c : claim) (computed : state) : state =
   | Some _ -> Accepted
   | None -> computed
 
-(** The state of one claim: the computed state, with the acceptance
-    applied. *)
-let state_of (claim : claim) (current : binding option) (evidence : evidence option) :
-    state =
-  apply_acceptance claim (state_of_evidence current evidence)
+(** The state of one claim, with the acceptance applied. The computed
+    state comes from the requirements; the acceptance may only cover
+    an uncertainty, never an answer (A7). *)
+let state_of_claim (claim : claim) (current : binding option)
+    (evidence : evidence list) : state =
+  apply_acceptance claim (state_of_requirements claim current evidence)
 
 (** The law of the acceptance: it covers uncertainty and never an
     answer. Stated over the step it constrains, so that the broken
@@ -185,14 +182,61 @@ let law_acceptance_never_changes_an_answer
 
 (** The verdict of a set of states. An outdated claim is unknown, never
     green: the proof was about yesterday's subject. *)
-let route (results : evidence list) : finding list =
-  List.filter_map
-    (fun (r : evidence) ->
-      match r.outcome with
-      | Unresolved | Refused ->
-          Some { subject = r.claim.subject.text; outcome = r.outcome; reason = r.reason }
-      | Verified | Falsified -> None)
-    results
+(** What the human is asked to decide.
+
+    Two kinds of item, and the second is the one that was missing. A
+    requirement that only a person can close - a review - and that
+    nobody has closed yet, is NOT an absence of evidence: it is a
+    request. A route built from evidence alone would never show it, and
+    the method would keep a promise to the human that it never
+    delivered and never asked for.
+
+    So the route is computed from the CLAIMS, not from the evidence:
+    what the evidence could not settle, and what is waiting for a
+    person. *)
+let route (binding_of : claim -> binding option) (claims : claim list)
+    (evidence : evidence list) : finding list =
+  let for_claim (claim : claim) =
+    let evs = List.filter (fun (e : evidence) -> e.claim.id = claim.id) evidence in
+    let unsettled =
+      List.filter_map
+        (fun (e : evidence) ->
+          match e.outcome with
+          | Unresolved | Refused ->
+              Some { subject = claim.subject.text; outcome = e.outcome; reason = e.reason }
+          | Verified | Falsified -> None)
+        evs
+    in
+    let waiting =
+      List.filter_map
+        (fun (r : requirement) ->
+          match r with
+          | Verified_by _ -> None
+          | Reviewed_by authority ->
+              let closed =
+                List.exists
+                  (fun (e : evidence) ->
+                    e.requirement = r
+                    && e.outcome = Verified
+                    &&
+                    match binding_of claim with
+                    | Some b -> e.bound_to = b
+                    | None -> false)
+                  evs
+              in
+              if closed then None
+              else
+                Some
+                  {
+                    subject = claim.subject.text;
+                    outcome = Unresolved;
+                    reason = Some ("ждёт ревью от " ^ authority);
+                  })
+        claim.requirements
+    in
+    unsettled @ waiting
+  in
+  List.concat_map for_claim claims
 
 (** The exit code of the method. Three values, because "we could not
     tell" and "it is wrong" must not share a code: a caller that
@@ -239,10 +283,10 @@ let law_order (combine' : verdict -> verdict -> verdict) =
     binding machinery exists to make true, and the one that the third
     version broke by treating an empty digest as a wildcard. *)
 let law_outdated_is_never_verified
-    (state_of' : claim -> binding option -> evidence option -> state)
+    (state_of' : binding option -> evidence option -> state)
     (e : evidence) (current : binding option) =
   (* "if the subject moved, the claim cannot read as verified". *)
-  current = Some e.bound_to || state_of' e.claim current (Some e) <> Holds
+  current = Some e.bound_to || state_of' current (Some e) <> Holds
 
 (** A scope that names nothing is not a subject. The scope must not be
     empty; whether it names anything in the tree is the adapter's

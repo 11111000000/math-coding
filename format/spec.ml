@@ -146,8 +146,8 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
         | None -> Ok None
         | Some (`Null) -> Ok None
         | Some (`Assoc fields) -> (
-            let* by = require_string ~what "accepted.by" fields in
-            let* reason = require_string ~what "accepted.reason" fields in
+            let* by = require_string ~what "by" fields in
+            let* reason = require_string ~what "reason" fields in
             Ok (Some (by, reason)))
         | Some _ -> Error (error (what ^ ".accepted") "expected an object or null")
       in

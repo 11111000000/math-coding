@@ -45,8 +45,7 @@ let combine_not_absorbing a b = match a with Red -> b | _ -> combine a b
 
 (* An outdated claim reads as verified - the bug the binding exists to
    stop. *)
-let state_outdated_as_verified (_claim : claim) (_current : binding option)
-    (_e : evidence option) =
+let state_outdated_as_verified (_current : binding option) (_e : evidence option) =
   Holds
 
 (* The empty result is no longer green: adoption would cost something
@@ -96,7 +95,7 @@ let check_laws_hold () =
   assert (law_vacancy_is_green aggregate);
   assert (law_judgment_is_never_verified apply_register Judgment Verified);
   assert (law_only_answers_are_free cost_of_outcome);
-  assert (law_outdated_is_never_verified state_of (sample_evidence Verified "old")
+  assert (law_outdated_is_never_verified Verdict.state_of_evidence (sample_evidence Verified "old")
            (Some "new"))
 
 let check_negative_controls () =
@@ -145,10 +144,9 @@ let check_negative_controls () =
      a subject that has since moved, and the broken state function calls
      it verified anyway - so the law rejects that function. *)
   let outdated = sample_evidence Verified "digest-of-yesterday" in
-  assert (state_of outdated.claim (Some "digest-of-today") (Some outdated) = Outdated);
+  assert (Verdict.state_of_evidence (Some "digest-of-today") (Some outdated) = Outdated);
   assert
-    (state_outdated_as_verified outdated.claim (Some "digest-of-today")
-       (Some outdated)
+    (state_outdated_as_verified (Some "digest-of-today") (Some outdated)
     = Holds);
   assert
     (not

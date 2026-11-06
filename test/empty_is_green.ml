@@ -42,7 +42,7 @@ let check_empty_is_green () =
   (* The rule under test. *)
   assert (aggregate [] = Green);
   assert (verdict_to_exit (aggregate []) = 0);
-  assert (route [] = []);
+  assert (route (fun _ -> None) [] [] = []);
 
   (* The negative control: the same aggregate on claims that are not
      empty. If any of these is Green, the aggregate is broken. *)
@@ -54,7 +54,7 @@ let check_empty_is_green () =
      reaches the human. But it is not a proof either, so it cannot make
      the set green. *)
   assert (aggregate [ checked "a" Refused ] = Unknown);
-  assert (List.length (route [ checked "a" Refused ]) = 1);
+  assert (List.length (route (fun _ -> None) [ claim "a" ] [ checked "a" Refused ]) = 1);
 
   (* Severity is ordered: one falsified claim among verified ones is
      still red, and one unresolved among verified ones is still
