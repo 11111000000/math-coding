@@ -15,6 +15,24 @@
 
 open Domain
 
+(** The source tree. Dune runs the test from the build directory, and
+    the build directory is always named [_build], so the source tree is
+    its parent. The test needs it because the specification it must
+    check is not copied into the build directory - and a check that
+    quietly finds nothing is a comment: this file used to look for
+    [spec.json] in the working directory, where it never is, so the
+    check that "the method can see its own project" never ran at all. *)
+let[@warning "-32"] source_root () =
+  let rec loop d =
+    if Filename.basename d = "_build" then Filename.dirname d
+    else
+      let parent = Filename.dirname d in
+      if parent = d then d else loop parent
+  in
+  loop (Sys.getcwd ())
+
+let[@warning "-32"] in_repo rel = Filename.concat (source_root ()) rel
+
 let expect_error (label : string) (result : ('a, Spec.error) result) =
   match result with
   | Ok _ ->
@@ -88,9 +106,14 @@ let check_strictness () =
 
 let check_the_good_cases () =
   (* The format this repository uses must parse. If it does not, the
-     method cannot see its own project. *)
-  let path = "spec.json" in
-  if Sys.file_exists path then
+     method cannot see its own project. The file is read from the
+     SOURCE tree: the build directory does not carry it, and a check
+     that finds no file passes vacuously. *)
+  let path = in_repo "spec.json" in
+  if not (Sys.file_exists path) then (
+    Printf.eprintf "the repository has no specification at %s\n" path;
+    exit 1)
+  else
     let text = In_channel.with_open_bin path In_channel.input_all in
     match Spec.parse_spec_string text with
     | Error e ->
@@ -139,8 +162,40 @@ let check_wave_dialectic () =
       assert (w.objection = "the strongest objection");
       assert (w.refuted_by = "what would refute it")
 
+(** Every wave of THIS repository's plan carries the dialectic. The
+    dialectic lives on the plan, not on every claim, so the waves of the
+    method's own plan are where it is checked - and they are read from
+    the source tree, because a check that looks in the build directory
+    finds no waves and passes vacuously. *)
+let check_the_waves_of_this_repository () =
+  let dir = in_repo "waves" in
+  if not (Sys.file_exists dir) then (
+    Printf.eprintf "the repository has no waves at %s\n" dir;
+    exit 1)
+  else
+    let files =
+      Sys.readdir dir |> Array.to_list
+      |> List.filter (fun name -> Filename.check_suffix name ".json")
+      |> List.sort compare
+    in
+    assert (files <> []);
+    List.iter
+      (fun name ->
+        let path = Filename.concat dir name in
+        let text = In_channel.with_open_bin path In_channel.input_all in
+        match Spec.parse_wave_string text with
+        | Error e ->
+            Printf.eprintf "the wave %s does not parse: %s\n" name
+              (Spec.result_of (Error e));
+            exit 1
+        | Ok w ->
+            assert (w.objection <> "");
+            assert (w.refuted_by <> ""))
+      files
+
 let () =
   check_strictness ();
   check_the_good_cases ();
+  check_the_waves_of_this_repository ();
   check_wave_dialectic ();
   print_endline "spec-format: PASS"

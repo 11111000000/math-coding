@@ -297,9 +297,82 @@ let[@warning "-32"] check_checks_have_teeth () =
   in
   assert (offenders = [])
 
+(* Does the text contain the needle? *)
+let[@warning "-32"] contains (haystack : string) (needle : string) =
+  let n = String.length haystack and m = String.length needle in
+  let found = ref false in
+  let i = ref 0 in
+  while (not !found) && !i + m <= n do
+    if String.sub haystack !i m = needle then found := true else i := !i + 1
+  done;
+  !found
+
+(* The laws of the core, as the compiler sees them.
+
+   The names come from the parse tree, so a law that is only mentioned
+   in a comment is not counted, and a law that is renamed is counted
+   under its new name. The tree prints a definition as
+   `Ppat_var "law_commutative"`, which is where the name of a value
+   binding lives; the name is taken whole, and the ones that are not
+   laws are left out. *)
+let[@warning "-32"] laws_of_the_core () =
+  let tree = parse_tree "lib/verdict.ml" in
+  let needle = "Ppat_var \"" in
+  let n = String.length tree and m = String.length needle in
+  let names = ref [] in
+  let i = ref 0 in
+  while !i + m <= n do
+    if String.sub tree !i m = needle then (
+      let start = !i + m in
+      let rec find_end j =
+        if j < n && tree.[j] <> '"' then find_end (j + 1) else j
+      in
+      let stop = find_end start in
+      names := String.sub tree start (stop - start) :: !names;
+      i := stop)
+    else i := !i + 1
+  done;
+  !names
+  |> List.filter (fun name ->
+         String.length name > 4 && String.sub name 0 4 = "law_")
+  |> List.sort_uniq String.compare
+
+(* The formal part names every law of the core.
+
+   AXIOMS.md is the specification for PROOF and the code is the
+   specification for EXECUTION, and the document claims that they cannot
+   drift apart - which is a claim, and a claim needs a check. The drift
+   is in one direction only: a law may be added to the core and the
+   formal part would go on not naming it, and the reader of the formal
+   part would see a smaller method than the one that runs. *)
+let[@warning "-32"] check_the_formal_part_names_every_law () =
+  let document = read_file (in_repo "AXIOMS.md") in
+  let missing = List.filter (fun name -> not (contains document name)) (laws_of_the_core ()) in
+  assert (missing = [])
+
+(* The negative control for that check. A check that cannot fail is a
+   comment, and this one had better not be one: it looks for names in a
+   document, and the way to be sure it looks is to show it a name that
+   is not there and watch it report the name as missing. *)
+let[@warning "-32"] check_the_formal_part_check_has_teeth () =
+  let document = read_file (in_repo "AXIOMS.md") in
+  let missing name = not (contains document name) in
+  (* The extraction finds the laws of the core at all. *)
+  let laws = laws_of_the_core () in
+  assert (laws <> []);
+  assert (List.mem "law_commutative" laws);
+  (* And a name the document does not carry is reported missing. *)
+  assert (missing "law_that_does_not_exist");
+  (* The same list with that name in it is NOT empty - which is what the
+     check compares against. *)
+  assert
+    (List.filter missing [ "law_commutative"; "law_that_does_not_exist" ] <> [])
+
 let () =
   check_no_scripts ();
   check_core_is_pure ();
   check_core_is_small ();
   check_checks_have_teeth ();
+  check_the_formal_part_names_every_law ();
+  check_the_formal_part_check_has_teeth ();
   print_endline "repository-lints: PASS"
