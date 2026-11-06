@@ -231,9 +231,19 @@ let path_contains ~(dir : string) ~(path : string) : bool =
     The budget is required rather than defaulted. A budget nobody
     declared is not finite, and an uncertainty that costs nothing is
     the free escalation the principle exists to stop: "I do not know"
-    would be cheaper than checking. *)
+    would be cheaper than checking.
+
+    The closed waves are the plan's progress. This is NOT a stored
+    lifecycle state of a rule - a rule has no such field, and its
+    fate is computed from the binding to the subject and to the
+    evidence. A wave is a unit of WORK, and the fact that a unit of
+    work is done is a fact about the work. It belongs in the standing
+    specification, which is committed, and not in the trail, which is
+    not: the trail says what ran, and a wave that ran is not a wave
+    that finished. *)
 type spec = {
   goal : goal option;
   budget : int;
   claims : claim list;
+  closed_waves : string list;
 }

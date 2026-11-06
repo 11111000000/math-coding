@@ -194,7 +194,7 @@ let parse_goal (json : Yojson.Safe.t) : (goal, error) result =
 let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
   match
     read_object ~what:"spec" json
-      ~fields:[ "goal"; "uncertainty_budget"; "claims" ]
+      ~fields:[ "goal"; "uncertainty_budget"; "claims"; "closed_waves" ]
   with
   | Error e -> Error e
   | Ok pairs -> (
@@ -219,6 +219,21 @@ let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
               (error "spec.uncertainty_budget"
                  "is required: an uncertainty nobody priced is free, and a free uncertainty is why \"I do not know\" would be cheaper than checking")
       in
+      (* The closed waves are optional: a specification written before
+         this field existed is still a specification, and the plan's
+         progress starts empty. *)
+      let* closed_waves =
+        match List.assoc_opt "closed_waves" pairs with
+        | None -> Ok []
+        | Some (`List items) ->
+            let rec go acc = function
+              | [] -> Ok (List.rev acc)
+              | `String s :: rest -> go (s :: acc) rest
+              | _ -> Error (error "spec.closed_waves" "expected a list of strings")
+            in
+            go [] items
+        | Some _ -> Error (error "spec.closed_waves" "expected a list")
+      in
       match List.assoc_opt "claims" pairs with
       | Some (`List items) ->
           let rec claims acc = function
@@ -229,7 +244,7 @@ let parse_spec (json : Yojson.Safe.t) : (spec, error) result =
                 | Error e -> Error e)
           in
           let* cs = claims [] items in
-          Ok { goal; budget; claims = cs }
+          Ok { goal; budget; claims = cs; closed_waves }
       | Some _ -> Error (error "spec.claims" "expected a list")
       | None -> Error (error "spec.claims" "is required"))
 
@@ -253,6 +268,7 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                 ("by", `String g.by);
                 ("at", `String g.at) ] );
       ("uncertainty_budget", `Int s.budget);
+      ("closed_waves", `List (List.map (fun w -> `String w) s.closed_waves));
       ( "claims",
         `List
           (List.map

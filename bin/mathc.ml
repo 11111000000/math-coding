@@ -38,7 +38,7 @@ let spec_path () = Filename.concat (root ()) "spec.json"
 let load_spec () : Domain.spec =
   let path = spec_path () in
   if not (Sys.file_exists path) then
-    { goal = None; budget = 0; claims = [] }
+    { goal = None; budget = 0; claims = []; closed_waves = [] }
   else
     match Spec.parse_spec_string (read_file path) with
     | Ok spec -> spec
@@ -426,7 +426,17 @@ let verb_next () =
         | _ -> None)
       states
   in
-  let waves = waves_of () in
+  (* A CLOSED WAVE LEAVES THE QUEUE. The queue used to be the first
+     wave by name, and closing a wave changed nothing about it, so
+     `next` returned the same closed wave for ever: the queue was a
+     catalogue, and the agent that was supposed to be led by it was
+     led by hand. A wave that is closed is recorded in the standing
+     specification - it is a fact about the work, not about the
+     subject - and it is skipped here. *)
+  let waves =
+    waves_of ()
+    |> List.filter (fun (w : Domain.wave) -> not (List.mem w.Domain.id spec.Domain.closed_waves))
+  in
   match (waves, refuted, needs_check, uncovered) with
   | wave :: _, _, _, _ ->
       (* A wave is the unit of work. It is executed here: its checks
@@ -494,7 +504,15 @@ let verb_next () =
     The comparison is against the DECLARATION, not against the state
     a moment before the checks ran. A wave does work over hours, and
     the verdicts it establishes are established when the work is done,
-    not in the second before somebody remembers to close it. *)
+    not in the second before somebody remembers to close it.
+
+    CLOSING RECORDS THE CLOSURE. A wave that is closed leaves the
+    queue: `next` skips it. The closure is written to the standing
+    specification, because it is a fact about the work - a unit of work
+    is done or it is not - and the specification is committed, so the
+    queue is the same for everybody and in every fresh clone. The trail
+    is not the place for it: the trail says what ran, and a wave that
+    ran is not a wave that finished. *)
 let verb_close id =
   let path = Filename.concat (root ()) (Filename.concat "waves" (id ^ ".json")) in
   if not (Sys.file_exists path) then (
@@ -507,6 +525,13 @@ let verb_close id =
         2
     | Ok wave -> (
         let spec = load_spec () in
+        (* A wave that is already closed is not an error: closing it
+           twice says nothing new, and the method has no reason to make
+           the person remember whether they did it. *)
+        if List.mem id spec.Domain.closed_waves then (
+          Printf.printf "wave %s is already closed\n" id;
+          0)
+        else
         let claims = spec.Domain.claims in
         let failing =
           List.filter
@@ -559,6 +584,11 @@ let verb_close id =
               unestablished;
             1)
           else (
+            (* The closure is recorded in the standing specification, so
+               that the queue moves: `next` skips the closed waves, and
+               the progress of the plan survives a fresh clone, because
+               the specification is committed and the trail is not. *)
+            save_spec { spec with Domain.closed_waves = spec.Domain.closed_waves @ [ id ] };
             Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
             Printf.printf "  the objection it carried: %s\n" wave.objection;
             Printf.printf "  what would refute it: %s\n" wave.refuted_by;
@@ -795,7 +825,7 @@ let verb_init budget =
     Printf.eprintf "mathc: there is already a standing specification\n";
     2)
   else (
-    save_spec { goal = None; budget; claims = [] };
+    save_spec { goal = None; budget; claims = []; closed_waves = [] };
     Printf.printf "the standing specification is created:\n";
     Printf.printf "  %s\n" path;
     Printf.printf "  uncertainty budget: %d\n\n" budget;
