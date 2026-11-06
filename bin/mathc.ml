@@ -38,7 +38,7 @@ let spec_path () = Filename.concat (root ()) "spec.json"
 let load_spec () : Domain.spec =
   let path = spec_path () in
   if not (Sys.file_exists path) then
-    { goal = None; budget = 0; claims = [] }
+    { goal = None; budget = 0; claims = []; closed_waves = [] }
   else
     match Spec.parse_spec_string (read_file path) with
     | Ok spec -> spec
@@ -251,7 +251,8 @@ let verb_run () =
           match binding_of claim with
           | None ->
               Printf.printf
-                "%s: no digest - the scope names nothing, so nothing can be bound\n"
+                "%s: no digest - the scope names no existing path, so nothing can be \
+                 bound\n"
                 claim.id;
               []
           | Some binding ->
@@ -354,7 +355,7 @@ let verb_record claim_id spec by outcome (reason : string) =
       | Some requirement -> (
           match binding_of claim with
           | None ->
-              refuse "the scope names nothing, so nothing could be bound"
+              refuse "the scope names no existing path, so nothing could be bound"
           | Some binding ->
               let e =
                 {
@@ -425,7 +426,17 @@ let verb_next () =
         | _ -> None)
       states
   in
-  let waves = waves_of () in
+  (* A CLOSED WAVE LEAVES THE QUEUE. The queue used to be the first
+     wave by name, and closing a wave changed nothing about it, so
+     `next` returned the same closed wave for ever: the queue was a
+     catalogue, and the agent that was supposed to be led by it was
+     led by hand. A wave that is closed is recorded in the standing
+     specification - it is a fact about the work, not about the
+     subject - and it is skipped here. *)
+  let waves =
+    waves_of ()
+    |> List.filter (fun (w : Domain.wave) -> not (List.mem w.Domain.id spec.Domain.closed_waves))
+  in
   match (waves, refuted, needs_check, uncovered) with
   | wave :: _, _, _, _ ->
       (* A wave is the unit of work. It is executed here: its checks
@@ -493,7 +504,15 @@ let verb_next () =
     The comparison is against the DECLARATION, not against the state
     a moment before the checks ran. A wave does work over hours, and
     the verdicts it establishes are established when the work is done,
-    not in the second before somebody remembers to close it. *)
+    not in the second before somebody remembers to close it.
+
+    CLOSING RECORDS THE CLOSURE. A wave that is closed leaves the
+    queue: `next` skips it. The closure is written to the standing
+    specification, because it is a fact about the work - a unit of work
+    is done or it is not - and the specification is committed, so the
+    queue is the same for everybody and in every fresh clone. The trail
+    is not the place for it: the trail says what ran, and a wave that
+    ran is not a wave that finished. *)
 let verb_close id =
   let path = Filename.concat (root ()) (Filename.concat "waves" (id ^ ".json")) in
   if not (Sys.file_exists path) then (
@@ -506,6 +525,13 @@ let verb_close id =
         2
     | Ok wave -> (
         let spec = load_spec () in
+        (* A wave that is already closed is not an error: closing it
+           twice says nothing new, and the method has no reason to make
+           the person remember whether they did it. *)
+        if List.mem id spec.Domain.closed_waves then (
+          Printf.printf "wave %s is already closed\n" id;
+          0)
+        else
         let claims = spec.Domain.claims in
         let failing =
           List.filter
@@ -558,6 +584,11 @@ let verb_close id =
               unestablished;
             1)
           else (
+            (* The closure is recorded in the standing specification, so
+               that the queue moves: `next` skips the closed waves, and
+               the progress of the plan survives a fresh clone, because
+               the specification is committed and the trail is not. *)
+            save_spec { spec with Domain.closed_waves = spec.Domain.closed_waves @ [ id ] };
             Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
             Printf.printf "  the objection it carried: %s\n" wave.objection;
             Printf.printf "  what would refute it: %s\n" wave.refuted_by;
@@ -695,8 +726,10 @@ let verb_add id subject scope requirements falsifier register =
                "the scope is outside the aim. The aim covers %s; this claim is about %s"
                (String.concat ", " (match spec.goal with Some g -> g.Domain.scope | None -> []))
                (String.concat ", " scope))
-        else if not (Git.scope_names_something (root ()) scope) then
-          Some "the scope names nothing in this tree, so nothing could be bound to it"
+        else if not (Git.scope_exists (root ()) scope) then
+          Some
+            "the scope names a path that is not in this tree, so the subject would \
+             have a hole in it and nothing could be bound to it"
         else
           let consumption = consumption_of spec.Domain.claims in
           if consumption >= spec.Domain.budget then
@@ -792,7 +825,7 @@ let verb_init budget =
     Printf.eprintf "mathc: there is already a standing specification\n";
     2)
   else (
-    save_spec { goal = None; budget; claims = [] };
+    save_spec { goal = None; budget; claims = []; closed_waves = [] };
     Printf.printf "the standing specification is created:\n";
     Printf.printf "  %s\n" path;
     Printf.printf "  uncertainty budget: %d\n\n" budget;
@@ -809,7 +842,8 @@ let usage () =
   print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
   print_endline "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
   print_endline "                               declare a claim (an agent does this);";
-  print_endline "                               --requirement may be repeated, and may be review:WHO";
+  print_endline "                               --requirement may be repeated, and may be review:WHO;";
+  print_endline "                               a claim without a requirement is refused";
   print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
   print_endline "  mathc route             what needs a person, and why";
@@ -854,9 +888,28 @@ let parse_args (args : string list) :
     | "--outcome" :: text :: rest ->
         recorded_outcome := text;
         loop acc rest
+    | "--requirement" :: text :: rest ->
+        (* The requirements of a claim. They are named on the command
+           line, because a requirement is the way a claim is closed and
+           it must be said out loud: a command that exits zero and a
+           person who looked are different kinds of confirmation.
+
+           This branch was MISSING once, and the flag was documented in
+           the usage text while the parser dropped it on the floor. The
+           consequence was that `add` could never be given a
+           requirement, so it refused every claim with "the requirements
+           are empty", and the only way to declare a claim was to edit
+           the specification by hand. The defect was invisible because
+           the usage text said the flag worked, and a usage text is a
+           description, not a check. *)
+        requirements := text :: !requirements;
+        loop acc rest
     | "--json" :: rest ->
         json := true;
         loop acc rest
+    | "--requirement" :: [] ->
+        Printf.eprintf "mathc: --requirement needs a requirement\n";
+        exit 2
     | "--reason" :: [] ->
         Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
@@ -890,6 +943,12 @@ let () =
       usage ();
       exit 0
   | verb :: _ -> (
+      (* A flag that belongs to one verb and is accepted by another is a
+         flag that is silently ignored, and a method that ignores what
+         it was told reports something the user did not ask for. *)
+      if verb <> "add" && requirements <> [] then (
+        Printf.eprintf "mathc: --requirement belongs to add\n";
+        exit 2);
       let code =
         match verb with
         | "goal" -> (
