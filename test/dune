@@ -34,5 +34,5 @@
 ; the tool of this tree and not against something left over.
 (test
  (name cli)
- (libraries mathcoding unix)
+ (libraries mathcoding yojson unix)
  (deps %{exe:../bin/mathc.exe}))

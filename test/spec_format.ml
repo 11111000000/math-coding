@@ -117,7 +117,7 @@ let check_the_good_cases () =
     let text = In_channel.with_open_bin path In_channel.input_all in
     match Spec.parse_spec_string text with
     | Error e ->
-        Printf.eprintf "spec.json does not parse: %s\n" (Spec.result_of (Error e));
+        Printf.eprintf "spec.json does not parse: %s\n" (Spec.message_of e);
         exit 1
     | Ok spec ->
         assert (List.length spec.Domain.claims > 0);
@@ -139,10 +139,12 @@ let check_wave_dialectic () =
     `Assoc
       (("id", `String "w")
       :: ("title", `String "t")
+      :: ("intent", `String "why this unit of work")
       :: ("touches", `List [ `String "lib/" ])
       :: ("checks", `List [ `String "true" ])
       :: ("claims", `List [ `String "c" ])
-      :: ("verdicts_changed", `List [ `String "c" ])
+      :: ( "commitment",
+          `List [ `Assoc [ ("claim", `String "c"); ("state", `String "holds") ] ] )
       :: fields)
   in
   let complete =
@@ -156,7 +158,7 @@ let check_wave_dialectic () =
   (* And it parses when both are there. *)
   match Spec.parse_wave (wave complete) with
   | Error e ->
-      Printf.eprintf "a complete wave does not parse: %s\n" (Spec.result_of (Error e));
+      Printf.eprintf "a complete wave does not parse: %s\n" (Spec.message_of e);
       exit 1
   | Ok w ->
       assert (w.objection = "the strongest objection");
@@ -186,7 +188,7 @@ let check_the_waves_of_this_repository () =
         match Spec.parse_wave_string text with
         | Error e ->
             Printf.eprintf "the wave %s does not parse: %s\n" name
-              (Spec.result_of (Error e));
+              (Spec.message_of e);
             exit 1
         | Ok w ->
             assert (w.objection <> "");

@@ -130,9 +130,63 @@ let write_wave root id =
   let channel = open_out path in
   output_string channel
     (Printf.sprintf
-       {|{"id": "%s", "title": "a wave of the test", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "verdicts_changed": ["c1"], "objection": "the tool may not work at all", "refuted_by": "the battery below"}|}
+       {|{"id": "%s", "title": "a wave of the test", "intent": "to check that the tool works at all", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "commitment": [{"claim": "c1", "state": "holds"}], "objection": "the tool may not work at all", "refuted_by": "the battery below"}|}
        id);
   close_out channel
+
+(* A wave whose promise is not met. The promise is the criterion of
+   the closing, so a wave that promises something the claims do not
+   deliver must not close - and must stay in the queue. *)
+let write_wave_promising root id state =
+  let dir = Filename.concat root "waves" in
+  if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+  let path = Filename.concat dir (id ^ ".json") in
+  let channel = open_out path in
+  output_string channel
+    (Printf.sprintf
+       {|{"id": "%s", "title": "a wave whose promise is not met", "intent": "to check that the promise is the criterion", "touches": ["subject.txt"], "checks": ["true"], "claims": ["c1"], "commitment": [{"claim": "c1", "state": "%s"}], "objection": "a promise nobody checks is a wish", "refuted_by": "the closing refuses it"}|}
+       id state);
+  close_out channel
+
+(** The proof is anchored to the act: the commit its content was read
+    from, and the moment it was produced.
+
+    The content the method binds to is the content of HEAD, so the
+    commit is exactly the one the proof is about - not an approximation
+    of it. The third version carried this anchor in every attestation
+    and the fourth lost it with the whole corpus; without a check it
+    would be lost again silently, because a field nobody reads and
+    nobody checks is a field that disappears.
+
+    So the check is here: the trail line must name the very commit the
+    temporary repository is at. If the anchor were dropped, the line
+    would have no commit and this would fail. *)
+let check_the_trail_anchors_the_act (root : string) =
+  let path = Filename.concat root ".math/trail.jsonl" in
+  let text = read_file path in
+  let line = String.split_on_char '\n' text |> List.hd in
+  let json = Yojson.Safe.from_string line in
+  let get name =
+    match json with
+    | `Assoc pairs -> (
+        match List.assoc_opt name pairs with
+        | Some (`String s) -> Some s
+        | _ -> None)
+    | _ -> None
+  in
+  (* The commit the repository is at. *)
+  let out = Filename.temp_file "mathc-head" ".txt" in
+  let cmd =
+    Printf.sprintf "git -C %s rev-parse HEAD > %s 2>/dev/null"
+      (Filename.quote root) (Filename.quote out)
+  in
+  ignore (Sys.command cmd);
+  let head = String.trim (read_file out) in
+  Sys.remove out;
+  assert (head <> "");
+  assert (get "at_commit" = Some head);
+  (* And the moment of production is there too. *)
+  assert (get "at" <> None)
 
 let check_the_tool (binary : string) (prefix : string list) =
   with_repository (fun root ->
@@ -237,10 +291,22 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_code "next" 0 (code, text);
       assert (contains text "nothing to do");
 
+      (* A wave whose promise is not met does not close, and it stays
+         in the queue. The promise is the criterion: a wave that
+         promises what the claims do not deliver is a wish, and a wish
+         is not a wave. *)
+      write_wave_promising root "wave-p" "refuted";
+      expect_refusal "close a wave whose promise is not met"
+        (call [ "close"; "wave-p" ]);
+      let _, text = call [ "next" ] in
+      assert (contains text "wave wave-p");
       (* A flag that belongs to one verb must not be accepted by
          another. *)
       expect_refusal "--requirement outside add"
-        (call [ "map"; "--requirement"; "verifier:true" ]))
+        (call [ "map"; "--requirement"; "verifier:true" ]);
+
+      (* And the proof is anchored to the act. *)
+      check_the_trail_anchors_the_act root)
 
 (* --- the documentation -------------------------------------------------- *)
 

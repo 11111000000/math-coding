@@ -21,7 +21,15 @@ let ensure_dir (root : string) =
 
 (** Append one result. The subject's digest travels with it: that is
     the binding, and without it the line would be a claim about a
-    subject that may no longer exist. *)
+    subject that may no longer exist.
+
+    The ACT travels with it too: the commit the content was read from,
+    the moment of production, and the moment the proof stops counting.
+    The digest says what the proof is about; the commit says which tree
+    it was about, and that is what an audit of a change asks for. The
+    third version carried this in every attestation and the fourth
+    dropped it with the corpus; it is two fields here, and without a
+    corpus to fill. *)
 let append (root : string) (e : Domain.evidence) : unit =
   ensure_dir root;
   let outcome =
@@ -46,9 +54,15 @@ let append (root : string) (e : Domain.evidence) : unit =
         ("producer", `String e.producer);
         ( "reason",
           match e.reason with Some r -> `String r | None -> `Null );
-        (* Seconds since the epoch. The trail is read by a program,
-           and the program compares order, not dates. *)
-        ("at", `String (Printf.sprintf "%.0f" (Unix.time ()))) ]
+        (* The act: which commit the content was read from, and when.
+           Seconds since the epoch - the trail is read by a program, and
+           the program compares order, not dates. *)
+        ( "at_commit",
+          match e.at_commit with Some c -> `String c | None -> `Null );
+        ("at", match e.at with Some t -> `String t | None -> `Null);
+        (* When the proof stops counting, if the producer says so. *)
+        ( "valid_until",
+          match e.valid_until with Some t -> `String t | None -> `Null ) ]
   in
   let channel = open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 (trail_path root) in
   output_string channel (Yojson.Safe.to_string json);
@@ -104,23 +118,26 @@ let read (root : string) : Domain.evidence list =
                          | "review" -> Domain.Reviewed_by requirement
                          | _ -> Domain.Verified_by requirement
                        in
-                       Some
-                         {
-                           Domain.claim =
-                             {
-                               id;
-                               subject = { text = ""; scope = [] };
-                               requirements = [];
-                               falsifier = "";
-                               register = Domain.Undeclared;
-                               accepted = None;
-                             };
-                           requirement = r;
-                           outcome = o;
-                           bound_to = bound;
-                           producer;
-                           reason = get "reason";
-                         }
+                        Some
+                          {
+                            Domain.claim =
+                              {
+                                id;
+                                subject = { text = ""; scope = [] };
+                                requirements = [];
+                                falsifier = "";
+                                register = Domain.Undeclared;
+                                accepted = None;
+                              };
+                            requirement = r;
+                            outcome = o;
+                            bound_to = bound;
+                            producer;
+                            reason = get "reason";
+                            at_commit = get "at_commit";
+                            at = get "at";
+                            valid_until = get "valid_until";
+                          }
                    | _ -> None)
                | _ -> None)
            | exception Yojson.Json_error _ -> None)

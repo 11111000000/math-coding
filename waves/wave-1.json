@@ -1,6 +1,7 @@
 {
   "id": "wave-1",
   "title": "the spine on two real claims: an algebra with laws, and the first claims about this repository",
+  "intent": "Automation is built on one real claim, not on an empty queue: a queue with no load does not test the format, and a method with no claim measures nothing. So the spine - the wave format, the queue, the executor - was carried by two claims about this repository, and generalised from what that slice forced into existence.",
   "touches": [
     "lib/",
     "test/",
@@ -16,9 +17,15 @@
     "no-scripts",
     "core-is-pure"
   ],
-  "verdicts_changed": [
-    "no-scripts",
-    "core-is-pure"
+  "commitment": [
+    {
+      "claim": "no-scripts",
+      "state": "holds"
+    },
+    {
+      "claim": "core-is-pure",
+      "state": "holds"
+    }
   ],
   "objection": "каждая проверка запускается целиком, и один упавший тест останавливает остальные: сигнал получается шумным",
   "refuted_by": "проверки запускаются по одной, и падение одной не мешает остальным"

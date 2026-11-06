@@ -114,7 +114,26 @@ type binding = string
     this is, and the producer says whether it is the confirmation that
     was asked for. Evidence the method produced by running a command
     has the command as its producer; evidence that came from outside -
-    a person, a CI run, a deployment - has whoever gave it. *)
+    a person, a CI run, a deployment - has whoever gave it.
+
+    THE ACT IS ANCHORED TOO. [at_commit] is the commit the subject's
+    content was read from when the evidence was produced, and [at] is
+    the moment of production. The binding [bound_to] says WHAT the proof
+    is about - the content of the scope; the commit says WHERE that
+    content was, and the moment says WHEN the proof was made. Without
+    the commit a proof says "this is true of these files" and not
+    "true of them as of this change", and an audit of the change that
+    discharged a requirement has nothing to hold on to. The third
+    version had this anchor ([candidate_tree]) and the fourth lost it
+    with the whole corpus; it costs one field to have it back, and it
+    is a fact about the production of the proof, not a state of the
+    claim.
+
+    [valid_until] is when the proof stops counting, if the producer
+    says so. A proof that has expired is not a proof any more, and the
+    claim it was about is unknown again - which is a different fault
+    from "the subject moved", and the difference matters to whoever
+    has to redo the work. *)
 type evidence = {
   claim : claim;
   requirement : requirement;
@@ -122,6 +141,13 @@ type evidence = {
   bound_to : binding;
   producer : string;
   reason : string option;
+  (* The commit the content was read from, and the moment of
+     production. Seconds since the epoch, as a string: the trail is
+     read by a program, and the program compares order, not dates. *)
+  at_commit : string option;
+  at : string option;
+  (* When the proof stops counting. Absent means it does not expire. *)
+  valid_until : string option;
 }
 
 (** What the human is asked to decide. The reason is not decoration:
@@ -158,6 +184,22 @@ type state =
   | NeverChecked (* required, and never checked *)
   | Accepted (* a person took responsibility for this uncertainty *)
 
+(** The name of a state, as it is written and read outside.
+
+    The name belongs to the state, not to the format that happens to
+    read it: the map writes these names, and the wave's promises are
+    written in them, and two places that spelled them differently would
+    be two truths about the same seven things. *)
+let state_name (s : state) : string =
+  match s with
+  | Holds -> "holds"
+  | Refuted -> "refuted"
+  | Inconclusive -> "inconclusive"
+  | NotCheckable -> "not checkable"
+  | Outdated -> "outdated"
+  | NeverChecked -> "never checked"
+  | Accepted -> "accepted by a person"
+
 (** The map: the standing specification, computed. What is claimed,
     what is known, what is not covered. *)
 type map = {
@@ -165,15 +207,38 @@ type map = {
   uncovered : string list;
 }
 
+(** What a wave promises: this claim will be in this state when the
+    wave is done.
+
+    The promise is a VALUE, so it can be checked: the wave closes only
+    when every promise is met, and the state it names is the state the
+    claim must actually reach. The third version had this in prose -
+    a commitment written out at length, each obligation carrying a
+    MUST-list of exit codes and keys - and the prose was never checked
+    against the code. Here the promise says which claim and which
+    state, and the state is compared with the state the claim has.
+
+    A wave may promise that a claim will be REFUTED, which the older
+    rule could not say: it demanded that every claim it touched end up
+    holding, so a wave whose work disproves something could never be
+    closed. *)
+type commitment = { claim : string; state : state }
+
 (** A wave: a finished, green slice of work. The format is data and
     lives in [Spec]; this is the shape it parses into. *)
 type wave = {
   id : string;
   title : string;
+  (* WHY this unit of work, and what it assumes. The reasoning of the
+     plan. The third version kept it in every one of its 134 records,
+     and that is where the corpus grew; here it is one field of one
+     unit of work, and the wave is the unit of work. *)
+  intent : string;
   touches : scope;
   checks : string list;
   claims : string list;
-  verdicts_changed : string list;
+  (* What the wave promises. See [commitment]. *)
+  commitment : commitment list;
   (* The dialectic of the plan. Not on every claim - on the unit of
      work, where there is one thought to object to. The strongest
      objection to this approach, and what would refute it. A wave

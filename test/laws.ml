@@ -45,8 +45,8 @@ let combine_not_absorbing a b = match a with Red -> b | _ -> combine a b
 
 (* An outdated claim reads as verified - the bug the binding exists to
    stop. *)
-let state_outdated_as_verified (_current : binding option) (_e : evidence option) =
-  Holds
+let state_outdated_as_verified (_current : binding option) (_now : float)
+    (_e : evidence option) = Holds
 
 (* The empty result is no longer green: adoption would cost something
    before it had measured anything. *)
@@ -75,6 +75,12 @@ let apply_acceptance_accepts_anything (_c : claim) (_s : state) = Accepted
    version's wildcard came through. *)
 let scope_never_empty (_s : scope) = true
 
+(* A proof whose term is over still reads as verified. Then a proof
+   nobody may rely on any more keeps a claim standing - and the
+   binding cannot catch it, because the content is exactly the same. *)
+let state_ignoring_the_term (_current : binding option) (_now : float)
+    (_e : evidence option) = Holds
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -88,7 +94,7 @@ let sample_claim =
   }
 
 let sample_evidence outcome bound_to =
-  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None }
+  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
 
 (* --- the proof ------------------------------------------------------ *)
 
@@ -149,9 +155,9 @@ let check_negative_controls () =
      a subject that has since moved, and the broken state function calls
      it verified anyway - so the law rejects that function. *)
   let outdated = sample_evidence Verified "digest-of-yesterday" in
-  assert (Verdict.state_of_evidence (Some "digest-of-today") (Some outdated) = Outdated);
+  assert (Verdict.state_of_evidence (Some "digest-of-today") 0.0 (Some outdated) = Outdated);
   assert
-    (state_outdated_as_verified (Some "digest-of-today") (Some outdated)
+    (state_outdated_as_verified (Some "digest-of-today") 0.0 (Some outdated)
     = Holds);
   assert
     (not
@@ -188,7 +194,7 @@ let check_negative_controls () =
 
   (* The acceptance covers uncertainty and never an answer. *)
   let accepted_claim = { sample_claim with accepted = Some ("a person", "reason") } in
-  let refuted = Verdict.state_of_evidence (Some "digest") (Some (sample_evidence Falsified "digest")) in
+  let refuted = Verdict.state_of_evidence (Some "digest") 0.0 (Some (sample_evidence Falsified "digest")) in
   assert (refuted = Domain.Refuted);
   assert
     (law_acceptance_never_changes_an_answer Verdict.apply_acceptance accepted_claim
@@ -199,7 +205,7 @@ let check_negative_controls () =
          accepted_claim refuted));
   (* And it does cover an uncertainty. *)
   let unknown =
-    Verdict.state_of_evidence (Some "digest") (Some (sample_evidence Unresolved "digest"))
+    Verdict.state_of_evidence (Some "digest") 0.0 (Some (sample_evidence Unresolved "digest"))
   in
   assert (unknown = Domain.Inconclusive);
   assert
@@ -215,7 +221,23 @@ let check_negative_controls () =
      decides, like every other one. *)
   assert (law_no_vacant_subject (fun _ -> true) [ "lib/" ]);
   assert (law_no_vacant_subject (fun _ -> false) []);
-  assert (not (law_no_vacant_subject scope_never_empty []))
+  assert (not (law_no_vacant_subject scope_never_empty []));
+
+  (* The term of a proof. A proof whose term is over cannot read as
+     verified - even when the content is exactly the one it was
+     produced against, which is the case the binding cannot see. *)
+  let dated = { (sample_evidence Verified "digest") with valid_until = Some "100" } in
+  (* Before the term, it holds. *)
+  assert (Verdict.state_of_evidence (Some "digest") 50.0 (Some dated) = Domain.Holds);
+  (* After the term, it does not - and it does not read as anything
+     else either: the proof simply stops counting. *)
+  assert (Verdict.state_of_evidence (Some "digest") 150.0 (Some dated) = Domain.Outdated);
+  (* The law accepts the real function... *)
+  assert (law_expired_is_never_verified Verdict.state_of_evidence dated (Some "digest"));
+  (* ...and REJECTS the broken one, which ignores the term. *)
+  assert
+    (not
+       (law_expired_is_never_verified state_ignoring_the_term dated (Some "digest")))
 
 (** Two claims often share one check - the same test suite verifies
     several rules - and their evidence must not answer for each other.
@@ -230,17 +252,17 @@ let check_evidence_does_not_crosstalk () =
   let claim_b = { other with requirements = [ shared ] } in
   let digest_a = "digest-a" and digest_b = "digest-b" in
   let ev_a =
-    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None }
+    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
   in
   let ev_b =
-    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None }
+    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
   in
   let evidence = [ ev_a; ev_b ] in
   (* Each claim sees only its own evidence. *)
-  assert (Verdict.state_of_requirements claim_a (Some digest_a) evidence = Domain.Holds);
-  assert (Verdict.state_of_requirements claim_b (Some digest_b) evidence = Domain.Refuted);
+  assert (Verdict.state_of_requirements claim_a (Some digest_a) 0.0 evidence = Domain.Holds);
+  assert (Verdict.state_of_requirements claim_b (Some digest_b) 0.0 evidence = Domain.Refuted);
   (* And a claim whose subject moved sees neither as its own. *)
-  assert (Verdict.state_of_requirements claim_a (Some "moved") evidence = Domain.Outdated)
+  assert (Verdict.state_of_requirements claim_a (Some "moved") 0.0 evidence = Domain.Outdated)
 
 let () =
   check_laws_hold ();

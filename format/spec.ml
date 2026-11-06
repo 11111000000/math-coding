@@ -26,11 +26,17 @@ let error field problem = { field; problem }
    requirements, and the first failure is the one worth reporting. *)
 let ( let* ) r f = match r with Ok v -> f v | Error e -> Error e
 
+(** The error, as a sentence. A refusal must be READABLE: the callers
+    print this, and before this function existed they had to raise an
+    exception to get a string out of an error - so a malformed file
+    killed the tool with a stack trace instead of saying what was
+    wrong with it. *)
+let message_of (e : error) : string =
+  Printf.sprintf "%s: %s" (if e.field = "" then "spec" else e.field) e.problem
+
 let result_of = function
   | Ok v -> v
-  | Error e ->
-      failwith
-        (Printf.sprintf "%s: %s" (if e.field = "" then "spec" else e.field) e.problem)
+  | Error e -> failwith (message_of e)
 
 (* ------------------------------------------------------------------ *)
 (* Strict object reading.                                              *)
@@ -307,26 +313,84 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
 (* The wave.                                                            *)
 (* ------------------------------------------------------------------ *)
 
-(** Parse a wave: a finished, green slice of work. *)
+(** The state, as the outside writes it.
+
+    The names are the shape of the outside, so they live in the codec
+    and not in the core: the core holds the states as values, and two
+    places - the map and the wave's promises - have to say the same
+    thing about them. A name written twice is two truths. *)
+let state_of_name (text : string) : Domain.state option =
+  match text with
+  | "holds" -> Some Domain.Holds
+  | "refuted" -> Some Domain.Refuted
+  | "inconclusive" -> Some Domain.Inconclusive
+  | "not checkable" -> Some Domain.NotCheckable
+  | "outdated" -> Some Domain.Outdated
+  | "never checked" -> Some Domain.NeverChecked
+  | "accepted by a person" -> Some Domain.Accepted
+  | _ -> None
+
+(** The promises of a wave: which claim, and which state it will be in
+    when the wave is done. *)
+let require_commitment ~what (pairs : (string * Yojson.Safe.t) list) =
+  match List.assoc_opt "commitment" pairs with
+  | Some (`List items) ->
+      let rec go acc = function
+        | [] -> Ok (List.rev acc)
+        | `Assoc fields :: rest -> (
+            let* claim = require_string ~what "claim" fields in
+            let* state = require_string ~what "state" fields in
+            match state_of_name state with
+            | Some s -> go ({ claim; state = s } :: acc) rest
+            | None ->
+                Error
+                  (error (what ^ ".commitment.state")
+                     (Printf.sprintf "expected a state of a claim; got %S" state)))
+        | _ -> Error (error (what ^ ".commitment") "expected a list of objects")
+      in
+      go [] items
+  | Some _ -> Error (error (what ^ ".commitment") "expected a list")
+  | None -> Error (error (what ^ ".commitment") "is required")
+
+(** Parse a wave: a finished, green slice of work.
+
+    The wave carries THREE things the older format kept in a file per
+    decision: the intent (why this unit of work), the promise (which
+    claim will be in which state when it is done) and the dialectic
+    (the strongest objection and what would refute it). The promise
+    is the part that can be checked, and the check is the closing of
+    the wave. *)
 let parse_wave (json : Yojson.Safe.t) : (wave, error) result =
   let what = "wave" in
   match
     read_object ~what json
       ~fields:
-        [ "id"; "title"; "touches"; "checks"; "claims"; "verdicts_changed";
+        [ "id"; "title"; "intent"; "touches"; "checks"; "claims"; "commitment";
           "objection"; "refuted_by" ]
   with
   | Error e -> Error e
   | Ok pairs ->
       let* id = require_string ~what "id" pairs in
       let* title = require_string ~what "title" pairs in
+      let* intent = require_string ~what "intent" pairs in
       let* touches = require_string_list ~what "touches" pairs in
       let* checks = require_string_list ~what "checks" pairs in
       let* claims = require_string_list ~what "claims" pairs in
-      let* verdicts_changed = require_string_list ~what "verdicts_changed" pairs in
+      let* commitment = require_commitment ~what pairs in
       let* objection = require_string ~what "objection" pairs in
       let* refuted_by = require_string ~what "refuted_by" pairs in
-      Ok { id; title; touches; checks; claims; verdicts_changed; objection; refuted_by }
+      Ok
+        {
+          id;
+          title;
+          intent;
+          touches;
+          checks;
+          claims;
+          commitment;
+          objection;
+          refuted_by;
+        }
 
 let parse_wave_string (text : string) : (wave, error) result =
   match Yojson.Safe.from_string text with

@@ -1,6 +1,7 @@
 {
   "id": "wave-3",
   "title": "the beginning of adoption and the measurement of the method: init, accept, the map as data, and the stand",
+  "intent": "A method that keeps no account of what it cost cannot say what it is worth, and a method that cannot be adopted for one file is a method nobody will adopt. So this wave made the entry cost one file, gave the uncertainty a price and the person a way to take responsibility for it, made the map data as well as prose, and built the stand that measures the protocol on projects that are not this one.",
   "touches": [
     "lib/",
     "test/",
@@ -18,10 +19,19 @@
     "core-is-pure",
     "the-aim-is-a-persons"
   ],
-  "verdicts_changed": [
-    "no-scripts",
-    "core-is-pure",
-    "the-aim-is-a-persons"
+  "commitment": [
+    {
+      "claim": "no-scripts",
+      "state": "holds"
+    },
+    {
+      "claim": "core-is-pure",
+      "state": "holds"
+    },
+    {
+      "claim": "the-aim-is-a-persons",
+      "state": "holds"
+    }
   ],
   "objection": "измерение стоимости требует рук человека, а руки человека в этом цикле нет",
   "refuted_by": "стоимость человека оказывается нулевой, и тогда её не надо измерять"

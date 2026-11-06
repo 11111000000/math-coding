@@ -44,7 +44,7 @@ let load_spec () : Domain.spec =
     | Ok spec -> spec
     | Error e ->
         Printf.eprintf "mathc: the standing specification is not readable: %s\n"
-          (Spec.result_of (Error e));
+          (Spec.message_of e);
         exit 2
 
 (** Save the specification. The file is machine-managed, so it is
@@ -94,12 +94,27 @@ let latest_evidence (claims : Domain.claim list) : Domain.evidence list =
 let binding_of (claim : Domain.claim) : Domain.binding option =
   Git.digest_of_scope (root ()) claim.subject.scope
 
+(** The production facts of a proof: the commit the content was read
+    from and the moment of production.
+
+    The content the method binds to is the content of HEAD - the
+    committed tree - so the commit is exactly the one the proof is
+    about, and not an approximation of it. A repository with no commits
+    has no HEAD, and then there is nothing to anchor to: the field is
+    absent rather than empty. *)
+let production_facts () =
+  ( Git.head_commit (root ()),
+    Some (Printf.sprintf "%.0f" (Unix.time ())) )
+
 (** The state of every claim, computed. *)
 let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   let evidence = latest_evidence claims in
+  (* The moment, once, for the whole computation: two claims must not
+     be judged against two different nows. *)
+  let now = Unix.time () in
   List.map
     (fun (claim : Domain.claim) ->
-      (claim.id, Verdict.state_of_claim claim (binding_of claim) evidence))
+      (claim.id, Verdict.state_of_claim claim (binding_of claim) now evidence))
     claims
 
 (** How much of the uncertainty budget the project has spent. Only an
@@ -133,15 +148,10 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let files = Git.tracked_files (root ()) in
   let uncovered = Git.uncovered claims files in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
-  let state_name = function
-    | Domain.Holds -> "holds"
-    | Domain.Refuted -> "refuted"
-    | Domain.Inconclusive -> "inconclusive"
-    | Domain.NotCheckable -> "not checkable"
-    | Domain.Outdated -> "outdated"
-    | Domain.NeverChecked -> "never checked"
-    | Domain.Accepted -> "accepted by a person"
-  in
+  (* The names of the states live in the codec: the map and the wave's
+     promises must say the same thing about them, and a name written
+     twice is two truths. *)
+  let state_name = Domain.state_name in
   `Assoc
     [ ( "verdict",
         `String
@@ -166,7 +176,46 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
         `List
           (List.map
              (fun (id, state) ->
-               `Assoc [ ("id", `String id); ("state", `String (state_name state)) ])
+               `Assoc
+                 [ ("id", `String id);
+                   ("state", `String (state_name state));
+                   (* The act the proof belongs to: the commit its
+                      content was read from, and who produced it. A
+                      state says what is known; this says where the
+                      knowing came from. *)
+                   ( "at_commit",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e -> (
+                         match e.at_commit with
+                         | Some c -> `String c
+                         | None -> `Null)
+                     | None -> `Null );
+                   ( "produced_by",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e -> `String e.producer
+                     | None -> `Null );
+                   (* WHY the proof does not count, when it does not:
+                     the content moved under it, or its term is over.
+                     Two different faults, and the map must not merge
+                     them. *)
+                   ( "outdated_because",
+                     match
+                       List.find_opt
+                         (fun (e : Domain.evidence) -> e.claim.id = id)
+                         (latest_evidence claims)
+                     with
+                     | Some e when state = Domain.Outdated ->
+                         if Verdict.expired (Unix.time ()) e then `String "the term is over"
+                         else `String "the subject moved"
+                     | _ -> `Null ) ])
              states) );
       ( "uncovered_paths",
         `List (List.map (fun f -> `String f) uncovered) )]
@@ -191,7 +240,34 @@ let verb_map json =
     Printf.printf "claims: %d\n" (List.length claims);
     List.iter
       (fun (id, state) ->
-        Printf.printf "  %-24s %s\n" id
+        (* The commit the proof was produced from, when there is one: the
+           state says what is known, the commit says where the knowing
+           came from. *)
+        let evidence_of_claim =
+          List.find_opt
+            (fun (e : Domain.evidence) -> e.claim.id = id)
+            (latest_evidence claims)
+        in
+        let anchor =
+          match evidence_of_claim with
+          | Some e -> (
+              match e.at_commit with
+              | Some c -> " " ^ String.sub c 0 (min 7 (String.length c))
+              | None -> "")
+          | None -> ""
+        in
+        (* Why a proof does not count: the content moved under it, or
+           its term is over. The two faults are told apart, because the
+           map that merges them reports a week-old proof and a proof
+           nobody may rely on as the same thing. *)
+        let why =
+          match (state, evidence_of_claim) with
+          | Domain.Outdated, Some e ->
+              if Verdict.expired (Unix.time ()) e then " (the term is over)"
+              else " (the subject moved)"
+          | _ -> ""
+        in
+        Printf.printf "  %-24s %s%s%s\n" id
           (match state with
           | Domain.Holds -> "holds"
           | Domain.Refuted -> "refuted"
@@ -199,7 +275,8 @@ let verb_map json =
           | Domain.NotCheckable -> "not checkable"
           | Domain.Outdated -> "outdated"
           | Domain.NeverChecked -> "never checked"
-          | Domain.Accepted -> "accepted by a person"))
+          | Domain.Accepted -> "accepted by a person")
+          anchor why)
       states;
     Printf.printf "uncertainty: %d of %d consumed\n"
       (consumption_of claims) spec.Domain.budget;
@@ -274,6 +351,7 @@ let verb_run () =
                         | Domain.Falsified -> "falsified"
                         | Domain.Unresolved -> "unresolved"
                         | Domain.Refused -> "refused");
+                      let at_commit, at = production_facts () in
                       Some
                         ( {
                           Domain.claim;
@@ -282,6 +360,9 @@ let verb_run () =
                           bound_to = binding;
                           producer = command;
                           reason;
+                          at_commit;
+                          at;
+                          valid_until = None;
                         } ))
                 claim.requirements)
         claims
@@ -305,7 +386,7 @@ let verb_run () =
     a review requirement is closed by the authority's word. The binding
     is the subject's digest as it stands now, so the record is about
     the subject as it is, not as it was. *)
-let verb_record claim_id spec by outcome (reason : string) =
+let verb_record claim_id spec by outcome (reason : string) (valid_for : string) =
   let spec_loaded = load_spec () in
   let refuse why =
     Printf.eprintf "mathc: %s\n" why;
@@ -314,6 +395,8 @@ let verb_record claim_id spec by outcome (reason : string) =
   let problem =
     if by = "" then Some "a record needs a producer: --by"
     else if spec = "" then Some "a record needs the requirement it closes"
+    else if valid_for <> "" && int_of_string_opt valid_for = None then
+      Some "the term of a proof is a number of days"
     else None
   in
   match problem with
@@ -358,6 +441,21 @@ let verb_record claim_id spec by outcome (reason : string) =
               refuse "the scope names no existing path, so nothing could be bound"
           | Some binding ->
               let e =
+                let at_commit, at = production_facts () in
+                (* The term: how many days the proof counts. Absent
+                   means it does not expire - and the reason it may be
+                   absent is worth saying: the binding already covers
+                   the case where the CONTENT changed, and what the
+                   term covers is the case where the content is the
+                   same and the world is not. *)
+                let valid_until =
+                  match int_of_string_opt valid_for with
+                  | Some days ->
+                      Some
+                        (Printf.sprintf "%.0f"
+                           (Unix.time () +. (float_of_int days *. 86400.0)))
+                  | None -> None
+                in
                 {
                   Domain.claim;
                   requirement;
@@ -365,6 +463,9 @@ let verb_record claim_id spec by outcome (reason : string) =
                   bound_to = binding;
                   producer = by;
                   reason = (if reason = "" then None else Some reason);
+                  at_commit;
+                  at;
+                  valid_until;
                 }
               in
               Trail.append (root ()) e;
@@ -462,22 +563,31 @@ let verb_next () =
         1)
       else
         let after = states_of claims in
-        let established id =
-          match (List.assoc_opt id after, List.find_opt (fun (c : Domain.claim) -> c.id = id) claims) with
-          | Some Domain.Holds, _ -> true
-          | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
-          | _ -> false
+        (* The same criterion the closing uses: every promise met. *)
+        let unmet =
+          List.filter
+            (fun (promise : Domain.commitment) ->
+              match List.assoc_opt promise.claim after with
+              | Some state -> state <> promise.state
+              | None -> true)
+            wave.Domain.commitment
         in
-        let unestablished =
-          List.filter (fun id -> not (established id)) wave.Domain.verdicts_changed
-        in
-        if unestablished = [] then (
-          Printf.printf "  the wave is finished: its checks pass and its verdicts hold\n";
+        if unmet = [] then (
+          Printf.printf "  the wave is finished: its checks pass and every promise is met\n";
           0)
         else (
-          Printf.printf "  the wave is not finished: %d of the verdicts it declared are not established\n"
-            (List.length unestablished);
-          List.iter (fun id -> Printf.printf "    %s\n" id) unestablished;
+          Printf.printf
+            "  the wave is not finished: %d of its promises are not met\n"
+            (List.length unmet);
+          List.iter
+            (fun (promise : Domain.commitment) ->
+              let state = List.assoc_opt promise.claim after in
+              Printf.printf "    %s: promised %s, has %s\n" promise.claim
+                (Domain.state_name promise.state)
+                (match state with
+                | Some s -> Domain.state_name s
+                | None -> "no such claim"))
+            unmet;
           0)
   | [], id :: _, _, _ ->
       Printf.printf "next: the claim %s is refuted - it was believed and is not\n" id;
@@ -521,7 +631,7 @@ let verb_close id =
   else
     match Spec.parse_wave_string (read_file path) with
     | Error e ->
-        Printf.eprintf "mathc: the wave is not readable: %s\n" (Spec.result_of (Error e));
+        Printf.eprintf "mathc: the wave is not readable: %s\n" (Spec.message_of e);
         2
     | Ok wave -> (
         let spec = load_spec () in
@@ -548,40 +658,37 @@ let verb_close id =
           1)
         else
           let states = states_of claims in
-          (* A verdict is established when the claim reached the state
-             its register calls for. For a fact that is [holds]. For
-             a judgment it is [not checkable]: the machine has run the
-             check, has said that what should be true about meaning is
-             not its to decide, and the claim has reached the human.
-             That is not a failure of the wave - it is the wave's
-             subject arriving where it was always going to arrive. *)
-          let established claim_id =
-            match (List.assoc_opt claim_id states, List.find_opt (fun (c : Domain.claim) -> c.id = claim_id) claims) with
-            | Some Domain.Holds, _ -> true
-            | Some Domain.NotCheckable, Some c -> c.register = Domain.Judgment
-            | _ -> false
+          (* THE PROMISE IS THE CRITERION. A wave says which claims
+             will be in which state when it is done, and it closes only
+             when every promise is met. The older rule demanded that
+             every claim the wave touched end up holding, which could
+             not say what a wave whose work disproves something
+             promises - and a promise nobody checks is a wish.
+
+             The promise names the state explicitly, so the states are
+             compared with the states the claims actually have, and
+             the comparison is mechanical. *)
+          let unmet =
+            List.filter
+              (fun (promise : Domain.commitment) ->
+                match List.assoc_opt promise.claim states with
+                | Some state -> state <> promise.state
+                | None -> true)
+              wave.Domain.commitment
           in
-          let unestablished =
-            List.filter (fun claim_id -> not (established claim_id)) wave.verdicts_changed
-          in
-          if unestablished <> [] then (
+          if unmet <> [] then (
             Printf.eprintf
-              "mathc: wave %s is not closed: %d of the verdicts it declared are not established\n"
-              wave.id (List.length unestablished);
+              "mathc: wave %s is not closed: %d of its promises are not met\n"
+              wave.id (List.length unmet);
             List.iter
-              (fun claim_id ->
-                let state = List.assoc_opt claim_id states in
-                Printf.eprintf "  %s: %s\n" claim_id
+              (fun (promise : Domain.commitment) ->
+                let state = List.assoc_opt promise.claim states in
+                Printf.eprintf "  %s: promised %s, has %s\n" promise.claim
+                  (Domain.state_name promise.state)
                   (match state with
-                  | Some Domain.Holds -> "holds"
-                  | Some Domain.Refuted -> "refuted"
-                  | Some Domain.Inconclusive -> "inconclusive"
-                  | Some Domain.NotCheckable -> "not checkable"
-                  | Some Domain.Outdated -> "outdated"
-                  | Some Domain.NeverChecked -> "never checked"
-                  | Some Domain.Accepted -> "accepted by a person"
+                  | Some s -> Domain.state_name s
                   | None -> "no such claim"))
-              unestablished;
+              unmet;
             1)
           else (
             (* The closure is recorded in the standing specification, so
@@ -589,23 +696,14 @@ let verb_close id =
                the progress of the plan survives a fresh clone, because
                the specification is committed and the trail is not. *)
             save_spec { spec with Domain.closed_waves = spec.Domain.closed_waves @ [ id ] };
-            Printf.printf "wave %s closed; the verdicts it declared are established:\n" wave.id;
+            Printf.printf "wave %s closed; every promise it made is met:\n" wave.id;
             Printf.printf "  the objection it carried: %s\n" wave.objection;
             Printf.printf "  what would refute it: %s\n" wave.refuted_by;
             List.iter
-              (fun claim_id ->
-                let state = List.assoc_opt claim_id states in
-                Printf.printf "  %s: %s\n" claim_id
-                  (match state with
-                  | Some Domain.Holds -> "holds"
-                  | Some Domain.NotCheckable -> "not checkable, and routed to the person"
-                  | Some Domain.Refuted -> "refuted"
-                  | Some Domain.Inconclusive -> "inconclusive"
-                  | Some Domain.Outdated -> "outdated"
-                  | Some Domain.NeverChecked -> "never checked"
-                  | Some Domain.Accepted -> "accepted by a person"
-                  | None -> "no such claim"))
-              wave.verdicts_changed;
+              (fun (promise : Domain.commitment) ->
+                Printf.printf "  %s: %s\n" promise.claim
+                  (Domain.state_name promise.state))
+              wave.Domain.commitment;
             0))
 
 (** A requirement, as it is written on the command line: a kind, a
@@ -849,7 +947,8 @@ let usage () =
   print_endline "  mathc route             what needs a person, and why";
   print_endline "  mathc run                execute the checks, bind the results, write the trail";
   print_endline "  mathc record CLAIM REQ --by WHO --outcome V";
-  print_endline "                               take evidence from outside: a person, a CI run";
+  print_endline "                               take evidence from outside: a person, a CI run;";
+  print_endline "                               --valid-for DAYS says how long the proof counts";
   print_endline "  mathc next               the next work, one item";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "";
@@ -863,13 +962,14 @@ let usage () =
     silently becomes a verb is a method that reports something the
     user did not ask for. *)
 let parse_args (args : string list) :
-    string list * string * bool * string * string * string * string list =
+    string list * string * bool * string * string * string * string * string list =
   let root_flag = ref "" in
   let reason = ref "" in
   let json = ref false in
   let by = ref "" in
   let recorded_outcome = ref "verified" in
   let recorded_reason = ref "" in
+  let valid_for = ref "" in
   let requirements = ref [] in
   let rec loop acc = function
     | [] -> (List.rev acc, !reason, !json)
@@ -887,6 +987,13 @@ let parse_args (args : string list) :
         loop acc rest
     | "--outcome" :: text :: rest ->
         recorded_outcome := text;
+        loop acc rest
+    | "--valid-for" :: text :: rest ->
+        (* How long the proof counts. The content may be exactly the
+           right one and the proof still too old to stand: the
+           deployment moved, the dependency changed, the review was for
+           a release that is over. The term is what says so. *)
+        valid_for := text;
         loop acc rest
     | "--requirement" :: text :: rest ->
         (* The requirements of a claim. They are named on the command
@@ -913,6 +1020,9 @@ let parse_args (args : string list) :
     | "--reason" :: [] ->
         Printf.eprintf "mathc: --reason needs a text\n";
         exit 2
+    | "--valid-for" :: [] ->
+        Printf.eprintf "mathc: --valid-for needs a number of days\n";
+        exit 2
     | ("-" | "--") :: _ ->
         Printf.eprintf "mathc: unknown option\n";
         exit 2
@@ -926,6 +1036,7 @@ let parse_args (args : string list) :
     !by,
     !recorded_outcome,
     !recorded_reason,
+    !valid_for,
     List.rev !requirements )
 
 (** A comma-separated list of paths. The scope of a claim is a list of
@@ -935,7 +1046,8 @@ let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional, reason, json, by, recorded_outcome, recorded_reason, requirements =
+  let positional, reason, json, by, recorded_outcome, recorded_reason, valid_for,
+      requirements =
     parse_args (Array.to_list Sys.argv |> List.tl)
   in
   match positional with
@@ -1000,6 +1112,7 @@ let () =
             match positional with
             | _ :: claim_id :: spec :: _ ->
                 verb_record claim_id spec by recorded_outcome recorded_reason
+                  valid_for
             | _ ->
                 Printf.eprintf
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";

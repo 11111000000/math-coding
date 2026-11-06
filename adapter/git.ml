@@ -108,6 +108,26 @@ let digest_of_scope (root : string) (scope : Domain.scope) : string option =
   | Some lines ->
       Some (hash_content root (String.concat "\n" (List.sort compare lines) ^ "\n"))
 
+(** The commit the tree is at, as git records it.
+
+    The digest of a scope says WHAT the content is; this says WHERE it
+    was. A proof is bound to the content, and an audit of the change
+    that produced the proof needs the commit as well: "this is true of
+    these files" is not an answer unless one can say which tree those
+    files were read from.
+
+    The content the method binds to is the content of HEAD - the
+    committed tree - so the commit is exactly the one the proof is
+    about. A repository with no commits has no HEAD, and then there is
+    nothing to anchor to. *)
+let head_commit (root : string) : string option =
+  let out, code =
+    run_capture
+      (Printf.sprintf "git -C %s rev-parse --verify --quiet HEAD"
+         (Filename.quote root))
+  in
+  if code <> 0 then None else Some (String.trim out)
+
 (** Does the scope name anything that exists? The check that keeps a
     claim from being made about nothing - and from being made about HALF
     of nothing: every path of the scope must be there, because a scope
