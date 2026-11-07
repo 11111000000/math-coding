@@ -1,0 +1,36 @@
+{
+  "id": "wave-6",
+  "title": "the proof of a person has a place of its own, and the criterion of the goal becomes computable",
+  "intent": "Two things the method could not do and the method claimed it could. The proof of a person was kept in the trail - a file that is rebuilt by running the checks - and nobody can re-run a review, so the owner's own review of the judgement was lost twice. And the criterion of GOAL.md was prose while the stand printed a different quantity: a rate, with no right-hand side to compare it to. So the attestations moved to the standing specification, which is committed, and the price of a defect became an input the stand takes and refuses to guess.",
+  "touches": [
+    "lib/",
+    "test/",
+    "adapter/",
+    "bin/",
+    "format/",
+    "spec.json",
+    "waves/",
+    "AXIOMS.md",
+    "README.md",
+    "docs/"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "the-attestation-survives-a-clone",
+    "the-criterion-is-computable"
+  ],
+  "commitment": [
+    {
+      "claim": "the-attestation-survives-a-clone",
+      "state": "holds"
+    },
+    {
+      "claim": "the-criterion-is-computable",
+      "state": "holds"
+    }
+  ],
+  "objection": "каждое новое поле в спецификации - это ещё одно место, где может разойтись текст и код, а обещание волны проверяется сравнением состояний и ничего не говорит о том, правильно ли выбрано само поле",
+  "refuted_by": "у каждого из новых полей есть носитель и проверка, которая умеет не сойтись: аттестация обязана оказаться в спецификации, а срок доказательства и цена дефекта обязаны быть посчитаны - и обе проверки краснеют, когда их убирают"
+}

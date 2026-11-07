@@ -9,7 +9,9 @@
     "at": "1793951564"
   },
   "uncertainty_budget": 3,
-  "closed_waves": [ "wave-1", "wave-4", "wave-2", "wave-3", "wave-5" ],
+  "closed_waves": [
+    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6"
+  ],
   "claims": [
     {
       "id": "no-scripts",
@@ -144,6 +146,30 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "волна без замысла или без обязательства, либо волна закрывается с невыполненным обещанием",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-attestation-survives-a-clone",
+      "subject": "аттестация человека лежит в спецификации, а не в следе, и потому переживает свежий клон",
+      "scope": [ "lib/", "format/", "bin/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "аттестация записана только в след, который пересобирается прогоном",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-criterion-is-computable",
+      "subject": "стенд печатает критерий GOAL.md — цену метода на один пойманный дефект против цены дефекта — когда цена дефекта объявлена",
+      "scope": [ "bin/stand.ml", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
       "register": "fact",
       "accepted": null,
       "attestations": []
