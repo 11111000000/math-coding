@@ -106,5 +106,44 @@
             runHook postInstall
           '';
         };
+
+        # THE SAME TOOL, FOR A MACHINE THAT IS NOT A NIX MACHINE.
+        #
+        # The binary needs three C libraries and nothing else - the
+        # OCaml runtime is already inside it (OCaml 5 links it in by
+        # default). What ties it to this machine is the runpath: it
+        # points at the C library in the nix store, so an adopter
+        # outside nix would be sent after a library it does not have.
+        # Here the runpath is removed, and the binary asks the system
+        # for its libc - which every ordinary Linux has.
+        #
+        # The guide travels with the tool, because the tool without the
+        # guide is what the agent arm measured: 35 tool calls spent
+        # reading the source to learn the interface.
+        packages.portable = pkgs.stdenv.mkDerivation {
+          name = "mathc-portable";
+          src = ./.;
+          nativeBuildInputs = [ ocamlPackages.ocaml ocamlPackages.dune_3 pkgs.patchelf ]
+            ++ ocamlDeps;
+          buildInputs = [ pkgs.git ] ++ ocamlDeps;
+          OCAMLPATH = ocamlPath;
+          buildPhase = ''
+            runHook preBuild
+            dune build --root . bin/mathc.exe
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin $out/share/math-coding
+            cp _build/default/bin/mathc.exe $out/bin/mathc
+            cp AGENTS.md $out/share/math-coding/AGENTS.md
+            runHook postInstall
+          '';
+          # The fixup would put the store's C library back into the
+          # runpath; the point of this output is that it does not.
+          postFixup = ''
+            patchelf --remove-rpath $out/bin/mathc
+          '';
+        };
       });
 }
