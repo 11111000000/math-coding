@@ -1,0 +1,26 @@
+{
+  "id": "wave-9",
+  "title": "the flake hands out a binary that works: the adopter's path was broken",
+  "intent": "The question of readiness for other repositories has one practical answer: can an adopter get the tool and run it. The flake was supposed to answer it - it has a package named mathc - and the package had never been built by anyone, because the method had only ever been built in its own development shell. So the one path that leads to the tool was dead, and nobody had walked it. Walking it is what a method does to itself before asking anyone else to walk it.",
+  "touches": [
+    "flake.nix",
+    "spec.json",
+    "waves/",
+    "README.md"
+  ],
+  "checks": [
+    "nix build .#default --no-link",
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "the-flake-hands-out-a-working-binary"
+  ],
+  "commitment": [
+    {
+      "claim": "the-flake-hands-out-a-working-binary",
+      "state": "holds"
+    }
+  ],
+  "objection": "проверка сборки флейком дорога: она пересобирает всё дерево после каждой правки, и метод начнёт платить за собственную проверку минуту на каждый прогон",
+  "refuted_by": "пересборка происходит только когда дерево изменилось, а в спокойном репозитории сборка кэширована и занимает меньше двух секунд. Плата в минуту — это плата за то, чтобы путь, по которому пойдёт принимающая сторона, был живым, а не нарисованным"
+}

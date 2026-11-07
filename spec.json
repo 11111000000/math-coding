@@ -3,15 +3,16 @@
     "text": "метод держит спецификацию проекта и проверяет её против кода: то, что заявлено, должно быть проверено, а то, что не проверено, должно быть видно",
     "scope": [
       "lib/", "test/", "adapter/", "bin/", "format/", "spec.json", "waves/",
-      "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md", "docs/"
+      "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
+      "docs/"
     ],
     "by": "p.b.kosov@yandex.ru",
-    "at": "1793951564"
+    "at": "1794066238"
   },
   "uncertainty_budget": 3,
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
-    "wave-8"
+    "wave-8", "wave-9"
   ],
   "claims": [
     {
@@ -207,6 +208,18 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-flake-hands-out-a-working-binary",
+      "subject": "флейк отдаёт пакет с бинарём метода, и этот бинарь собирается и работает: путь принимающей стороны живой",
+      "scope": [ "flake.nix" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "nix build .#default --no-link" }
+      ],
+      "falsifier": "пакет не собирается или собранный бинарь не работает",
       "register": "fact",
       "accepted": null,
       "attestations": []

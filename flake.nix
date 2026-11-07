@@ -75,14 +75,25 @@
         # The binary. Named `mathc`, because the name was fixed before
         # the code existed and a name decided later is a name nobody
         # remembers to use.
+        #
+        # THE LIBRARIES MUST BE HERE, AND THEY WERE NOT. The package
+        # built with the compiler and dune alone, and the build died on
+        # "Library yojson not found" - while the development shell,
+        # which has the same dependencies, worked. So the one thing an
+        # adopting project needs - the binary - could not be built by
+        # the flake at all, and nobody had built it that way: the method
+        # had only ever been built in its own shell.
+        #
+        # A path that nobody walks is not a path. The package and the
+        # shell now take the same dependencies and the same library
+        # path, so the binary that the flake hands out is the binary
+        # that the tests run.
         packages.default = pkgs.stdenv.mkDerivation {
           name = "mathc";
           src = ./.;
-          nativeBuildInputs = [
-            ocamlPackages.ocaml
-            ocamlPackages.dune_3
-          ];
-          buildInputs = [ pkgs.git ];
+          nativeBuildInputs = [ ocamlPackages.ocaml ocamlPackages.dune_3 ] ++ ocamlDeps;
+          buildInputs = [ pkgs.git ] ++ ocamlDeps;
+          OCAMLPATH = ocamlPath;
           buildPhase = ''
             runHook preBuild
             dune build --root . bin/mathc.exe
