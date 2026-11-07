@@ -13,7 +13,7 @@
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
     "wave-8", "wave-9", "wave-10", "wave-11", "wave-12", "wave-13",
-    "wave-14", "wave-15"
+    "wave-14", "wave-15", "wave-16"
   ],
   "claims": [
     {
@@ -95,6 +95,15 @@
           "reason": "да, это моя цель",
           "bound_to": "e7c03b0175316de3f7a56c01b6282da7d10df75a",
           "at": "1794074529",
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "e7c03b0175316de3f7a56c01b6282da7d10df75a",
+          "at": "1794077461",
           "valid_until": null
         }
       ]
@@ -333,6 +342,19 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "проверка слепая признаётся доказанной",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "the-agent-arm-is-measured-in-four-arms",
+      "subject": "рука агента измерена вчетверо: страница входа, закон о контроле проверки и метод отделены друг от друга; результат отрицательный и назван прямо",
+      "scope": [ "docs/measurements/2026-11-07-agent-arm-repeat/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
       "register": "fact",
       "accepted": null,
       "control": null,
