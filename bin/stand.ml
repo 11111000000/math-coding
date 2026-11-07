@@ -204,6 +204,13 @@ let measure (root : string) : measurement option =
 type declared_costs = {
   human_minutes : float;
   agent_tokens : int;
+  (* The price of ONE defect, in the same money as the three costs
+     below. This is a fact about the project, not about the method:
+     nobody can measure it from here, and the stand does not guess it.
+     Without it the criterion of GOAL.md has no right-hand side, and
+     the stand says so instead of printing a number that looks like
+     one. *)
+  defect_cost : float option;
   (* The weights. The criterion in GOAL.md divides the defects caught
      by "the minutes of a person plus the seconds of a machine plus the
      tokens of an agent" - three quantities in three different units,
@@ -231,6 +238,7 @@ let parse_args (args : string list) : string list * declared_costs option =
   let person_minute_cost = ref None in
   let machine_second_cost = ref None in
   let token_cost = ref None in
+  let defect_cost = ref None in
   let rec loop = function
     | [] -> ()
     | "--human-minutes" :: v :: rest ->
@@ -248,11 +256,15 @@ let parse_args (args : string list) : string list * declared_costs option =
     | "--token-cost" :: v :: rest ->
         token_cost := float_of_string_opt v;
         loop rest
+    | "--defect-cost" :: v :: rest ->
+        defect_cost := float_of_string_opt v;
+        loop rest
     | ( "--human-minutes"
       | "--agent-tokens"
       | "--person-minute-cost"
       | "--machine-second-cost"
-      | "--token-cost" )
+      | "--token-cost"
+      | "--defect-cost" )
       :: [] ->
         Printf.eprintf "stand: that option needs a number\n";
         exit 2
@@ -267,9 +279,10 @@ let parse_args (args : string list) : string list * declared_costs option =
         !tokens,
         !person_minute_cost,
         !machine_second_cost,
-        !token_cost )
+        !token_cost,
+        !defect_cost )
     with
-    | Some m, Some t, Some pm, Some ms, Some tk ->
+    | Some m, Some t, Some pm, Some ms, Some tk, dc ->
         Some
           {
             human_minutes = m;
@@ -277,6 +290,7 @@ let parse_args (args : string list) : string list * declared_costs option =
             person_minute_cost = pm;
             machine_second_cost = ms;
             token_cost = tk;
+            defect_cost = dc;
           }
     | _ -> None )
 
@@ -343,9 +357,33 @@ let () =
         costs.machine_second_cost costs.agent_tokens costs.token_cost;
       if denominator <= 0.0 then
         print_endline "ratio: not computable - the denominator is zero"
-      else
+      else (
         Printf.printf "cost: %.4f; ratio (defects caught per unit of cost): %.4f\n"
-          denominator (float_of_int total_caught /. denominator)
+          denominator (float_of_int total_caught /. denominator);
+        (* THE CRITERION OF GOAL.md. The left side is what the method
+           cost per defect it caught; the right side is what that
+           defect was worth, and the right side is a fact about the
+           project that only the project can say. Without it the
+           criterion is not computable, and the stand says that
+           instead of printing something that looks like an answer. *)
+        match costs.defect_cost with
+        | None ->
+            print_endline
+              "criterion: not computed. The price of a defect is a fact about the";
+            print_endline
+              "  project, and the stand does not guess it. Declare it with";
+            print_endline "  --defect-cost N   (in the same money as the costs above)"
+        | Some price when total_caught = 0 ->
+            print_endline
+              "criterion: not computable - no defect was caught, so the cost of the";
+            print_endline
+              "  method per defect it caught has no denominator"
+        | Some price ->
+            let per_defect = denominator /. float_of_int total_caught in
+            Printf.printf
+              "criterion: the method cost %.4f per defect it caught; the defect was worth %.4f; %s\n"
+              per_defect price
+              (if per_defect <= price then "the criterion holds" else "the criterion does not hold"))
   | None ->
       print_endline "ratio: not computed. The person-minutes and the agent's tokens are";
       print_endline

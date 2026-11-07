@@ -22,6 +22,13 @@
  (name repository_lints)
  (libraries mathcoding str unix))
 
+; The stand, and the criterion of GOAL.md: what the method cost per
+; defect it caught, against what that defect was worth.
+(test
+ (name stand)
+ (libraries unix)
+ (deps %{exe:../bin/stand.exe} %{exe:../bin/mathc.exe}))
+
 ; The subject is whole or it is not: a scope with a path that is not in
 ; the tree has no digest, and the adapter that hashed only the paths it
 ; found is offered to the law and rejected.
