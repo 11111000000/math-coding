@@ -194,6 +194,19 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                          | Some c -> `String c
                          | None -> `Null)
                      | None -> `Null );
+                   ( "control",
+                     match
+                       List.find_opt
+                         (fun (c : Domain.claim) -> c.id = id)
+                         claims
+                     with
+                     | Some c -> (
+                         match c.control with
+                         | Some _ -> `String "the check is proven able to fail"
+                         | None ->
+                             `String
+                               "the check is not proven able to fail: declare its control")
+                     | None -> `Null );
                    ( "produced_by",
                      match
                        List.find_opt
@@ -344,6 +357,35 @@ let verb_run () =
                       let outcome, reason =
                         Exec.run_claim_command ~root:(root ()) command
                           claim.register
+                      in
+                      (* THE NEGATIVE CONTROL OF THE CHECK. A check that
+                         passes proves nothing until it is shown that it
+                         CAN fail. The claim carries the command that
+                         shows it - a test over a broken fixture - and
+                         that command must fail. If the check still
+                         passes where it had to fail, then it cannot
+                         see the subject, and the proof is no proof:
+                         the claim is not established, and it says
+                         why.
+
+                         This is the rule the method has always kept
+                         for its own tests, now kept for the claims of
+                         the projects that adopt it. The limit: the
+                         method sees that the control passed and not
+                         why it passed - the same way it cannot see
+                         what a check checks, only whether it can
+                         fail. *)
+                      let outcome, reason =
+                        match (outcome, claim.control) with
+                        | Domain.Verified, Some control ->
+                            let code = Exec.exit_code_of ~root:(root ()) control in
+                            if code = 0 then
+                              ( Domain.Unresolved,
+                                Some
+                                  "the check passed where its negative control had to fail: \
+                                   it cannot see the subject" )
+                            else (outcome, reason)
+                        | _ -> (outcome, reason)
                       in
                       Printf.printf "%s: %s\n" claim.id
                         (match outcome with
@@ -863,7 +905,7 @@ let verb_goal text scope by reason =
     - the budget of uncertainty is spent: at that point there are three
       ways out - find a check, ask for authority, or stop - and adding
       a claim is none of them. *)
-let verb_add id subject scope requirements falsifier register =
+let verb_add id subject scope requirements falsifier register control =
   let spec = load_spec () in
   let refuse why =
     Printf.eprintf "mathc: the claim is not accepted: %s\n" why;
@@ -936,6 +978,7 @@ let verb_add id subject scope requirements falsifier register =
           register;
           accepted = None;
           attestations = [];
+          control = (if control = "" then None else Some control);
         }
       in
       save_spec { spec with claims = spec.Domain.claims @ [ claim ] };
@@ -1020,6 +1063,8 @@ let usage () =
   print_endline "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
   print_endline "                               declare a claim (an agent does this);";
   print_endline "                               --requirement may be repeated, and may be review:WHO;";
+  print_endline "                               --control CMD is the command that breaks the subject";
+  print_endline "                                 and must fail with it: a check that cannot fail proves nothing";
   print_endline "                               a claim without a requirement is refused";
   print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
   print_endline "  mathc map               the standing specification: claims, states, uncovered";
@@ -1042,7 +1087,8 @@ let usage () =
     silently becomes a verb is a method that reports something the
     user did not ask for. *)
 let parse_args (args : string list) :
-    string list * string * bool * string * string * string * string * string list =
+    string list * string * bool * string * string * string * string * string
+    * string list =
   let root_flag = ref "" in
   let reason = ref "" in
   let json = ref false in
@@ -1050,6 +1096,7 @@ let parse_args (args : string list) :
   let recorded_outcome = ref "verified" in
   let recorded_reason = ref "" in
   let valid_for = ref "" in
+  let control = ref "" in
   let requirements = ref [] in
   let rec loop acc = function
     | [] -> (List.rev acc, !reason, !json)
@@ -1074,6 +1121,11 @@ let parse_args (args : string list) :
         loop acc rest
     | "--outcome" :: text :: rest ->
         recorded_outcome := text;
+        loop acc rest
+    | "--control" :: text :: rest ->
+        (* The negative control of the check: the command that breaks
+           the subject and must fail with it. *)
+        control := text;
         loop acc rest
     | "--valid-for" :: text :: rest ->
         (* How long the proof counts. The content may be exactly the
@@ -1124,6 +1176,7 @@ let parse_args (args : string list) :
     !recorded_outcome,
     !recorded_reason,
     !valid_for,
+    !control,
     List.rev !requirements )
 
 (** A comma-separated list of paths. The scope of a claim is a list of
@@ -1134,7 +1187,7 @@ let split_scope (text : string) : string list =
 
 let () =
   let positional, reason, json, by, recorded_outcome, recorded_reason, valid_for,
-      requirements =
+      control, requirements =
     parse_args (Array.to_list Sys.argv |> List.tl)
   in
   match positional with
@@ -1172,7 +1225,8 @@ let () =
                     Printf.eprintf "mathc: %s\n" e;
                     2
                 | Ok rs ->
-                    verb_add id subject (split_scope scope) rs falsifier register)
+                    verb_add id subject (split_scope scope) rs falsifier register
+                      control)
             | _ ->
                 Printf.eprintf
                   "mathc: add needs ID SUBJECT SCOPE CHECK FALSIFIER REGISTER\n";

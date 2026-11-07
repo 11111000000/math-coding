@@ -56,6 +56,17 @@ let run_check_in ~(root : string) (command : string) : Domain.outcome * string o
     in
     outcome_of_exit code
 
+(** The exit code of a command, raw.
+
+    The negative control of a check is judged by its exit code alone:
+    the control must FAIL, and "failed" here means the process said so.
+    The method does not interpret why - it cannot, and a check that
+    fails for an unrelated reason looks exactly like one that fails for
+    the right one. That limit is named rather than hidden. *)
+let exit_code_of ~(root : string) (command : string) : int =
+  if not (Sys.file_exists root) then 127
+  else Sys.command (Printf.sprintf "cd %s && %s" (Filename.quote root) command)
+
 (** Run a command and apply the register of the claim it belongs to.
 
     A judgment's command may run and say yes, and the answer is still

@@ -1,0 +1,31 @@
+{
+  "id": "wave-15",
+  "title": "the law the measurements asked for: a check that cannot fail proves nothing",
+  "intent": "Both measurements of 2026-11-07 said the same thing about the method: it knew that a check ran and that it was bound to an existing subject, and it did not know what the check checked - so a claim that the counter shows the number of items was verified by a typecheck, and the method recorded a false claim as proven. The method has always kept this rule for its own tests; the rule now covers the claims of the projects that adopt it.",
+  "touches": [
+    "lib/",
+    "format/",
+    "adapter/",
+    "bin/",
+    "test/",
+    "spec.json",
+    "waves/",
+    "AXIOMS.md",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "a-check-that-cannot-fail-proves-nothing"
+  ],
+  "commitment": [
+    {
+      "claim": "a-check-that-cannot-fail-proves-nothing",
+      "state": "holds"
+    }
+  ],
+  "objection": "контроль исполняется на живом проекте, и команда, которую дал агент, может быть чем угодно - метод тогда доверяет чужой команде вслепую и может испортить чужой репозиторий",
+  "refuted_by": "контроль - это команда, которая обязана ПАСТЬ, а не править: так его и пишут (проверка над сломанным образцом), и метод требует этого от автора. Граница названа прямо: метод видит, что контроль прошёл, и не видит, почему он прошёл вместо того, чтобы упасть; знает тот, кто его написал. Если контроль правит проект - это злоупотребление командой, а не дыра в законе"
+}

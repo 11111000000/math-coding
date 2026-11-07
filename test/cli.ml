@@ -220,6 +220,16 @@ let check_the_tool (binary : string) (prefix : string list) =
          there. *)
       expect_refusal "add without a requirement"
         (call [ "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact" ]);
+      (* A claim may be declared without a control - but then the map
+         says that its check is not proven able to fail. The control is
+         asked for, not forced: a forced one would be a formality, and a
+         formality is what the method refuses to be. *)
+      expect_ok "add without a negative control"
+        (call
+           [
+             "add"; "c-nocontrol"; "a claim"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:true";
+           ]);
       expect_refusal "add outside the aim"
         (call
            [
@@ -237,7 +247,8 @@ let check_the_tool (binary : string) (prefix : string list) =
            [
              "add"; "c1"; "a claim about the subject"; "subject.txt";
              "the claim stops holding"; "fact"; "--requirement";
-             "verifier:true"; "--requirement"; "review:owner";
+             "verifier:true"; "--requirement"; "review:owner"; "--control";
+             "false";
            ]);
 
       (* map: the claim is there, and the map is data as well as prose. *)
@@ -285,6 +296,7 @@ let check_the_tool (binary : string) (prefix : string list) =
            [
              "add"; "c2"; "a claim nobody checked"; "subject.txt";
              "falsifier"; "hypothesis"; "--requirement"; "verifier:false";
+             "--control"; "false";
            ]);
       expect_refusal "accept without a name"
         (call [ "accept"; "c2"; ""; "because" ]);
@@ -316,6 +328,37 @@ let check_the_tool (binary : string) (prefix : string list) =
         (call [ "close"; "wave-p" ]);
       let _, text = call [ "next" ] in
       assert (contains text "wave wave-p");
+      (* THE LAW OF THE NEGATIVE CONTROL. A check that passes where its
+         control had to fail cannot see the subject, and the proof it
+         produced is no proof: the claim is not established, and the map
+         says why.
+
+         The blind claim here has a control that PASSES where it had to
+         fail - and its check passes too. So the check is blind, and
+         the claim must not read as established. *)
+      expect_ok "add a claim with a blind check"
+        (call
+           [
+             "add"; "c-blind"; "a claim whose check cannot fail";
+             "subject.txt"; "falsifier"; "fact"; "--requirement";
+             "verifier:true"; "--control"; "true";
+           ]);
+      (* The check is run, and it passes - and so does the control,
+         where it had to fail. So the check is blind. *)
+      (* The run exits 1 - red - because the second claim of the
+         battery is falsified by its own check, and the blind one is
+         unresolved. The verdict of the project is no longer green, and
+         that is the point of the law: a check that cannot fail does
+         not get to say "verified". *)
+      expect_code "run with the blind claim" 1 (call [ "run" ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "c-blind");
+      assert (contains text "inconclusive");
+      (* And the reason is named, not hidden: the route must show that
+         this claim waits for a person, and why. *)
+      let _, text = call [ "route" ] in
+      assert (contains text "cannot see the subject");
+
       (* A flag that belongs to one verb must not be accepted by
          another. *)
       expect_refusal "--requirement outside add"

@@ -32,7 +32,7 @@ let claim subject =
     requirements = [ Domain.Verified_by "true" ];
     falsifier = "the sample stops holding";
     register = Fact;
-    accepted = None; attestations = [];
+    accepted = None; attestations = []; control = None;
   }
 
 let checked subject outcome =

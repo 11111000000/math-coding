@@ -111,9 +111,8 @@ type attestation = {
   valid_until : string option;
 }
 
-(** The digest of a subject, as it stands now. Evidence is bound to
-    one: if the subject moves, the evidence is about a subject that no
-    longer exists. *)
+(** The digest of a subject as it stands now: if the subject moves,
+    the evidence is about a subject that no longer exists. *)
 type binding = string
 
 (** The state of one claim, as computed. Not stored: it is derived from
@@ -164,12 +163,13 @@ type claim = {
   requirements : requirement list;
   falsifier : string;
   register : register;
-  (* A person took responsibility for this claim's uncertainty, and
-     said why. It is not an answer: the claim is still not known. It
-     is a decision about whose problem it is. *)
+  (* A person took responsibility for this uncertainty, and said why.
+     It is not an answer: the claim is still not known. *)
   accepted : (string * string) option;
-  (* The proofs that came from outside and must not be lost. *)
+  (* The proofs that came from outside. *)
   attestations : attestation list;
+  (* The negative control of the check; the law is A16. *)
+  control : string option;
 }
 
 (** A result, and the subject it was obtained against. The reason says

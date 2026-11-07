@@ -90,7 +90,7 @@ let sample_claim =
     requirements = [ Domain.Verified_by "true" ];
     falsifier = "the sample stops holding";
     register = Fact;
-    accepted = None; attestations = [];
+    accepted = None; attestations = []; control = None;
   }
 
 let sample_evidence outcome bound_to =

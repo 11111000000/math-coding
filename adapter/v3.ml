@@ -162,7 +162,7 @@ let draft_of_decision (json : Yojson.Safe.t) : Domain.claim option =
           "дописать: что покажет, что это утверждение неверно (в старом решении этого поля не было)";
         register = Domain.Undeclared;
         accepted = None;
-        attestations = [];
+        attestations = []; control = None;
       }
 
 (** The drafts of a directory: what can be carried across, and what

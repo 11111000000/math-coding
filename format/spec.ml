@@ -4,7 +4,6 @@ open Domain
 type error = { field : string; problem : string }
 
 let error field problem = { field; problem }
-
 let ( let* ) r f = match r with Ok v -> f v | Error e -> Error e
 
 let message_of (e : error) : string =
@@ -13,7 +12,6 @@ let message_of (e : error) : string =
 let result_of = function
   | Ok v -> v
   | Error e -> failwith (message_of e)
-
 
 let read_object ~what (json : Yojson.Safe.t) ~(fields : string list) :
     ((string * Yojson.Safe.t) list, error) result =
@@ -133,7 +131,7 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
     read_object ~what json
       ~fields:
         [ "id"; "subject"; "scope"; "requirements"; "falsifier"; "register";
-          "accepted"; "attestations" ]
+          "accepted"; "attestations"; "control" ]
   with
   | Error e -> Error e
   | Ok pairs ->
@@ -154,6 +152,14 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
         | Some _ -> Error (error (what ^ ".accepted") "expected an object or null")
       in
       let* attestations = require_attestations ~what pairs in
+      let* control =
+        match List.assoc_opt "control" pairs with
+        | None -> Ok None
+        | Some (`String c) when c <> "" -> Ok (Some c)
+        | Some (`String _) -> Ok None
+        | Some `Null -> Ok None
+        | Some _ -> Error (error (what ^ ".control") "expected a command")
+      in
       if scope = [] then
         Error
           (error (what ^ ".scope")
@@ -168,6 +174,7 @@ let parse_claim (json : Yojson.Safe.t) : (claim, error) result =
             register;
             accepted;
             attestations;
+            control;
           }
 
 let parse_goal (json : Yojson.Safe.t) : (goal, error) result =
@@ -289,6 +296,10 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                      | None -> `Null
                      | Some (by, reason) ->
                          `Assoc [ ("by", `String by); ("reason", `String reason) ] );
+                   ( "control",
+                     match c.control with
+                     | None -> `Null
+                     | Some cmd -> `String cmd );
                    ( "attestations",
                      `List
                        (List.map
