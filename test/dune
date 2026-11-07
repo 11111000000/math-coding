@@ -22,6 +22,13 @@
  (name repository_lints)
  (libraries mathcoding str unix))
 
+; The entry point for an agent: the guide must name every verb the
+; tool has, and the check must be able to say no.
+(test
+ (name agents)
+ (libraries unix)
+ (deps %{exe:../bin/mathc.exe}))
+
 ; The stand, and the criterion of GOAL.md: what the method cost per
 ; defect it caught, against what that defect was worth.
 (test
