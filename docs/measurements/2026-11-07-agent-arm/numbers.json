@@ -55,10 +55,10 @@
   },
   "criterion": {
     "rule": "cost of the method per defect it caught <= price of that defect",
-    "defects_caught": 0,
     "verdict": "not computable - no defect was caught, so the cost of the method per defect it caught has no denominator",
     "holds_regardless_of_the_declared_price": true,
-    "note": "the price of a defect is the owner's fact and it was not declared; the verdict does not depend on it, because nothing was caught to divide by"
+    "note": "the price of a defect is the owner's fact and it was not declared; the verdict does not depend on it, because nothing was caught to divide by",
+    "defects_caught_by_the_method": 0
   },
   "confounds": [
     "the control arm was not protocol-free: the project's AGENTS.md requires math-coding v3 and the arm used it",

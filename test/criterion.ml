@@ -19,11 +19,12 @@
    cannot hold - whatever the defect is worth. *)
 let verdict_of (numbers : Yojson.Safe.t) : string =
   let open Yojson.Safe.Util in
-  let caught = numbers |> member "defects" |> member "caught_by_A" |> to_int in
-  let price_declared =
-    numbers |> member "criterion" |> member "holds_regardless_of_the_declared_price" |> to_bool
+  (* The numerator of the criterion is what the METHOD caught - a
+     refuted claim. What an agent caught by reading the code is a
+     different number, and it is in the record under the defects. *)
+  let caught =
+    numbers |> member "criterion" |> member "defects_caught_by_the_method" |> to_int
   in
-  ignore price_declared;
   if caught = 0 then
     "not computable - no defect was caught, so the cost of the method per defect it caught has no denominator"
   else "computable"
@@ -63,16 +64,32 @@ let source_root () =
   in
   loop (Sys.getcwd ())
 
-let () =
-  let path =
-    Filename.concat (source_root ())
-      "docs/measurements/2026-11-07-agent-arm/numbers.json"
-  in
+(* One record, one verdict: the measurement of the agent arm and its
+   repeat must both be consistent with their own numbers. *)
+let check_record (relative : string) =
+  let path = Filename.concat (source_root ()) relative in
   assert (Sys.file_exists path);
   let numbers = read_json path in
   let stored = string_member "verdict" (member "criterion" numbers) in
   let computed = verdict_of numbers in
   assert (stored = computed);
+  (stored, numbers)
+
+let () =
+  let stored, numbers =
+    check_record "docs/measurements/2026-11-07-agent-arm/numbers.json"
+  in
+  let stored_repeat, numbers_repeat =
+    check_record "docs/measurements/2026-11-07-agent-arm-repeat/numbers.json"
+  in
+  (* Both verdicts are the same kind of answer: the method caught
+     nothing, so the left-hand side of the criterion has no
+     denominator. *)
+  assert (stored = stored_repeat);
+  let caught = int_member "caught_by_A" (member "defects" numbers) in
+  assert (caught = 0);
+  let fixed = int_member "fixed_by_A" (member "defects" numbers_repeat) in
+  assert (fixed = 1);
 
   (* THE NEGATIVE CONTROL: a record whose numbers say one thing and
      whose verdict says another must be rejected. *)

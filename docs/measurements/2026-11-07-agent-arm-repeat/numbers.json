@@ -1,0 +1,72 @@
+{
+  "measurement": "agent arm, repeat, 2026-11-07",
+  "subject": "Glass at dbdd552, two copies of one tree",
+  "task": "the project's own diagnosis (DIAGNOSIS.md, 2.2.1): the checkout letter carries no body, so the workshop receives a subject and nothing else",
+  "planted_defect": {
+    "file": "src/components/CartProvider.tsx",
+    "change": "const count = lines.reduce((sum, l) => sum + l.qty, 0) became sum + 1 - the badge counts lines instead of items",
+    "visible_to_project_checks": false,
+    "note": "npm run typecheck passes with the defect in place; the project has no test suite, only a typecheck"
+  },
+  "arms": {
+    "A_protocol": {
+      "model": "opencode/minimax_coding_plan/MiniMax-M3",
+      "minutes": 21.6,
+      "tool_calls": 84,
+      "tool_calls_to_the_method": 12,
+      "reads_of_the_entry_page": 1,
+      "tokens_input": 169889,
+      "tokens_cache_read": 13271223,
+      "tokens_output": 17660,
+      "tokens_reasoning": 48637,
+      "claims_left": 4,
+      "caught_the_planted_defect": true,
+      "fixed_the_planted_defect": true,
+      "left": "four claims with verifiers, two of them inconclusive and waiting for a person; a route that says so"
+    },
+    "B_control": {
+      "model": "opencode/minimax_coding_plan/MiniMax-M3",
+      "minutes": 22.5,
+      "tool_calls": 54,
+      "tool_calls_to_the_method": 0,
+      "reads_of_the_entry_page": 0,
+      "tokens_input": 141879,
+      "tokens_cache_read": 9028770,
+      "tokens_output": 11002,
+      "tokens_reasoning": 30308,
+      "claims_left": 1,
+      "caught_the_planted_defect": true,
+      "fixed_the_planted_defect": false,
+      "left": "the letter carries the order; the defect in the tree, noticed and left as somebody else's business"
+    }
+  },
+  "defects": {
+    "planted": 1,
+    "caught_by_A": 1,
+    "caught_by_B": 1,
+    "fixed_by_A": 1,
+    "fixed_by_B": 0
+  },
+  "stand": {
+    "protocol_seconds": 15.2,
+    "price_arm_seconds": 14.2,
+    "overhead_seconds": 1.0,
+    "caught": 0,
+    "uncovered": 10,
+    "claims": 4,
+    "stale": 2
+  },
+  "criterion": {
+    "rule": "cost of the method per defect it caught <= price of that defect",
+    "defects_caught_by_the_method": 0,
+    "verdict": "not computable - no defect was caught, so the cost of the method per defect it caught has no denominator",
+    "holds_regardless_of_the_declared_price": true,
+    "note": "the agent of the protocol arm caught the defect by reading the code while it worked; the method's own verifier did not catch it, because the claim it declared was checked by a typecheck that cannot see a logic error. The method's numerator counts refuted claims, and it had none."
+  },
+  "confounds": [
+    "the protocol arm received the entry page with the method; the two cannot be separated in this run",
+    "one task, one planted defect: a single case, not a frequency",
+    "the subject is small and its checks are a typecheck, so the machine cost is not comparable with the wavecode run",
+    "the real defect both arms found - the drawer opening on the left - was visible in the browser and was found by both"
+  ]
+}
