@@ -10,7 +10,8 @@
   },
   "uncertainty_budget": 3,
   "closed_waves": [
-    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7"
+    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
+    "wave-8"
   ],
   "claims": [
     {
@@ -62,6 +63,15 @@
           "reason": "да, это моя цель",
           "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
           "at": "1794005390",
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
+          "at": "1794033979",
           "valid_until": null
         }
       ]
@@ -185,6 +195,18 @@
         }
       ],
       "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-binding-covers-what-ran",
+      "subject": "привязка доказательства покрывает рабочее дерево - то самое содержимое, по которому шли проверки, - а не закоммиченное",
+      "scope": [ "adapter/", "lib/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
       "register": "fact",
       "accepted": null,
       "attestations": []
