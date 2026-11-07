@@ -112,7 +112,13 @@ let with_repository (f : string -> unit) =
     (Printf.sprintf
        "git -C %s -c user.email=test@example -c user.name=test commit -qm init ."
        (Filename.quote root));
-  f root
+  (* The subject is cleaned up: a suite that runs often must not leave
+     a repository behind every time. *)
+  let cleanup () = ignore (Sys.command ("rm -rf " ^ Filename.quote root)) in
+  (try f root with e ->
+     cleanup ();
+     raise e);
+  cleanup ()
 
 (* --- the battery -------------------------------------------------------- *)
 
