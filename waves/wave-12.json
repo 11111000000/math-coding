@@ -1,0 +1,27 @@
+{
+  "id": "wave-12",
+  "title": "the criterion of the goal is computed, and the verdict is negative",
+  "intent": "The criterion was prose, and the stand printed a different quantity. Now the price of a defect is an input and the criterion is printed - but the verdict on the data of 07.11 does not depend on that input at all: no defect was caught, so the cost per caught defect has no denominator, and no price of a defect could make the criterion hold. Saying that plainly is worth more than a price nobody declared.",
+  "touches": [
+    "docs/measurements/2026-11-07-agent-arm/",
+    "test/",
+    "bin/stand.ml",
+    "spec.json",
+    "waves/",
+    "README.md"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "the-criterion-is-computed-on-real-data"
+  ],
+  "commitment": [
+    {
+      "claim": "the-criterion-is-computed-on-real-data",
+      "state": "holds"
+    }
+  ],
+  "objection": "вердикт «критерий не выполняется» на одном измерении с одним дефектом - это не приговор методу, а приговор измерению, и публиковать его как приговор методу нечестно",
+  "refuted_by": "запись называет предмет: одна задача, одна посаженная поломка, обе руки её не починили. Приговор методу здесь не выносится - выносится то, что критерий на этих данных не выполняется, и что цена дефекта это не меняет. Следующий замер на предмете без чужого корпуса и с новой страницей скажет больше, чем этот"
+}

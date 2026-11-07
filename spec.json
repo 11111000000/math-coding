@@ -12,7 +12,7 @@
   "uncertainty_budget": 3,
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
-    "wave-8", "wave-9", "wave-10", "wave-11"
+    "wave-8", "wave-9", "wave-10", "wave-11", "wave-12"
   ],
   "claims": [
     {
@@ -244,6 +244,20 @@
         { "kind": "verifier", "spec": "nix build .#portable" }
       ],
       "falsifier": "переносимый бинарь просит библиотеки из store или не запускается без nix",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-criterion-is-computed-on-real-data",
+      "subject": "критерий GOAL.md посчитан на данных замера руки агента, и вердикт отрицательный: ни один дефект не пойман, поэтому цена метода на один дефект не определена",
+      "scope": [
+        "docs/measurements/2026-11-07-agent-arm/", "bin/stand.ml", "test/"
+      ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
       "register": "fact",
       "accepted": null,
       "attestations": []
