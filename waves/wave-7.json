@@ -1,0 +1,25 @@
+{
+  "id": "wave-7",
+  "title": "the agent arm: the same task in two arms, and what each caught",
+  "intent": "The one question GOAL.md admits matters - what the method catches that an agent without the protocol does not - had never been measured, and every judgement about the method's usefulness rested on the stand's overhead and a single caught defect in three projects. So the task was taken from the project itself, one defect was planted where the project's checks cannot see it, and the same task was given to two arms of the same model: one holding the protocol, one without.",
+  "touches": [
+    "docs/",
+    "spec.json",
+    "waves/",
+    "README.md"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "the-agent-arm-is-measured"
+  ],
+  "commitment": [
+    {
+      "claim": "the-agent-arm-is-measured",
+      "state": "holds"
+    }
+  ],
+  "objection": "один замер на одной задаче с одной посаженной поломкой - это не измерение, а единичный случай, и объявлять его записью об измерении значит придать ему вес, которого у него нет",
+  "refuted_by": "запись объявляет результат ОТРИЦАТЕЛЬНЫМ и называет то, что он не доказывает: обе руки увидели поломку и обе её оставили, контрольная рука не была без метода (AGENTS.md проекта требует v3), а цена дефекта не объявлена, поэтому критерий остался невычислимым. Запись, которая объявляет себя обширнее измерения, - это и есть средство, которым такое измерение становится выдумкой"
+}

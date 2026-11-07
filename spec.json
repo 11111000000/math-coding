@@ -10,7 +10,7 @@
   },
   "uncertainty_budget": 3,
   "closed_waves": [
-    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6"
+    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7"
   ],
   "claims": [
     {
@@ -170,6 +170,21 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-agent-arm-is-measured",
+      "subject": "рука агента измерена на чужом проекте: одна задача в двух руках, записано, что поймала каждая и что это стоило",
+      "scope": [ "docs/measurements/2026-11-07-agent-arm/" ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "test -s docs/measurements/2026-11-07-agent-arm/README.md"
+        }
+      ],
+      "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
       "register": "fact",
       "accepted": null,
       "attestations": []
