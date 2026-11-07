@@ -1,0 +1,28 @@
+{
+  "id": "wave-13",
+  "title": "the decisions of the third version, as drafts - and the port that is not a port",
+  "intent": "The third version kept a file per decision, and the shape was good: a reason, a contract written out, obligations with their verifiers. What killed it was the count and the stored state, not the shape. So the shape comes across without the count: the scope and the verifiers are read off the old file, and the register, the falsifier and the question whether the old decision is still true are left to the person. A draft that says what to decide is worth more than a port that decides.",
+  "touches": [
+    "adapter/v3.ml",
+    "bin/mathc.ml",
+    "test/",
+    "AGENTS.md",
+    "README.md",
+    "spec.json",
+    "waves/"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "the-third-version-comes-across-as-drafts"
+  ],
+  "commitment": [
+    {
+      "claim": "the-third-version-comes-across-as-drafts",
+      "state": "holds"
+    }
+  ],
+  "objection": "утилита, которой никто не звал, - это форма без содержания: 42 черновика из 128 решений, и решает их всё равно человек",
+  "refuted_by": "механическая часть переносится и проверяется: глоб старого scope становится префиксом нового, верификаторы переносятся, а решение без области не становится утверждением и остаётся вопросом с уже прочитанными верификаторами. Проверка падает, если переносится что-то лишнее - регистр или опровержитель"
+}

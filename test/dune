@@ -28,6 +28,12 @@
  (name criterion)
  (libraries yojson))
 
+; The third version's decisions, as drafts: the mechanical part is
+; carried across, and the rest is left to the person.
+(test
+ (name v3_draft)
+ (libraries mathcoding mathcoding_adapter yojson))
+
 ; The entry point for an agent: the guide must name every verb the
 ; tool has, and the check must be able to say no.
 (test

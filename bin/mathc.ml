@@ -728,6 +728,62 @@ let verb_close id =
               wave.Domain.commitment;
             0))
 
+(** draft: the decisions of the third version, as drafts of claims.
+
+    The old decisions are not ported. What is ported is the mechanical
+    part of them - the scope and the verifiers, read off the old file
+    without understanding it - and the rest is left to the person who
+    owns the claim: the register, the falsifier, and whether the old
+    decision is still true at all.
+
+    So the output is a draft, and it says so: the register is left
+    undeclared, and the falsifier is a placeholder that must be written
+    by hand. A draft that says what to decide is worth more than a
+    port that decides. *)
+let verb_draft (dir : string) =
+  let drafts, skipped = V3.drafts_of dir in
+  let skipped_with_verifiers = V3.skipped_of dir in
+  let claims =
+    List.map
+      (fun (c : Domain.claim) ->
+        `Assoc
+          [
+            ("id", `String c.id);
+            ("subject", `String c.subject.text);
+            ("scope", `List (List.map (fun p -> `String p) c.subject.scope));
+            ( "requirements",
+              `List
+                (List.map
+                   (fun (r : Domain.requirement) ->
+                     `Assoc
+                       (match r with
+                       | Domain.Verified_by spec ->
+                           [ ("kind", `String "verifier"); ("spec", `String spec) ]
+                       | Domain.Reviewed_by spec ->
+                           [ ("kind", `String "review"); ("spec", `String spec) ]))
+                   c.requirements) );
+            ("falsifier", `String c.falsifier);
+            ("register", `String "unknown");
+          ])
+      drafts
+  in
+  Printf.printf "drafts: %d, skipped: %d\n\n" (List.length drafts)
+    (List.length skipped);
+  print_endline
+    "The register and the falsifier are left to you: a decision is carried across as a\n\
+     draft, and a draft decides nothing. The register is unknown - say what kind of\n\
+     claim it is.";
+  print_endline "";
+  print_endline (Yojson.Safe.pretty_to_string (`List claims));
+  List.iter
+    (fun (name, verifiers) ->
+      Printf.printf "skipped %s: no scope" name;
+      if verifiers <> [] then
+        Printf.printf " (the verifiers it had: %s)" (String.concat ", " verifiers);
+      print_newline ())
+    skipped_with_verifiers;
+  0
+
 (** A requirement, as it is written on the command line: a kind, a
     colon, and the thing itself. The kind is what makes the evidence
     countable - a command and a person are different kinds of
@@ -974,6 +1030,7 @@ let usage () =
   print_endline "                               --valid-for DAYS says how long the proof counts";
   print_endline "  mathc next               the next work, one item";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
+  print_endline "  mathc draft DIR          the third version's decisions, as draft claims";
   print_endline "";
   print_endline "  --root DIR               the project (default: the working directory)";
   print_endline "  --reason TEXT            why an aim is being replaced";
@@ -1148,6 +1205,12 @@ let () =
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";
                 2)
         | "next" -> verb_next ()
+        | "draft" -> (
+            match positional with
+            | _ :: dir :: _ -> verb_draft dir
+            | _ ->
+                Printf.eprintf "mathc: draft needs a directory with decisions/\n";
+                2)
         | "close" -> (
             match positional with
             | _ :: id :: _ -> verb_close id

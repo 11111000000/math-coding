@@ -12,7 +12,7 @@
   "uncertainty_budget": 3,
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
-    "wave-8", "wave-9", "wave-10", "wave-11", "wave-12"
+    "wave-8", "wave-9", "wave-10", "wave-11", "wave-12", "wave-13"
   ],
   "claims": [
     {
@@ -258,6 +258,18 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
+      "register": "fact",
+      "accepted": null,
+      "attestations": []
+    },
+    {
+      "id": "the-third-version-comes-across-as-drafts",
+      "subject": "решения третьей версии переносятся черновиками: область и верификаторы переносятся, регистр и опровержитель остаются за человеком",
+      "scope": [ "adapter/v3.ml", "bin/mathc.ml", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "переносится больше, чем механическая часть, или переносится решение без области",
       "register": "fact",
       "accepted": null,
       "attestations": []
