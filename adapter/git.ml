@@ -71,6 +71,58 @@ let hash_content (root : string) (content : string) : string =
   ignore (Unix.close_process_full (ic, oc, ec));
   String.trim out
 
+(** The repository's files: what is committed, plus what is new and not
+    ignored.
+
+    The lints ask git the same question, and the method's rule about
+    the repository must be one rule, not two: the repository is what is
+    committed, plus what is new and not ignored - the files that would
+    join it. Reading the disk instead would pick up somebody else's
+    node_modules and miss a file that is about to be committed. *)
+let repository_files (root : string) : string list =
+  let out, code =
+    run_capture
+      (Printf.sprintf
+         "git -C %s ls-files -z --cached --others --exclude-standard"
+         (Filename.quote root))
+  in
+  if code <> 0 then []
+  else String.split_on_char '\000' out |> List.filter (fun s -> s <> "")
+
+(** The files a scope covers, in the working tree.
+
+    A prefix is a file or a directory; a directory covers the files
+    under it, and a file covers itself. [None] means that some prefix
+    of the scope names nothing that is in the repository - the subject
+    has a hole in it, and a subject with a hole cannot be bound. *)
+let files_of_scope (root : string) (scope : Domain.scope) : string list option =
+  let files = repository_files root in
+  let under prefix =
+    let dir =
+      if String.length prefix > 0 && prefix.[String.length prefix - 1] = '/' then prefix
+      else prefix ^ "/"
+    in
+    List.filter (fun f -> f = prefix || Domain.path_contains ~dir ~path:f) files
+  in
+  let per_prefix = List.map under scope in
+  if List.exists (fun xs -> xs = []) per_prefix then None
+  else Some (List.concat per_prefix)
+
+(** The content of the files, as git hashes it - and as it is NOW, not
+    as it was committed. One process for all of them: the hash of a
+    hundred files is a hundred processes otherwise, and the method
+    measures its own cost. *)
+let content_hashes (root : string) (files : string list) : string list =
+  if files = [] then []
+  else
+    let cmd =
+      Printf.sprintf "git -C %s hash-object -- %s" (Filename.quote root)
+        (String.concat " " (List.map Filename.quote files))
+    in
+    let out, code = run_capture cmd in
+    if code <> 0 then []
+    else out |> String.split_on_char '\n' |> List.filter (fun s -> s <> "")
+
 (** The digest of a scope: the binding of a claim to its subject as it
     stands now.
 
@@ -95,18 +147,29 @@ let hash_content (root : string) (content : string) : string =
     every one of them is there. A missing path makes the whole subject
     unbound, and an unbound subject cannot be run. *)
 let digest_of_scope (root : string) (scope : Domain.scope) : string option =
-  let rec collect acc = function
-    | [] -> Some (List.rev acc)
-    | prefix :: rest -> (
-        match object_id root prefix with
-        | None -> None
-        | Some oid -> collect ((prefix ^ " " ^ oid) :: acc) rest)
-  in
-  match collect [] scope with
+  (* THE CONTENT THAT RAN, NOT THE CONTENT THAT WAS COMMITTED. The
+     proof is produced by running the checks, and the checks run against
+     the WORKING TREE. So the binding must cover the working tree's
+     content - otherwise a proof of an edited file can be bound to the
+     committed content, and the claim says "holds" about something the
+     proof never saw. That is the third version's wildcard in a new
+     dress: evidence about one thing answering for another.
+
+     It is also the friction the agent arm of 2026-11-07 ran into: the
+     binding was computed from HEAD, so a file could not be proven
+     until it was committed, and nothing said so. The agent guessed -
+     it stashed its working tree before running - and the guess cost
+     more time than the protocol gained. *)
+  match files_of_scope root scope with
   | None -> None
   | Some [] -> None
-  | Some lines ->
-      Some (hash_content root (String.concat "\n" (List.sort compare lines) ^ "\n"))
+  | Some files ->
+      let files = List.sort compare files in
+      let hashes = content_hashes root files in
+      if List.length hashes <> List.length files then None
+      else
+        let lines = List.map2 (fun path hash -> path ^ " " ^ hash) files hashes in
+        Some (hash_content root (String.concat "\n" lines ^ "\n"))
 
 (** The commit the tree is at, as git records it.
 
@@ -135,9 +198,15 @@ let head_commit (root : string) : string option =
 
     This is the adapter's half of the law [Verdict.law_no_partial_subject]:
     the core cannot see the tree, so it states the law over the two
-    functions that decide, and the adapter supplies them. *)
+    functions that decide, and the adapter supplies them.
+
+    A path that is new but not ignored is in the repository - it would
+    join it - and so it can be a subject. A path that is ignored is not,
+    and a claim about it cannot be bound to anything. *)
 let scope_exists (root : string) (scope : Domain.scope) : bool =
-  scope <> [] && List.for_all (fun prefix -> object_id root prefix <> None) scope
+  match files_of_scope root scope with
+  | Some files -> files <> []
+  | None -> false
 
 (** The tracked files a scope covers. *)
 let files_under (scope : Domain.scope) (files : string list) : string list =
