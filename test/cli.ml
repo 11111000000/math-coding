@@ -122,12 +122,12 @@ let with_repository (f : string -> unit) =
 
 (* --- the battery -------------------------------------------------------- *)
 
-(* The ten verbs. This list is the method's vocabulary, and the battery
+(* The verbs. This list is the method's vocabulary, and the battery
    checks it twice: against the tool, which must know every verb here,
    and against the README, which must name every verb here. *)
-let the_ten_verbs =
+let the_verbs =
   [ "init"; "goal"; "add"; "run"; "record"; "accept"; "close"; "route"; "map";
-    "next" ]
+    "next"; "wave"; "draft" ]
 
 let write_wave root id =
   let dir = Filename.concat root "waves" in
@@ -316,6 +316,52 @@ let check_the_tool (binary : string) (prefix : string list) =
       let _, text = call [ "map" ] in
       assert (contains text "accepted");
 
+      (* wave: a unit of work, made by a verb. The mechanism used to be
+         WRITE-ONLY: `next` read the waves, `close` read them, and
+         nothing made them - the only way to have one was to write the
+         JSON by hand. In this repository that was survivable. In a
+         foreign project it made the mechanism unusable: the queue
+         never named a wave, and closing one always answered "no wave".
+
+         And the verb keeps the discipline of the format rather than
+         softening it: a wave without its reasoning, or without the
+         objection against it, or without a promise about a claim that
+         is declared, is not a wave. *)
+      expect_refusal "a wave without its intent"
+        (call [ "wave"; "wave-w"; "a wave"; "--check"; "true" ]);
+      expect_refusal "a wave without the objection"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+           ]);
+      expect_refusal "a wave without a check"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--intent"; "why"; "--objection";
+             "against"; "--refuted-by"; "how"; "--commit"; "c1=holds";
+           ]);
+      expect_refusal "a wave promising a claim nobody declared"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "--objection"; "against"; "--refuted-by"; "how"; "--commit";
+             "nosuchclaim=holds";
+           ]);
+      expect_ok "wave"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "--objection"; "against"; "--refuted-by"; "how"; "--commit";
+             "c1=holds";
+           ]);
+      assert (Sys.file_exists (Filename.concat root "waves/wave-w.json"));
+      (* And the wave the verb wrote is a wave the tool can read: the
+         same codec reads it back, so a wave that could not be read
+         could not have been written. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "wave wave-w");
+      expect_ok "close a wave the verb made" (call [ "close"; "wave-w" ]);
+
       (* close: a wave whose checks pass and whose declared verdict is
          established is closed - and it LEAVES THE QUEUE. *)
       write_wave root "wave-x";
@@ -401,7 +447,7 @@ let check_the_documentation_names_every_verb () =
   let text = read_file (Filename.concat (source_root ()) "README.md") in
   List.iter
     (fun verb -> assert (contains text ("mathc " ^ verb)))
-    the_ten_verbs
+    the_verbs
 
 let () =
   (* The real tool. *)

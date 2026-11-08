@@ -23,6 +23,34 @@ let set_root r = project_root := r
 
 let root () = !project_root
 
+(** The options of one invocation.
+
+    A record and not a tuple of nine: the tool has fifteen options now,
+    and a tuple of fifteen is a tuple somebody reads wrong. The fields
+    are mutable because the parser fills them in one at a time, and a
+    parser that returned a finished record would have to build it in
+    fifteen places. *)
+type options = {
+  mutable root : string;
+  mutable reason : string;
+  mutable json : bool;
+  mutable by : string;
+  mutable outcome : string;
+  mutable control : string;
+  mutable valid_for : string;
+  mutable requirements : string list;
+  (* The wave's own fields. The wave carries the reasoning of the plan
+     and the objection against it, and a verb that cannot say those is
+     a verb that cannot create a wave. *)
+  mutable intent : string;
+  mutable objection : string;
+  mutable refuted_by : string;
+  mutable checks : string list;
+  mutable claims : string list;
+  mutable commitments : string list;
+  mutable touches : string list;
+}
+
 let read_file path =
   let channel = open_in path in
   let content = In_channel.input_all channel in
@@ -867,6 +895,175 @@ let verb_draft (dir : string) =
     skipped_with_verifiers;
   0
 
+(** A wave, as data.
+
+    The writer lives here and not in the codec, for the same reason the
+    map's writer lives here: the codec says how the outside is shaped,
+    and the things the protocol writes are the protocol's own. The
+    codec's ceiling is a decision that was made before this code
+    existed, and the answer to "the codec outgrew its ceiling" is to
+    move code out of it, not to move the ceiling.
+
+    What matters is that the writer and the reader are one pair: the
+    wave the verb writes is read back by the same codec, so a wave that
+    cannot be read cannot be written either. *)
+let wave_to_json (w : Domain.wave) : Yojson.Safe.t =
+  `Assoc
+    [ ("id", `String w.Domain.id);
+      ("title", `String w.Domain.title);
+      ("intent", `String w.Domain.intent);
+      ("touches", `List (List.map (fun p -> `String p) w.Domain.touches));
+      ("checks", `List (List.map (fun c -> `String c) w.Domain.checks));
+      ("claims", `List (List.map (fun c -> `String c) w.Domain.claims));
+      ( "commitment",
+        `List
+          (List.map
+             (fun (c : Domain.commitment) ->
+               `Assoc
+                 [ ("claim", `String c.Domain.claim);
+                   ("state", `String (Domain.state_name c.Domain.state)) ])
+             w.Domain.commitment) );
+      ("objection", `String w.Domain.objection);
+      ("refuted_by", `String w.Domain.refuted_by) ]
+
+(** wave: create a unit of work.
+
+    THE WAVE WAS WRITE-ONLY. `next` reads the waves, `close` reads
+    them, and NOTHING created them: the only way to make one was to
+    write the JSON by hand. In this repository that was survivable -
+    the waves here were made exactly that way - but in a foreign
+    project the mechanism was simply unusable: the queue would never
+    name a wave, and closing one would answer "no wave" for ever.
+
+    So the wave is a verb now. And it keeps the discipline of the
+    format rather than softening it: a wave without its reasoning, or
+    without the objection against it, or without a check that must
+    pass, or without a promise that can be checked, is not a wave, and
+    the verb refuses it. The friction belongs here: this is where an
+    agent that wants to skip the dialectic tries to skip it.
+
+    And the promise must name a claim that is declared. A wave that
+    promises a claim nobody declared can never close - the closing
+    compares the promise with the state of the claim - so it would sit
+    in the queue for ever, and the queue would be lying about what it
+    leads to. *)
+let verb_wave (id : string) (title : string) (o : options) =
+  let refuse why =
+    Printf.eprintf "mathc: the wave is not created: %s\n" why;
+    2
+  in
+  let spec = load_spec () in
+  let rec parse_commit acc = function
+    | [] -> Ok (List.rev acc)
+    | text :: rest -> (
+        match String.index_opt text '=' with
+        | None -> Error (Printf.sprintf "a promise is CLAIM=STATE; got %S" text)
+        | Some i ->
+            let claim = String.sub text 0 i in
+            let state = String.sub text (i + 1) (String.length text - i - 1) in
+            (match Spec.state_of_name state with
+            | Some s -> parse_commit ({ Domain.claim; state = s } :: acc) rest
+            | None -> Error (Printf.sprintf "%S is not a state of a claim" state)))
+  in
+  let problem =
+    if id = "" then Some "the wave needs an id"
+    else if String.contains id '/' || String.contains id '\\' then
+      Some "the id of a wave is a name, not a path"
+    else if title = "" then Some "the wave needs a title"
+    else if o.intent = "" then
+      Some "the wave needs an intent: why this unit of work and what it assumes"
+    else if o.objection = "" then
+      Some "the wave needs the strongest objection against this approach"
+    else if o.refuted_by = "" then
+      Some
+        "the wave needs what would refute it: an objection with no answer is a \
+         complaint, and a complaint is not a plan"
+    else if o.checks = [] then
+      Some "the wave needs at least one check: a wave that runs nothing is a wish"
+    else if o.commitments = [] then
+      Some
+        "the wave needs at least one promise: a wave that promises nothing is not \
+         a unit of work"
+    else None
+  in
+  match problem with
+  | Some why -> refuse why
+  | None -> (
+      match parse_commit [] o.commitments with
+      | Error e -> refuse e
+      | Ok commitments ->
+          let unknown =
+            List.filter_map
+              (fun (c : Domain.commitment) ->
+                if List.exists (fun (x : Domain.claim) -> x.id = c.claim) spec.Domain.claims
+                then None
+                else Some c.claim)
+              commitments
+          in
+          (match unknown with
+          | claim :: _ ->
+              refuse
+                (Printf.sprintf
+                   "the wave promises the claim %S, which is not declared: a promise \
+                    about a claim nobody declared can never be met"
+                   claim)
+          | [] ->
+              let dir = Filename.concat (root ()) "waves" in
+              let path = Filename.concat dir (id ^ ".json") in
+              if Sys.file_exists path then
+                refuse (Printf.sprintf "there is already a wave %S" id)
+              else (
+                if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+                (* The claims the wave touches are the claims it promises,
+                   unless it says otherwise: a wave that names them is
+                   saying what it is about. *)
+                let claims =
+                  if o.claims <> [] then o.claims
+                  else
+                    List.map
+                      (fun (c : Domain.commitment) -> c.Domain.claim)
+                      commitments
+                in
+                let wave =
+                  {
+                    Domain.id;
+                    title;
+                    intent = o.intent;
+                    touches = o.touches;
+                    checks = o.checks;
+                    claims;
+                    commitment = commitments;
+                    objection = o.objection;
+                    refuted_by = o.refuted_by;
+                  }
+                in
+                (* THE WRITER PROVES ITSELF BY THE READER. The wave is
+                   written and read back with the same codec: a wave
+                   that cannot be read cannot stand, and saying so here
+                   is better than a queue full of unreadable waves. *)
+                let json = wave_to_json wave in
+                let text = Yojson.Safe.pretty_to_string json ^ "\n" in
+                (match Spec.parse_wave_string text with
+                | Error e ->
+                    refuse ("the wave is not readable: " ^ Spec.message_of e)
+                | Ok _ ->
+                    let channel = open_out path in
+                    output_string channel text;
+                    close_out channel;
+                    Printf.printf "wave %s created:\n" id;
+                    Printf.printf "  %s\n" path;
+                    Printf.printf "  promises: %s\n"
+                      (String.concat ", "
+                         (List.map
+                            (fun (c : Domain.commitment) ->
+                              c.Domain.claim ^ " " ^ Domain.state_name c.Domain.state)
+                            commitments));
+                    Printf.printf "  checks: %s\n" (String.concat ", " o.checks);
+                    print_endline
+                      "next: mathc next names the wave, and mathc close closes it when \
+                       its promises are met";
+                    0))))
+
 (** A requirement, as it is written on the command line: a kind, a
     colon, and the thing itself. The kind is what makes the evidence
     countable - a command and a person are different kinds of
@@ -1115,6 +1312,12 @@ let usage () =
   print_endline "                               take evidence from outside: a person, a CI run;";
   print_endline "                               --valid-for DAYS says how long the proof counts";
   print_endline "  mathc next               the next work, one item";
+  print_endline "  mathc wave ID TITLE     create a unit of work: a wave";
+  print_endline "                               --intent WHY --objection THE STRONGEST OBJECTION";
+  print_endline "                               --refuted-by WHAT WOULD REFUTE IT";
+  print_endline "                               --check CMD (may be repeated)";
+  print_endline "                               --commit CLAIM=STATE (may be repeated)";
+  print_endline "                               --claim ID and --touches PATH may be repeated";
   print_endline "  mathc close WAVE         close a wave whose verdicts changed";
   print_endline "  mathc draft DIR          the third version's decisions, as draft claims";
   print_endline "";
@@ -1122,27 +1325,35 @@ let usage () =
   print_endline "  --reason TEXT            why an aim is being replaced";
   print_endline "  --json                   the map as data, for programs"
 
-(** The command line. The only options are the project root and the
-    reason an aim is being replaced; everything else is a verb. An
-    unknown option is an error rather than a verb, because a typo that
-    silently becomes a verb is a method that reports something the
-    user did not ask for. *)
-let parse_args (args : string list) :
-    string list * string * bool * string * string * string * string * string
-    * string list =
-  let root_flag = ref "" in
-  let reason = ref "" in
-  let json = ref false in
-  let by = ref "" in
-  let recorded_outcome = ref "verified" in
-  let recorded_reason = ref "" in
-  let valid_for = ref "" in
-  let control = ref "" in
-  let requirements = ref [] in
+(** The command line. The options are the project root, the reason an aim
+    is being replaced, and the fields of the verbs that take them;
+    everything else is a verb. An unknown option is an error rather than
+    a verb, because a typo that silently becomes a verb is a method that
+    reports something the user did not ask for. *)
+let parse_args (args : string list) : string list * options =
+  let o =
+    {
+      root = "";
+      reason = "";
+      json = false;
+      by = "";
+      outcome = "verified";
+      control = "";
+      valid_for = "";
+      requirements = [];
+      intent = "";
+      objection = "";
+      refuted_by = "";
+      checks = [];
+      claims = [];
+      commitments = [];
+      touches = [];
+    }
+  in
   let rec loop acc = function
-    | [] -> (List.rev acc, !reason, !json)
+    | [] -> (List.rev acc, o)
     | "--root" :: dir :: rest ->
-        root_flag := dir;
+        o.root <- dir;
         loop acc rest
     | "--root" :: [] ->
         Printf.eprintf "mathc: --root needs a directory\n";
@@ -1154,26 +1365,25 @@ let parse_args (args : string list) :
            verb at a time - and before this the flag filled only the
            first of the two, so a recorded proof kept no reason at all
            and said nothing about it. *)
-        reason := text;
-        recorded_reason := text;
+        o.reason <- text;
         loop acc rest
     | "--by" :: text :: rest ->
-        by := text;
+        o.by <- text;
         loop acc rest
     | "--outcome" :: text :: rest ->
-        recorded_outcome := text;
+        o.outcome <- text;
         loop acc rest
     | "--control" :: text :: rest ->
-        (* The negative control of the check: the command that breaks
-           the subject and must fail with it. *)
-        control := text;
+        (* The negative control of the check: the command that breaks the
+           subject and must fail with it. *)
+        o.control <- text;
         loop acc rest
     | "--valid-for" :: text :: rest ->
         (* How long the proof counts. The content may be exactly the
            right one and the proof still too old to stand: the
            deployment moved, the dependency changed, the review was for
            a release that is over. The term is what says so. *)
-        valid_for := text;
+        o.valid_for <- text;
         loop acc rest
     | "--requirement" :: text :: rest ->
         (* The requirements of a claim. They are named on the command
@@ -1189,10 +1399,31 @@ let parse_args (args : string list) :
            the specification by hand. The defect was invisible because
            the usage text said the flag worked, and a usage text is a
            description, not a check. *)
-        requirements := text :: !requirements;
+        o.requirements <- o.requirements @ [ text ];
+        loop acc rest
+    | "--intent" :: text :: rest ->
+        o.intent <- text;
+        loop acc rest
+    | "--objection" :: text :: rest ->
+        o.objection <- text;
+        loop acc rest
+    | "--refuted-by" :: text :: rest ->
+        o.refuted_by <- text;
+        loop acc rest
+    | "--check" :: text :: rest ->
+        o.checks <- o.checks @ [ text ];
+        loop acc rest
+    | "--claim" :: text :: rest ->
+        o.claims <- o.claims @ [ text ];
+        loop acc rest
+    | "--commit" :: text :: rest ->
+        o.commitments <- o.commitments @ [ text ];
+        loop acc rest
+    | "--touches" :: text :: rest ->
+        o.touches <- o.touches @ [ text ];
         loop acc rest
     | "--json" :: rest ->
-        json := true;
+        o.json <- true;
         loop acc rest
     | "--requirement" :: [] ->
         Printf.eprintf "mathc: --requirement needs a requirement\n";
@@ -1202,23 +1433,14 @@ let parse_args (args : string list) :
         exit 2
     | "--valid-for" :: [] ->
         Printf.eprintf "mathc: --valid-for needs a number of days\n";
+
         exit 2
     | ("-" | "--") :: _ ->
         Printf.eprintf "mathc: unknown option\n";
         exit 2
     | a :: rest -> loop (a :: acc) rest
   in
-  let positional, reason, json = loop [] args in
-  if !root_flag <> "" then set_root !root_flag;
-  ( positional,
-    reason,
-    json,
-    !by,
-    !recorded_outcome,
-    !recorded_reason,
-    !valid_for,
-    !control,
-    List.rev !requirements )
+  loop [] args
 
 (** A comma-separated list of paths. The scope of a claim is a list of
     path prefixes, and the list is written the way a shell would write
@@ -1227,10 +1449,8 @@ let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
 let () =
-  let positional, reason, json, by, recorded_outcome, recorded_reason, valid_for,
-      control, requirements =
-    parse_args (Array.to_list Sys.argv |> List.tl)
-  in
+  let positional, o = parse_args (Array.to_list Sys.argv |> List.tl) in
+  if o.root <> "" then set_root o.root;
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();
@@ -1239,15 +1459,46 @@ let () =
       (* A flag that belongs to one verb and is accepted by another is a
          flag that is silently ignored, and a method that ignores what
          it was told reports something the user did not ask for. *)
-      if verb <> "add" && requirements <> [] then (
-        Printf.eprintf "mathc: --requirement belongs to add\n";
-        exit 2);
+      let owner flag =
+        match flag with
+        | "--requirement" | "--control" -> Some "add"
+        | "--intent" | "--objection" | "--refuted-by" | "--check" | "--claim"
+        | "--commit" | "--touches" -> Some "wave"
+        | "--by" | "--outcome" | "--valid-for" -> Some "record"
+        | _ -> None
+      in
+      let used_flags =
+        List.filter_map
+          (fun (flag, used) -> if used then Some flag else None)
+          [
+            ("--requirement", o.requirements <> []);
+            ("--control", o.control <> "");
+            ("--intent", o.intent <> "");
+            ("--objection", o.objection <> "");
+            ("--refuted-by", o.refuted_by <> "");
+            ("--check", o.checks <> []);
+            ("--claim", o.claims <> []);
+            ("--commit", o.commitments <> []);
+            ("--touches", o.touches <> []);
+            ("--by", o.by <> "");
+            ("--outcome", o.outcome <> "verified");
+            ("--valid-for", o.valid_for <> "");
+          ]
+      in
+      List.iter
+        (fun flag ->
+          match owner flag with
+          | Some v when v <> verb ->
+              Printf.eprintf "mathc: %s belongs to %s\n" flag v;
+              exit 2
+          | _ -> ())
+        used_flags;
       let code =
         match verb with
         | "goal" -> (
             match positional with
             | _ :: text :: scope :: by :: _ ->
-                verb_goal text (split_scope scope) by reason
+                verb_goal text (split_scope scope) by o.reason
             | _ ->
                 Printf.eprintf "mathc: goal needs TEXT SCOPE BY\n";
                 2)
@@ -1261,13 +1512,13 @@ let () =
                       | Ok r -> parse_all (r :: acc) rest
                       | Error e -> Error e)
                 in
-                (match parse_all [] requirements with
+                (match parse_all [] o.requirements with
                 | Error e ->
                     Printf.eprintf "mathc: %s\n" e;
                     2
                 | Ok rs ->
                     verb_add id subject (split_scope scope) rs falsifier register
-                      control)
+                      o.control)
             | _ ->
                 Printf.eprintf
                   "mathc: add needs ID SUBJECT SCOPE CHECK FALSIFIER REGISTER\n";
@@ -1287,19 +1538,24 @@ let () =
             | _ ->
                 Printf.eprintf "mathc: accept needs ID BY REASON\n";
                 2)
-        | "map" -> verb_map json
+        | "map" -> verb_map o.json
         | "route" -> verb_route ()
         | "run" -> verb_run ()
         | "record" -> (
             match positional with
             | _ :: claim_id :: spec :: _ ->
-                verb_record claim_id spec by recorded_outcome recorded_reason
-                  valid_for
+                verb_record claim_id spec o.by o.outcome o.reason o.valid_for
             | _ ->
                 Printf.eprintf
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";
                 2)
         | "next" -> verb_next ()
+        | "wave" -> (
+            match positional with
+            | _ :: id :: title :: _ -> verb_wave id title o
+            | _ ->
+                Printf.eprintf "mathc: wave needs ID TITLE --intent ... --objection ...\n";
+                2)
         | "draft" -> (
             match positional with
             | _ :: dir :: _ -> verb_draft dir
