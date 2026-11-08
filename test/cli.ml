@@ -164,7 +164,7 @@ let consumed_by_map (text : string) : int =
    and against the README, which must name every verb here. *)
 let the_verbs =
   [ "init"; "goal"; "add"; "run"; "record"; "accept"; "close"; "route"; "map";
-    "next"; "wave"; "draft"; "install"; "doctor" ]
+    "next"; "wave"; "draft"; "install"; "doctor"; "propose" ]
 
 let write_wave root id =
   let dir = Filename.concat root "waves" in
@@ -291,6 +291,41 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_code "doctor with a stale page" 1 (call [ "doctor" ]);
       expect_ok "install again" (call [ "install" ]);
       expect_ok "doctor again" (call [ "doctor" ]);
+
+      (* propose: drafts for a project that has code and no claims.
+
+         THE GAP. The map prints the uncovered surface and nothing
+         turned it into a claim: the first claims of every foreign
+         project were written by hand. So the drafts are made - and they
+         are drafts: the control must be written by whoever owns the
+         claim, and the checks the project has are taken from the
+         project where it says them out loud. *)
+      (* A file that no claim covers - the brownfield case in one file. *)
+      let extra = Filename.concat root "extra.txt" in
+      let channel = open_out extra in
+      output_string channel "nobody claims this\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      expect_ok "propose with no known check"
+        (call [ "propose" ]);
+      let _, text = call [ "propose" ] in
+      assert (contains text "no draft");
+      assert (contains text "extra.txt");
+      let _, text = call [ "propose"; "--check"; "true" ] in
+      assert (contains text "the uncovered surface");
+      assert (contains text "a draft");
+      (* A draft decides nothing: it says so, and it leaves the control
+         to be written. *)
+      assert (contains text "WRITE ME");
+      (* And the flag belongs to the verbs that own it, and to no
+         other. *)
+      expect_refusal "--check outside its verbs"
+        (call [ "map"; "--check"; "true" ]);
+      (* The file goes away again: the test must not leave debt behind,
+         and a suite that runs often must not leave a repository behind
+         either. *)
+      Sys.remove extra;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
 
       (* add: the agent's move. It refuses a claim with no requirement, a
          claim outside the aim, and a claim about a path that is not

@@ -1412,6 +1412,8 @@ let usage_text () =
       "  mathc close WAVE         close a wave whose verdicts changed";
       "  mathc draft DIR          the third version's decisions, as draft claims";
       "  mathc install            write the page for agents into this project";
+      "  mathc propose            drafts of claims for a project that has code and none";
+      "                               --check CMD may be repeated: the project's own checks";
       "  mathc doctor             check that this project is set up for the method";
       "";
       "  --root DIR               the project (default: the working directory)";
@@ -1685,6 +1687,128 @@ let verb_doctor () =
   Printf.printf "\n";
   if !broken > 0 then 1 else if !unknown > 0 then 3 else 0
 
+(** The top-level directory a file belongs to.
+
+    The groups are how a person sees the shape of an uncovered
+    surface: "twelve files here, seventy there" is a shape, and
+    "eighty-two files" is a number. *)
+let top_directory (path : string) : string =
+  match String.index_opt path '/' with
+  | Some i -> String.sub path 0 (i + 1)
+  | None -> path
+
+(** propose: drafts for a project that has code and no claims.
+
+    THE GAP. The map prints the uncovered surface and `next` names the
+    first uncovered file, and neither turns that into a claim: the
+    first claims of a foreign project were written by hand. In the
+    measurement of 2026-11-01 the declarations were made by hand on
+    three projects, and the numbers that came out of it - 390 files
+    outside the coverage - were the numbers of a method whose first
+    step was still manual.
+
+    So the drafts are made. And they are DRAFTS: the register and the
+    falsifier belong to the person, and the control - the command that
+    must fail on the broken sample - nobody can write for them. The
+    checks the project uses are taken from the project where the
+    project says them out loud, and from the conventions of its
+    ecosystem where it does not; the second kind is marked as such,
+    because a convention passed off as a fact would be a claim about
+    someone else's project that the method cannot support.
+
+    A draft decides nothing. It is printed, not written into the
+    specification: the person takes it, fills what only they can fill,
+    and declares it with `add`. *)
+let verb_propose (o : options) =
+  let spec = load_spec () in
+  let files = Git.tracked_files (root ()) in
+  let uncovered = Git.uncovered (root ()) spec.Domain.claims files in
+  (* The groups of the uncovered surface. *)
+  let groups =
+    List.fold_left
+      (fun acc file ->
+        let dir = top_directory file in
+        match List.assoc_opt dir acc with
+        | Some n -> (dir, n + 1) :: List.remove_assoc dir acc
+        | None -> (dir, 1) :: acc)
+      [] uncovered
+    |> List.sort compare
+  in
+  (* The checks: what the project says, then the conventions, then what
+     the person named on the command line. *)
+  let found = Project.checks_of (root ()) in
+  let named = List.map (fun c -> (c, "named on the command line", true)) o.checks in
+  let checks = found @ named in
+  let commands = List.map (fun (command, _, _) -> command) checks in
+  let groups_scope = List.map fst groups in
+  let draft =
+    if uncovered = [] then None
+    else if commands = [] then None
+    else
+      let command = List.hd commands in
+      Some
+        (`Assoc
+          [
+            ("id", `String "the-project-is-checked");
+            ( "subject",
+              `String
+                "the code this project has is checked by the project's own checks" );
+            ( "scope",
+              `List (List.map (fun p -> `String p) groups_scope) );
+            ( "requirements",
+              `List
+                [ `Assoc
+                    [ ("kind", `String "verifier"); ("spec", `String command) ] ] );
+            ( "falsifier",
+              `String (Printf.sprintf "%s fails" command) );
+            ("register", `String "fact");
+            ( "control",
+              `String
+                "WRITE ME: a check over a broken sample of the scope, which must \
+                 fail with it - a check that cannot fail proves nothing" );
+          ])
+  in
+  Printf.printf "the uncovered surface: %d file(s) in %d group(s)\n"
+    (List.length uncovered) (List.length groups);
+  (* The biggest groups first, and not all of them: a project with two
+     hundred files in its root would otherwise print two hundred lines
+     and say nothing. *)
+  let by_size = List.sort (fun (_, a) (_, b) -> compare b a) groups in
+  let shown = 20 in
+  List.iteri
+    (fun i (dir, n) ->
+      if i < shown then Printf.printf "  %-30s %d\n" dir n
+      else if i = shown then
+        Printf.printf "  ... and %d more group(s)\n" (List.length groups - shown))
+    by_size;
+  Printf.printf "\nthe checks this project has:\n";
+  if checks = [] then
+    print_endline
+      "  none were found. Name them: mathc propose --check \"the command\""
+  else
+    List.iter
+      (fun (command, source, exact) ->
+        Printf.printf "  %-40s %s\n" command
+          (if exact then source else source ^ " - a convention, confirm it"))
+      checks;
+  print_endline "";
+  (match draft with
+  | None ->
+      if uncovered = [] then
+        print_endline "nothing is uncovered, so there is nothing to propose"
+      else
+        print_endline
+          "no draft: the project's checks are not known yet. Name them and ask again"
+  | Some json ->
+      print_endline
+        "a draft - which decides nothing. The register and the falsifier are yours to \
+         confirm,\n\
+         and the control must be written: a check over a broken sample, which must fail \
+         with it.";
+      print_endline "";
+      print_endline (Yojson.Safe.pretty_to_string json));
+  0
+
 (** The command line. The options are the project root, the reason an aim
     is being replaced, and the fields of the verbs that take them;
     everything else is a verb. An unknown option is an error rather than
@@ -1819,12 +1943,19 @@ let () =
       (* A flag that belongs to one verb and is accepted by another is a
          flag that is silently ignored, and a method that ignores what
          it was told reports something the user did not ask for. *)
-      let owner flag =
+      (* The verbs a flag belongs to. A flag may have more than one
+         owner - --check names the checks a wave must pass, and the
+         checks a project has, and the value means the same in both -
+         but it may not have an owner that is not there: a flag that
+         another verb accepts and ignores is a flag the method was
+         told something with and then threw away. *)
+      let owners flag =
         match flag with
-        | "--requirement" | "--control" -> Some "add"
-        | "--intent" | "--objection" | "--refuted-by" | "--check" | "--claim"
-        | "--commit" | "--touches" -> Some "wave"
-        | "--by" | "--outcome" | "--valid-for" -> Some "record"
+        | "--check" -> Some [ "wave"; "propose" ]
+        | "--requirement" | "--control" -> Some [ "add" ]
+        | "--intent" | "--objection" | "--refuted-by" | "--claim" | "--commit"
+        | "--touches" -> Some [ "wave" ]
+        | "--by" | "--outcome" | "--valid-for" -> Some [ "record" ]
         | _ -> None
       in
       let used_flags =
@@ -1847,9 +1978,10 @@ let () =
       in
       List.iter
         (fun flag ->
-          match owner flag with
-          | Some v when v <> verb ->
-              Printf.eprintf "mathc: %s belongs to %s\n" flag v;
+          match owners flag with
+          | Some vs when not (List.mem verb vs) ->
+              Printf.eprintf "mathc: %s belongs to %s\n" flag
+                (String.concat " or " vs);
               exit 2
           | _ -> ())
         used_flags;
@@ -1911,6 +2043,7 @@ let () =
                 2)
         | "next" -> verb_next ()
         | "install" -> verb_install ()
+        | "propose" -> verb_propose o
         | "doctor" -> verb_doctor ()
         | "wave" -> (
             match positional with
