@@ -120,6 +120,43 @@ let with_repository (f : string -> unit) =
      raise e);
   cleanup ()
 
+(* A temporary git repository with NOTHING in it. The greenfield
+   subject: a project that has a repository and no code yet. The method
+   calls an empty project a legal state, and a legal state the method
+   cannot leave is a dead end - so the first claim of such a project
+   must be declarable, and it must bind when the code appears. *)
+let with_empty_repository (f : string -> unit) =
+  let path = Filename.temp_file "mathc-cli" ".dir" in
+  Sys.remove path;
+  Unix.mkdir path 0o755;
+  let root = path in
+  shell (Printf.sprintf "git -C %s init -q ." (Filename.quote root));
+  let cleanup () = ignore (Sys.command ("rm -rf " ^ Filename.quote root)) in
+  (try f root with e ->
+     cleanup ();
+     raise e);
+  cleanup ()
+
+(* How much of the uncertainty budget the map says is spent. The map is
+   the instrument that reports it, so the test asks the instrument
+   rather than keeping a second count of its own - two counts would
+   be two truths. *)
+let consumed_by_map (text : string) : int =
+  let prefix = "uncertainty: " in
+  match
+    String.split_on_char '\n' text
+    |> List.find_opt (fun line ->
+           String.length line > String.length prefix
+           && String.sub line 0 (String.length prefix) = prefix)
+  with
+  | None -> -1
+  | Some line ->
+      let rest = String.sub line (String.length prefix) (String.length line - String.length prefix) in
+      (match String.split_on_char ' ' (String.trim rest) with
+      | number :: _ -> (
+          match int_of_string_opt number with Some n -> n | None -> -1)
+      | [] -> -1)
+
 (* --- the battery -------------------------------------------------------- *)
 
 (* The verbs. This list is the method's vocabulary, and the battery
@@ -205,13 +242,14 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_refusal "init twice" (call [ "init"; "3" ]);
 
       (* goal: the human's move. Replacing the aim needs a reason. *)
-      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "goal"
+        (call [ "goal"; "the aim"; "subject.txt,planned.txt"; "the owner" ]);
       expect_refusal "goal without a reason"
-        (call [ "goal"; "another aim"; "subject.txt"; "the owner" ]);
+        (call [ "goal"; "another aim"; "subject.txt,planned.txt"; "the owner" ]);
       expect_ok "goal with a reason"
         (call
            [
-             "goal"; "another aim"; "subject.txt"; "the owner"; "--reason";
+             "goal"; "another aim"; "subject.txt,planned.txt"; "the owner"; "--reason";
              "because the aim was wrong";
            ]);
 
@@ -236,12 +274,38 @@ let check_the_tool (binary : string) (prefix : string list) =
              "add"; "c1"; "a claim"; "elsewhere.txt"; "falsifier"; "fact";
              "--requirement"; "verifier:true";
            ]);
-      expect_refusal "add about a path that is not there"
+      (* A promise about a subject that is not there yet is a PLAN, and
+         the method accepts a plan: the refusal that used to stand
+         here made the method unusable in an empty repository, whose
+         empty state the method itself calls legal. What the method
+         will not do is pretend the plan is proven - so the claim stays
+         unknown, and the map says which of the two it is. *)
+      let _, before = call [ "map" ] in
+      let consumed_before = consumed_by_map before in
+      expect_ok "add about a path that is not there yet"
         (call
            [
-             "add"; "c1"; "a claim"; "missing.txt"; "falsifier"; "fact";
-             "--requirement"; "verifier:true";
+             "add"; "c-plan"; "a promise about code that does not exist yet";
+             "planned.txt"; "falsifier"; "fact"; "--requirement"; "verifier:true";
            ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "the subject is not there yet");
+      (* And a plan costs no budget: it is not an uncertainty, it is a
+         plan, and it is resolved by writing the code - not by checking
+         it. The claim before it IS about code that exists, and that one
+         costs. *)
+      assert (consumed_by_map text = consumed_before);
+      (* And the plan becomes a claim when the code appears: the promise
+         was not a dead end, it was a promise - and the queue said so
+         all along. *)
+      let planned = Filename.concat root "planned.txt" in
+      let channel = open_out planned in
+      output_string channel "the planned subject\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c-plan: verified");
       expect_ok "add"
         (call
            [
@@ -426,6 +490,61 @@ let check_the_tool (binary : string) (prefix : string list) =
 
 (* --- the documentation -------------------------------------------------- *)
 
+(* THE GREENFIELD. A repository with nothing in it.
+
+   The method calls an empty project a legal state, and a legal state
+   the method cannot leave is a dead end: the refusal that used to
+   stand in `add` made the first claim of a new project
+   undeclareable, so a greenfield project could adopt the method and
+   never use it.
+
+   So the promise comes first, the code comes second, and the promise
+   binds when the code is there. That is the whole of it - and it is
+   checked all the way through, because a promise that can never be
+   kept would be worse than no promise. *)
+let check_the_greenfield (binary : string) (prefix : string list) =
+  with_empty_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "src/"; "the owner" ]);
+      (* The promise comes first. *)
+      expect_ok "add a promise about code that does not exist yet"
+        (call
+           [
+             "add"; "c1"; "the parser and its tests"; "src/"; "falsifier";
+             "fact"; "--requirement"; "verifier:test -f src/parser.py";
+           ]);
+      (* The map says what it is: a plan, not a proof - and not an
+         uncertainty either, so it costs no budget. *)
+      let _, text = call [ "map" ] in
+      assert (contains text "the subject is not there yet");
+      assert (contains text "uncertainty: 0 of 3 consumed");
+      (* And the next work is to WRITE it, not to check it: telling the
+         agent to check a thing that does not exist is how a queue
+         leads an agent in a circle. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "write the subject");
+      (* The check cannot run against a subject that is not there, and
+         the method says so instead of pretending. *)
+      let code, text = call [ "run" ] in
+      expect_code "run" 3 (code, text);
+      assert (contains text "the subject is not there yet");
+      (* Now the code appears - and the promise binds to it. THIS is
+         the point: a promise made before its subject is not a promise
+         that can never be kept. *)
+      let dir = Filename.concat root "src" in
+      Unix.mkdir dir 0o755;
+      let file = Filename.concat dir "parser.py" in
+      let channel = open_out file in
+      output_string channel "def parse():\n    return 1\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c1: verified");
+      let _, text = call [ "map" ] in
+      assert (contains text "holds"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -452,6 +571,7 @@ let check_the_documentation_names_every_verb () =
 let () =
   (* The real tool. *)
   check_the_tool (method_binary ()) [];
+  check_the_greenfield (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
      refuses everything: the battery must fail there. A battery that
@@ -464,6 +584,16 @@ let () =
     with _ -> true
   in
   assert detected;
+
+  (* And the greenfield battery has one too: the same check, against the
+     same broken tool, must fail there as well. *)
+  let greenfield_detected =
+    try
+      check_the_greenfield (method_binary ()) [ "--help" ];
+      false
+    with _ -> true
+  in
+  assert greenfield_detected;
 
   check_the_documentation_names_every_verb ();
   print_endline "cli: PASS"

@@ -223,6 +223,43 @@ let check_negative_controls () =
   assert (law_no_vacant_subject (fun _ -> false) []);
   assert (not (law_no_vacant_subject scope_never_empty []));
 
+  (* The law of the budget. A plan is free, an uncertainty is priced,
+     and an answer is free - and the law has to reject all three ways
+     of getting it wrong.
+
+     The broken ones are named here because a law that cannot be
+     offered a counterexample is a description of the code. *)
+  let covers_nothing _ = false in
+  let covers_something _ = true in
+  (* The real implementation: a plan about code that is not there yet
+     costs nothing, and the same claim costs one once there is code. *)
+  assert
+    (law_the_budget_prices_uncertainty cost_of_claim covers_nothing sample_claim
+       NeverChecked);
+  assert
+    (law_the_budget_prices_uncertainty cost_of_claim covers_something sample_claim
+       NeverChecked);
+  assert
+    (law_the_budget_prices_uncertainty cost_of_claim covers_something sample_claim
+       Holds);
+  (* A budget that charges plans makes every promise expensive before
+     there is anything to check. *)
+  assert
+    (not
+       (law_the_budget_prices_uncertainty (fun ~covers:_ _ _ -> 1) covers_nothing sample_claim
+          NeverChecked));
+  (* A budget that charges nothing makes "I do not know" free, which is
+     the thing the budget exists to prevent. *)
+  assert
+    (not
+       (law_the_budget_prices_uncertainty (fun ~covers:_ _ _ -> 0) covers_something sample_claim
+          NeverChecked));
+  (* A budget that charges answers is no budget at all. *)
+  assert
+    (not
+       (law_the_budget_prices_uncertainty (fun ~covers:_ _ _ -> 1) covers_something sample_claim
+          Holds));
+
   (* The term of a proof. A proof whose term is over cannot read as
      verified - even when the content is exactly the one it was
      produced against, which is the case the binding cannot see. *)

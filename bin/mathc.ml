@@ -148,14 +148,29 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
 (** How much of the uncertainty budget the project has spent. Only an
     answer is free: a claim that was refuted is answered, and a claim
     that was not checked, or whose subject moved, or that cannot be
-    checked at all, is not. *)
+    checked at all, is not.
+
+    A PLAN IS NOT AN UNCERTAINTY. A promise about code that is not there
+    yet is not a thing the method could have checked, and it is not
+    resolved by checking it either - it is resolved by writing the
+    code. So it does not cost the budget. The exception matters: a
+    scope that covers code that IS there, and also names a path that is
+    not, is priced as usual - the uncertainty about the code that
+    exists is real, and the hole does not make it free.
+
+    And this cannot be used to escape the budget: a promise about
+    nothing that exists covers no files, so it hides no file and
+    settles no question. The map still shows it, and it still has to be
+    checked once there is something to check. *)
 let consumption_of (claims : Domain.claim list) : int =
   let states = states_of claims in
+  let claim_of id = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
+  let covers (c : Domain.claim) = Git.files_covered (root ()) c.subject.scope <> [] in
   List.fold_left
-    (fun n (_, state) ->
-      match state with
-      | Domain.Holds | Domain.Refuted | Domain.Accepted -> n
-      | _ -> n + 1)
+    (fun n (id, state) ->
+      match claim_of id with
+      | Some c -> n + Verdict.cost_of_claim ~covers c state
+      | None -> n)
     0 states
 
 (* ------------------------------------------------------------------ *)
@@ -247,16 +262,34 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                      the content moved under it, or its term is over.
                      Two different faults, and the map must not merge
                      them. *)
-                   ( "outdated_because",
-                     match
-                       List.find_opt
-                         (fun (e : Domain.evidence) -> e.claim.id = id)
-                         (latest_evidence claims)
-                     with
-                     | Some e when state = Domain.Outdated ->
-                         if Verdict.expired (Unix.time ()) e then `String "the term is over"
-                         else `String "the subject moved"
-                     | _ -> `Null ) ])
+                    ( "outdated_because",
+                      match
+                        List.find_opt
+                          (fun (e : Domain.evidence) -> e.claim.id = id)
+                          (latest_evidence claims)
+                      with
+                      | Some e when state = Domain.Outdated ->
+                          if Verdict.expired (Unix.time ()) e.valid_until then `String "the term is over"
+                          else `String "the subject moved"
+                      | _ -> `Null );
+                    (* WHY the subject cannot be bound. A plan about code
+                       that is not there yet is not the same thing as a
+                       claim nobody checked, and the machine form of the
+                       map says which is which. *)
+                    ( "subject",
+                      match
+                        List.find_opt (fun (c : Domain.claim) -> c.id = id) claims
+                      with
+                      | Some c -> (
+                          match Git.missing_paths (root ()) c.subject.scope with
+                          | [] -> `Null
+                          | missing ->
+                              `String
+                                (if List.length missing = List.length c.subject.scope then
+                                   "the subject is not there yet"
+                                 else "the subject has a hole"))
+                      | None -> `Null ) ])
+
              states) );
       ( "uncovered_paths",
         `List (List.map (fun f -> `String f) uncovered) )]
@@ -304,7 +337,7 @@ let verb_map json =
         let why =
           match (state, evidence_of_claim) with
           | Domain.Outdated, Some e ->
-              if Verdict.expired (Unix.time ()) e then " (the term is over)"
+              if Verdict.expired (Unix.time ()) e.valid_until then " (the term is over)"
               else " (the subject moved)"
           | _ -> ""
         in
@@ -349,7 +382,26 @@ let verb_map json =
               | None -> "")
           | _ -> ""
         in
-        Printf.printf "  %-24s %s%s%s%s%s\n" id
+        (* THE SUBJECT THAT IS NOT THERE YET. A claim about code that
+           does not exist yet is a plan, and the map says so - it does
+           not leave the reader to guess whether the claim is unchecked
+           or impossible. The word "never checked" alone would say both
+           at once, and a reader who has to guess is a reader who
+           guesses wrong. *)
+        let subject_note =
+          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
+          | Some c -> (
+              match Git.missing_paths (root ()) c.subject.scope with
+              | [] -> ""
+              | missing ->
+                  " ("
+                  ^ (if List.length missing = List.length c.subject.scope then
+                       "the subject is not there yet"
+                     else "the subject has a hole")
+                  ^ ")")
+          | None -> ""
+        in
+        Printf.printf "  %-24s %s%s%s%s%s%s\n" id
           (match state with
           | Domain.Holds -> "holds"
           | Domain.Refuted -> "refuted"
@@ -358,7 +410,7 @@ let verb_map json =
           | Domain.Outdated -> "outdated"
           | Domain.NeverChecked -> "never checked"
           | Domain.Accepted -> "accepted by a person")
-          anchor why control_note reason_note)
+          anchor why subject_note control_note reason_note)
       states;
     Printf.printf "uncertainty: %d of %d consumed\n"
       (consumption_of claims) spec.Domain.budget;
@@ -409,10 +461,12 @@ let verb_run () =
         (fun (claim : Domain.claim) ->
           match binding_of claim with
           | None ->
-              Printf.printf
-                "%s: no digest - the scope names no existing path, so nothing can be \
-                 bound\n"
-                claim.id;
+              (* No digest: the subject is not there yet, or it has a
+                 hole. Both are said in words, because the reader acts
+                 differently in each - write it, or finish it - and a
+                 bare "no digest" is a shrug. *)
+              Printf.printf "%s: %s\n" claim.id
+                (Git.why_no_digest (root ()) claim.subject.scope);
               []
           | Some binding ->
               List.filter_map
@@ -726,7 +780,21 @@ let verb_next () =
       Printf.printf "next: the claim %s is refuted - it was believed and is not\n" id;
       0
   | [], [], id :: _, _ ->
-      Printf.printf "next: check the claim %s - it is not known now\n" id;
+      (* THE NEXT WORK IS NOT ALWAYS "CHECK IT". A claim whose subject
+         is not there yet cannot be checked - the next work is to WRITE
+         it. Telling the agent to check a thing that does not exist is
+         how a queue leads an agent in a circle. *)
+      let claim = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
+      (match claim with
+      | Some c -> (
+          match Git.missing_paths (root ()) c.subject.scope with
+          | [] ->
+              Printf.printf "next: check the claim %s - it is not known now\n" id
+          | missing ->
+              Printf.printf
+                "next: write the subject of the claim %s - missing: %s\n" id
+                (String.concat ", " missing))
+      | None -> Printf.printf "next: check the claim %s - it is not known now\n" id);
       0
   | [], [], [], first :: _ ->
       Printf.printf "next: nothing is unverified; %d tracked file(s) are uncovered, starting with %s\n"
@@ -1159,7 +1227,7 @@ let verb_add id subject scope requirements falsifier register control =
         List.exists
           (fun prefix ->
             List.exists
-              (fun claim_prefix -> Domain.path_contains ~dir:prefix ~path:claim_prefix)
+              (fun claim_prefix -> Git.path_contains ~dir:prefix ~path:claim_prefix)
               scope)
           goal.Domain.scope
   in
@@ -1182,10 +1250,6 @@ let verb_add id subject scope requirements falsifier register control =
                "the scope is outside the aim. The aim covers %s; this claim is about %s"
                (String.concat ", " (match spec.goal with Some g -> g.Domain.scope | None -> []))
                (String.concat ", " scope))
-        else if not (Git.scope_exists (root ()) scope) then
-          Some
-            "the scope names a path that is not in this tree, so the subject would \
-             have a hole in it and nothing could be bound to it"
         else
           let consumption = consumption_of spec.Domain.claims in
           if consumption >= spec.Domain.budget then
@@ -1221,6 +1285,23 @@ let verb_add id subject scope requirements falsifier register control =
       in
       save_spec { spec with claims = spec.Domain.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;
+      (* THE SUBJECT MAY NOT BE THERE YET, AND THAT IS NOT A REFUSAL.
+         A promise about code that does not exist yet is a plan, and a
+         plan is a legitimate thing to write down - it is how a project
+         says what it is going to build before it builds it. What the
+         method will not do is pretend the plan is proven: nothing can
+         be bound to a subject that is not there, so the claim stays
+         unknown, and the map says which of the two it is.
+
+         The refusal that used to stand here made the method unusable
+         in an empty repository: the first claim of a greenfield
+         project could not be declared, and the project whose empty
+         state the method calls legal could never leave it. *)
+      let missing = Git.missing_paths (root ()) scope in
+      if missing <> [] then (
+        Printf.printf "  %s\n" (Git.why_no_digest (root ()) scope);
+        print_endline
+          "  nothing can be bound to it yet; write the subject and run the check");
       0
 
 (** accept: a person takes responsibility for one claim's uncertainty.

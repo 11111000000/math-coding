@@ -9,7 +9,7 @@
    letters alone gets wrong. A path check that cannot fail is a check
    that has already failed, silently, somewhere else. *)
 
-open Domain
+open Git
 
 let check_boundaries () =
   (* A directory contains itself, and its contents. *)

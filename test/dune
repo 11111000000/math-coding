@@ -16,7 +16,7 @@
 
 (test
  (name paths)
- (libraries mathcoding))
+ (libraries mathcoding_adapter))
 
 (test
  (name repository_lints)

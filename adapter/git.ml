@@ -89,6 +89,83 @@ let repository_files (root : string) : string list =
   if code <> 0 then []
   else String.split_on_char '\000' out |> List.filter (fun s -> s <> "")
 
+(** Is a path inside a directory?
+
+    The comparison is on path boundaries, not on the letters: "library/"
+    is not inside "lib/". Getting this wrong would let a claim about a
+    similarly named directory pass as one about the intended one, and
+    the mistake would be invisible - the claim would simply bind to
+    the wrong files.
+
+    Trailing slashes are removed first, so that "lib/" and "lib" name
+    the same directory, and a directory contains itself.
+
+    It lives here and not in the core because the core does not see the
+    tree. A scope is a list of path prefixes - that is a type, and the
+    type is in the core - but what a prefix MEANS in a tree is the
+    tree's business, and the adapter is where the tree is. *)
+let path_contains ~(dir : string) ~(path : string) : bool =
+  let trim s =
+    if String.length s > 1 && s.[String.length s - 1] = '/' then
+      String.sub s 0 (String.length s - 1)
+    else s
+  in
+  let d = trim dir and p = trim path in
+  if p = d then true
+  else if String.length p > String.length d && String.sub p 0 (String.length d) = d then
+    p.[String.length d] = '/'
+  else false
+
+(** The files one prefix of a scope covers. A prefix is a file or a
+    directory; a directory covers the files under it, and a file covers
+    itself. *)
+let files_under_prefix (files : string list) (prefix : string) : string list =
+  let dir =
+    if String.length prefix > 0 && prefix.[String.length prefix - 1] = '/' then prefix
+    else prefix ^ "/"
+  in
+  List.filter (fun f -> f = prefix || path_contains ~dir ~path:f) files
+
+(** The files a scope covers, holes and all.
+
+    The files that ARE there are returned even when some of the scope's
+    paths are not: this function answers "what does the scope talk
+    about?", and [files_of_scope] answers "can the scope be bound?".
+    The two must not be merged - the second refuses on a hole, and the
+    first must still say what the scope covers, because that is what
+    the uncertainty budget prices. *)
+let files_covered (root : string) (scope : Domain.scope) : string list =
+  let files = repository_files root in
+  List.concat (List.map (files_under_prefix files) scope)
+
+(** The paths of a scope that are not in the tree.
+
+    A path that is new but not ignored is in the repository - it would
+    join it - and so it is not missing. A path that is ignored is
+    missing, and so is one that was never there: a promise about it is
+    a promise about something that does not exist yet. *)
+let missing_paths (root : string) (scope : Domain.scope) : string list =
+  let files = repository_files root in
+  List.filter (fun prefix -> files_under_prefix files prefix = []) scope
+
+(** Why a subject cannot be bound, said in words.
+
+    The three cases are told apart because they are three different
+    situations and the reader acts differently in each: the subject is
+    not there yet (write it), the subject has a hole (finish it), or
+    the subject is whole and yet nothing could be bound (something is
+    wrong with the tree - and the method says so instead of shrugging). *)
+let why_no_digest (root : string) (scope : Domain.scope) : string =
+  let missing = missing_paths root scope in
+  if missing = [] then
+    "the subject is whole, and yet nothing could be bound to it"
+  else if List.length missing = List.length scope then
+    Printf.sprintf "the subject is not there yet: %s" (String.concat ", " missing)
+  else
+    Printf.sprintf "the subject has a hole: %s %s missing"
+      (String.concat ", " missing)
+      (if List.length missing = 1 then "is" else "are")
+
 (** The files a scope covers, in the working tree.
 
     A prefix is a file or a directory; a directory covers the files
@@ -97,14 +174,7 @@ let repository_files (root : string) : string list =
     has a hole in it, and a subject with a hole cannot be bound. *)
 let files_of_scope (root : string) (scope : Domain.scope) : string list option =
   let files = repository_files root in
-  let under prefix =
-    let dir =
-      if String.length prefix > 0 && prefix.[String.length prefix - 1] = '/' then prefix
-      else prefix ^ "/"
-    in
-    List.filter (fun f -> f = prefix || Domain.path_contains ~dir ~path:f) files
-  in
-  let per_prefix = List.map under scope in
+  let per_prefix = List.map (files_under_prefix files) scope in
   if List.exists (fun xs -> xs = []) per_prefix then None
   else Some (List.concat per_prefix)
 
@@ -210,13 +280,33 @@ let scope_exists (root : string) (scope : Domain.scope) : bool =
 
 (** The tracked files a scope covers. *)
 let files_under (scope : Domain.scope) (files : string list) : string list =
-  List.filter (fun file -> List.exists (fun prefix -> Domain.path_contains ~dir:prefix ~path:file) scope) files
+  List.filter (fun file -> List.exists (fun prefix -> path_contains ~dir:prefix ~path:file) scope) files
+(** The files of the method itself.
 
-(** The tracked files no claim covers: the uncovered surface. This is
-    the main artifact of the method, and it is computed, not
+    The specification and the waves are the method's bookkeeping, not
+    the project's code. And they are not uncovered by accident: the
+    method reads them every time it acts, and it reads them strictly -
+    a specification that does not parse stops the method rather than
+    being ignored.
+
+    They are excluded from the uncovered surface for a reason stated
+    in the goal: "внедрение никогда не увеличивает долг". The uncovered
+    surface IS the debt, and `init` writes a file into the repository
+    - so counting that file would make adoption increase exactly the
+    debt the method measures. *)
+let is_a_method_file (path : string) : bool =
+  path = "spec.json" || path_contains ~dir:"waves/" ~path:path
+
+(** The tracked files no claim covers: the uncovered surface. This is the
+    main artifact of the method, and it is computed, not
     accumulated. *)
 let uncovered (claims : Domain.claim list) (files : string list) : string list =
   let scopes =
     List.map (fun (c : Domain.claim) -> c.subject.scope) claims
   in
-  List.filter (fun file -> not (List.exists (fun s -> files_under s [ file ] <> []) scopes)) files
+  List.filter
+    (fun file ->
+      not (is_a_method_file file)
+      && not (List.exists (fun s -> files_under s [ file ] <> []) scopes))
+    files
+
