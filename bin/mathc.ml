@@ -280,7 +280,48 @@ let verb_map json =
               else " (the subject moved)"
           | _ -> ""
         in
-        Printf.printf "  %-24s %s%s%s\n" id
+        (* THE CHECK THAT WAS NOT SHOWN ABLE TO FAIL. The map said
+           this in its machine form for a long time - `map --json` has a
+           field for it - and the human map did not, so the two forms of
+           the same map disagreed about the same claim. A claim whose
+           check has never been shown to fail is NOT the same claim as
+           one whose check has: the first is a promise, the second is a
+           proof, and the map that merges them reports a promise as a
+           proof.
+
+           The law is A16: a check that cannot fail proves nothing.
+           The control is what shows it can. So the map says which is
+           which, in the same breath as the state. *)
+        let control_note =
+          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
+          | Some c -> (
+              match c.Domain.control with
+              | Some _ -> ""
+              | None -> " (the check is not proven able to fail)")
+          | None -> ""
+        in
+        (* WHY the check could not tell. An inconclusive claim without
+           its reason is a shrug with a state attached. *)
+        let reason_note =
+          match state with
+          | Domain.Inconclusive -> (
+              match
+                List.find_opt
+                  (fun (e : Domain.evidence) ->
+                    e.claim.id = id
+                    && (match e.outcome with
+                       | Domain.Unresolved | Domain.Refused -> true
+                       | _ -> false))
+                  (latest_evidence claims)
+              with
+              | Some e -> (
+                  match e.reason with
+                  | Some r -> " (" ^ r ^ ")"
+                  | None -> "")
+              | None -> "")
+          | _ -> ""
+        in
+        Printf.printf "  %-24s %s%s%s%s%s\n" id
           (match state with
           | Domain.Holds -> "holds"
           | Domain.Refuted -> "refuted"
@@ -289,7 +330,7 @@ let verb_map json =
           | Domain.Outdated -> "outdated"
           | Domain.NeverChecked -> "never checked"
           | Domain.Accepted -> "accepted by a person")
-          anchor why)
+          anchor why control_note reason_note)
       states;
     Printf.printf "uncertainty: %d of %d consumed\n"
       (consumption_of claims) spec.Domain.budget;

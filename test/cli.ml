@@ -257,6 +257,17 @@ let check_the_tool (binary : string) (prefix : string list) =
       let code, json = call [ "map"; "--json" ] in
       assert (contains json "\"id\": \"c1\"");
 
+      (* THE MAP SAYS WHOSE CHECK WAS SHOWN ABLE TO FAIL. The machine
+         form of the map has said this for a while, and the human form
+         did not, so the two forms of one map disagreed about one claim:
+         a claim whose check has never been shown to fail looked exactly
+         like a claim whose check has.
+
+         The law is A16, and the map is where a law becomes visible. So
+         the claim without a control is named as such - in the prose the
+         human reads, not only in the JSON a program reads. *)
+      assert (contains text "the check is not proven able to fail");
+
       (* run: the verifier runs, and one of the two requirements is
          closed - so the claim is partly known, which is not the same as
          holding, and the verdict is UNKNOWN, not green. The exit code
