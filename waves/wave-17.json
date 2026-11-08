@@ -1,0 +1,31 @@
+{
+  "id": "wave-17",
+  "title": "adoption: the method in any repository",
+  "intent": "The method was measured on three foreign projects and worked on them only by hand: the first claims were written by a person, the page for an agent was copied by a person, and a greenfield project could not make its first claim at all. The plan said six steps and none of them was adoption, so the adoption was done here: a wave can be made, a promise may precede its subject, the page is generated and installed, a project with code has a first step, the stand travels, the binary names itself, and the machine surface gives the next step.",
+  "touches": [
+    "bin/", "lib/", "adapter/", "format/", "test/", "spec.json", "waves/",
+    "flake.nix", "README.md", "AGENTS.md", "AXIOMS.md"
+  ],
+  "checks": [ "dune runtest --root . --force" ],
+  "claims": [
+    "a-wave-can-be-made", "a-promise-may-precede-its-subject",
+    "the-page-for-agents-is-generated-and-installed",
+    "a-project-with-code-has-a-first-step",
+    "the-machine-surface-returns-the-next-step"
+  ],
+  "commitment": [
+    { "claim": "a-wave-can-be-made", "state": "holds" },
+    { "claim": "a-promise-may-precede-its-subject", "state": "holds" },
+    {
+      "claim": "the-page-for-agents-is-generated-and-installed",
+      "state": "holds"
+    },
+    { "claim": "a-project-with-code-has-a-first-step", "state": "holds" },
+    {
+      "claim": "the-machine-surface-returns-the-next-step",
+      "state": "holds"
+    }
+  ],
+  "objection": "Adoption is friction: every new verb is a place where the method can get in the way of an agent, and the method's own rule is that friction belongs only where the agent errs. Seven new verbs and a law are a lot of surface for a method whose measured value is knowledge, not caught defects.",
+  "refuted_by": "The map and the queue of an adopting project: if the verbs lead an agent to a wrong step, the map will show it. And the counter is measured: the agent arm of 2026-11-07 is repeated with this build - if the protocol arm still catches no defect that the bare arm misses, the added surface buys nothing and the objection stands."
+}

@@ -9,7 +9,7 @@
     "by": "p.b.kosov@yandex.ru",
     "at": "1794066238"
   },
-  "uncertainty_budget": 3,
+  "uncertainty_budget": 8,
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
     "wave-8", "wave-9", "wave-10", "wave-11", "wave-12", "wave-13",
@@ -355,6 +355,71 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "a-wave-can-be-made",
+      "subject": "волна создаётся глаголом, а не только рукой: очередь в чужом репозитории ведёт, а не молчит",
+      "scope": [ "bin/", "format/", "test/", "waves/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "волну по-прежнему можно создать только рукописью в JSON, и next её не называет",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "a-promise-may-precede-its-subject",
+      "subject": "обещание объявляется раньше, чем предмет появляется: пустой репозиторий — законное состояние, а не тупик",
+      "scope": [ "lib/", "bin/", "adapter/", "test/", "AXIOMS.md" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "объявление обещания о несуществующем предмете снова отказывает",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "the-page-for-agents-is-generated-and-installed",
+      "subject": "страница для агента генерируется из справки орудия и стоящей спецификации и кладётся в проект, не затирая чужой AGENTS.md",
+      "scope": [ "bin/", "adapter/", "test/", "AGENTS.md" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "страница называет глагол, которого нет, или затирает чужой текст",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "a-project-with-code-has-a-first-step",
+      "subject": "проект с кодом и без утверждений получает черновики первых утверждений и видит свои проверки",
+      "scope": [ "bin/", "adapter/project.ml", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "черновик не появляется, или решение принимает машина",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "the-machine-surface-returns-the-next-step",
+      "subject": "машинная поверхность отдаёт следующий шаг, а не список успехов",
+      "scope": [ "bin/", "test/mcp.ml" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "метод отдаёт список или не отдаёт следующего шага",
       "register": "fact",
       "accepted": null,
       "control": null,
