@@ -164,7 +164,7 @@ let consumed_by_map (text : string) : int =
    and against the README, which must name every verb here. *)
 let the_verbs =
   [ "init"; "goal"; "add"; "run"; "record"; "accept"; "close"; "route"; "map";
-    "next"; "wave"; "draft"; "install"; "doctor"; "propose" ]
+    "next"; "wave"; "draft"; "install"; "doctor"; "propose"; "budget"; "mcp" ]
 
 let write_wave root id =
   let dir = Filename.concat root "waves" in
@@ -207,7 +207,22 @@ let write_wave_promising root id state =
 let check_the_trail_anchors_the_act (root : string) =
   let path = Filename.concat root ".math/trail.jsonl" in
   let text = read_file path in
-  let line = String.split_on_char '\n' text |> List.hd in
+  (* The trail holds acts as well as proofs - a decision of a person is
+     an act, not a check - so the first PROOF is looked for, and not
+     simply the first line. *)
+  let line =
+    String.split_on_char '\n' text
+    |> List.find (fun l ->
+           String.length l > 0
+           && (try
+                let json = Yojson.Safe.from_string l in
+                match json with
+                | `Assoc pairs ->
+                    List.mem_assoc "at_commit" pairs
+                    && List.mem_assoc "producer" pairs
+                | _ -> false
+              with Yojson.Json_error _ -> false))
+  in
   let json = Yojson.Safe.from_string line in
   let get name =
     match json with
@@ -334,6 +349,21 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_code "version" 0 (code, text);
       assert (contains text "mathc");
       assert (contains text "build ");
+
+      (* budget: the price of uncertainty, changed by a person - and
+         only with a reason. The budget used to be set once, by `init`,
+         and never again: a project that grew past it had no way to
+         say so except by editing the specification by hand. *)
+      expect_refusal "budget without a reason" (call [ "budget"; "5" ]);
+      expect_ok "budget with a reason"
+        (call [ "budget"; "5"; "--reason"; "the project has grown" ]);
+      let spec = read_file (Filename.concat root "spec.json") in
+      assert (contains spec "\"uncertainty_budget\": 5");
+      (* And the reason is RECORDED, not only printed: a reason that
+         lives in the output of one process is a reason nobody can
+         check. *)
+      let trail = read_file (Filename.concat root ".math/trail.jsonl") in
+      assert (contains trail "the project has grown");
 
       (* add: the agent's move. It refuses a claim with no requirement, a
          claim outside the aim, and a claim about a path that is not

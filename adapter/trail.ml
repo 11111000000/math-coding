@@ -141,3 +141,32 @@ let read (root : string) : Domain.evidence list =
                    | _ -> None)
                | _ -> None)
            | exception Yojson.Json_error _ -> None)
+
+(** An act that is not a check.
+
+    The trail holds what ran, and a decision is not that. But a
+    decision whose reason is only printed is a decision nobody can
+    check - and the method promises that the reason for replacing the
+    aim is recorded. So the acts are recorded here too, in their own
+    shape, and the reader of the evidence skips them: the reader wants
+    proofs, and a proof is not an act.
+
+    The limit is named: the trail is not carried in the version
+    control, so an act's reason does not survive a fresh clone. What
+    survives is the act itself - the budget and the aim live in the
+    standing specification, which is committed. *)
+let append_act (root : string) (what : string) (fields : (string * string) list) :
+    unit =
+  ensure_dir root;
+  let at = Printf.sprintf "%.0f" (Unix.time ()) in
+  let json =
+    `Assoc
+      ([ ("act", `String what); ("at", `String at) ]
+      @ List.map (fun (name, value) -> (name, `String value)) fields)
+  in
+  let channel =
+    open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 (trail_path root)
+  in
+  output_string channel (Yojson.Safe.to_string json);
+  output_char channel '\n';
+  close_out channel

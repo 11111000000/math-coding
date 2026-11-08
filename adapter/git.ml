@@ -316,11 +316,16 @@ let page_marker = "<!-- math-coding:begin -->"
 
 (** Is this file the method's own?
 
-    The method writes three things into a project: the specification,
-    the waves, and a block inside AGENTS.md. None of them is the
-    project's code, and the uncovered surface IS the debt - so counting
-    them would make adoption increase exactly the debt the method
-    measures, which the goal forbids in as many words.
+    The method writes four things into a project: the specification,
+    the waves, the trail, and a block inside AGENTS.md. None of them
+    is the project's code, and the uncovered surface IS the debt - so
+    counting them would make adoption increase exactly the debt the
+    method measures, which the goal forbids in as many words.
+
+    The trail is the one that bites most often: it is written on every
+    run, and a project that has not put `.math/` into its ignore file
+    would see the method's own evidence counted as uncovered code -
+    and the debt would grow with every run.
 
     The page is a block inside a file that may be the project's own, so
     for that one the file is asked: does it carry the method's block?
@@ -328,6 +333,7 @@ let page_marker = "<!-- math-coding:begin -->"
     not carry the block, and its page is counted as the project's. *)
 let is_a_method_file (root : string) (path : string) : bool =
   if path = "spec.json" || path_contains ~dir:"waves/" ~path:path then true
+  else if path_contains ~dir:".math/" ~path:path then true
   else if path = "AGENTS.md" then (
     let full = Filename.concat root path in
     if not (Sys.file_exists full) then false

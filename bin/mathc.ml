@@ -1183,6 +1183,12 @@ let verb_goal text scope by reason =
       save_spec { spec with goal = Some goal };
       (match spec.goal with
       | Some old ->
+          (* The reason is RECORDED, not only printed: a reason that
+             lives in the output of one process is a reason nobody can
+             check. *)
+          Trail.append_act (root ()) "goal"
+            [ ("was", old.text); ("now", goal.text); ("by", goal.by);
+              ("reason", reason) ];
           Printf.printf "the aim was replaced, and the reason is recorded:\n";
           Printf.printf "  was: %s\n" old.text;
           Printf.printf "  now: %s\n" goal.text;
@@ -1305,6 +1311,41 @@ let verb_add id subject scope requirements falsifier register control =
           "  nothing can be bound to it yet; write the subject and run the check");
       0
 
+(** budget: the price of uncertainty, changed by a person.
+
+    THE BUDGET COULD NOT BE CHANGED. It was set once, by `init`, and
+    then it stood for ever - and a project that grows past its first
+    three uncertainties had no way to say so except by editing the
+    specification by hand. That is exactly the friction the method
+    keeps elsewhere: the aim needs a reason to be replaced, and the
+    budget needed the same and had none.
+
+    So the budget is a verb, and it is the person's verb: a number and
+    a reason. The number stands in the specification, which is
+    committed; the reason is written to the trail, which is the
+    method's record of acts - and the limit of that place is named
+    there: the trail is not committed, so a reason does not survive a
+    fresh clone. *)
+let verb_budget (budget : int) (reason : string) =
+  let spec = load_spec () in
+  if reason = "" then (
+    Printf.eprintf
+      "mathc: the budget is not changed: it needs a reason, because a budget nobody        explained is a number with no owner\n";
+    2)
+  else if budget < 0 then (
+    Printf.eprintf "mathc: the budget must not be negative\n";
+    2)
+  else
+    let was = spec.Domain.budget in
+    save_spec { spec with Domain.budget = budget };
+    Trail.append_act (root ()) "budget"
+      [ ("was", string_of_int was); ("now", string_of_int budget);
+        ("reason", reason) ];
+    Printf.printf "the uncertainty budget is %d, and the reason is recorded:\n" budget;
+    Printf.printf "  was: %d\n" was;
+    Printf.printf "  reason: %s\n" reason;
+    0
+
 (** accept: a person takes responsibility for one claim's uncertainty.
 
     This is the second of the three ways out the principle leaves when
@@ -1397,6 +1438,8 @@ let usage_text () =
       "                                 and must fail with it: a check that cannot fail proves nothing";
       "                               a claim without a requirement is refused";
       "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
+      "  mathc budget N            the price of uncertainty, changed by a person;";
+      "                               --reason says why";
       "  mathc map               the standing specification: claims, states, uncovered";
       "  mathc route             what needs a person, and why";
       "  mathc run                execute the checks, bind the results, write the trail";
@@ -2053,6 +2096,17 @@ let () =
                     Printf.eprintf "mathc: the budget must be a non-negative integer\n";
                     2)
             | _ -> verb_init 3)
+        | "budget" -> (
+            match positional with
+            | _ :: budget :: _ -> (
+                match int_of_string_opt budget with
+                | Some b when b >= 0 -> verb_budget b o.reason
+                | _ ->
+                    Printf.eprintf "mathc: the budget must be a non-negative integer\n";
+                    2)
+            | _ ->
+                Printf.eprintf "mathc: budget needs a number and a reason\n";
+                2)
         | "accept" -> (
             match positional with
             | _ :: id :: by :: reason :: _ -> verb_accept id by reason
