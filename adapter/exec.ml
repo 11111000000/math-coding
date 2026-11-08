@@ -90,3 +90,52 @@ let run_claim_command ~(root : string) (command : string)
             "the check failed, but a failed procedure does not refute what \
              should be true about meaning: that is the person's to decide"
         | _ -> "the claim is a judgment, and the machine does not decide it") )
+
+(** Run a command and read what it said.
+
+    The exit code and the output are both returned, and the output is
+    returned whatever the exit code is: a command that failed said
+    something too, and a caller that asked what was said is asking
+    about the failure as much as about the success.
+
+    The command runs in the project, because every command the method
+    runs there names relative paths. *)
+let capture ~(root : string) (command : string) : string * int =
+  if not (Sys.file_exists root) then ("", 127)
+  else
+    (* The errors go with the output: a caller that asked what the
+       command said is asking about the failure as much as about the
+       success, and a message on the other channel would be lost. *)
+    let channel =
+      Unix.open_process_in
+        (Printf.sprintf "cd %s && { %s ; } 2>&1" (Filename.quote root) command)
+    in
+    let output = In_channel.input_all channel in
+    let status = Unix.close_process_in channel in
+    let code =
+      match status with
+      | Unix.WEXITED c -> c
+      | Unix.WSIGNALED _ -> 128
+      | Unix.WSTOPPED _ -> 128
+    in
+    (output, code)
+
+(** Where the running binary is.
+
+    The binary says which binary it is by the hash of its own bytes,
+    and the machine surface spawns the tool - so both of them have to
+    find it. The path the process was started with may be just a name,
+    so PATH is asked when the name is not a file. *)
+let own_path () : string option =
+  let name = Sys.executable_name in
+  if Sys.file_exists name then Some name
+  else
+    let base = Filename.basename name in
+    match Sys.getenv_opt "PATH" with
+    | None -> None
+    | Some path ->
+        List.find_opt
+          (fun dir ->
+            let candidate = Filename.concat dir base in
+            Sys.file_exists candidate)
+          (String.split_on_char ':' path)

@@ -1,10 +1,22 @@
-(executable
- (name mathc)
+; The machine surface for agents: the same verbs, spoken over MCP.
+; The logic stays in the verbs - the server is a translation, and a
+; second implementation of the method's rules would be a second truth.
+(library
+ (name mathc_protocol)
+ (wrapped false)
+ (modules mcp)
  (libraries mathcoding mathcoding_format mathcoding_adapter unix yojson))
 
-; The measurement stand: the harness the third version lacked. It runs
-; the protocol over projects that are not this one and reports what it
+; The method's own tool.
+(executable
+ (name mathc)
+ (modules mathc)
+ (libraries mathc_protocol mathcoding mathcoding_format mathcoding_adapter unix yojson))
+
+; The measurement stand: the harness the third version lacked. It runs the
+; protocol over projects that are not this one and reports what it
 ; can actually measure - and says plainly what it cannot.
 (executable
  (name stand)
+ (modules stand)
  (libraries mathcoding mathcoding_format mathcoding_adapter unix yojson))

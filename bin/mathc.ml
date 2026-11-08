@@ -1413,6 +1413,7 @@ let usage_text () =
       "  mathc close WAVE         close a wave whose verdicts changed";
       "  mathc draft DIR          the third version's decisions, as draft claims";
       "  mathc install            write the page for agents into this project";
+      "  mathc mcp                the machine surface for agents: JSON-RPC over stdio";
       "  mathc propose            drafts of claims for a project that has code and none";
       "                               --check CMD may be repeated: the project's own checks";
       "  mathc doctor             check that this project is set up for the method";
@@ -1938,26 +1939,6 @@ let parse_args (args : string list) : string list * options =
 let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
-(** Where the running binary is.
-
-    The binary says which binary it is, by the hash of its own bytes.
-    To hash itself it has to find itself, and the path it was started
-    with may be just a name - so PATH is asked when the name is not a
-    file. *)
-let own_path () =
-  let name = Sys.executable_name in
-  if Sys.file_exists name then Some name
-  else
-    let base = Filename.basename name in
-    match Sys.getenv_opt "PATH" with
-    | None -> None
-    | Some path ->
-        List.find_opt
-          (fun dir ->
-            let candidate = Filename.concat dir base in
-            Sys.file_exists candidate)
-          (String.split_on_char ':' path)
-
 (** The version, and the build-id.
 
     The rule is old and was not kept: "the binary tells itself apart by
@@ -1968,7 +1949,7 @@ let own_path () =
     bytes that are actually running. *)
 let version_text () =
   let build =
-    match own_path () with
+    match Exec.own_path () with
     | Some path -> (
         match Git.hash_of_file path with Some h -> h | None -> "unknown")
     | None -> "unknown"
@@ -2092,6 +2073,11 @@ let () =
         | "next" -> verb_next ()
         | "install" -> verb_install ()
         | "propose" -> verb_propose o
+        | "mcp" ->
+            (* The machine surface for agents. It speaks on stdout, so
+               nothing else may be printed there. *)
+            Mcp.mcp_loop ~root:(root ());
+            0
         | "doctor" -> verb_doctor ()
         | "wave" -> (
             match positional with
