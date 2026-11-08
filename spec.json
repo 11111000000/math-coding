@@ -424,6 +424,45 @@
       "accepted": null,
       "control": null,
       "attestations": []
+    },
+    {
+      "id": "the-map-does-not-call-a-non-project-green",
+      "subject": "карта не зеленеет там, где проекта нет: каталог без спецификации получает «не знаю», а не «всё хорошо»",
+      "scope": [ "bin/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "карта в каталоге без spec.json печатает зелёный вердикт",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "the-draft-is-made-over-a-check-of-the-code",
+      "subject": "черновик делается только над проверкой кода: dev и build доказательствами не являются",
+      "scope": [ "bin/", "adapter/project.ml", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "черновик предлагает в качестве проверки команду, ничего не проверяющую",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "every-machine-method-is-called-by-the-check",
+      "subject": "каждый метод машинной поверхности вызывается проверкой, а не только называется в списке",
+      "scope": [ "bin/", "test/mcp.ml" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
     }
   ]
 }

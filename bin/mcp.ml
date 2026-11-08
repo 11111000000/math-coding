@@ -244,15 +244,24 @@ let answer_with_next ~(root : string) (text : string)
                    else text) )
     :: extra @ [ ("next", `String (next_step ~root)) ])
 
-(** The map, as data, with the next step beside it. *)
+(** The map, as data, with the next step beside it.
+
+    And when the map could not be produced - there is no project here,
+    or its specification is not readable - the answer says so and
+    carries NO map. An empty map would look like a project with nothing
+    in it, and that is the false green the method refuses to tell. *)
 let map_method ~(root : string) : Yojson.Safe.t =
   let out, _ = run_verb ~root [ "map"; "--json" ] in
-  let json =
-    match Yojson.Safe.from_string out with
-    | j -> j
-    | exception Yojson.Json_error _ -> `Null
-  in
-  `Assoc [ ("map", json); ("next", `String (next_step ~root)) ]
+  match Yojson.Safe.from_string out with
+  | json -> `Assoc [ ("map", json); ("next", `String (next_step ~root)) ]
+  | exception Yojson.Json_error _ ->
+      `Assoc
+        [
+          ("map", `Null);
+          ("ok", `Bool false);
+          ("text", `String out);
+          ("next", `String (next_step ~root));
+        ]
 
 (** The claim to add, as the arguments of the verb. *)
 let add_method ~(root : string) (args : (string * Yojson.Safe.t) list) :

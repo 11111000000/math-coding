@@ -34,12 +34,43 @@ let read_file (path : string) : string option =
     close_in channel;
     Some content
 
+(** One check of the project.
+
+    [test_like] says whether the check looks like a check OF THE CODE
+    rather than something else: a build, a server, a formatter. The
+    difference matters because the first check of a list is often not
+    a check at all - a `package.json` usually opens with "dev" and
+    "build", and a method that took the first entry would propose a
+    dev server as the proof that the code is right. *)
+type check = {
+  command : string;
+  source : string;
+  (* The project said it out loud, or it is a convention of its
+     ecosystem. *)
+  exact : bool;
+  test_like : bool;
+}
+
+(** The names a check of the code carries.
+
+    "test", "check", "verify", "ci", "spec" - and anything that starts
+    with them, so that "test:unit" counts too. A linter does not: it
+    says the code is well-formed, not that it is right. *)
+let is_a_test_name (name : string) : bool =
+  let starts_with prefix =
+    String.length name >= String.length prefix
+    && String.sub name 0 (String.length prefix) = prefix
+  in
+  List.exists
+    (fun prefix -> name = prefix || starts_with (prefix ^ ":") || starts_with (prefix ^ "-"))
+    [ "test"; "check"; "verify"; "ci"; "spec" ]
+
 (** The scripts of a `package.json`, read with the JSON library.
 
     The scripts are the project's own commands, so the command that
     runs one is `npm run <name>` - and that is the whole translation
     from the file to a command line. *)
-let checks_of_package_json (root : string) : (string * string * bool) list =
+let checks_of_package_json (root : string) : check list =
   let path = Filename.concat root "package.json" in
   match read_file path with
   | None -> []
@@ -53,7 +84,14 @@ let checks_of_package_json (root : string) : (string * string * bool) list =
                   List.filter_map
                     (fun (name, value) ->
                       match value with
-                      | `String _ -> Some ("npm run " ^ name, "package.json:scripts." ^ name, true)
+                      | `String _ ->
+                          Some
+                            {
+                              command = "npm run " ^ name;
+                              source = "package.json:scripts." ^ name;
+                              exact = true;
+                              test_like = is_a_test_name name;
+                            }
                       | _ -> None)
                     scripts
               | _ -> [])
@@ -63,18 +101,40 @@ let checks_of_package_json (root : string) : (string * string * bool) list =
 (** The conventions, one per ecosystem.
 
     Each of them is a fact about the ecosystem and a guess about the
-    project, and the third field says so: `true` for a fact read from
-    the project, `false` for a convention. *)
-let checks_by_convention (root : string) : (string * string * bool) list =
+    project, and the `exact` field says so: `true` for a fact read
+    from the project, `false` for a convention. *)
+let checks_by_convention (root : string) : check list =
   let has name = Sys.file_exists (Filename.concat root name) in
   let out = ref [] in
   if has "Cargo.toml" then
-    out := ("cargo test", "convention: a Cargo project", false) :: !out;
+    out :=
+      {
+        command = "cargo test";
+        source = "convention: a Cargo project";
+        exact = false;
+        test_like = true;
+      }
+      :: !out;
   if has "go.mod" then
-    out := ("go test ./...", "convention: a Go project", false) :: !out;
+    out :=
+      {
+        command = "go test ./...";
+        source = "convention: a Go project";
+        exact = false;
+        test_like = true;
+      }
+      :: !out;
   if has "pyproject.toml" || has "pytest.ini" || has "setup.cfg"
      || has "setup.py" || has "tox.ini"
-  then out := ("pytest", "convention: a Python project", false) :: !out;
+  then
+    out :=
+      {
+        command = "pytest";
+        source = "convention: a Python project";
+        exact = false;
+        test_like = true;
+      }
+      :: !out;
   List.rev !out
 
 (** What the project says its checks are.
@@ -82,5 +142,5 @@ let checks_by_convention (root : string) : (string * string * bool) list =
     The order matters and is the order of trust: what the project says
     out loud comes first, and the conventions follow. A person reading
     the list sees the project's own words before the guesses. *)
-let checks_of (root : string) : (string * string * bool) list =
+let checks_of (root : string) : check list =
   checks_of_package_json root @ checks_by_convention root

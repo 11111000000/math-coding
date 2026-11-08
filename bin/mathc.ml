@@ -64,10 +64,33 @@ let read_file path =
 
 let spec_path () = Filename.concat (root ()) "spec.json"
 
+(** The standing specification of THIS project.
+
+    THE MISSING SPECIFICATION WAS A GREEN VERDICT. When there was no
+    spec.json, the loader returned an empty specification - no aim, no
+    claims, no waves - and the map then computed a verdict over it and
+    printed "green". A directory that is not a project of the method
+    was therefore reported as a project with nothing wrong with it, and
+    the agent that asked got a clean bill of health for a tree it had
+    never looked at.
+
+    That is the false green, and it is the worst kind of lie this
+    method could tell: it is not a wrong answer to the question asked,
+    it is a right answer to a question nobody asked. The empty project
+    is green - that is the law of vacancy, and it is about a project
+    that says so. A directory with no specification says nothing, and
+    about it the method cannot tell.
+
+    So the answer is not an empty specification but no answer: the
+    method says that there is no standing specification here, and it
+    exits with the code of "we could not tell" - three, never zero. *)
 let load_spec () : Domain.spec =
   let path = spec_path () in
-  if not (Sys.file_exists path) then
-    { goal = None; budget = 0; claims = []; closed_waves = [] }
+  if not (Sys.file_exists path) then (
+    Printf.eprintf
+      "mathc: there is no standing specification here: this is not a project of the \
+       method (mathc init)\n";
+    exit 3)
   else
     match Spec.parse_spec_string (read_file path) with
     | Ok spec -> spec
@@ -1599,8 +1622,9 @@ let verb_install () =
   let spec_path = spec_path () in
   if not (Sys.file_exists spec_path) then (
     Printf.eprintf
-      "mathc: there is no standing specification. Start with: mathc init\n";
-    2)
+      "mathc: there is no standing specification here: this is not a project of the \
+       method (mathc init)\n";
+    3)
   else
     let path = Filename.concat (root ()) "AGENTS.md" in
     let existing = if Sys.file_exists path then Some (read_file path) else None in
@@ -1783,15 +1807,30 @@ let verb_propose (o : options) =
   (* The checks: what the project says, then the conventions, then what
      the person named on the command line. *)
   let found = Project.checks_of (root ()) in
-  let named = List.map (fun c -> (c, "named on the command line", true)) o.checks in
+  let named =
+    List.map
+      (fun c ->
+        { Project.command = c; source = "named on the command line"; exact = true; test_like = true })
+      o.checks
+  in
   let checks = found @ named in
-  let commands = List.map (fun (command, _, _) -> command) checks in
+  (* THE CHECK OF THE CODE, AND NOT THE FIRST CHECK OF THE LIST. A
+     project opens its scripts with the things that are not checks:
+     "dev", "build", "start". A draft whose proof is a dev server
+     proves nothing, and the method exists to catch exactly that - so
+     the draft is made only over a check that looks like a check of
+     the code, and if there is none, there is no draft and the tool
+     says so. *)
+  let of_the_code =
+    List.filter (fun (c : Project.check) -> c.Project.test_like) checks
+  in
   let groups_scope = List.map fst groups in
   let draft =
     if uncovered = [] then None
-    else if commands = [] then None
+    else if of_the_code = [] then None
     else
-      let command = List.hd commands in
+      let chosen = List.hd of_the_code in
+      let command = chosen.Project.command in
       Some
         (`Assoc
           [
@@ -1833,18 +1872,29 @@ let verb_propose (o : options) =
       "  none were found. Name them: mathc propose --check \"the command\""
   else
     List.iter
-      (fun (command, source, exact) ->
-        Printf.printf "  %-40s %s\n" command
-          (if exact then source else source ^ " - a convention, confirm it"))
+      (fun (c : Project.check) ->
+        Printf.printf "  %-40s %s%s\n" c.Project.command
+          (if c.Project.exact then c.Project.source
+           else c.Project.source ^ " - a convention, confirm it")
+          (if
+             of_the_code <> []
+             && c.Project.command = (List.hd of_the_code).Project.command
+           then "  <- the draft is made over this one"
+           else if not c.Project.test_like then "  (not a check of the code)" else ""))
       checks;
   print_endline "";
   (match draft with
   | None ->
       if uncovered = [] then
         print_endline "nothing is uncovered, so there is nothing to propose"
-      else
+      else if checks = [] then
         print_endline
           "no draft: the project's checks are not known yet. Name them and ask again"
+      else
+        print_endline
+          "no draft: none of the project's checks is a check of the code - \"dev\", \
+           \"build\" and \"start\" are not proofs. Name the check of the code and ask \
+           again:\n  mathc propose --check \"the command\""
   | Some json ->
       print_endline
         "a draft - which decides nothing. The register and the falsifier are yours to \
