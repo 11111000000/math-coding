@@ -164,7 +164,7 @@ let consumed_by_map (text : string) : int =
    and against the README, which must name every verb here. *)
 let the_verbs =
   [ "init"; "goal"; "add"; "run"; "record"; "accept"; "close"; "route"; "map";
-    "next"; "wave"; "draft" ]
+    "next"; "wave"; "draft"; "install"; "doctor" ]
 
 let write_wave root id =
   let dir = Filename.concat root "waves" in
@@ -252,6 +252,45 @@ let check_the_tool (binary : string) (prefix : string list) =
              "goal"; "another aim"; "subject.txt,planned.txt"; "the owner"; "--reason";
              "because the aim was wrong";
            ]);
+
+      (* install: the page for agents.
+
+         THE PAGE NEVER REACHED ANYBODY. It travelled with the portable
+         binary as a path nobody put anywhere, and the only way it ever
+         got into a project was a human copying it by hand - and the
+         page that was copied was written for THIS repository, naming
+         this repository's tree. So the page is GENERATED now, out of
+         the tool's own help and the standing specification, and it is
+         written into a marked block: a project that has its own
+         AGENTS.md keeps it, because everything outside the block
+         belongs to the project. *)
+      let page = Filename.concat root "AGENTS.md" in
+      let channel = open_out page in
+      output_string channel "# the project's own page\n\ndo not touch this\n";
+      close_out channel;
+      expect_ok "install" (call [ "install" ]);
+      let text = read_file page in
+      assert (contains text "do not touch this");
+      assert (contains text "math-coding:begin");
+      assert (contains text "math-coding:end");
+      (* And the page names every verb the tool has: a page that omits
+         one hides a tool the agent needed, and a page that names a
+         verb the tool does not have sends the agent into a verb that
+         is not there. *)
+      List.iter (fun verb -> assert (contains text ("mathc " ^ verb))) the_verbs;
+      (* The doctor checks the setup and changes nothing. *)
+      expect_ok "doctor" (call [ "doctor" ]);
+      (* The page goes stale when the specification changes - and the
+         doctor says so instead of letting a stale page rot quietly. *)
+      expect_ok "add a claim after the page"
+        (call
+           [
+             "add"; "c-late"; "a claim"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:true";
+           ]);
+      expect_code "doctor with a stale page" 1 (call [ "doctor" ]);
+      expect_ok "install again" (call [ "install" ]);
+      expect_ok "doctor again" (call [ "doctor" ]);
 
       (* add: the agent's move. It refuses a claim with no requirement, a
          claim outside the aim, and a claim about a path that is not

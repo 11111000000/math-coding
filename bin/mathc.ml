@@ -189,7 +189,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
-  let uncovered = Git.uncovered claims files in
+  let uncovered = Git.uncovered (root ()) claims files in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
   (* The names of the states live in the codec: the map and the wave's
      promises must say the same thing about them, and a name written
@@ -303,7 +303,7 @@ let verb_map json =
     let claims = spec.Domain.claims in
     let states = states_of claims in
     let files = Git.tracked_files (root ()) in
-    let uncovered = Git.uncovered claims files in
+    let uncovered = Git.uncovered (root ()) claims files in
     let verdict = Verdict.verdict_of_states (List.map snd states) in
     Printf.printf "verdict: %s (exit %d)\n"
       (match verdict with
@@ -696,7 +696,7 @@ let verb_next () =
   let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
-  let uncovered = Git.uncovered claims files in
+  let uncovered = Git.uncovered (root ()) claims files in
   (* A refuted claim is the most urgent work there is: something that
      was believed is now known to be false. It comes first, before the
      claims nobody has looked at. *)
@@ -1374,37 +1374,316 @@ let verb_init budget =
 
 (* ------------------------------------------------------------------ *)
 
-let usage () =
-  print_endline "mathc - the protocol of math-coding";
-  print_endline "";
-  print_endline "  mathc init [BUDGET]      prepare a project; adoption costs one file";
-  print_endline "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
-  print_endline "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
-  print_endline "                               declare a claim (an agent does this);";
-  print_endline "                               --requirement may be repeated, and may be review:WHO;";
-  print_endline "                               --control CMD is the command that breaks the subject";
-  print_endline "                                 and must fail with it: a check that cannot fail proves nothing";
-  print_endline "                               a claim without a requirement is refused";
-  print_endline "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
-  print_endline "  mathc map               the standing specification: claims, states, uncovered";
-  print_endline "  mathc route             what needs a person, and why";
-  print_endline "  mathc run                execute the checks, bind the results, write the trail";
-  print_endline "  mathc record CLAIM REQ --by WHO --outcome V";
-  print_endline "                               take evidence from outside: a person, a CI run;";
-  print_endline "                               --valid-for DAYS says how long the proof counts";
-  print_endline "  mathc next               the next work, one item";
-  print_endline "  mathc wave ID TITLE     create a unit of work: a wave";
-  print_endline "                               --intent WHY --objection THE STRONGEST OBJECTION";
-  print_endline "                               --refuted-by WHAT WOULD REFUTE IT";
-  print_endline "                               --check CMD (may be repeated)";
-  print_endline "                               --commit CLAIM=STATE (may be repeated)";
-  print_endline "                               --claim ID and --touches PATH may be repeated";
-  print_endline "  mathc close WAVE         close a wave whose verdicts changed";
-  print_endline "  mathc draft DIR          the third version's decisions, as draft claims";
-  print_endline "";
-  print_endline "  --root DIR               the project (default: the working directory)";
-  print_endline "  --reason TEXT            why an aim is being replaced";
-  print_endline "  --json                   the map as data, for programs"
+(** The help, as text.
+
+    It is a value and not a printing, because the page for agents is
+    made of it: the page must name every verb the tool has, and the
+    only way to be sure of that is to take the verbs from the same
+    place the reader takes them. A second list of the verbs, kept by
+    hand, would be a second truth - and the method has been bitten by
+    exactly that. *)
+let usage_text () =
+  String.concat "\n"
+    [
+      "mathc - the protocol of math-coding";
+      "";
+      "  mathc init [BUDGET]      prepare a project; adoption costs one file";
+      "  mathc goal TEXT SCOPE BY      state the aim (a person does this)";
+      "  mathc add ID SUBJECT SCOPE FALSIFIER REGISTER --requirement verifier:CMD";
+      "                               declare a claim (an agent does this);";
+      "                               --requirement may be repeated, and may be review:WHO;";
+      "                               --control CMD is the command that breaks the subject";
+      "                                 and must fail with it: a check that cannot fail proves nothing";
+      "                               a claim without a requirement is refused";
+      "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
+      "  mathc map               the standing specification: claims, states, uncovered";
+      "  mathc route             what needs a person, and why";
+      "  mathc run                execute the checks, bind the results, write the trail";
+      "  mathc record CLAIM REQ --by WHO --outcome V";
+      "                               take evidence from outside: a person, a CI run;";
+      "                               --valid-for DAYS says how long the proof counts";
+      "  mathc next               the next work, one item";
+      "  mathc wave ID TITLE     create a unit of work: a wave";
+      "                               --intent WHY --objection THE STRONGEST OBJECTION";
+      "                               --refuted-by WHAT WOULD REFUTE IT";
+      "                               --check CMD (may be repeated)";
+      "                               --commit CLAIM=STATE (may be repeated)";
+      "                               --claim ID and --touches PATH may be repeated";
+      "  mathc close WAVE         close a wave whose verdicts changed";
+      "  mathc draft DIR          the third version's decisions, as draft claims";
+      "  mathc install            write the page for agents into this project";
+      "  mathc doctor             check that this project is set up for the method";
+      "";
+      "  --root DIR               the project (default: the working directory)";
+      "  --reason TEXT            why an aim is being replaced";
+      "  --json                   the map as data, for programs";
+    ]
+
+let usage () = print_endline (usage_text ())
+
+(** THE PAGE FOR AGENTS.
+
+    THE PAGE NEVER REACHED ANYBODY. It travelled with the portable
+    binary as `share/math-coding/AGENTS.md` - a path that nobody put
+    anywhere - and the only way it ever got into a project was a human
+    copying it by hand. The measurement of 2026-11-07 says so in three
+    words: "AGENTS.md - в руку A". And the page that was copied was
+    written for THIS repository: it names `lib/`, `format/`, `adapter/`,
+    `bin/`, `test/`, `waves/*.json` and `spec.json`, and tells an agent
+    to run `nix develop` and `dune runtest --root . --force`. Copied
+    into a Python project, it names a tree that is not there.
+
+    So the page is GENERATED, and it is generated out of two things
+    that cannot drift: the tool's own help - so it cannot name a verb
+    that does not exist - and the standing specification - so it is
+    about THIS project, its aim, its claims and its checks. The page is
+    never a copy of anything.
+
+    And it is written in the tool's language, English, because the
+    mechanical parts of it are the tool's own words. The project's own
+    prose stays where it is: the aim and the claims are quoted as they
+    were written. *)
+let entry_page () =
+  let spec = load_spec () in
+  let states = states_of spec.Domain.claims in
+  let b = Buffer.create 4096 in
+  let add fmt = Printf.ksprintf (Buffer.add_string b) fmt in
+  add "## math-coding in this project\n\n";
+  add "This block is written by `mathc install` and by nothing else.\n";
+  add "Everything outside it belongs to the project and is never touched.\n";
+  add "Re-run `mathc install` after the specification changes;\n";
+  add "`mathc doctor` says whether this block is current.\n\n";
+  add "### The aim\n\n";
+  (match spec.Domain.goal with
+  | Some g ->
+      add "%s\n\n" g.Domain.text;
+      add "Stated by %s, over %s.\n\n" g.Domain.by
+        (String.concat ", " g.Domain.scope)
+  | None ->
+      add
+        "There is no aim yet. The aim belongs to a person, and it is the boundary\n\
+         of the work:\n\n```sh\nmathc goal \"...\" SCOPE \"who\"\n```\n\n");
+  add "### The verbs\n\n```sh\n";
+  Buffer.add_string b (usage_text ());
+  add "```\n\n";
+  add "### What is declared\n\n";
+  if spec.Domain.claims = [] then
+    add
+      "Nothing is declared yet, and that is a legal state, not a defect. The map\n\
+       says so:\n\n```sh\nmathc --root . map\n```\n\n"
+  else (
+    add "| claim | state | how it is closed |\n|---|---|---|\n";
+    List.iter
+      (fun (id, state) ->
+        let checks =
+          match List.find_opt (fun (c : Domain.claim) -> c.id = id) spec.Domain.claims with
+          | Some c ->
+              String.concat "; "
+                (List.map
+                   (fun (r : Domain.requirement) ->
+                     match r with
+                     | Domain.Verified_by spec -> "`" ^ spec ^ "`"
+                     | Domain.Reviewed_by who -> "review by " ^ who)
+                   c.Domain.requirements)
+          | None -> ""
+        in
+        add "| `%s` | %s | %s |\n" id (Domain.state_name state) checks)
+      states;
+    add "\n");
+  add "### If you are an agent here\n\n";
+  add
+    "1. Start with the map: `mathc --root . map` - what is claimed, what is known,\n\
+    \   what is not covered. The map never refuses.\n";
+  add
+    "2. Declare what you are working on: `mathc --root . add <id> \"<subject>\" \\\n\
+    \   \"<scopes, comma-separated>\" \"<what would refute it>\" <register> \\\n\
+    \   --requirement \"verifier:<command>\" --control \"<command>\"`. The control is\n\
+    \   the command that breaks the subject and must fail with it: a check that\n\
+    \   cannot fail proves nothing, and the map says whose check is proven able\n\
+    \   to fail.\n";
+  add
+    "3. Run the checks: `mathc --root . run` - the method runs them and binds every\n\
+    \   proof to the content it ran against.\n";
+  add
+    "4. Make a unit of work: `mathc --root . wave <id> \"<title>\" --intent \"...\" \\\n\
+    \   --objection \"...\" --refuted-by \"...\" --check \"<command>\" \\\n\
+    \   --commit \"<claim>=<state>\"`, and close it with `mathc --root . close\n\
+    \   <wave>` when its promises are met.\n";
+  add
+    "5. If the map says there is no uncertainty left and nothing uncovered, the\n\
+    \   right move is to say that there is nothing to improve. Recursion without\n\
+    \   the right to stop is not self-improvement, it is cancer.\n";
+  Buffer.contents b
+
+(** The markers of the block the tool owns. Everything outside them is
+    the project's, and the tool never touches it. *)
+let block_begin = "<!-- math-coding:begin -->"
+let block_end = "<!-- math-coding:end -->"
+
+(** Put the block into the text, replacing the old one if it is there.
+
+    A project that has its own AGENTS.md keeps it: the tool owns a
+    marked span and writes nothing outside it. A page that names a verb
+    the tool no longer has is worse than no page - the agent follows it
+    into a verb that does not exist - and that is why the block is
+    rewritten rather than left. *)
+let with_block (text : string) (block : string) : string =
+  match Git.index_of text block_begin with
+  | None -> (if text = "" then block ^ "\n" else text ^ "\n" ^ block ^ "\n")
+  | Some i -> (
+      match Git.index_from text (i + String.length block_begin) block_end with
+      | None -> text ^ "\n" ^ block ^ "\n"
+      | Some j ->
+          let head = String.sub text 0 i in
+          let tail =
+            String.sub text (j + String.length block_end)
+              (String.length text - j - String.length block_end)
+          in
+          head ^ block ^ tail)
+
+(** install: put the page for agents into the project.
+
+    It writes one file - or one marked block in a file that is already
+    there - and it writes nothing else. The method adds no artifact to
+    a project by inertia: the page is asked for, and `doctor` can take
+    it away again by saying it is not there. *)
+let verb_install () =
+  let spec_path = spec_path () in
+  if not (Sys.file_exists spec_path) then (
+    Printf.eprintf
+      "mathc: there is no standing specification. Start with: mathc init\n";
+    2)
+  else
+    let path = Filename.concat (root ()) "AGENTS.md" in
+    let existing = if Sys.file_exists path then Some (read_file path) else None in
+    let block = block_begin ^ "\n" ^ entry_page () ^ block_end in
+    let text = with_block (match existing with Some t -> t | None -> "") block in
+    let channel = open_out path in
+    output_string channel text;
+    close_out channel;
+    Printf.printf "the page for agents is written:\n  %s\n" path;
+    (match existing with
+    | Some _ ->
+        Printf.printf
+          "  the block between the markers was rewritten; the rest of the file is \
+           untouched\n"
+    | None -> Printf.printf "  the file is new\n");
+    print_endline "  check it: mathc doctor";
+    0
+
+(** The verbs of the tool, as its own help names them. The page has to
+    name every one of them: a page that names a verb the tool does not
+    have sends an agent into a verb that is not there, and a page that
+    omits one hides a tool the agent needed. *)
+let verbs_of_help (help : string) : string list =
+  help
+  |> String.split_on_char '\n'
+  |> List.filter_map (fun line ->
+         let trimmed = String.trim line in
+         if String.length trimmed > 6 && String.sub trimmed 0 6 = "mathc " then
+           let rest = String.sub trimmed 6 (String.length trimmed - 6) in
+           match String.index_opt rest ' ' with
+           | Some i -> Some (String.sub rest 0 i)
+           | None -> Some rest
+         else None)
+
+(** Does the text contain the word, and not a longer word with it
+    inside? "init" must not be found in "initialise". *)
+let contains_word (haystack : string) (needle : string) =
+  let n = String.length haystack and m = String.length needle in
+  let found = ref false in
+  let i = ref 0 in
+  let is_word_char c =
+    (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9')
+    || c = '_'
+  in
+  while (not !found) && !i + m <= n do
+    let at = !i in
+    if String.sub haystack at m = needle then (
+      let before_ok = at = 0 || not (is_word_char haystack.[at - 1]) in
+      let after = at + m in
+      let after_ok = after >= n || not (is_word_char haystack.[after]) in
+      if before_ok && after_ok then found := true);
+    i := !i + 1
+  done;
+  !found
+
+(** doctor: is this project set up for the method?
+
+    It changes nothing. It says what is missing, what is stale and what
+    cannot be told, and it distinguishes the three: a thing that is
+    wrong is red, a thing that is not there yet cannot be told, and a
+    thing that is in order is silent. *)
+let verb_doctor () =
+  let broken = ref 0 in
+  let unknown = ref 0 in
+  let ok what = Printf.printf "  ok      %s\n" what in
+  let bad what =
+    Printf.printf "  wrong   %s\n" what;
+    incr broken
+  in
+  let cannot what =
+    Printf.printf "  unknown %s\n" what;
+    incr unknown
+  in
+  Printf.printf "the method, checking %s\n\n" (root ());
+  (* The tree. The method binds proofs to the content of a tree, and
+     there is no tree without git. *)
+  if Git.is_repository (root ()) then ok "this is a git repository"
+  else cannot "this is not a git repository: the method binds proofs to a tree";
+  (* The specification, and everything that needs one. *)
+  if Sys.file_exists (spec_path ()) then (
+    ok "the standing specification is there";
+    let spec = load_spec () in
+    (* The aim. *)
+    (match spec.Domain.goal with
+    | Some _ -> ok "the aim is stated"
+    | None -> cannot "there is no aim: mathc goal");
+    (* The page for agents. *)
+    let path = Filename.concat (root ()) "AGENTS.md" in
+    if not (Sys.file_exists path) then
+      bad "there is no page for agents: mathc install"
+    else (
+      let text = read_file path in
+      (match Git.index_of text block_begin with
+      | None -> bad "the page for agents has no math-coding block: mathc install"
+      | Some _ -> (
+          match Git.index_of text block_end with
+          | None -> bad "the math-coding block is not closed: mathc install"
+          | Some _ ->
+              let current =
+                with_block text (block_begin ^ "\n" ^ entry_page () ^ block_end)
+              in
+              if current = text then ok "the page for agents is current"
+              else bad "the page for agents is out of date: mathc install"));
+      (* And it names every verb the tool has. *)
+      let verbs = verbs_of_help (usage_text ()) in
+      let unnamed =
+        List.filter (fun verb -> not (contains_word text verb)) verbs
+      in
+      if unnamed = [] then ok "the page names every verb the tool has"
+      else
+        bad
+          (Printf.sprintf "the page does not name %s"
+             (String.concat ", " unnamed)));
+    (* The claims that have no control: their checks are not proven able
+       to fail, and the map says so - but a person should know too. *)
+    let without_control =
+      List.filter_map
+        (fun (c : Domain.claim) ->
+          if c.Domain.control = None then Some c.Domain.id else None)
+        spec.Domain.claims
+    in
+    if without_control = [] then ok "every claim carries a control for its check"
+    else
+      Printf.printf
+        "  note    %s %s no control: %s check is not proven able to fail\n"
+        (if List.length without_control = 1 then "one claim has" else "claims have")
+        (String.concat ", " without_control)
+        (if List.length without_control = 1 then "its" else "their"))
+  else cannot "there is no standing specification: mathc init";
+  Printf.printf "\n";
+  if !broken > 0 then 1 else if !unknown > 0 then 3 else 0
 
 (** The command line. The options are the project root, the reason an aim
     is being replaced, and the fields of the verbs that take them;
@@ -1631,6 +1910,8 @@ let () =
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";
                 2)
         | "next" -> verb_next ()
+        | "install" -> verb_install ()
+        | "doctor" -> verb_doctor ()
         | "wave" -> (
             match positional with
             | _ :: id :: title :: _ -> verb_wave id title o

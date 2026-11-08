@@ -281,32 +281,80 @@ let scope_exists (root : string) (scope : Domain.scope) : bool =
 (** The tracked files a scope covers. *)
 let files_under (scope : Domain.scope) (files : string list) : string list =
   List.filter (fun file -> List.exists (fun prefix -> path_contains ~dir:prefix ~path:file) scope) files
-(** The files of the method itself.
+(** Where the needle starts in the haystack, if it is there.
 
-    The specification and the waves are the method's bookkeeping, not
-    the project's code. And they are not uncovered by accident: the
-    method reads them every time it acts, and it reads them strictly -
-    a specification that does not parse stops the method rather than
-    being ignored.
+    The standard library searches for a CHARACTER, and the markers here
+    are words - so the search is here, and it is small enough to read. *)
+let index_of (haystack : string) (needle : string) : int option =
+  let n = String.length haystack and m = String.length needle in
+  if m = 0 then Some 0
+  else if m > n then None
+  else
+    let found = ref None in
+    let i = ref 0 in
+    while !found = None && !i + m <= n do
+      if String.sub haystack !i m = needle then found := Some !i;
+      i := !i + 1
+    done;
+    !found
 
-    They are excluded from the uncovered surface for a reason stated
-    in the goal: "внедрение никогда не увеличивает долг". The uncovered
-    surface IS the debt, and `init` writes a file into the repository
-    - so counting that file would make adoption increase exactly the
-    debt the method measures. *)
-let is_a_method_file (path : string) : bool =
-  path = "spec.json" || path_contains ~dir:"waves/" ~path:path
+(** The mark of the method's block in a page. *)
+let page_marker = "<!-- math-coding:begin -->"
+
+(** Is this file the method's own?
+
+    The method writes three things into a project: the specification,
+    the waves, and a block inside AGENTS.md. None of them is the
+    project's code, and the uncovered surface IS the debt - so counting
+    them would make adoption increase exactly the debt the method
+    measures, which the goal forbids in as many words.
+
+    The page is a block inside a file that may be the project's own, so
+    for that one the file is asked: does it carry the method's block?
+    A project that had its own AGENTS.md before the method arrived does
+    not carry the block, and its page is counted as the project's. *)
+let is_a_method_file (root : string) (path : string) : bool =
+  if path = "spec.json" || path_contains ~dir:"waves/" ~path:path then true
+  else if path = "AGENTS.md" then (
+    let full = Filename.concat root path in
+    if not (Sys.file_exists full) then false
+    else
+      let channel = open_in full in
+      let text = In_channel.input_all channel in
+      close_in channel;
+      match index_of text page_marker with Some _ -> true | None -> false)
+  else false
 
 (** The tracked files no claim covers: the uncovered surface. This is the
     main artifact of the method, and it is computed, not
     accumulated. *)
-let uncovered (claims : Domain.claim list) (files : string list) : string list =
+let uncovered (root : string) (claims : Domain.claim list) (files : string list) :
+    string list =
   let scopes =
     List.map (fun (c : Domain.claim) -> c.subject.scope) claims
   in
   List.filter
     (fun file ->
-      not (is_a_method_file file)
+      not (is_a_method_file root file)
       && not (List.exists (fun s -> files_under s [ file ] <> []) scopes))
     files
 
+
+(** Is this a git repository?
+
+    The method binds proofs to the content of a tree, and there is no
+    tree without git. The question is asked here because the answer is
+    a fact about the world and not about the method. *)
+let is_repository (root : string) : bool =
+  let out, code =
+    run_capture (Printf.sprintf "git -C %s rev-parse --git-dir" (Filename.quote root))
+  in
+  code = 0 && String.trim out <> ""
+
+(** The same, from a given place on. *)
+let index_from (haystack : string) (start : int) (needle : string) : int option =
+  if start >= String.length haystack then None
+  else
+    match index_of (String.sub haystack start (String.length haystack - start)) needle with
+    | Some i -> Some (start + i)
+    | None -> None
