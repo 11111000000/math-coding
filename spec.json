@@ -110,7 +110,7 @@
     },
     {
       "id": "verbs-work",
-      "subject": "десять глаголов инструмента работают: каждый исполняется, и у каждого есть отрицательный контроль",
+      "subject": "пятнадцать глаголов инструмента работают: каждый исполняется, и у каждого есть отрицательный контроль",
       "scope": [ "lib/", "adapter/", "format/", "bin/" ],
       "requirements": [
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
@@ -282,12 +282,12 @@
     },
     {
       "id": "the-tool-can-be-taken-out-of-nix",
-      "subject": "флейк отдаёт переносимый бинарь метода: без runpath в store, с OCaml-рантаймом внутри, и с путеводителем рядом",
-      "scope": [ "flake.nix", "AGENTS.md" ],
+      "subject": "флейк отдаёт переносимый бинарь метода и стенда: без runpath в store, с OCaml-рантаймом внутри, и с путеводителем внутри орудия",
+      "scope": [ "flake.nix", "bin/" ],
       "requirements": [
         { "kind": "verifier", "spec": "nix build .#portable" }
       ],
-      "falsifier": "переносимый бинарь просит библиотеки из store или не запускается без nix",
+      "falsifier": "переносимый бинарь просит библиотеки из store, не запускается без nix или не приносит стенда",
       "register": "fact",
       "accepted": null,
       "control": null,

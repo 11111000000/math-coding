@@ -107,6 +107,33 @@
           '';
         };
 
+        # The measurement stand, as a package of its own.
+
+        # The procedure of the measurement runs the stand, and a person
+        # who wants to know what the method costs must be able to run it
+        # too. The measurement of 2026-11-01 told the reader to run
+        # `_build/default/bin/stand.exe` - a path inside a build tree
+        # that an adopter does not have. A path that nobody walks is
+        # not a path.
+        packages.stand = pkgs.stdenv.mkDerivation {
+          name = "stand";
+          src = ./.;
+          nativeBuildInputs = [ ocamlPackages.ocaml ocamlPackages.dune_3 ] ++ ocamlDeps;
+          buildInputs = [ pkgs.git ] ++ ocamlDeps;
+          OCAMLPATH = ocamlPath;
+          buildPhase = ''
+            runHook preBuild
+            dune build --root . bin/stand.exe
+            runHook postBuild
+          '';
+          installPhase = ''
+            runHook preInstall
+            mkdir -p $out/bin
+            cp _build/default/bin/stand.exe $out/bin/stand
+            runHook postInstall
+          '';
+        };
+
         # THE SAME TOOL, FOR A MACHINE THAT IS NOT A NIX MACHINE.
         #
         # The binary needs three C libraries and nothing else - the
@@ -117,9 +144,17 @@
         # Here the runpath is removed, and the binary asks the system
         # for its libc - which every ordinary Linux has.
         #
-        # The guide travels with the tool, because the tool without the
-        # guide is what the agent arm measured: 35 tool calls spent
-        # reading the source to learn the interface.
+        # THE GUIDE IS IN THE TOOL NOW, NOT BESIDE IT. The page for an
+        # agent used to travel here as a file - and it was the page of
+        # THIS repository, naming this repository's tree, so an adopter
+        # who took it got a page about somebody else's project. The page
+        # is GENERATED now (`mathc install`), out of the tool's own
+        # help and the adopting project's own specification, so it
+        # cannot name a verb that does not exist and it is about the
+        # project it is installed in. The guide travels with the tool
+        # because the tool without the guide is what the agent arm
+        # measured: 35 tool calls spent reading the source to learn the
+        # interface.
         packages.portable = pkgs.stdenv.mkDerivation {
           name = "mathc-portable";
           src = ./.;
@@ -129,14 +164,14 @@
           OCAMLPATH = ocamlPath;
           buildPhase = ''
             runHook preBuild
-            dune build --root . bin/mathc.exe
+            dune build --root . bin/mathc.exe bin/stand.exe
             runHook postBuild
           '';
           installPhase = ''
             runHook preInstall
-            mkdir -p $out/bin $out/share/math-coding
+            mkdir -p $out/bin
             cp _build/default/bin/mathc.exe $out/bin/mathc
-            cp AGENTS.md $out/share/math-coding/AGENTS.md
+            cp _build/default/bin/stand.exe $out/bin/stand
             runHook postInstall
           '';
           # The fixup would put the store's C library back into the

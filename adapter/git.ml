@@ -241,6 +241,19 @@ let digest_of_scope (root : string) (scope : Domain.scope) : string option =
         let lines = List.map2 (fun path hash -> path ^ " " ^ hash) files hashes in
         Some (hash_content root (String.concat "\n" lines ^ "\n"))
 
+(** The hash of a file's own bytes, as git hashes it.
+
+    The binary says which binary it is by this hash: two different
+    builds of one version must not be mistaken for each other, and a
+    name is not enough to tell them apart. *)
+let hash_of_file (path : string) : string option =
+  if not (Sys.file_exists path) then None
+  else
+    let out, code =
+      run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
+    in
+    if code <> 0 then None else Some (String.trim out)
+
 (** The commit the tree is at, as git records it.
 
     The digest of a scope says WHAT the content is; this says WHERE it

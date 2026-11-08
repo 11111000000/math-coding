@@ -327,6 +327,14 @@ let check_the_tool (binary : string) (prefix : string list) =
       Sys.remove extra;
       shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
 
+      (* version: the binary says which binary it is. The rule was
+         declared in the README for a long time and not kept; it is kept
+         now, and the hash is of the bytes that are actually running. *)
+      let code, text = call [ "--version" ] in
+      expect_code "version" 0 (code, text);
+      assert (contains text "mathc");
+      assert (contains text "build ");
+
       (* add: the agent's move. It refuses a claim with no requirement, a
          claim outside the aim, and a claim about a path that is not
          there. *)

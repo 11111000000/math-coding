@@ -34,6 +34,7 @@ type options = {
   mutable root : string;
   mutable reason : string;
   mutable json : bool;
+  mutable version : bool;
   mutable by : string;
   mutable outcome : string;
   mutable control : string;
@@ -1419,6 +1420,7 @@ let usage_text () =
       "  --root DIR               the project (default: the working directory)";
       "  --reason TEXT            why an aim is being replaced";
       "  --json                   the map as data, for programs";
+      "  --version                the version and the build-id of this binary";
     ]
 
 let usage () = print_endline (usage_text ())
@@ -1820,6 +1822,7 @@ let parse_args (args : string list) : string list * options =
       root = "";
       reason = "";
       json = false;
+      version = false;
       by = "";
       outcome = "verified";
       control = "";
@@ -1909,6 +1912,9 @@ let parse_args (args : string list) : string list * options =
     | "--json" :: rest ->
         o.json <- true;
         loop acc rest
+    | "--version" :: rest ->
+        o.version <- true;
+        loop acc rest
     | "--requirement" :: [] ->
         Printf.eprintf "mathc: --requirement needs a requirement\n";
         exit 2
@@ -1932,9 +1938,51 @@ let parse_args (args : string list) : string list * options =
 let split_scope (text : string) : string list =
   String.split_on_char ',' text |> List.map String.trim |> List.filter (fun s -> s <> "")
 
+(** Where the running binary is.
+
+    The binary says which binary it is, by the hash of its own bytes.
+    To hash itself it has to find itself, and the path it was started
+    with may be just a name - so PATH is asked when the name is not a
+    file. *)
+let own_path () =
+  let name = Sys.executable_name in
+  if Sys.file_exists name then Some name
+  else
+    let base = Filename.basename name in
+    match Sys.getenv_opt "PATH" with
+    | None -> None
+    | Some path ->
+        List.find_opt
+          (fun dir ->
+            let candidate = Filename.concat dir base in
+            Sys.file_exists candidate)
+          (String.split_on_char ':' path)
+
+(** The version, and the build-id.
+
+    The rule is old and was not kept: "the binary tells itself apart by
+    the build-id - the hash of its own bytes is printed next to the
+    version, so that two different binaries of one version cannot be
+    confused with each other." It is kept now, and it is printed by the
+    binary and not by the packaging that built it: the hash is of the
+    bytes that are actually running. *)
+let version_text () =
+  let build =
+    match own_path () with
+    | Some path -> (
+        match Git.hash_of_file path with Some h -> h | None -> "unknown")
+    | None -> "unknown"
+  in
+  Printf.sprintf "mathc 4
+build %s
+" build
+
 let () =
   let positional, o = parse_args (Array.to_list Sys.argv |> List.tl) in
   if o.root <> "" then set_root o.root;
+  if o.version then (
+    print_string (version_text ());
+    exit 0);
   match positional with
   | [] | [ "--help" ] | [ "-h" ] ->
       usage ();
