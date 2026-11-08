@@ -6,5 +6,5 @@
 (library
  (name mathcoding_adapter)
  (wrapped false)
- (modules git exec trail v3)
+ (modules git exec trail v3 project)
  (libraries mathcoding unix yojson))

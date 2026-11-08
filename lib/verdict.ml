@@ -76,8 +76,8 @@ let aggregate (results : evidence list) : verdict =
     The moment is a VALUE, not a reading of the clock: the core has no
     clock, and a law that read the clock would be a law about the
     machine rather than about the value. *)
-let expired (now : float) (e : evidence) : bool =
-  match e.valid_until with
+let expired (now : float) (valid_until : string option) : bool =
+  match valid_until with
   | None -> false
   | Some until_ -> (
       match float_of_string_opt until_ with
@@ -101,7 +101,8 @@ let state_of_evidence (current : binding option) (now : float)
   | Some e -> (
       match current with
       | Some b when e.bound_to = b ->
-          if expired now e then Outdated else state_of_outcome e.outcome
+          if expired now e.valid_until then Outdated
+          else state_of_outcome e.outcome
       | _ -> Outdated)
 
 let verdict_of_state = function
@@ -134,17 +135,14 @@ let verdict_of_states (states : state list) : verdict =
 let spec_of (r : requirement) : string =
   match r with Verified_by spec -> spec | Reviewed_by spec -> spec
 
-(** Seconds since the epoch, as a number. The moments of two proofs
-    are compared, and the comparison must not depend on the order the
-    files were read in. *)
-let at_seconds (text : string) : float =
-  match float_of_string_opt text with Some t -> t | None -> 0.0
-
-(** The moment of a proof, when it has one. A trail written before the
-    moment was recorded has none, and an absent moment is older than
-    any recorded one. *)
+(** The moment of a proof, as seconds since the epoch. The moments of two
+    proofs are compared, and the comparison must not depend on the order
+    the files were read in. An absent moment is older than any recorded
+    one. *)
 let at_of (moment : string option) : float =
-  match moment with Some t -> at_seconds t | None -> 0.0
+  match moment with
+  | Some t -> (match float_of_string_opt t with Some v -> v | None -> 0.0)
+  | None -> 0.0
 
 (** The state of a requirement closed by an attestation: a proof from
     outside, bound to the subject as it stands. It carries the same
@@ -152,15 +150,7 @@ let at_of (moment : string option) : float =
     and the attestation may have expired. *)
 let state_of_attestation (current : binding option) (now : float)
     (a : attestation) : state =
-  let expired_now =
-    match a.valid_until with
-    | None -> false
-    | Some until_ -> (
-        match float_of_string_opt until_ with
-        | Some t -> t <= now
-        | None -> false)
-  in
-  if expired_now then Outdated
+  if expired now a.valid_until then Outdated
   else
     match current with
     | Some b when b = a.bound_to -> state_of_outcome a.outcome
@@ -195,7 +185,7 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
            (fun acc (a : attestation) ->
              match acc with
              | Some (prev : attestation) ->
-                 if at_seconds a.at >= at_seconds prev.at then Some a else Some prev
+                 if at_of (Some a.at) >= at_of (Some prev.at) then Some a else Some prev
              | None -> Some a)
            None
     in
@@ -204,7 +194,7 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
     | Some e, None -> state_of_evidence current now (Some e)
     | None, Some a -> state_of_attestation current now a
     | Some e, Some a ->
-        if at_seconds a.at >= at_of e.at then state_of_attestation current now a
+        if at_of (Some a.at) >= at_of e.at then state_of_attestation current now a
         else state_of_evidence current now (Some e)
   in
   let states = List.map for_requirement claim.requirements in
@@ -408,6 +398,32 @@ let cost_of_outcome (o : outcome) : int =
 let law_only_answers_are_free (cost' : outcome -> int) =
   List.for_all (fun o -> cost' o = 0) [ Verified; Falsified ]
   && List.for_all (fun o -> cost' o > 0) [ Unresolved; Refused ]
+
+(** The uncertainty a claim costs.
+
+    A plan is not an uncertainty. A promise about code that is not there
+    yet is work to do, and it is resolved by writing the code - not by
+    checking it, because there is nothing to check. So it costs
+    nothing, until there is code: then it is an ordinary claim, and it
+    costs what an ordinary claim costs.
+
+    Whether code exists is not the core's business - the core does not
+    see the tree - so the coverage is given from the outside. *)
+let cost_of_claim ~covers (c : claim) (s : state) : int =
+  match s with
+  | Holds | Refuted | Accepted -> 0
+  | _ -> if covers c then 1 else 0
+
+(** The law of the budget, stated over the function that decides, so that
+    a broken one - one that charges plans, or one that charges nothing -
+    can be offered to it and rejected. *)
+let law_the_budget_prices_uncertainty
+    (cost : covers:(claim -> bool) -> claim -> state -> int)
+    (covers : claim -> bool) (c : claim) (s : state) =
+  let answered = s = Holds || s = Refuted || s = Accepted in
+  if answered then cost ~covers c s = 0
+  else if covers c then cost ~covers c s = 1
+  else cost ~covers c s = 0
 
 (* ------------------------------------------------------------------ *)
 (* The proof.                                                           *)

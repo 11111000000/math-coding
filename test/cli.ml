@@ -120,14 +120,51 @@ let with_repository (f : string -> unit) =
      raise e);
   cleanup ()
 
+(* A temporary git repository with NOTHING in it. The greenfield
+   subject: a project that has a repository and no code yet. The method
+   calls an empty project a legal state, and a legal state the method
+   cannot leave is a dead end - so the first claim of such a project
+   must be declarable, and it must bind when the code appears. *)
+let with_empty_repository (f : string -> unit) =
+  let path = Filename.temp_file "mathc-cli" ".dir" in
+  Sys.remove path;
+  Unix.mkdir path 0o755;
+  let root = path in
+  shell (Printf.sprintf "git -C %s init -q ." (Filename.quote root));
+  let cleanup () = ignore (Sys.command ("rm -rf " ^ Filename.quote root)) in
+  (try f root with e ->
+     cleanup ();
+     raise e);
+  cleanup ()
+
+(* How much of the uncertainty budget the map says is spent. The map is
+   the instrument that reports it, so the test asks the instrument
+   rather than keeping a second count of its own - two counts would
+   be two truths. *)
+let consumed_by_map (text : string) : int =
+  let prefix = "uncertainty: " in
+  match
+    String.split_on_char '\n' text
+    |> List.find_opt (fun line ->
+           String.length line > String.length prefix
+           && String.sub line 0 (String.length prefix) = prefix)
+  with
+  | None -> -1
+  | Some line ->
+      let rest = String.sub line (String.length prefix) (String.length line - String.length prefix) in
+      (match String.split_on_char ' ' (String.trim rest) with
+      | number :: _ -> (
+          match int_of_string_opt number with Some n -> n | None -> -1)
+      | [] -> -1)
+
 (* --- the battery -------------------------------------------------------- *)
 
-(* The ten verbs. This list is the method's vocabulary, and the battery
+(* The verbs. This list is the method's vocabulary, and the battery
    checks it twice: against the tool, which must know every verb here,
    and against the README, which must name every verb here. *)
-let the_ten_verbs =
+let the_verbs =
   [ "init"; "goal"; "add"; "run"; "record"; "accept"; "close"; "route"; "map";
-    "next" ]
+    "next"; "wave"; "draft"; "install"; "doctor"; "propose"; "budget"; "mcp" ]
 
 let write_wave root id =
   let dir = Filename.concat root "waves" in
@@ -170,7 +207,22 @@ let write_wave_promising root id state =
 let check_the_trail_anchors_the_act (root : string) =
   let path = Filename.concat root ".math/trail.jsonl" in
   let text = read_file path in
-  let line = String.split_on_char '\n' text |> List.hd in
+  (* The trail holds acts as well as proofs - a decision of a person is
+     an act, not a check - so the first PROOF is looked for, and not
+     simply the first line. *)
+  let line =
+    String.split_on_char '\n' text
+    |> List.find (fun l ->
+           String.length l > 0
+           && (try
+                let json = Yojson.Safe.from_string l in
+                match json with
+                | `Assoc pairs ->
+                    List.mem_assoc "at_commit" pairs
+                    && List.mem_assoc "producer" pairs
+                | _ -> false
+              with Yojson.Json_error _ -> false))
+  in
   let json = Yojson.Safe.from_string line in
   let get name =
     match json with
@@ -205,15 +257,113 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_refusal "init twice" (call [ "init"; "3" ]);
 
       (* goal: the human's move. Replacing the aim needs a reason. *)
-      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "goal"
+        (call [ "goal"; "the aim"; "subject.txt,planned.txt"; "the owner" ]);
       expect_refusal "goal without a reason"
-        (call [ "goal"; "another aim"; "subject.txt"; "the owner" ]);
+        (call [ "goal"; "another aim"; "subject.txt,planned.txt"; "the owner" ]);
       expect_ok "goal with a reason"
         (call
            [
-             "goal"; "another aim"; "subject.txt"; "the owner"; "--reason";
+             "goal"; "another aim"; "subject.txt,planned.txt"; "the owner"; "--reason";
              "because the aim was wrong";
            ]);
+
+      (* install: the page for agents.
+
+         THE PAGE NEVER REACHED ANYBODY. It travelled with the portable
+         binary as a path nobody put anywhere, and the only way it ever
+         got into a project was a human copying it by hand - and the
+         page that was copied was written for THIS repository, naming
+         this repository's tree. So the page is GENERATED now, out of
+         the tool's own help and the standing specification, and it is
+         written into a marked block: a project that has its own
+         AGENTS.md keeps it, because everything outside the block
+         belongs to the project. *)
+      let page = Filename.concat root "AGENTS.md" in
+      let channel = open_out page in
+      output_string channel "# the project's own page\n\ndo not touch this\n";
+      close_out channel;
+      expect_ok "install" (call [ "install" ]);
+      let text = read_file page in
+      assert (contains text "do not touch this");
+      assert (contains text "math-coding:begin");
+      assert (contains text "math-coding:end");
+      (* And the page names every verb the tool has: a page that omits
+         one hides a tool the agent needed, and a page that names a
+         verb the tool does not have sends the agent into a verb that
+         is not there. *)
+      List.iter (fun verb -> assert (contains text ("mathc " ^ verb))) the_verbs;
+      (* The doctor checks the setup and changes nothing. *)
+      expect_ok "doctor" (call [ "doctor" ]);
+      (* The page goes stale when the specification changes - and the
+         doctor says so instead of letting a stale page rot quietly. *)
+      expect_ok "add a claim after the page"
+        (call
+           [
+             "add"; "c-late"; "a claim"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:true";
+           ]);
+      expect_code "doctor with a stale page" 1 (call [ "doctor" ]);
+      expect_ok "install again" (call [ "install" ]);
+      expect_ok "doctor again" (call [ "doctor" ]);
+
+      (* propose: drafts for a project that has code and no claims.
+
+         THE GAP. The map prints the uncovered surface and nothing
+         turned it into a claim: the first claims of every foreign
+         project were written by hand. So the drafts are made - and they
+         are drafts: the control must be written by whoever owns the
+         claim, and the checks the project has are taken from the
+         project where it says them out loud. *)
+      (* A file that no claim covers - the brownfield case in one file. *)
+      let extra = Filename.concat root "extra.txt" in
+      let channel = open_out extra in
+      output_string channel "nobody claims this\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      expect_ok "propose with no known check"
+        (call [ "propose" ]);
+      let _, text = call [ "propose" ] in
+      assert (contains text "no draft");
+      assert (contains text "extra.txt");
+      let _, text = call [ "propose"; "--check"; "true" ] in
+      assert (contains text "the uncovered surface");
+      assert (contains text "a draft");
+      (* A draft decides nothing: it says so, and it leaves the control
+         to be written. *)
+      assert (contains text "WRITE ME");
+      (* And the flag belongs to the verbs that own it, and to no
+         other. *)
+      expect_refusal "--check outside its verbs"
+        (call [ "map"; "--check"; "true" ]);
+      (* The file goes away again: the test must not leave debt behind,
+         and a suite that runs often must not leave a repository behind
+         either. *)
+      Sys.remove extra;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+
+      (* version: the binary says which binary it is. The rule was
+         declared in the README for a long time and not kept; it is kept
+         now, and the hash is of the bytes that are actually running. *)
+      let code, text = call [ "--version" ] in
+      expect_code "version" 0 (code, text);
+      assert (contains text "mathc");
+      assert (contains text "build ");
+
+      (* budget: the price of uncertainty, changed by a person - and
+         only with a reason. The budget used to be set once, by `init`,
+         and never again: a project that grew past it had no way to
+         say so except by editing the specification by hand. *)
+      expect_refusal "budget without a reason" (call [ "budget"; "5" ]);
+      expect_ok "budget with a reason"
+        (call [ "budget"; "5"; "--reason"; "the project has grown" ]);
+      let spec = read_file (Filename.concat root "spec.json") in
+      assert (contains spec "\"uncertainty_budget\": 5");
+      (* And the reason is RECORDED, not only printed: a reason that
+         lives in the output of one process is a reason nobody can
+         check. *)
+      let trail = read_file (Filename.concat root ".math/trail.jsonl") in
+      assert (contains trail "the project has grown");
 
       (* add: the agent's move. It refuses a claim with no requirement, a
          claim outside the aim, and a claim about a path that is not
@@ -236,12 +386,38 @@ let check_the_tool (binary : string) (prefix : string list) =
              "add"; "c1"; "a claim"; "elsewhere.txt"; "falsifier"; "fact";
              "--requirement"; "verifier:true";
            ]);
-      expect_refusal "add about a path that is not there"
+      (* A promise about a subject that is not there yet is a PLAN, and
+         the method accepts a plan: the refusal that used to stand
+         here made the method unusable in an empty repository, whose
+         empty state the method itself calls legal. What the method
+         will not do is pretend the plan is proven - so the claim stays
+         unknown, and the map says which of the two it is. *)
+      let _, before = call [ "map" ] in
+      let consumed_before = consumed_by_map before in
+      expect_ok "add about a path that is not there yet"
         (call
            [
-             "add"; "c1"; "a claim"; "missing.txt"; "falsifier"; "fact";
-             "--requirement"; "verifier:true";
+             "add"; "c-plan"; "a promise about code that does not exist yet";
+             "planned.txt"; "falsifier"; "fact"; "--requirement"; "verifier:true";
            ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "the subject is not there yet");
+      (* And a plan costs no budget: it is not an uncertainty, it is a
+         plan, and it is resolved by writing the code - not by checking
+         it. The claim before it IS about code that exists, and that one
+         costs. *)
+      assert (consumed_by_map text = consumed_before);
+      (* And the plan becomes a claim when the code appears: the promise
+         was not a dead end, it was a promise - and the queue said so
+         all along. *)
+      let planned = Filename.concat root "planned.txt" in
+      let channel = open_out planned in
+      output_string channel "the planned subject\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c-plan: verified");
       expect_ok "add"
         (call
            [
@@ -256,6 +432,17 @@ let check_the_tool (binary : string) (prefix : string list) =
       assert (contains text "c1");
       let code, json = call [ "map"; "--json" ] in
       assert (contains json "\"id\": \"c1\"");
+
+      (* THE MAP SAYS WHOSE CHECK WAS SHOWN ABLE TO FAIL. The machine
+         form of the map has said this for a while, and the human form
+         did not, so the two forms of one map disagreed about one claim:
+         a claim whose check has never been shown to fail looked exactly
+         like a claim whose check has.
+
+         The law is A16, and the map is where a law becomes visible. So
+         the claim without a control is named as such - in the prose the
+         human reads, not only in the JSON a program reads. *)
+      assert (contains text "the check is not proven able to fail");
 
       (* run: the verifier runs, and one of the two requirements is
          closed - so the claim is partly known, which is not the same as
@@ -304,6 +491,52 @@ let check_the_tool (binary : string) (prefix : string list) =
       expect_ok "accept" (call [ "accept"; "c2"; "owner"; "because" ]);
       let _, text = call [ "map" ] in
       assert (contains text "accepted");
+
+      (* wave: a unit of work, made by a verb. The mechanism used to be
+         WRITE-ONLY: `next` read the waves, `close` read them, and
+         nothing made them - the only way to have one was to write the
+         JSON by hand. In this repository that was survivable. In a
+         foreign project it made the mechanism unusable: the queue
+         never named a wave, and closing one always answered "no wave".
+
+         And the verb keeps the discipline of the format rather than
+         softening it: a wave without its reasoning, or without the
+         objection against it, or without a promise about a claim that
+         is declared, is not a wave. *)
+      expect_refusal "a wave without its intent"
+        (call [ "wave"; "wave-w"; "a wave"; "--check"; "true" ]);
+      expect_refusal "a wave without the objection"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+           ]);
+      expect_refusal "a wave without a check"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--intent"; "why"; "--objection";
+             "against"; "--refuted-by"; "how"; "--commit"; "c1=holds";
+           ]);
+      expect_refusal "a wave promising a claim nobody declared"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "--objection"; "against"; "--refuted-by"; "how"; "--commit";
+             "nosuchclaim=holds";
+           ]);
+      expect_ok "wave"
+        (call
+           [
+             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "--objection"; "against"; "--refuted-by"; "how"; "--commit";
+             "c1=holds";
+           ]);
+      assert (Sys.file_exists (Filename.concat root "waves/wave-w.json"));
+      (* And the wave the verb wrote is a wave the tool can read: the
+         same codec reads it back, so a wave that could not be read
+         could not have been written. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "wave wave-w");
+      expect_ok "close a wave the verb made" (call [ "close"; "wave-w" ]);
 
       (* close: a wave whose checks pass and whose declared verdict is
          established is closed - and it LEAVES THE QUEUE. *)
@@ -369,6 +602,61 @@ let check_the_tool (binary : string) (prefix : string list) =
 
 (* --- the documentation -------------------------------------------------- *)
 
+(* THE GREENFIELD. A repository with nothing in it.
+
+   The method calls an empty project a legal state, and a legal state
+   the method cannot leave is a dead end: the refusal that used to
+   stand in `add` made the first claim of a new project
+   undeclareable, so a greenfield project could adopt the method and
+   never use it.
+
+   So the promise comes first, the code comes second, and the promise
+   binds when the code is there. That is the whole of it - and it is
+   checked all the way through, because a promise that can never be
+   kept would be worse than no promise. *)
+let check_the_greenfield (binary : string) (prefix : string list) =
+  with_empty_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "src/"; "the owner" ]);
+      (* The promise comes first. *)
+      expect_ok "add a promise about code that does not exist yet"
+        (call
+           [
+             "add"; "c1"; "the parser and its tests"; "src/"; "falsifier";
+             "fact"; "--requirement"; "verifier:test -f src/parser.py";
+           ]);
+      (* The map says what it is: a plan, not a proof - and not an
+         uncertainty either, so it costs no budget. *)
+      let _, text = call [ "map" ] in
+      assert (contains text "the subject is not there yet");
+      assert (contains text "uncertainty: 0 of 3 consumed");
+      (* And the next work is to WRITE it, not to check it: telling the
+         agent to check a thing that does not exist is how a queue
+         leads an agent in a circle. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "write the subject");
+      (* The check cannot run against a subject that is not there, and
+         the method says so instead of pretending. *)
+      let code, text = call [ "run" ] in
+      expect_code "run" 3 (code, text);
+      assert (contains text "the subject is not there yet");
+      (* Now the code appears - and the promise binds to it. THIS is
+         the point: a promise made before its subject is not a promise
+         that can never be kept. *)
+      let dir = Filename.concat root "src" in
+      Unix.mkdir dir 0o755;
+      let file = Filename.concat dir "parser.py" in
+      let channel = open_out file in
+      output_string channel "def parse():\n    return 1\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c1: verified");
+      let _, text = call [ "map" ] in
+      assert (contains text "holds"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -390,11 +678,12 @@ let check_the_documentation_names_every_verb () =
   let text = read_file (Filename.concat (source_root ()) "README.md") in
   List.iter
     (fun verb -> assert (contains text ("mathc " ^ verb)))
-    the_ten_verbs
+    the_verbs
 
 let () =
   (* The real tool. *)
   check_the_tool (method_binary ()) [];
+  check_the_greenfield (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
      refuses everything: the battery must fail there. A battery that
@@ -407,6 +696,16 @@ let () =
     with _ -> true
   in
   assert detected;
+
+  (* And the greenfield battery has one too: the same check, against the
+     same broken tool, must fail there as well. *)
+  let greenfield_detected =
+    try
+      check_the_greenfield (method_binary ()) [ "--help" ];
+      false
+    with _ -> true
+  in
+  assert greenfield_detected;
 
   check_the_documentation_names_every_verb ();
   print_endline "cli: PASS"

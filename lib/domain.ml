@@ -295,28 +295,6 @@ type goal = {
   at : string;
 }
 
-(** Is a path inside a directory?
-
-    The comparison is on path boundaries, not on the letters: "library/"
-    is not inside "lib/". Getting this wrong would let a claim about a
-    similarly named directory pass as one about the intended one, and
-    the mistake would be invisible - the claim would simply bind to
-    the wrong files.
-
-    Trailing slashes are removed first, so that "lib/" and "lib" name
-    the same directory, and a directory contains itself. *)
-let path_contains ~(dir : string) ~(path : string) : bool =
-  let trim s =
-    if String.length s > 1 && s.[String.length s - 1] = '/' then
-      String.sub s 0 (String.length s - 1)
-    else s
-  in
-  let d = trim dir and p = trim path in
-  if p = d then true
-  else if String.length p > String.length d && String.sub p 0 (String.length d) = d then
-    p.[String.length d] = '/'
-  else false
-
 (** The standing specification of a project: the aim, the price of
     uncertainty that the project has agreed to pay, and the claims.
 

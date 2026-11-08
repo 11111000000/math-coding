@@ -16,7 +16,7 @@
 
 (test
  (name paths)
- (libraries mathcoding))
+ (libraries mathcoding_adapter))
 
 (test
  (name repository_lints)
@@ -54,6 +54,14 @@
 (test
  (name adapter_scope)
  (libraries mathcoding mathcoding_adapter unix))
+
+; The machine surface: the same verbs, spoken over MCP. Each method
+; returns the next step, and the battery must fail against a server
+; that answers nothing.
+(test
+ (name mcp)
+ (libraries yojson unix)
+ (deps %{exe:../bin/mathc.exe}))
 
 ; The tool itself: the ten verbs, end to end, against a temporary git
 ; repository. The tool is built first, so the test always runs against
