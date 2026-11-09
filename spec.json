@@ -727,6 +727,45 @@
       "accepted": null,
       "control": null,
       "attestations": []
+    },
+    {
+      "id": "a-control-that-bites-proves-the-check",
+      "subject": "контроль, который ломает предмет и на котором проверка краснеет, доказывает проверку: утверждение с таким контролем установлено, а без кусающегося контроля — нет",
+      "scope": [
+        "adapter/exec.ml",
+        "bin/mathc.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest test/cli.exe"
+        }
+      ],
+      "falsifier": "проверка остаётся зелёной на сломанном предмете, или утверждение с кусающимся контролем читается как установленное без него",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/let check_code = exit_code_of ~root requirement in/let check_code = 0 in/' adapter/exec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-tree-is-left-as-the-control-found-it",
+      "subject": "контроль ломает предмет на время проверки и дерево возвращается в то состояние, в котором было: следующий запуск проверки видит то же дерево",
+      "scope": [
+        "adapter/exec.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest test/cli.exe"
+        }
+      ],
+      "falsifier": "после контроля дерево остаётся изменённым, или проверка видит сломанный предмет после возврата",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/let restore_path ~(root : string) (c : changed) : bool =/let restore_path ~(root : string) (c : changed) : bool = ignore c; true;/' adapter/exec.ml",
+      "attestations": []
     }
   ]
 }
