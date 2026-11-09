@@ -1,0 +1,15 @@
+{
+  "id": "wave-21",
+  "title": "the checks that were remembered",
+  "intent": "The controls of the method's own claims were declared, and none of them could bite - and the reason was not in the controls but in the checks. Dune caches the result of a test by its dependencies, and a test that READS THE TREE has no dependency on the tree: twenty-nine of the thirty-two requirements of the method ran a cached whole-suite check, so the check had not looked at the broken subject at all, it had remembered an earlier answer. Every control was reported as 'the check passed where its negative control had to fail' - which is exactly what a remembered answer looks like. Now every requirement names the file it runs and says --force, the controls break what the check actually reads, and thirty-three of the thirty-five claims are established with a control that bit.",
+  "touches": ["spec.json", "test/", "waves/", "bin/"],
+  "checks": ["dune runtest --root . --force"],
+  "claims": ["every-check-of-the-method-is-run-again-not-remembered", "a-control-that-bites-proves-the-check", "the-tree-is-left-as-the-control-found-it"],
+  "commitment": [
+    { "claim": "every-check-of-the-method-is-run-again-not-remembered", "state": "holds" },
+    { "claim": "a-control-that-bites-proves-the-check", "state": "holds" },
+    { "claim": "the-tree-is-left-as-the-control-found-it", "state": "holds" }
+  ],
+  "objection": "The map of the method is now almost green, and that is not a fact about the usefulness of the method: it is a fact about the method's own claims. The controls that bite prove that the checks of the method are not blind - they say nothing about whether the method adds anything to what an agent does without it. The arm of the agent has still not been run once on this build, and every wave before this one said the same thing.",
+  "refuted_by": "the arm of the agent, run on the tree of this method with this build: if the protocol still catches nothing beyond what the agent catches without it, then the controls are sound and the method is still not useful"
+}

@@ -341,7 +341,7 @@
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/let caught = count \"refuted\" in/let caught = 0 in/' bin/stand.ml",
+      "control": "sed -i 's/not computable - no defect was caught/not computable - no defect was caught (mutated)/' bin/stand.ml",
       "attestations": []
     },
     {
@@ -775,6 +775,25 @@
       "register": "fact",
       "accepted": null,
       "control": "sed -i 's/let restore_path ~(root : string) (c : changed) : bool =/let restore_path ~(root : string) (c : changed) : bool = ignore c; true;/' adapter/exec.ml",
+      "attestations": []
+    },
+    {
+      "id": "every-check-of-the-method-is-run-again-not-remembered",
+      "subject": "каждая проверка метода запускается заново, а не возвращается из кэша: проверка, которая читает дерево, обязана говорить --force, иначе она помнит прежний ответ и не видит сломанный предмет",
+      "scope": [
+        "spec.json",
+        "test/spec_force.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/spec_force.exe"
+        }
+      ],
+      "falsifier": "требование утверждения метода может быть выполнено без --force и при этом остаться проверкой",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/dune runtest --root . --force/dune runtest --root ./' spec.json",
       "attestations": []
     }
   ]

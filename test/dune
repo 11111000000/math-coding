@@ -83,3 +83,10 @@
  (modules cli)
  (libraries mathcoding yojson unix)
  (deps %{exe:../bin/mathc.exe}))
+
+; Every check of the method is run again, not remembered: dune caches a
+; test result, and a test that reads the tree has no dependency on it.
+(test
+ (name spec_force)
+ (modules spec_force)
+ (libraries yojson))
