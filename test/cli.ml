@@ -293,6 +293,14 @@ let check_the_tool (binary : string) (prefix : string list) =
          verb the tool does not have sends the agent into a verb that
          is not there. *)
       List.iter (fun verb -> assert (contains text ("mathc " ^ verb))) the_verbs;
+      (* THE BUDGET OF THE PAGE. The page is read by every agent that opens
+         the repository, so its cost is paid every time - and it is the
+         method's own cost, not the project's. The page carries the next
+         step and the counts; the map is one command away. A page that
+         grows with the corpus is a page that taxes every agent that
+         arrives. *)
+      let page_bytes = String.length text in
+      assert (page_bytes <= 1600);
       (* The doctor checks the setup and changes nothing. *)
       expect_ok "doctor" (call [ "doctor" ]);
       (* The page goes stale when the specification changes - and the

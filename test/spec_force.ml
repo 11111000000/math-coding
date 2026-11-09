@@ -32,9 +32,9 @@ let read_file path =
    always named _build, so the source tree is its parent. *)
 let source_root () =
   let rec loop d =
-    if String.basename d = "_build" then String.dirname d
+    if Filename.basename d = "_build" then Filename.dirname d
     else
-      let parent = String.dirname d in
+      let parent = Filename.dirname d in
       if parent = d then d else loop parent
   in
   loop (Sys.getcwd ())
@@ -60,9 +60,17 @@ let list_field name (json : Yojson.Safe.t) : Yojson.Safe.t list =
 (* A check that is run again, or one that is not. The nix builds are
    exempt: nix does not cache a failed build, and a flake that does not
    parse fails every time it is asked. *)
+let contains hay needle =
+  let n = String.length hay and m = String.length needle in
+  let found = ref false in
+  let i = ref 0 in
+  while (not !found) && !i + m <= n do
+    if String.sub hay !i m = needle then found := true else i := !i + 1
+  done;
+  !found
+
 let is_run_again (cmd : string) : bool =
-  String.length cmd >= 8 && String.sub cmd 0 8 = "--force "
-  || String.length cmd >= 8 && String.sub cmd 0 8 = "nix build"
+  contains cmd "--force" || contains cmd "nix build"
 
 let () =
   let spec = Yojson.Safe.from_string (read_file (in_repo "spec.json")) in
@@ -71,8 +79,11 @@ let () =
     (fun claim ->
       List.iter
         (fun r ->
+          (* A review is closed by a person, not run by a command: there
+             is nothing for a cache to remember. *)
+          let kind = string_field "kind" r in
           let cmd = string_field "spec" r in
-          if cmd <> "" && not (is_run_again cmd) then
+          if kind = "verifier" && cmd <> "" && not (is_run_again cmd) then
             failwith
               (Printf.sprintf
                  "the check of a claim is remembered, not run again: %s" cmd))

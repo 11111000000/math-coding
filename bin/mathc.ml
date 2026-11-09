@@ -1582,6 +1582,22 @@ let usage_text () =
 
 let usage () = print_endline (usage_text ())
 
+(** The verbs of the tool, as its own help names them. The page has to
+    name every one of them: a page that names a verb the tool does not
+    have sends an agent into a verb that is not there, and a page that
+    omits one hides a tool the agent needed. *)
+let verbs_of_help (help : string) : string list =
+  help
+  |> String.split_on_char '\n'
+  |> List.filter_map (fun line ->
+         let trimmed = String.trim line in
+         if String.length trimmed > 6 && String.sub trimmed 0 6 = "mathc " then
+           let rest = String.sub trimmed 6 (String.length trimmed - 6) in
+           match String.index_opt rest ' ' with
+           | Some i -> Some (String.sub rest 0 i)
+           | None -> Some rest
+         else None)
+
 (** THE PAGE FOR AGENTS.
 
     THE PAGE NEVER REACHED ANYBODY. It travelled with the portable
@@ -1624,56 +1640,51 @@ let entry_page () =
       add
         "There is no aim yet. The aim belongs to a person, and it is the boundary\n\
          of the work:\n\n```sh\nmathc goal \"...\" SCOPE \"who\"\n```\n\n");
-  add "### The verbs\n\n```sh\n";
-  Buffer.add_string b (usage_text ());
-  add "```\n\n";
+  add "### The next step\n\n```sh\nmathc --root . next\n```\n\n";
   add "### What is declared\n\n";
   if spec.Domain.claims = [] then
     add
       "Nothing is declared yet, and that is a legal state, not a defect. The map\n\
        says so:\n\n```sh\nmathc --root . map\n```\n\n"
   else (
-    add "| claim | state | how it is closed |\n|---|---|---|\n";
-    List.iter
-      (fun (id, state) ->
-        let checks =
-          match List.find_opt (fun (c : Domain.claim) -> c.id = id) spec.Domain.claims with
-          | Some c ->
-              String.concat "; "
-                (List.map
-                   (fun (r : Domain.requirement) ->
-                     match r with
-                     | Domain.Verified_by spec -> "`" ^ spec ^ "`"
-                     | Domain.Reviewed_by who -> "review by " ^ who)
-                   c.Domain.requirements)
-          | None -> ""
-        in
-        add "| `%s` | %s | %s |\n" id (Domain.state_name state) checks)
-      states;
-    add "\n");
+    (* THE PAGE IS THE ENTRANCE, NOT THE ARCHIVE. The table of claims used
+       to be here, and it grew with the method: for the method's own
+       repository it was thirty-five rows, and every agent that opened the
+       repository paid for them before doing anything. What an agent needs
+       at the entrance is the counts; the map is one command away for the
+       rest. *)
+    let count wanted =
+      List.length (List.filter (fun (_, s) -> s = wanted) states)
+    in
+    let not_established =
+      List.length
+        (List.filter
+           (fun (_, s) ->
+             s <> Domain.Holds && s <> Domain.Refuted && s <> Domain.Accepted)
+           states)
+    in
+    add "%d claim(s): %d holds, %d not established.\n\n" (List.length states)
+      (count Domain.Holds) not_established;
+    add "The full list, and what is not covered: `mathc --root . map`.\n\n");
   add "### If you are an agent here\n\n";
   add
-    "1. Start with the map: `mathc --root . map` - what is claimed, what is known,\n\
-    \   what is not covered. The map never refuses.\n";
-  add
-    "2. Declare what you are working on: `mathc --root . add <id> \"<subject>\" \\\n\
-    \   \"<scopes, comma-separated>\" \"<what would refute it>\" <register> \\\n\
-    \   --requirement \"verifier:<command>\" --control \"<command>\"`. The control is\n\
-    \   the command that breaks the subject and must fail with it: a check that\n\
-    \   cannot fail proves nothing, and the map says whose check is proven able\n\
-    \   to fail.\n";
-  add
-    "3. Run the checks: `mathc --root . run` - the method runs them and binds every\n\
-    \   proof to the content it ran against.\n";
-  add
-    "4. Make a unit of work: `mathc --root . wave <id> \"<title>\" --intent \"...\" \\\n\
-    \   --objection \"...\" --refuted-by \"...\" --check \"<command>\" \\\n\
-    \   --commit \"<claim>=<state>\"`, and close it with `mathc --root . close\n\
-    \   <wave>` when its promises are met.\n";
-  add
-    "5. If the map says there is no uncertainty left and nothing uncovered, the\n\
-    \   right move is to say that there is nothing to improve. Recursion without\n\
-    \   the right to stop is not self-improvement, it is cancer.\n";
+    "```sh\n\
+     mathc map      # what is claimed, what is known, what is not covered\n\
+     mathc run      # run the checks, bind every proof to the content it ran against\n\
+     mathc route    # what needs a person, and why\n\
+     mathc next     # the next work, one item\n\
+     mathc add ID \"SUBJECT\" SCOPE \"WHAT WOULD REFUTE IT\" fact \\\n\
+     \   --requirement verifier:CMD --control CMD\n\
+     ```\n\n\
+     The control is the command that breaks the subject and must fail with it:\n\
+     a check that cannot fail proves nothing.\n\n\
+     For an agent the machine surface is cheaper: `mathc --root . mcp` speaks\n\
+     JSON-RPC and returns the next step with every method.\n\n";
+  add "Every verb: ";
+  add "%s"
+    (String.concat " \xc2\xb7 "
+       (List.map (fun v -> "mathc " ^ v) (verbs_of_help (usage_text ()))));
+  add ".\n";
   Buffer.contents b
 
 (** The markers of the block the tool owns. Everything outside them is
@@ -1737,18 +1748,6 @@ let verb_install () =
     name every one of them: a page that names a verb the tool does not
     have sends an agent into a verb that is not there, and a page that
     omits one hides a tool the agent needed. *)
-let verbs_of_help (help : string) : string list =
-  help
-  |> String.split_on_char '\n'
-  |> List.filter_map (fun line ->
-         let trimmed = String.trim line in
-         if String.length trimmed > 6 && String.sub trimmed 0 6 = "mathc " then
-           let rest = String.sub trimmed 6 (String.length trimmed - 6) in
-           match String.index_opt rest ' ' with
-           | Some i -> Some (String.sub rest 0 i)
-           | None -> Some rest
-         else None)
-
 (** Does the text contain the word, and not a longer word with it
     inside? "init" must not be found in "initialise". *)
 let contains_word (haystack : string) (needle : string) =

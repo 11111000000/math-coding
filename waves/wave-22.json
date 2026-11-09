@@ -1,0 +1,13 @@
+{
+  "id": "wave-22",
+  "title": "the page the agent pays for",
+  "intent": "The page for agents was measured: 1 046 tokens, and 632 of them were the tool's own help - a vocabulary an agent pays for on every arrival, before it does anything. The claims table made it worse: for the method's own repository it was thirty-five rows, and it grew with the corpus, so the price of entering the project grew with the project. The page is now the entrance and not the archive: the next step, the counts, the commands an agent actually needs, and one line naming every verb. The map is one command away, and the machine surface returns the next step with every method, so an agent pays for a structure instead of a wall of prose.",
+  "touches": ["bin/", "test/", "spec.json", "waves/", "README.md"],
+  "checks": ["dune runtest --root . --force"],
+  "claims": ["the-page-of-the-method-costs-the-agent-nothing-to-read"],
+  "commitment": [
+    { "claim": "the-page-of-the-method-costs-the-agent-nothing-to-read", "state": "holds" }
+  ],
+  "objection": "A thin page says less, and the agent that reads less knows less: the table of claims was a map in the map, and the counts are a summary of a summary. If an agent arrives and the page no longer tells it what is claimed, the page has traded truth for brevity and the method has become a page that looks useful and is not. The answer named here is that the counts are a pointer, not a replacement, and the map is one command away - but nobody has measured whether an agent takes that step.",
+  "refuted_by": "an agent that arrives at a project with the thin page and declares nothing, because the page no longer said what was claimed - the measurement of the page is the behaviour of the agent that reads it"
+}

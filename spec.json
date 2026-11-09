@@ -795,6 +795,26 @@
       "accepted": null,
       "control": "sed -i 's/dune runtest --root . --force/dune runtest --root ./' spec.json",
       "attestations": []
+    },
+    {
+      "id": "the-page-of-the-method-costs-the-agent-nothing-to-read",
+      "subject": "страница для агента стоит не больше 1 400 байт: она несёт следующий шаг, счётчики и команды, а не словарь утилиты и не таблицу утверждений",
+      "scope": [
+        "bin/mathc.ml",
+        "test/cli.ml",
+        "AGENTS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "страница перерастает бюджет: словарь утилиты или таблица утверждений возвращаются в неё",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's|add \"### The next step|add \"### The verbs\\\\n\\\\n\" ^ usage_text () ^ \"\\\\n\\\\n### The next step|' bin/mathc.ml",
+      "attestations": []
     }
   ]
 }
