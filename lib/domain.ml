@@ -179,28 +179,16 @@ type claim = {
     The evidence names WHICH requirement it closes, and who produced
     it. Both matter: the requirement says what kind of confirmation
     this is, and the producer says whether it is the confirmation that
-    was asked for. Evidence the method produced by running a command
-    has the command as its producer; evidence that came from outside -
-    a person, a CI run, a deployment - has whoever gave it.
+    was asked for.
 
-    THE ACT IS ANCHORED TOO. [at_commit] is the commit the subject's
-    content was read from when the evidence was produced, and [at] is
-    the moment of production. The binding [bound_to] says WHAT the proof
-    is about - the content of the scope; the commit says WHERE that
-    content was, and the moment says WHEN the proof was made. Without
-    the commit a proof says "this is true of these files" and not
-    "true of them as of this change", and an audit of the change that
-    discharged a requirement has nothing to hold on to. The third
-    version had this anchor ([candidate_tree]) and the fourth lost it
-    with the whole corpus; it costs one field to have it back, and it
-    is a fact about the production of the proof, not a state of the
-    claim.
-
-    [valid_until] is when the proof stops counting, if the producer
-    says so. A proof that has expired is not a proof any more, and the
-    claim it was about is unknown again - which is a different fault
-    from "the subject moved", and the difference matters to whoever
-    has to redo the work. *)
+    THE ACT IS ANCHORED TOO. [bound_to] says WHAT the proof is about -
+    the content of the scope; [at_commit] says where the repository was
+    when it was made, and [at] when; [valid_until] is when it stops
+    counting. A proof with no anchor says "this is true of these
+    files" and not "true of them as of this change", and an audit of
+    the change that discharged a requirement has nothing to hold on
+    to. These are facts about the production of a proof, not states of
+    a claim - see AXIOMS.md for the full account. *)
 type evidence = {
   claim : claim;
   requirement : requirement;

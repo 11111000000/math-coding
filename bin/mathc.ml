@@ -104,9 +104,28 @@ let load_spec () : Domain.spec =
     method is what manages them. *)
 let save_spec (spec : Domain.spec) =
   let json = Spec.spec_to_json spec in
+  let text = Yojson.Safe.pretty_to_string json ^ "\n" in
+  (* THE WRITER PROVES ITSELF BY THE READER, BEFORE IT WRITES.
+
+     A writer that can write a specification the reader refuses has
+     BRICKED the project: every verb begins by reading it, `init`
+     refuses to start a second one, and the only way back is to edit
+     the file by hand. The wave verb already proved itself this way;
+     the others did not, and one `goal` with an empty attribution was
+     enough - from then on `map`, `run`, `next`, `route`, `doctor`,
+     `install` and `goal` itself all failed with "the standing
+     specification is not readable", and `doctor` - whose whole job is
+     to say what is broken - died with the same message and no
+     diagnosis.
+
+     So nothing invalid is ever written. *)
+  (match Spec.parse_spec_string text with
+  | Ok _ -> ()
+  | Error e ->
+      Printf.eprintf "mathc: the specification was not written: %s\n" (Spec.message_of e);
+      exit 2);
   let channel = open_out (spec_path ()) in
-  output_string channel (Yojson.Safe.pretty_to_string json);
-  output_char channel '\n';
+  output_string channel text;
   close_out channel
 
 (** The newest evidence for each claim. The trail may hold many runs of
@@ -146,14 +165,18 @@ let latest_evidence (claims : Domain.claim list) : Domain.evidence list =
 let binding_of (claim : Domain.claim) : Domain.binding option =
   Git.digest_of_scope (root ()) claim.subject.scope
 
-(** The production facts of a proof: the commit the content was read
-    from and the moment of production.
+(** The production facts of a proof: the commit the repository was at
+    when the proof was made, and the moment of production.
 
-    The content the method binds to is the content of HEAD - the
-    committed tree - so the commit is exactly the one the proof is
-    about, and not an approximation of it. A repository with no commits
-    has no HEAD, and then there is nothing to anchor to: the field is
-    absent rather than empty. *)
+    THE COMMIT IS AN ANCHOR, NOT THE SUBJECT. The content a proof is
+    about is the WORKING TREE - the checks ran there, and the binding
+    is the digest of that content - and the comment this one used to
+    carry said the opposite, which is how the anchor came to point at
+    the wrong thing. A commit names a point in the history; it does not
+    name the bytes that were checked when the tree was dirty, and an
+    agent's tree is normally dirty. The digest says which bytes; the
+    commit says where the repository was; the map says both, and says
+    when they are not the same thing. *)
 let production_facts () =
   ( Git.head_commit (root ()),
     Some (Printf.sprintf "%.0f" (Unix.time ())) )
@@ -220,6 +243,46 @@ let established_scopes (claims : Domain.claim list)
       | _ -> None)
     states
 
+(** WHAT THE CONTROL SHOWED.
+
+    The map used to print "the check is proven able to fail" on the
+    strength of a DECLARED control - a string in the specification -
+    and it said so about a control that had never run, about a command
+    that did not exist, and about a check that was never shown failing.
+    The note is computed from the EVIDENCE now: what the check said when
+    the control was applied, and whether the control changed the subject
+    at all.
+
+    It is computed in ONE place, because the prose map and the machine
+    map are the same map: two forms that said different things about the
+    same project were two truths about it. *)
+let control_note (state : Domain.state) (claim : Domain.claim option)
+    (evidence : Domain.evidence option) : string =
+  match state with
+  | Domain.Holds -> "the control bit: the check was shown able to fail"
+  | Domain.Inconclusive -> (
+      match claim with
+      | None -> ""
+      | Some c -> (
+          match c.Domain.control with
+          | None -> "no control is declared: the check was never shown able to fail"
+          | Some _ -> (
+              match evidence with
+              | None -> "the control has not run: the check was never shown able to fail"
+              | Some e -> (
+                  match e.Domain.control with
+                  | Some Domain.Falsified ->
+                      "the control bit: the check was shown able to fail"
+                  | Some _ ->
+                      "the control did not bite: the check was never shown able to fail"
+                  | None ->
+                      "the control has not run: the check was never shown able to fail"))))
+  | _ ->
+      (* The state already names the fault: never checked, outdated,
+         refuted, not checkable. A note here would say less than the
+         state and be read as a second opinion about it. *)
+      ""
+
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
 (** The map, as data. The same map the human reads, in a form a program
@@ -280,19 +343,28 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                          | Some c -> `String c
                          | None -> `Null)
                      | None -> `Null );
-                   ( "control",
-                     match
-                       List.find_opt
-                         (fun (c : Domain.claim) -> c.id = id)
-                         claims
-                     with
-                     | Some c -> (
-                         match c.control with
-                         | Some _ -> `String "the check is proven able to fail"
-                         | None ->
-                             `String
-                               "the check is not proven able to fail: declare its control")
-                     | None -> `Null );
+                    ( "control",
+                      match
+                        List.find_opt
+                          (fun (e : Domain.evidence) -> e.claim.id = id)
+                          (latest_evidence claims)
+                      with
+                      | Some e -> (
+                          match
+                            List.find_opt
+                              (fun (c : Domain.claim) -> c.id = id)
+                              claims
+                          with
+                          | Some c -> `String (control_note state (Some c) (Some e))
+                          | None -> `Null)
+                      | None -> (
+                          match
+                            List.find_opt
+                              (fun (c : Domain.claim) -> c.id = id)
+                              claims
+                          with
+                          | Some c -> `String (control_note state (Some c) None)
+                          | None -> `Null) );
                    ( "produced_by",
                      match
                        List.find_opt
@@ -407,15 +479,14 @@ let verb_map json =
 
            The law is A16: a check that cannot fail proves nothing.
            The control is what shows it can. So the map says which is
-           which, in the same breath as the state. *)
-        let control_note =
-          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
-          | Some c -> (
-              match c.Domain.control with
-              | Some _ -> ""
-              | None -> " (the check is not proven able to fail)")
-          | None -> ""
-        in
+           which, in the same breath as the state.
+
+           IT IS NOW SAID FROM THE EVIDENCE. It used to be said from
+           the DECLARATION - the presence of a control string - and it
+           said "the check is proven able to fail" about a control that
+           had never run and about a command that did not exist. A
+           claim that HOLDS needs no note: since the law of A16 entered
+           the core, holding means the control bit. *)
         (* WHY the check could not tell. An inconclusive claim without
            its reason is a shrug with a state attached. *)
         let reason_note =
@@ -436,6 +507,24 @@ let verb_map json =
                   | None -> "")
               | None -> "")
           | _ -> ""
+        in
+        (* THE CONTROL, IN THE PROSE TOO - but only when it is what the
+           state does not already say. A claim that holds needs no note:
+           since A16 entered the core, holding means the control bit. A
+           claim that was never checked, or whose subject moved, is
+           named by its state, and a note beside it would be a second
+           opinion about a fault already named. What is left is the one
+           case the state cannot name by itself: the check passed and
+           was never shown able to fail. *)
+        let control_note =
+          if reason_note <> "" then ""
+          else
+            let note =
+              control_note state
+                (List.find_opt (fun (c : Domain.claim) -> c.id = id) claims)
+                evidence_of_claim
+            in
+            if note = "" then "" else " (" ^ note ^ ")"
         in
         (* THE SUBJECT THAT IS NOT THERE YET. A claim about code that
            does not exist yet is a plan, and the map says so - it does
@@ -612,17 +701,17 @@ let verb_run () =
                          somewhere else entirely, and until it is shown
                          red on the broken subject, the green it gives
                          says nothing about the subject. *)
-                      let outcome, reason, control_outcome =
-                        match (outcome, claim.control) with
-                        | Domain.Verified, Some control ->
-                            let c_outcome, c_reason =
-                              Exec.run_control ~root:(root ()) ~control ~requirement:command
-                            in
-                            (match c_outcome with
-                            | Domain.Falsified -> (Domain.Verified, None, Some Domain.Falsified)
-                            | _ -> (Domain.Unresolved, c_reason, Some c_outcome))
-                        | _ -> (outcome, reason, None)
-                      in
+                       let outcome, reason, control_outcome =
+                         match (outcome, claim.control) with
+                         | Domain.Verified, Some control ->
+                             let c_outcome, c_reason =
+                               Exec.run_control ~root:(root ()) ~control ~requirement:command
+                             in
+                             (match c_outcome with
+                             | Domain.Falsified -> (Domain.Verified, c_reason, Some Domain.Falsified)
+                             | _ -> (Domain.Unresolved, c_reason, Some c_outcome))
+                         | _ -> (outcome, reason, None)
+                       in
                       Printf.printf "%s: %s\n" claim.id
                         (match outcome with
                         | Domain.Verified -> "verified"
@@ -661,10 +750,22 @@ let verb_run () =
 
     So: [mathc record CLAIM SPEC --by WHO --outcome OUTCOME] closes the
     requirement of CLAIM that names SPEC, and says who produced it. A
-    verifier requirement is closed by a record of the same command;
-    a review requirement is closed by the authority's word. The binding
+    REVIEW requirement is closed by the authority's word. The binding
     is the subject's digest as it stands now, so the record is about
-    the subject as it is, not as it was. *)
+    the subject as it is, not as it was.
+
+    A VERIFIER REQUIREMENT IS NOT CLOSED BY A RECORD. It used to be,
+    and that was a hole straight through the middle of the method: the
+    method could run the command itself, so a word from outside stood
+    in for a proof the method never made - and nobody could tell the
+    two apart afterwards. A command that does not exist, recorded as
+    verified, made the project green.
+
+    The kinds are the point, and they are separated here and in the
+    core: a procedure is closed by a procedure, a person is closed by a
+    person. A CI run has a place too: it is somebody else's word about
+    the subject, which is what a REVIEW requirement asks for. Declare
+    [review:ci] and the record closes it. *)
 let verb_record claim_id spec by outcome (reason : string) (valid_for : string) =
   let spec_loaded = load_spec () in
   let refuse why =
@@ -715,6 +816,16 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
                        | Reviewed_by a -> a)
                      claim.requirements)))
       | Some requirement -> (
+          match requirement with
+          | Verified_by _ ->
+              refuse
+                (Printf.sprintf
+                   "a record cannot close the procedure %S of the claim %s: the method can \
+                    run that command itself, and a word from outside cannot stand in for a \
+                    proof it never made. Declare a review requirement (review:ci) if the \
+                    command ran elsewhere"
+                   spec claim_id)
+          | Reviewed_by _ -> (
           match binding_of claim with
           | None ->
               refuse "the scope names no existing path, so nothing could be bound"
@@ -776,7 +887,7 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
               Printf.printf
                 "  the attestation is in the specification, and the subject it was produced against is %s\n"
                 (String.sub binding 0 (min 12 (String.length binding)));
-              0))
+              0)))
 
 (** The waves of a project, in the order they were declared. A wave is
     a slice of work; the queue is these waves that are not yet
@@ -903,7 +1014,19 @@ let verb_next () =
       | Some c -> (
           match Git.missing_paths (root ()) c.subject.scope with
           | [] ->
-              Printf.printf "next: check the claim %s - it is not known now\n" id
+              (* THE NEXT WORK IS SOMETIMES "GIVE IT A CONTROL". A claim
+                 whose check was never shown able to fail cannot be
+                 closed by checking it again: the check will pass
+                 again, and the claim will be as unestablished as it
+                 was. The work is to write the command that breaks the
+                 subject - and the method now has a verb for it. *)
+              if c.Domain.control = None then
+                Printf.printf
+                  "next: give the claim %s a control - its check was never shown able to \
+                   fail: mathc control %s \"COMMAND\"\n"
+                  id id
+              else
+                Printf.printf "next: check the claim %s - it is not known now\n" id
           | missing ->
               Printf.printf
                 "next: write the subject of the claim %s - missing: %s\n" id
@@ -1280,6 +1403,10 @@ let verb_goal text scope by reason =
     if text = "" then Some "the aim needs a text"
     else if scope = [] then
       Some "the aim needs a scope: an aim about nothing aims at nothing"
+    else if by = "" then
+      Some
+        "the aim needs an author: the aim belongs to a person, and the method attributes \
+         it"
     else if reason = "" && spec.goal <> None then
       Some
         "there is already an aim, and replacing it needs a reason: --reason \"...\""
@@ -1358,6 +1485,8 @@ let verb_add id subject scope requirements falsifier register control =
     | Some _ ->
         if scope = [] then
           Some "the scope is empty: a claim about nothing is not a claim"
+        else if subject = "" then
+          Some "the subject is empty: a claim must say what it claims"
         else if requirements = [] then
           Some "the requirements are empty: a promise with no way to be closed is not a claim"
         else if falsifier = "" then
@@ -1471,6 +1600,52 @@ let verb_budget (budget : int) (reason : string) =
     The acceptance is recorded in the standing specification, so the
     map can show it, and in the trail, so the history of who took
     responsibility for what can be read later. *)
+(** control: give a claim the command that shows its check can fail.
+
+    A claim may be DECLARED without a control - the control is asked
+    for, not forced, because a forced one would be a formality, and a
+    claim about code that is not there yet has nothing to break yet.
+
+    But a claim whose check was never shown able to fail is a request,
+    not a proof (law A16), and a request that cannot be closed is a
+    DEADLOCK: the agent had no way to give the claim its control, and
+    the only way out was to edit the specification by hand. The method
+    calls a legal state it cannot leave "not a state, but a deadlock",
+    and this was one.
+
+    So the control can be given later, and the claim becomes
+    establishable. *)
+let verb_control id command =
+  let spec = load_spec () in
+  let refuse why =
+    Printf.eprintf "mathc: the control is not attached: %s\n" why;
+    2
+  in
+  let problem =
+    if id = "" then Some "a control needs the claim it belongs to"
+    else if command = "" then
+      Some
+        "a control needs a command: the one that breaks the subject and must fail with it"
+    else None
+  in
+  match problem with
+  | Some why -> refuse why
+  | None -> (
+      match List.find_opt (fun (c : Domain.claim) -> c.id = id) spec.Domain.claims with
+      | None -> refuse (Printf.sprintf "there is no claim %S" id)
+      | Some _ ->
+          save_spec
+            {
+              spec with
+              Domain.claims =
+                List.map
+                  (fun (c : Domain.claim) ->
+                    if c.id = id then { c with Domain.control = Some command } else c)
+                  spec.Domain.claims;
+            };
+          Printf.printf "the control of %s is: %s\n" id command;
+          0)
+
 let verb_accept id by reason =
   let spec = load_spec () in
   let problem =
@@ -1551,6 +1726,9 @@ let usage_text () =
       "                                 and must fail with it: a check that cannot fail proves nothing";
       "                               a claim without a requirement is refused";
       "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
+      "  mathc control ID CMD       give a claim the command that breaks the subject";
+      "                               and must fail with it: without it the claim";
+      "                               is a request, and a request is not a proof";
       "  mathc budget N            the price of uncertainty, changed by a person;";
       "                               --reason says why";
       "  mathc map               the standing specification: claims, states, uncovered";
@@ -1626,10 +1804,9 @@ let entry_page () =
   let b = Buffer.create 4096 in
   let add fmt = Printf.ksprintf (Buffer.add_string b) fmt in
   add "## math-coding in this project\n\n";
-  add "This block is written by `mathc install` and by nothing else.\n";
-  add "Everything outside it belongs to the project and is never touched.\n";
-  add "Re-run `mathc install` after the specification changes;\n";
-  add "`mathc doctor` says whether this block is current.\n\n";
+  add
+    "Written by `mathc install` and by nothing else; everything outside this\n\
+     block belongs to the project. `mathc doctor` says whether it is current.\n\n";
   add "### The aim\n\n";
   (match spec.Domain.goal with
   | Some g ->
@@ -1675,9 +1852,10 @@ let entry_page () =
      mathc next     # the next work, one item\n\
      mathc add ID \"SUBJECT\" SCOPE \"WHAT WOULD REFUTE IT\" fact \\\n\
      \   --requirement verifier:CMD --control CMD\n\
+     mathc control ID CMD   give a claim its control, later\n\
      ```\n\n\
      The control is the command that breaks the subject and must fail with it:\n\
-     a check that cannot fail proves nothing.\n\n\
+     a check that cannot fail proves nothing - and a claim without one is a request.\n\n\
      For an agent the machine surface is cheaper: `mathc --root . mcp` speaks\n\
      JSON-RPC and returns the next step with every method.\n\n";
   add "Every verb: ";
@@ -2251,6 +2429,12 @@ let () =
             | _ :: id :: by :: reason :: _ -> verb_accept id by reason
             | _ ->
                 Printf.eprintf "mathc: accept needs ID BY REASON\n";
+                2)
+        | "control" -> (
+            match positional with
+            | _ :: id :: command :: _ -> verb_control id command
+            | _ ->
+                Printf.eprintf "mathc: control needs CLAIM COMMAND\n";
                 2)
         | "map" -> verb_map o.json
         | "route" -> verb_route ()

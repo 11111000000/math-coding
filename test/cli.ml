@@ -378,10 +378,13 @@ let check_the_tool (binary : string) (prefix : string list) =
          there. *)
       expect_refusal "add without a requirement"
         (call [ "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact" ]);
-      (* A claim may be declared without a control - but then the map
-         says that its check is not proven able to fail. The control is
-         asked for, not forced: a forced one would be a formality, and a
-         formality is what the method refuses to be. *)
+      (* A claim may be DECLARED without a control - the control is
+         asked for, not forced, because a forced one would be a
+         formality and a formality is what the method refuses to be.
+         But it is not ESTABLISHED without one: the control is what
+         shows the check can fail, and a check that was never shown
+         able to fail proves nothing (law A16). So the claim runs, and
+         it comes out inconclusive rather than holding. *)
       expect_ok "add without a negative control"
         (call
            [
@@ -424,7 +427,11 @@ let check_the_tool (binary : string) (prefix : string list) =
       close_out channel;
       shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
       let code, text = call [ "run" ] in
-      expect_code "run" 0 (code, text);
+      (* The run is UNKNOWN, not green: one of the claims in this
+         repository has no control, so its check was never shown able
+         to fail, and the method says "I do not know" instead of
+         "it holds". *)
+      expect_code "run" 3 (code, text);
       assert (contains text "c-plan: verified");
       expect_ok "add"
         (call
@@ -449,8 +456,11 @@ let check_the_tool (binary : string) (prefix : string list) =
 
          The law is A16, and the map is where a law becomes visible. So
          the claim without a control is named as such - in the prose the
-         human reads, not only in the JSON a program reads. *)
-      assert (contains text "the check is not proven able to fail");
+         human reads, not only in the JSON a program reads. And it is
+         named from the EVIDENCE, not from the declaration: the map
+         used to say "the check is proven able to fail" about a control
+         that had never run. *)
+      assert (contains text "no control is declared");
 
       (* run: the verifier runs and its control bites, so the verifier is
          closed - but the review is not, so the claim is partly known,
@@ -554,11 +564,15 @@ let check_the_tool (binary : string) (prefix : string list) =
       let _, text = call [ "next" ] in
       assert (not (contains text "wave wave-x"));
 
-      (* next: the work that is left. Nothing is left here, and saying
-         so is the answer. *)
-      let code, text = call [ "next" ] in
-      expect_code "next" 0 (code, text);
-      assert (contains text "nothing to do");
+      (* And the control can be given to a claim that was declared
+         without one: the method does not leave the agent at a dead
+         end. Before the law of A16 entered the core, such a claim was
+         green like any other; now it is a request, and a request has
+         to be closable - so the control can be attached later. *)
+      expect_ok "attach a control to a declared claim"
+        (call [ "control"; "c-nocontrol"; "printf broken > subject.txt" ]);
+      expect_refusal "a control for a claim that is not there"
+        (call [ "control"; "c-nothing"; "true" ]);
 
       (* A wave whose promise is not met does not close, and it stays
          in the queue. The promise is the criterion: a wave that
@@ -663,7 +677,12 @@ let check_the_promised_surface (binary : string) (prefix : string list) =
         (call
            [
              "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact";
-             "--requirement"; "verifier:true";
+             (* The check and the control that breaks it: the check says
+                the subject is there, and the control takes it away. A
+                check that cannot be shown to fail proves nothing, so
+                the pair is what makes the claim establishable. *)
+             "--requirement"; "verifier:test -f subject.txt"; "--control";
+             "rm -f subject.txt";
            ]);
       let _, text = call [ "map" ] in
       assert (contains text "uncovered: 0 tracked file(s) no claim covers");
@@ -742,6 +761,11 @@ let check_the_greenfield (binary : string) (prefix : string list) =
            [
              "add"; "c1"; "the parser and its tests"; "src/"; "falsifier";
              "fact"; "--requirement"; "verifier:test -f src/parser.py";
+             (* The control is written before the subject exists: it
+                names WHAT to break, and there is nothing to break yet -
+                which is fine, because the control runs only when the
+                subject is there. *)
+             "--control"; "rm -f src/parser.py";
            ]);
       (* The map says what it is: a plan, not a proof - and not an
          uncertainty either, so it costs no budget. *)
@@ -774,6 +798,52 @@ let check_the_greenfield (binary : string) (prefix : string list) =
       let _, text = call [ "map" ] in
       assert (contains text "holds"))
 
+(* THE WORK THAT WAS NOT COMMITTED.
+
+   A control breaks the subject on purpose, and the tree is put back
+   afterwards. The old way put it back with git, and that is what
+   destroyed somebody's work: a path that was ALREADY changed before
+   the control was EXCLUDED from the restore - on the right principle,
+   "the method does not know what was in it, and throwing away
+   somebody's unfinished work would be a worse fault than the mess it
+   prevents" - but the control had already OVERWRITTEN it, and the
+   method DID know: it had just asked git. So the work was lost, the
+   tool said nothing, and it exited successfully.
+
+   The fix is to keep the CONTENT, not the fact of the change. And this
+   is the check for it: the claim "the tree is left as the control
+   found it" was HOLDS in the method's own repository while it was
+   false, because the test it was proved by only ever broke a file
+   that was not there before - the easy case. *)
+let check_the_control_keeps_the_uncommitted_work (binary : string)
+    (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "add"
+        (call
+           [
+             "add"; "c-dirty"; "the subject"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:grep -q the.subject subject.txt";
+             "--control"; "printf broken > subject.txt";
+           ]);
+      (* THE WORK THAT IS NOT COMMITTED. The file the control is going
+         to break is a file the user has already changed. *)
+      let subject = Filename.concat root "subject.txt" in
+      let channel = open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 subject in
+      output_string channel "MY UNSAVED WORK\n";
+      close_out channel;
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c-dirty: verified");
+      (* THE WORK IS STILL THERE. The control broke the subject on
+         purpose and the method put the subject back - and the subject
+         was the user's, not the method's. *)
+      let after = read_file subject in
+      assert (contains after "MY UNSAVED WORK");
+      assert (contains after "the subject"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -803,6 +873,7 @@ let () =
   check_the_greenfield (method_binary ()) [];
   check_the_control_that_never_ran (method_binary ()) [];
   check_the_control_that_bites (method_binary ()) [];
+  check_the_control_keeps_the_uncommitted_work (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -815,6 +886,7 @@ let () =
       check_the_greenfield (method_binary ()) [ "--help" ];
       check_the_control_that_never_ran (method_binary ()) [ "--help" ];
       check_the_control_that_bites (method_binary ()) [ "--help" ];
+      check_the_control_keeps_the_uncommitted_work (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

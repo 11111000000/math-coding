@@ -63,7 +63,6 @@ let require_register ~what name (pairs : (string * Yojson.Safe.t) list) =
   | Some _ -> Error (error (what ^ "." ^ name) "expected a string")
   | None -> Error (error (what ^ "." ^ name) "is required")
 
-
 let require_requirements ~what (pairs : (string * Yojson.Safe.t) list) =
   match List.assoc_opt "requirements" pairs with
   | Some (`List items) ->

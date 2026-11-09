@@ -123,6 +123,26 @@ let tools_json () =
         ] );
       ( `Assoc
         [
+          ("name", `String "control");
+          ( "description",
+            `String
+              "Give a claim the command that breaks its subject and must fail with it. \
+               Without one the claim is a request, not a proof: a check that was never \
+               shown able to fail proves nothing." );
+          ( "inputSchema",
+            `Assoc
+              [
+                ("type", `String "object");
+                ( "properties",
+                  `Assoc
+                    [
+                      ("id", `Assoc [ ("type", `String "string") ]);
+                      ("command", `Assoc [ ("type", `String "string") ]);
+                    ] );
+              ] );
+        ] );
+      ( `Assoc
+        [
           ("name", `String "run");
           ( "description",
             `String
@@ -300,6 +320,18 @@ let call_tool ~(root : string) (name : string)
       let out, _ = run_verb ~root [ "next" ] in
       (`Assoc [ ("text", `String out); ("next", `String (String.trim out)) ], false)
   | "add" -> (add_method ~root args, false)
+  | "control" ->
+      let get name =
+        match List.assoc_opt name args with Some (`String s) -> s | _ -> ""
+      in
+      let out, code = run_verb ~root [ "control"; get "id"; get "command" ] in
+      ( `Assoc
+          [
+            ("ok", `Bool (code = 0));
+            ("text", `String out);
+            ("next", `String (next_step ~root));
+          ],
+        false )
   | "run" ->
       let out, code = run_verb ~root [ "run" ] in
       ( `Assoc

@@ -110,8 +110,21 @@ let path_contains ~(dir : string) ~(path : string) : bool =
       String.sub s 0 (String.length s - 1)
     else s
   in
-  let d = trim dir and p = trim path in
-  if p = d then true
+  (* THE ROOT IS THE WHOLE TREE. "." is the name git gives the root
+     directory, and every path in the tree is under it. The method
+     compared it as an ordinary prefix, so an aim over "." covered
+     nothing - a claim about "lib/" was refused as outside the aim -
+     and a claim over "." named no subject at all: it could never be
+     bound, never be checked, and cost nothing, for ever. Both
+     failures were silent, and both were about the most natural way to
+     state an aim over a repository. *)
+  let norm s =
+    let t = trim s in
+    if t = "." || t = "./" then "" else t
+  in
+  let d = norm dir and p = norm path in
+  if d = "" then true
+  else if p = d then true
   else if String.length p > String.length d && String.sub p 0 (String.length d) = d then
     p.[String.length d] = '/'
   else false
@@ -252,7 +265,20 @@ let hash_of_file (path : string) : string option =
     let out, code =
       run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
     in
-    if code <> 0 then None else Some (String.trim out)
+  if code <> 0 then None else Some (String.trim out)
+
+(** Is the working tree different from the commit?
+
+    A proof is about the working tree, and the commit is an anchor to
+    the history, not the subject. When the tree is dirty the two are
+    not the same thing, and a map that presents the commit as "the
+    commit the content was read from" is claiming something about the
+    proof that it cannot know. The method says so instead. *)
+let is_dirty (root : string) : bool =
+  let out, code =
+    run_capture (Printf.sprintf "git -C %s status --porcelain" (Filename.quote root))
+  in
+  if code <> 0 then false else String.trim out <> ""
 
 (** The commit the tree is at, as git records it.
 
@@ -273,6 +299,22 @@ let head_commit (root : string) : string option =
          (Filename.quote root))
   in
   if code <> 0 then None else Some (String.trim out)
+
+(** A fingerprint of the whole working tree: the content hash of every
+    file the repository knows about. Two fingerprints that differ mean
+    the tree changed.
+
+    It is the TREE and not the SUBJECT that is compared, because a
+    control may break a fixture rather than the subject: the check
+    "test ! -e probe.txt" is shown able to fail by a control that
+    creates probe.txt, and the subject of the claim is elsewhere. The
+    method cannot tell that from a control that changed nothing at all
+    but its exit code, and it must not refuse the honest one. *)
+let tree_fingerprint (root : string) : string =
+  let files = List.sort compare (repository_files root) in
+  match content_hashes root files with
+  | [] -> "empty"
+  | hashes -> hash_content root (String.concat "\n" hashes ^ "\n")
 
 (** Does the scope name anything that exists? The check that keeps a
     claim from being made about nothing - and from being made about HALF

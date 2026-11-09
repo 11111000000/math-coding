@@ -69,59 +69,149 @@ let exit_code_of ~(root : string) (command : string) : int =
 
 (** The paths git reports as changed, and whether they are tracked.
 
-    A control breaks the subject on purpose, so the tree is dirty while
-    the check runs - and dirty afterwards, if the control did not put
-    it back. This is how the method sees what the control left behind,
-    so that it can put it back itself and say so. The status code says
-    whether the path is tracked: "??" is untracked, everything else is
-    in the index. A tracked path is restored from HEAD; an untracked one
-    is removed. A path that was ALREADY changed before the control is
-    not touched: the method does not know what was in it, and throwing
-    away somebody's unfinished work to tidy up after a control would be
-    a worse fault than the mess it prevents. *)
+    THE RAW FORM. The names are read with [git status --porcelain -z],
+    which prints them NUL-separated and UNQUOTED. The quoted form was
+    the reason a file with a non-ASCII name survived the control: git
+    printed the name it would accept on a command line, the restore
+    removed a path that does not exist, and [rm -f] reports a missing
+    file as success. The method declared the tree restored and left the
+    file behind. *)
 type changed = { status : string; path : string }
 
 let dirty_paths ~(root : string) : changed list =
-  let channel =
-    Unix.open_process_in
-      (Printf.sprintf
-         "cd %s && git status --porcelain --untracked-files=all 2>&1"
+  let out, code =
+    Git.run_capture
+      (Printf.sprintf "git -C %s status --porcelain -z --untracked-files=all"
          (Filename.quote root))
   in
-  let out = In_channel.input_all channel in
-  ignore (Unix.close_process_in channel);
-  String.split_on_char '\n' out
-  |> List.filter_map (fun line ->
-         if String.length line < 4 then None
-         else
-           let status = String.sub line 0 2 in
-           if status = "!!" then None
-           else
-             let rest = String.trim (String.sub line 3 (String.length line - 3)) in
-             (* A rename reads "old -> new": the new name is the path. *)
-             let path =
-               match String.index_opt rest '-' with
-               | Some i when i + 3 < String.length rest
-                 && String.sub rest (i + 1) 2 = "> " ->
-                   String.trim (String.sub rest (i + 3) (String.length rest - i - 3))
-               | _ -> rest
-             in
-             if path = "" then None else Some { status; path })
-
-(** Put one path back the way it was. A tracked path comes back from
-    HEAD; an untracked one is removed. The exit code says whether it
-    worked. *)
-let restore_path ~(root : string) (c : changed) : bool =
-  if c.status = "??" then
-    Sys.command
-      (Printf.sprintf "cd %s && rm -f -- %s" (Filename.quote root)
-         (Filename.quote c.path))
-    = 0
+  if code <> 0 then []
   else
-    Sys.command
-      (Printf.sprintf "cd %s && git checkout -- %s" (Filename.quote root)
-         (Filename.quote c.path))
-    = 0
+    let parts = String.split_on_char '\000' out in
+    let rec go acc = function
+      | p :: rest when String.length p > 3 ->
+          let status = String.sub p 0 2 in
+          let path = String.sub p 3 (String.length p - 3) in
+          (* A rename or a copy is TWO paths: the new one first, then
+             the old one. The new one is the path; the old one is
+             consumed with it. *)
+          let rest =
+            if status.[0] = 'R' || status.[0] = 'C' then
+              match rest with
+              | _old :: more -> more
+              | [] -> []
+            else rest
+          in
+          if path = "" then go acc rest else go ({ status; path } :: acc) rest
+      | _ :: rest -> go acc rest
+      | [] -> List.rev acc
+    in
+    go [] parts
+
+(** A directory of its own, to keep the snapshot of somebody's work
+    out of the tree it is a snapshot of. *)
+let fresh_dir () =
+  let base = Filename.get_temp_dir_name () in
+  let rec go n =
+    let dir = Filename.concat base (Printf.sprintf "mathc-%d-%d" (Unix.getpid ()) n) in
+    if Sys.file_exists dir then go (n + 1)
+    else (
+      Unix.mkdir dir 0o700;
+      dir)
+  in
+  go 0
+
+let copy_bytes ~from ~to_ =
+  try
+    let ic = open_in_bin from in
+    let oc = open_out_bin to_ in
+    let buf = Bytes.create 65536 in
+    let rec pump () =
+      let n = input ic buf 0 (Bytes.length buf) in
+      if n > 0 then (
+        output oc buf 0 n;
+        pump ())
+    in
+    pump ();
+    close_in ic;
+    close_out oc;
+    true
+  with _ -> false
+
+let rec remove_tree dir =
+  (try
+     Sys.readdir dir
+     |> Array.iter (fun name ->
+            let path = Filename.concat dir name in
+            if Sys.is_directory path then remove_tree path else Sys.remove path)
+   with _ -> ());
+  try Sys.rmdir dir with _ -> ()
+
+(** WHAT WAS ALREADY CHANGED, WITH ITS CONTENT.
+
+    A control breaks the subject on purpose, and the tree is put back
+    afterwards. The old way put it back with git, and that is what
+    destroyed somebody's work: a path that was ALREADY changed before
+    the control was EXCLUDED from the restore - on the right principle,
+    "the method does not know what was in it, and throwing away
+    somebody's unfinished work would be a worse fault than the mess it
+    prevents" - but the control had already OVERWRITTEN it, and the
+    method DID know: it had just asked git. So the work was lost, the
+    tool said nothing, and it exited successfully.
+
+    The fix is to keep the CONTENT, not the fact of the change. Every
+    path that is already changed is copied aside before the control
+    runs, and copied back afterwards. Whether the control touched it or
+    not, the tree the user gets back is the tree they had. *)
+type snapshot = { dir : string; files : (string * string) list }
+
+let take_snapshot ~(root : string) (paths : changed list) : snapshot =
+  let dir = fresh_dir () in
+  let rec go n acc = function
+    | [] -> { dir; files = List.rev acc }
+    | c :: rest ->
+        let src = Filename.concat root c.path in
+        if Sys.file_exists src && not (Sys.is_directory src) then
+          let dst = Filename.concat dir (string_of_int n) in
+          if copy_bytes ~from:src ~to_:dst then go (n + 1) ((c.path, dst) :: acc) rest
+          else go (n + 1) acc rest
+        else go (n + 1) acc rest
+  in
+  go 0 [] paths
+
+(** Put back what was there before the control. *)
+let restore_snapshot ~(root : string) (s : snapshot) =
+  List.iter
+    (fun (path, file) ->
+      let dst = Filename.concat root path in
+      ignore (copy_bytes ~from:file ~to_:dst))
+    s.files
+
+(** Put back what the control left behind: a path that was NOT changed
+    before the control is the control's own doing. An untracked one is
+    removed; a tracked one comes back from git. The paths that could
+    NOT be put back are returned - a method that cannot restore what
+    it broke must say so, and not exit successfully. *)
+let clean_residue ~(root : string) (before : changed list) (after : changed list) :
+    string list =
+  let was_dirty path = List.exists (fun (b : changed) -> b.path = path) before in
+  List.filter_map
+    (fun (c : changed) ->
+      if was_dirty c.path then None
+      else
+        let ok =
+          if c.status = "??" then
+            Sys.command
+              (Printf.sprintf "cd %s && rm -f -- %s" (Filename.quote root)
+                 (Filename.quote c.path))
+            = 0
+          else
+            Sys.command
+              (Printf.sprintf "cd %s && git checkout -- %s" (Filename.quote root)
+                 (Filename.quote c.path))
+            = 0
+        in
+        if ok then None else Some c.path)
+    after
 
 (** Run the negative control of a check, and say whether the check bit.
 
@@ -129,6 +219,16 @@ let restore_path ~(root : string) (c : changed) : bool =
     runs on the broken subject and must fail; and only then is the tree
     put back. A control that ran after the check would prove nothing:
     the check would have seen a whole subject.
+
+    THE CONTROL MUST BREAK THE SUBJECT. This is the half of A16 that
+    was never checked. The method used to look only at whether the
+    check went red, and a control that broke NOTHING - a command that
+    exits zero and touches nothing - was accepted, as long as the
+    check happened to fail for some other reason. Then the trail
+    recorded "control: falsified", which says the control bit the
+    subject, and it had not. The subject's digest is compared before
+    and after the control: if the control did not change it, the check
+    was never shown able to fail, and the claim is not established.
 
     The verdict is the check's own verdict under the control: [Falsified]
     means the check went red where the control had broken the subject,
@@ -143,66 +243,87 @@ let restore_path ~(root : string) (c : changed) : bool =
 let run_control ~(root : string) ~(control : string) ~(requirement : string) :
     Domain.outcome * string option =
   let before = dirty_paths ~root in
+  let snapshot = take_snapshot ~root before in
+  let before_fingerprint = Git.tree_fingerprint root in
   let control_code = exit_code_of ~root control in
-  if control_code = 126 || control_code = 127 then
-    ( Domain.Unresolved,
+  (* DID THE CONTROL ACTUALLY CHANGE ANYTHING?
+
+     This is asked IMMEDIATELY after the control, and for two reasons,
+     each of which was learned the hard way.
+
+     It must be asked BEFORE the check runs, because the check may
+     change the tree itself - a build writes artifacts, a test writes
+     a fixture - and a control that changed nothing would then look
+     like it had, because the tree moved for somebody else's reason.
+
+     And it must be asked BEFORE the tree is put back, because the
+     residue of the control is the very thing that proves it did
+     something: asking afterwards sees a tree the control had already
+     cleaned up, and concludes that it had changed nothing. A build
+     that did that could establish no claim at all - every claim read
+     as inconclusive, and the method's own repository went unknown
+     with nothing to show for it. *)
+  let after_fingerprint = Git.tree_fingerprint root in
+  let broke = before_fingerprint <> after_fingerprint in
+  let control_problem =
+    if control_code = 126 || control_code = 127 then
       Some
         (Printf.sprintf
            "the control did not run (exit %d): a control that never ran proves nothing"
-           control_code) )
-  else if control_code >= 128 then
-    ( Domain.Unresolved,
+           control_code)
+    else if control_code >= 128 then
       Some
         (Printf.sprintf
            "the control was killed (exit %d): it did not finish, so it proves nothing"
-           control_code) )
-  else (
-    (* THE CHECK, ON THE BROKEN SUBJECT. *)
-    let check_code = exit_code_of ~root requirement in
-    (* THE TREE, PUT BACK. *)
-    let after = dirty_paths ~root in
-    let residue =
-      List.filter
-        (fun c -> not (List.exists (fun b -> b.path = c.path) before))
-        after
-    in
-    let left_behind =
-      List.filter (fun c -> not (restore_path ~root c)) residue
-    in
-    let outcome, reason =
-      match check_code with
-      | 1 -> (Domain.Falsified, None)
-      | 0 ->
-          ( Domain.Unresolved,
-            Some
-              "the check passed where its negative control had to fail: it cannot see \
-             the subject" )
-      | 2 ->
-          ( Domain.Unresolved,
-            Some "the check could not tell under its negative control (exit 2)" )
-      | 3 ->
-          ( Domain.Unresolved,
-            Some "the check declined under its negative control (exit 3)" )
-      | other ->
+           control_code)
+    else None
+  in
+  match control_problem with
+  | Some why ->
+      restore_snapshot ~root snapshot;
+      remove_tree snapshot.dir;
+      (Domain.Unresolved, Some why)
+  | None ->
+      (* THE CHECK, ON THE BROKEN SUBJECT. *)
+      let check_code = exit_code_of ~root requirement in
+      (* THE TREE, PUT BACK. *)
+      let after = dirty_paths ~root in
+      let left_behind = clean_residue ~root before after in
+      restore_snapshot ~root snapshot;
+      remove_tree snapshot.dir;
+      let outcome, reason =
+        if left_behind <> [] then
           ( Domain.Unresolved,
             Some
               (Printf.sprintf
-                 "the check did not run under its negative control (exit %d)" other) )
-    in
-    let reason =
-      match (left_behind, reason) with
-      | [], r -> r
-      | _ :: _, None ->
-          Some
-            (Printf.sprintf
-               "the control left the tree changed and it could not be put back: %s"
-               (String.concat ", " (List.map (fun c -> c.path) left_behind)))
-      | _ :: _, Some r ->
-          Some
-            (Printf.sprintf "%s (and the control left the tree changed: %s)" r
-               (String.concat ", " (List.map (fun c -> c.path) left_behind)))
-    in
-    (outcome, reason))
+                 "the control left the tree changed and it could not be put back: %s"
+                 (String.concat ", " left_behind)) )
+        else if not broke then
+          ( Domain.Unresolved,
+            Some
+              "the control changed nothing in the tree: it broke nothing, so the check was \
+               never shown able to fail" )
+        else
+          match check_code with
+          | 1 -> (Domain.Falsified, None)
+          | 0 ->
+              ( Domain.Unresolved,
+                Some
+                  "the check passed where its negative control had to fail: it cannot see \
+                 the subject" )
+          | 2 ->
+              ( Domain.Unresolved,
+                Some "the check could not tell under its negative control (exit 2)" )
+          | 3 ->
+              ( Domain.Unresolved,
+                Some "the check declined under its negative control (exit 3)" )
+          | other ->
+              ( Domain.Unresolved,
+                Some
+                  (Printf.sprintf
+                     "the check did not run under its negative control (exit %d)" other) )
+      in
+      (outcome, reason)
 
 (** Run a command and apply the register of the claim it belongs to.
 

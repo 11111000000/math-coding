@@ -40,7 +40,9 @@
     "wave-17",
     "wave-18",
     "wave-19",
-    "wave-20"
+    "wave-20",
+    "wave-21",
+    "wave-22"
   ],
   "claims": [
     {
@@ -322,7 +324,7 @@
       "falsifier": "аттестация записана только в след, который пересобирается прогоном",
       "register": "fact",
       "accepted": null,
-      "control": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/empty_is_green.ml",
       "attestations": []
     },
     {
@@ -379,7 +381,7 @@
       "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
       "register": "fact",
       "accepted": null,
-      "control": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/adapter_scope.ml",
       "attestations": []
     },
     {
@@ -475,7 +477,7 @@
       "falsifier": "переносится больше, чем механическая часть, или переносится решение без области",
       "register": "fact",
       "accepted": null,
-      "control": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/v3_draft.ml",
       "attestations": []
     },
     {
@@ -677,7 +679,7 @@
       "falsifier": "черновик предлагает в качестве проверки команду, ничего не проверяющую",
       "register": "fact",
       "accepted": null,
-      "control": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> adapter/project.ml",
       "attestations": []
     },
     {
@@ -735,7 +737,7 @@
       "falsifier": "карта прячет файлы, покрытые обещаниями, которые никто не проверял",
       "register": "fact",
       "accepted": null,
-      "control": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
       "attestations": []
     },
     {
@@ -774,7 +776,7 @@
       "falsifier": "после контроля дерево остаётся изменённым, или проверка видит сломанный предмет после возврата",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/let restore_path ~(root : string) (c : changed) : bool =/let restore_path ~(root : string) (c : changed) : bool = ignore c; true;/' adapter/exec.ml",
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
       "attestations": []
     },
     {
@@ -814,6 +816,64 @@
       "register": "fact",
       "accepted": null,
       "control": "sed -i 's|add \"### The next step|add \"### The verbs\\\\n\\\\n\" ^ usage_text () ^ \"\\\\n\\\\n### The next step|' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-check-never-shown-to-fail-is-not-established",
+      "subject": "a claim whose check was never shown able to fail is not established: the method reads the control in the evidence, in the core, and the verdict is unknown rather than green",
+      "scope": [
+        "lib/verdict.ml",
+        "test/laws.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "a claim with no control, or with a control that did not bite, reads as holds",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-tree-keeps-the-work-that-was-not-committed",
+      "subject": "a control that breaks the subject leaves the tree as it was, including the changes the user had not committed: the content is kept and put back, not the fact of the change",
+      "scope": [
+        "adapter/exec.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "the control overwrites a file that was already changed, and the uncommitted work is lost without a word",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-word-from-outside-cannot-close-a-procedure",
+      "subject": "a procedure the method could have run itself is closed by the method, and a person's word cannot close it: the kinds of proof do not mix, and a judgment is closed by the person alone",
+      "scope": [
+        "lib/verdict.ml",
+        "test/laws.ml",
+        "bin/mathc.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "mathc record closes a verifier requirement, or a judgment reads as established without anybody's word",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
       "attestations": []
     }
   ]
