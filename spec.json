@@ -54,7 +54,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/repository_lints.ml"
+          "spec": "dune runtest test/repository_lints.exe"
         }
       ],
       "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
@@ -72,7 +72,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/repository_lints.ml"
+          "spec": "dune runtest test/repository_lints.exe"
         }
       ],
       "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
@@ -166,7 +166,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
@@ -185,7 +185,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "глагол есть в бинаре, но не назван в README",
@@ -204,7 +204,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/repository_lints.ml"
+          "spec": "dune runtest test/repository_lints.exe"
         }
       ],
       "falsifier": "в ядре есть закон, которого нет в AXIOMS.md",
@@ -224,7 +224,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/spec_format.ml"
+          "spec": "dune runtest test/spec_format.exe"
         }
       ],
       "falsifier": "волна без возражения или без того, что его опровергнет",
@@ -244,7 +244,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/spec_format.ml"
+          "spec": "dune runtest test/spec_format.exe"
         }
       ],
       "falsifier": "спецификация не читается или в ней есть утверждение без предмета, требований или опровержителя",
@@ -264,7 +264,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "в следе нет коммита, из которого взято содержимое, или срок проигнорирован",
@@ -285,7 +285,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/spec_format.ml"
+          "spec": "dune runtest test/spec_format.exe"
         }
       ],
       "falsifier": "волна без замысла или без обязательства, либо волна закрывается с невыполненным обещанием",
@@ -306,7 +306,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/empty_is_green.ml"
+          "spec": "dune runtest test/empty_is_green.exe"
         }
       ],
       "falsifier": "аттестация записана только в след, который пересобирается прогоном",
@@ -325,7 +325,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/criterion.ml"
+          "spec": "dune runtest test/criterion.exe"
         }
       ],
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
@@ -343,7 +343,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/stand.ml"
+          "spec": "dune runtest test/stand.exe"
         }
       ],
       "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
@@ -363,7 +363,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/adapter_scope.ml"
+          "spec": "dune runtest test/adapter_scope.exe"
         }
       ],
       "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
@@ -400,7 +400,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/agents.ml"
+          "spec": "dune runtest test/agents.exe"
         }
       ],
       "falsifier": "в инструменте есть глагол, которого не называет страница",
@@ -439,7 +439,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/stand.ml"
+          "spec": "dune runtest test/stand.exe"
         }
       ],
       "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
@@ -459,7 +459,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/v3_draft.ml"
+          "spec": "dune runtest test/v3_draft.exe"
         }
       ],
       "falsifier": "переносится больше, чем механическая часть, или переносится решение без области",
@@ -478,7 +478,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/stand.ml"
+          "spec": "dune runtest test/stand.exe"
         }
       ],
       "falsifier": "запись повторного замера отсутствует или её вердикт расходится с её числами",
@@ -500,7 +500,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/laws.ml"
+          "spec": "dune runtest test/laws.exe"
         }
       ],
       "falsifier": "проверка слепая признаётся доказанной",
@@ -519,7 +519,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/stand.ml"
+          "spec": "dune runtest test/stand.exe"
         }
       ],
       "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
@@ -540,7 +540,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "волну по-прежнему можно создать только рукописью в JSON, и next её не называет",
@@ -562,7 +562,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "объявление обещания о несуществующем предмете снова отказывает",
@@ -583,7 +583,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "страница называет глагол, которого нет, или затирает чужой текст",
@@ -603,7 +603,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "черновик не появляется, или решение принимает машина",
@@ -622,7 +622,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/mcp.ml"
+          "spec": "dune runtest test/mcp.exe"
         }
       ],
       "falsifier": "метод отдаёт список или не отдаёт следующего шага",
@@ -641,7 +641,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "карта в каталоге без spec.json печатает зелёный вердикт",
@@ -661,7 +661,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/v3_draft.ml"
+          "spec": "dune runtest test/v3_draft.exe"
         }
       ],
       "falsifier": "черновик предлагает в качестве проверки команду, ничего не проверяющую",
@@ -680,7 +680,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/mcp.ml"
+          "spec": "dune runtest test/mcp.exe"
         }
       ],
       "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
@@ -699,7 +699,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "контроль, который не запустился или был убит, читается как сработавший",
@@ -719,7 +719,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune test test/cli.ml"
+          "spec": "dune runtest test/cli.exe"
         }
       ],
       "falsifier": "карта прячет файлы, покрытые обещаниями, которые никто не проверял",
