@@ -9,7 +9,7 @@
     "by": "p.b.kosov@yandex.ru",
     "at": "1794066238"
   },
-  "uncertainty_budget": 8,
+  "uncertainty_budget": 12,
   "closed_waves": [
     "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
     "wave-8", "wave-9", "wave-10", "wave-11", "wave-12", "wave-13",
@@ -459,6 +459,32 @@
         { "kind": "verifier", "spec": "dune runtest --root . --force" }
       ],
       "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "a-control-that-never-ran-proves-nothing",
+      "subject": "контроль, который не запустился, не доказывает: утверждение с опечаткой в контроле больше не читается как доказанное",
+      "scope": [ "bin/", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "контроль, который не запустился или был убит, читается как сработавший",
+      "register": "fact",
+      "accepted": null,
+      "control": null,
+      "attestations": []
+    },
+    {
+      "id": "the-promised-surface-is-shown",
+      "subject": "непроверенные обещания показаны рядом с покрытием: файл, объявленный, но не проверенный, не прячется под нулевым покрытием",
+      "scope": [ "bin/", "adapter/git.ml", "test/" ],
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force" }
+      ],
+      "falsifier": "карта прячет файлы, покрытые обещаниями, которые никто не проверял",
       "register": "fact",
       "accepted": null,
       "control": null,

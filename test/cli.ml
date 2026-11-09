@@ -600,6 +600,77 @@ let check_the_tool (binary : string) (prefix : string list) =
       (* And the proof is anchored to the act. *)
       check_the_trail_anchors_the_act root)
 
+(* THE CONTROL THAT NEVER RAN.
+
+   The law A16 asks a check to be shown able to fail, and the control
+   is how it is shown. A control that DID NOT RUN shows nothing - and
+   the method used to read "the control's exit code is not zero" as
+   "the control failed", so a control naming a command that does not
+   exist (exit 127) certified a check the method had never seen fail.
+   A claim with a typo in its control read as PROVEN.
+
+   So the control must run and report a failure. Everything else - it
+   could not be executed, it was killed, it could not tell - says the
+   same thing: the control proves nothing, and the claim is not
+   established. *)
+let check_the_control_that_never_ran (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "add"
+        (call
+           [
+             "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:true"; "--control";
+             "a-command-that-does-not-exist";
+           ]);
+      let code, text = call [ "run" ] in
+      (* Not established: the check passed, but the control could not
+         run, so nothing showed that the check can fail. *)
+      expect_code "run with a control that never ran" 3 (code, text);
+      assert (contains text "unresolved");
+      let _, text = call [ "map" ] in
+      assert (contains text "the control did not run");
+      assert (contains text "inconclusive");
+      (* And the claim is not established: the map says so, and the
+         uncertainty budget counts it - a promise nobody could prove
+         is worth exactly what an unproven promise is worth. *)
+      assert (contains text "uncertainty: 1 of 3 consumed"))
+
+(* THE PROMISED BUT NOT VERIFIED.
+
+   The coverage number counted a file as covered when a claim spoke
+   about it - so three never-checked claims over a three-file tree
+   gave "uncovered: 0" and the tree looked fully covered while nothing
+   in it had been checked. The coverage number is still what it says
+   (nobody speaks about the rest), and the surface that is spoken about
+   but not checked is now shown BESIDE it, so nothing is hidden. *)
+let check_the_promised_surface (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "add"
+        (call
+           [
+             "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:true";
+           ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "uncovered: 0 tracked file(s) no claim covers");
+      assert (contains text "promised, not verified: 1 tracked file(s)");
+      assert (contains text "subject.txt");
+      (* And after the check runs, the file is verified - and the
+         promised surface is empty. *)
+      expect_ok "run" (call [ "run" ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "promised, not verified: 0");
+      (* The machine form of the map says the same thing: the two forms
+         must not disagree about the same project. *)
+      let _, json = call [ "map"; "--json" ] in
+      assert (contains json "\"promised_not_verified\": []"))
+
 (* --- the documentation -------------------------------------------------- *)
 
 (* THE GREENFIELD. A repository with nothing in it.
@@ -684,6 +755,8 @@ let () =
   (* The real tool. *)
   check_the_tool (method_binary ()) [];
   check_the_greenfield (method_binary ()) [];
+  check_the_control_that_never_ran (method_binary ()) [];
+  check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
      refuses everything: the battery must fail there. A battery that
@@ -692,6 +765,9 @@ let () =
   let detected =
     try
       check_the_tool (method_binary ()) [ "--help" ];
+      check_the_greenfield (method_binary ()) [ "--help" ];
+      check_the_control_that_never_ran (method_binary ()) [ "--help" ];
+      check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true
   in

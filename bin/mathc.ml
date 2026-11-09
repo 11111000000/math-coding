@@ -201,6 +201,25 @@ let consumption_of (claims : Domain.claim list) : int =
 (* The verbs.                                                           *)
 (* ------------------------------------------------------------------ *)
 
+(** The scopes of the claims whose status is settled.
+
+    A claim that holds, that a person took responsibility for, or that
+    is a decision about meaning, establishes what it speaks about.
+    Everything else - refuted, inconclusive, outdated, never checked -
+    says the method does not know, and a file covered only by those is
+    promised, not verified. *)
+let established_scopes (claims : Domain.claim list)
+    (states : (string * Domain.state) list) : Domain.scope list =
+  List.filter_map
+    (fun (id, state) ->
+      match state with
+      | Domain.Holds | Domain.Accepted | Domain.NotCheckable ->
+          (match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
+          | Some c -> Some c.subject.scope
+          | None -> None)
+      | _ -> None)
+    states
+
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
 (** The map, as data. The same map the human reads, in a form a program
@@ -316,7 +335,19 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
 
              states) );
       ( "uncovered_paths",
-        `List (List.map (fun f -> `String f) uncovered) )]
+        `List (List.map (fun f -> `String f) uncovered) );
+      (* The promised but not verified: files that a claim speaks about,
+         but that no established claim covers. The machine form of the
+         map said it first; the prose form now says it too, and the two
+         forms must not disagree about the same project. *)
+      ( "promised_not_verified",
+        `List
+          (List.map
+             (fun f -> `String f)
+             (Git.promised_but_unverified (root ())
+                (established_scopes claims states)
+                (List.map (fun (c : Domain.claim) -> c.subject.scope) claims)
+                files)) ) ]
 
 let verb_map json =
   let spec = load_spec () in
@@ -440,6 +471,25 @@ let verb_map json =
       (consumption_of claims) spec.Domain.budget;
     Printf.printf "uncovered: %d tracked file(s) no claim covers\n" (List.length uncovered);
     List.iter (fun f -> Printf.printf "  %s\n" f) uncovered;
+    (* THE PROMISED BUT NOT VERIFIED. The coverage number above counts
+       a file as covered when a claim speaks about it - and a promise
+       that was never checked is not a verification. So the surface
+       that is spoken about but not checked is shown BESIDE the
+       uncovered one, and not merged into it: the first is "what nobody
+       speaks about", the second is "what is spoken about and not
+       checked". *)
+    let promised =
+      List.map (fun (c : Domain.claim) -> c.subject.scope) claims
+    in
+    let promised_unverified =
+      Git.promised_but_unverified (root ()) (established_scopes claims states)
+        promised files
+    in
+    Printf.printf
+      "promised, not verified: %d tracked file(s) covered only by claims that are not \
+       established\n"
+      (List.length promised_unverified);
+    List.iter (fun f -> Printf.printf "  %s\n" f) promised_unverified;
     Verdict.verdict_to_exit verdict
 
 (** route: what needs a person, and why. *)
@@ -522,6 +572,31 @@ let verb_run () =
                          why it passed - the same way it cannot see
                          what a check checks, only whether it can
                          fail. *)
+                      (* THE CONTROL MUST RUN AND FAIL. A control that
+                         did not run proves nothing, and a control that
+                         was killed proves nothing, and a control that
+                         could not tell proves nothing. Only a control
+                         that RAN and reported a failure shows that
+                         the check can fail.
+
+                         This was a hole, and it was found by running:
+                         a control naming a command that does not exist
+                         exits 127, and "127 is not zero" was read as
+                         "the control failed" - so a claim with a
+                         control full of typos read as PROVEN. The
+                         method would have certified a check it had
+                         never seen fail, and the law that asks for
+                         the control would have been satisfied by a
+                         command that never ran.
+
+                         The scale is the method's own (A14): 0 is a
+                         pass, 1 is a failure, 2 could not tell, 3
+                         declined, and everything else did not run. So
+                         for the control the answer is: only a plain
+                         failure counts, and every other way of not
+                         succeeding says the same thing - the control
+                         proves nothing, and the claim is not
+                         established. *)
                       let outcome, reason =
                         match (outcome, claim.control) with
                         | Domain.Verified, Some control ->
@@ -531,6 +606,28 @@ let verb_run () =
                                 Some
                                   "the check passed where its negative control had to fail: \
                                    it cannot see the subject" )
+                            else if code = 126 || code = 127 then
+                              ( Domain.Unresolved,
+                                Some
+                                  (Printf.sprintf
+                                     "the control did not run (exit %d): a control that never \
+                                      ran proves nothing, so the check is not proven able to \
+                                      fail"
+                                     code) )
+                            else if code >= 128 then
+                              ( Domain.Unresolved,
+                                Some
+                                  (Printf.sprintf
+                                     "the control was killed (exit %d): it did not finish, so \
+                                      it proves nothing"
+                                     code) )
+                            else if code = 2 || code = 3 then
+                              ( Domain.Unresolved,
+                                Some
+                                  (Printf.sprintf
+                                     "the control did not report a failure (exit %d): it \
+                                      proves nothing"
+                                     code) )
                             else (outcome, reason)
                         | _ -> (outcome, reason)
                       in
