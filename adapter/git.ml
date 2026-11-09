@@ -316,6 +316,47 @@ let tree_fingerprint (root : string) : string =
   | [] -> "empty"
   | hashes -> hash_content root (String.concat "\n" hashes ^ "\n")
 
+(** When each file last moved, within the last [days] days.
+
+    A map of coverage says what nobody LOOKED at. This says where the
+    work is, and the two are not the same set: the file that changed
+    yesterday and has no claim is worth reading, and the file that has
+    not changed since 2019 and has no claim is history. A queue that
+    lists the uncovered surface in alphabetical order is a filing
+    errand, and the agent that works it does bookkeeping instead of
+    thinking - which is exactly what the measurement of 2026-11-07
+    caught it doing.
+
+    It is the MOMENT and not the count that matters. The count says
+    how often a file moved, and a file that moved once, long ago, and a
+    file that moved once, yesterday, score the same. *)
+let last_touched (root : string) ~(days : int) : (string * int) list =
+  let out, code =
+    run_capture
+      (Printf.sprintf "git -C %s log --since=%d.days.ago --name-only --format=commit:%%ct"
+         (Filename.quote root) days)
+  in
+  if code <> 0 then []
+  else
+    let latest = ref [] in
+    let stamp = ref None in
+    List.iter
+      (fun line ->
+        if String.length line > 7 && String.sub line 0 7 = "commit:" then
+          (match int_of_string_opt (String.trim (String.sub line 7 (String.length line - 7))) with
+          | Some t -> stamp := Some t
+          | None -> stamp := None)
+        else if String.trim line <> "" then
+          match !stamp with
+          | Some t ->
+              latest :=
+                (match List.assoc_opt line !latest with
+                | Some old -> (line, max old t) :: List.remove_assoc line !latest
+                | None -> (line, t) :: !latest)
+          | None -> ())
+      (String.split_on_char '\n' out);
+    List.sort (fun (_, a) (_, b) -> compare b a) !latest
+
 (** Does the scope name anything that exists? The check that keeps a
     claim from being made about nothing - and from being made about HALF
     of nothing: every path of the scope must be there, because a scope

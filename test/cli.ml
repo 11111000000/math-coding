@@ -886,6 +886,60 @@ let check_the_audit_tells_the_two_apart (binary : string) (prefix : string list)
       assert (contains text "the control broke something else: 1");
       assert (contains text "c-fixture"))
 
+(* WHERE TO LOOK.
+
+   The uncovered surface is not a list, it is a place to look, and the
+   ORDER of that list is not a detail. A list in alphabetical order is a
+   filing errand: the agent works through it and declares claims about
+   files, and that is bookkeeping wearing the clothes of work. The
+   measurement of 2026-11-07 caught exactly that - the map said
+   "CartProvider.tsx is not covered by any claim", and the agent filed a
+   claim about it instead of reading it, and the bug was right there.
+
+   So the uncovered surface is ranked by WHEN the file last moved. The
+   file that moved yesterday comes first; the file that has not moved
+   in months comes last, and history is not the next work. *)
+let check_the_uncovered_surface_is_ranked (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      (* The file that moved LONG AGO. *)
+      let old = Filename.concat root "aaa.txt" in
+      let channel = open_out old in
+      output_string channel "old\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s rm -q --cached aaa.txt" (Filename.quote root));
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell
+        (Printf.sprintf
+           "GIT_AUTHOR_DATE='2020-01-01T00:00:00' GIT_COMMITTER_DATE='2020-01-01T00:00:00' \
+            git -C %s commit -qm 'a long time ago'"
+           (Filename.quote root));
+      (* The file that moved YESTERDAY. *)
+      let fresh = Filename.concat root "zzz.txt" in
+      let channel = open_out fresh in
+      output_string channel "fresh\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell (Printf.sprintf "git -C %s commit -qm 'yesterday'" (Filename.quote root));
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "."; "the owner" ]);
+      (* The map leads with the file that moved. *)
+      let _, text = call [ "map" ] in
+      let at haystack needle =
+        let h = String.length haystack and n = String.length needle in
+        let rec go i =
+          if i + n > h then max_int
+          else if String.sub haystack i n = needle then i
+          else go (i + 1)
+        in
+        go 0
+      in
+      assert (at text "zzz.txt" < at text "aaa.txt");
+      (* And the next work is the file that moved, not the first one in
+         the alphabet. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "zzz.txt"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -917,6 +971,7 @@ let () =
   check_the_control_that_bites (method_binary ()) [];
   check_the_control_keeps_the_uncommitted_work (method_binary ()) [];
   check_the_audit_tells_the_two_apart (method_binary ()) [];
+  check_the_uncovered_surface_is_ranked (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -931,6 +986,7 @@ let () =
       check_the_control_that_bites (method_binary ()) [ "--help" ];
       check_the_control_keeps_the_uncommitted_work (method_binary ()) [ "--help" ];
       check_the_audit_tells_the_two_apart (method_binary ()) [ "--help" ];
+      check_the_uncovered_surface_is_ranked (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

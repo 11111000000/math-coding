@@ -297,6 +297,25 @@ let control_note (state : Domain.state) (claim : Domain.claim option)
          state and be read as a second opinion about it. *)
       ""
 
+(** The uncovered surface, most suspicious first.
+
+    The order of the uncovered files is not a detail. A list in
+    alphabetical order is a filing errand: the agent works through it
+    and declares claims about files, and that is bookkeeping wearing the
+    clothes of work. The measurement of 2026-11-07 caught exactly that:
+    the map said "CartProvider.tsx is not covered by any claim", and the
+    agent filed a claim about it instead of reading it - and the bug was
+    right there.
+
+    So the order is by RECENT CHANGE. The file that moved yesterday and
+    has no claim is the one worth reading; the file that has not moved
+    in three years and has no claim is history, and history is not the
+    next work. *)
+let uncovered_by_suspicion (root : string) (uncovered : string list) : string list =
+  let touched = Git.last_touched root ~days:30 in
+  let rank file = match List.assoc_opt file touched with Some t -> t | None -> 0 in
+  List.sort (fun a b -> compare (rank b) (rank a)) uncovered
+
 (** audit: what the project's own checks really watch.
 
     Every number the method produces is a number about the method's own
@@ -376,7 +395,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let claims = spec.Domain.claims in
   let states = states_of claims in
   let files = Git.tracked_files (root ()) in
-  let uncovered = Git.uncovered (root ()) claims files in
+  let uncovered = uncovered_by_suspicion (root ()) (Git.uncovered (root ()) claims files) in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
   (* The names of the states live in the codec: the map and the wave's
      promises must say the same thing about them, and a name written
@@ -511,7 +530,7 @@ let verb_map json =
     let claims = spec.Domain.claims in
     let states = states_of claims in
     let files = Git.tracked_files (root ()) in
-    let uncovered = Git.uncovered (root ()) claims files in
+    let uncovered = uncovered_by_suspicion (root ()) (Git.uncovered (root ()) claims files) in
     let verdict = Verdict.verdict_of_states (List.map snd states) in
     Printf.printf "verdict: %s (exit %d)\n"
       (match verdict with
@@ -1118,13 +1137,23 @@ let verb_next () =
                 (String.concat ", " missing))
       | None -> Printf.printf "next: check the claim %s - it is not known now\n" id);
       0
-  | [], [], [], first :: _ ->
-      Printf.printf "next: nothing is unverified; %d tracked file(s) are uncovered, starting with %s\n"
-        (List.length uncovered) first;
-      0
-  | [], [], [], [] ->
-      print_endline "next: nothing to do - every claim is known and everything is covered";
-      0
+  | [], [], [], _ ->
+      (* Nothing is unverified. The work that is left is the uncovered
+         surface - and the uncovered surface is not a list, it is a
+         place to look. The files that changed recently come first, so
+         that the next work is reading the code that is moving and not
+         filing a claim about a file that has not moved since 2019. *)
+      let ranked = uncovered_by_suspicion (root ()) uncovered in
+      (match ranked with
+      | [] ->
+          print_endline "next: nothing to do - every claim is known and everything is covered";
+          0
+      | first :: _ ->
+          Printf.printf
+            "next: nothing is unverified; %d tracked file(s) are uncovered. The first to look \
+             at: %s\n"
+            (List.length uncovered) first;
+          0)
 
 (** close: close a wave.
 
@@ -1332,17 +1361,26 @@ let wave_to_json (w : Domain.wave) : Yojson.Safe.t =
     the verb refuses it. The friction belongs here: this is where an
     agent that wants to skip the dialectic tries to skip it.
 
-    And the promise must name a claim that is declared. A wave that
-    promises a claim nobody declared can never close - the closing
-    compares the promise with the state of the claim - so it would sit
-    in the queue for ever, and the queue would be lying about what it
-    leads to. *)
+    And the promise MAY name a claim that is not declared yet. The
+    order used to be the other way round, and it was backwards: the
+    wave was refused unless its claims already existed, so the INTENT
+    of a unit of work could only be recorded after the thing it was
+    about had already been declared - and the answer to "why did we do
+    this at all" came after the doing.
+
+    A wave is a plan, and a plan names what it will settle. The claims
+    it names are declared DURING the work, and the promise is met - or
+    not - when the wave is closed, which compares the promise with the
+    state of the claim. Until then the wave stays in the queue, which
+    is the truth: the work is not finished.
+
+    So the method can now answer "why" before "what", and the queue
+    leads to the reasoning rather than to the paperwork. *)
 let verb_wave (id : string) (title : string) (o : options) =
   let refuse why =
     Printf.eprintf "mathc: the wave is not created: %s\n" why;
     2
   in
-  let spec = load_spec () in
   let rec parse_commit acc = function
     | [] -> Ok (List.rev acc)
     | text :: rest -> (
@@ -1382,77 +1420,61 @@ let verb_wave (id : string) (title : string) (o : options) =
       match parse_commit [] o.commitments with
       | Error e -> refuse e
       | Ok commitments ->
-          let unknown =
-            List.filter_map
-              (fun (c : Domain.commitment) ->
-                if List.exists (fun (x : Domain.claim) -> x.id = c.claim) spec.Domain.claims
-                then None
-                else Some c.claim)
-              commitments
-          in
-          (match unknown with
-          | claim :: _ ->
-              refuse
-                (Printf.sprintf
-                   "the wave promises the claim %S, which is not declared: a promise \
-                    about a claim nobody declared can never be met"
-                   claim)
-          | [] ->
-              let dir = Filename.concat (root ()) "waves" in
-              let path = Filename.concat dir (id ^ ".json") in
-              if Sys.file_exists path then
-                refuse (Printf.sprintf "there is already a wave %S" id)
-              else (
-                if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
-                (* The claims the wave touches are the claims it promises,
-                   unless it says otherwise: a wave that names them is
-                   saying what it is about. *)
-                let claims =
-                  if o.claims <> [] then o.claims
-                  else
-                    List.map
-                      (fun (c : Domain.commitment) -> c.Domain.claim)
-                      commitments
-                in
-                let wave =
-                  {
-                    Domain.id;
-                    title;
-                    intent = o.intent;
-                    touches = o.touches;
-                    checks = o.checks;
-                    claims;
-                    commitment = commitments;
-                    objection = o.objection;
-                    refuted_by = o.refuted_by;
-                  }
-                in
-                (* THE WRITER PROVES ITSELF BY THE READER. The wave is
-                   written and read back with the same codec: a wave
-                   that cannot be read cannot stand, and saying so here
-                   is better than a queue full of unreadable waves. *)
-                let json = wave_to_json wave in
-                let text = Yojson.Safe.pretty_to_string json ^ "\n" in
-                (match Spec.parse_wave_string text with
-                | Error e ->
-                    refuse ("the wave is not readable: " ^ Spec.message_of e)
-                | Ok _ ->
-                    let channel = open_out path in
-                    output_string channel text;
-                    close_out channel;
-                    Printf.printf "wave %s created:\n" id;
-                    Printf.printf "  %s\n" path;
-                    Printf.printf "  promises: %s\n"
-                      (String.concat ", "
-                         (List.map
-                            (fun (c : Domain.commitment) ->
-                              c.Domain.claim ^ " " ^ Domain.state_name c.Domain.state)
-                            commitments));
-                    Printf.printf "  checks: %s\n" (String.concat ", " o.checks);
-                    print_endline
-                      "next: mathc next names the wave, and mathc close closes it when \
-                       its promises are met";
-                    0))))
+          let dir = Filename.concat (root ()) "waves" in
+          let path = Filename.concat dir (id ^ ".json") in
+          if Sys.file_exists path then
+            refuse (Printf.sprintf "there is already a wave %S" id)
+          else (
+            if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+            (* The claims the wave touches are the claims it promises,
+               unless it says otherwise: a wave that names them is
+               saying what it is about. *)
+            let claims =
+              if o.claims <> [] then o.claims
+              else
+                List.map
+                  (fun (c : Domain.commitment) -> c.Domain.claim)
+                  commitments
+            in
+            let wave =
+              {
+                Domain.id;
+                title;
+                intent = o.intent;
+                touches = o.touches;
+                checks = o.checks;
+                claims;
+                commitment = commitments;
+                objection = o.objection;
+                refuted_by = o.refuted_by;
+              }
+            in
+            (* THE WRITER PROVES ITSELF BY THE READER. The wave is
+               written and read back with the same codec: a wave
+               that cannot be read cannot stand, and saying so here
+               is better than a queue full of unreadable waves. *)
+            let json = wave_to_json wave in
+            let text = Yojson.Safe.pretty_to_string json ^ "\n" in
+            (match Spec.parse_wave_string text with
+            | Error e ->
+                refuse ("the wave is not readable: " ^ Spec.message_of e)
+            | Ok _ ->
+                let channel = open_out path in
+                output_string channel text;
+                close_out channel;
+                Printf.printf "wave %s created:\n" id;
+                Printf.printf "  %s\n" path;
+                Printf.printf "  promises: %s\n"
+                  (String.concat ", "
+                     (List.map
+                        (fun (c : Domain.commitment) ->
+                          c.Domain.claim ^ " " ^ Domain.state_name c.Domain.state)
+                        commitments));
+                Printf.printf "  checks: %s\n" (String.concat ", " o.checks);
+                print_endline
+                  "next: mathc next names the wave, and mathc close closes it when \
+                   its promises are met";
+                    0)))
 
 (** A requirement, as it is written on the command line: a kind, a
     colon, and the thing itself. The kind is what makes the evidence
