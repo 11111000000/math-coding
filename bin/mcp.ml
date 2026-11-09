@@ -56,6 +56,16 @@ let tools_json () =
         ] );
       ( `Assoc
         [
+          ("name", `String "audit");
+          ( "description",
+            `String
+              "What the project's own checks really watch: how many claims are watched by a \
+               check shown able to fail ON THEIR OWN SUBJECT, and which are not. The \
+               difference between \"the check can fail\" and \"the check sees this\"." );
+          ("inputSchema", `Assoc [ ("type", `String "object"); ("properties", `Assoc []) ]);
+        ] );
+      ( `Assoc
+        [
           ("name", `String "next");
           ( "description",
             `String
@@ -320,6 +330,9 @@ let call_tool ~(root : string) (name : string)
       let out, _ = run_verb ~root [ "next" ] in
       (`Assoc [ ("text", `String out); ("next", `String (String.trim out)) ], false)
   | "add" -> (add_method ~root args, false)
+  | "audit" ->
+      let out, _ = run_verb ~root [ "audit" ] in
+      (`Assoc [ ("text", `String out); ("next", `String (next_step ~root)) ], false)
   | "control" ->
       let get name =
         match List.assoc_opt name args with Some (`String s) -> s | _ -> ""

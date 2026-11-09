@@ -61,9 +61,8 @@ let aggregate (results : evidence list) : verdict =
     Green results
 
 (** The state of ONE REQUIREMENT, from its evidence and the subject's
-    current binding. The binding is the crux: evidence obtained
-    against a subject that has since moved is evidence about a subject
-    that no longer exists, and it can never read as verified.
+    current binding. Evidence obtained against a subject that has since
+    moved is evidence about a subject that no longer exists.
 
     The proof's TERM is the second crux. The binding answers "is the
     content the same?"; the term answers "does this proof still

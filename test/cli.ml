@@ -844,6 +844,48 @@ let check_the_control_keeps_the_uncommitted_work (binary : string)
       assert (contains after "MY UNSAVED WORK");
       assert (contains after "the subject"))
 
+(* WHAT THE CHECKS REALLY WATCH.
+
+   A control that breaks a FIXTURE proves the check is not vacuous, and
+   says nothing about the subject: the check read the fixture, not the
+   subject. A control that breaks the SUBJECT proves the stronger thing
+   - that the check reads the thing the claim is about. The distance
+   between the two is the distance between "the check can fail" and
+   "the check sees this", and the method measures it instead of
+   assuming the stronger thing. *)
+let check_the_audit_tells_the_two_apart (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      (* The control breaks the SUBJECT. *)
+      expect_ok "add a claim whose control breaks the subject"
+        (call
+           [
+             "add"; "c-subject"; "the subject"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:grep -q the.subject subject.txt";
+             "--control"; "printf broken > subject.txt";
+           ]);
+      (* The control breaks a FIXTURE, and the subject is not it. *)
+      expect_ok "add a claim whose control breaks something else"
+        (call
+           [
+             "add"; "c-fixture"; "the fixture"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:test ! -e probe.txt";
+             "--control"; "touch probe.txt";
+           ]);
+      expect_ok "run" (call [ "run" ]);
+      (* The map says which is which. *)
+      let _, text = call [ "map" ] in
+      assert (contains text "it broke the subject");
+      assert (contains text "it broke something else");
+      (* And the audit counts them: this is the first number the method
+         produces that is about the code and not about its own records. *)
+      let _, text = call [ "audit" ] in
+      assert (contains text "watched on their own subject: 1");
+      assert (contains text "the control broke something else: 1");
+      assert (contains text "c-fixture"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -874,6 +916,7 @@ let () =
   check_the_control_that_never_ran (method_binary ()) [];
   check_the_control_that_bites (method_binary ()) [];
   check_the_control_keeps_the_uncommitted_work (method_binary ()) [];
+  check_the_audit_tells_the_two_apart (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -887,6 +930,7 @@ let () =
       check_the_control_that_never_ran (method_binary ()) [ "--help" ];
       check_the_control_that_bites (method_binary ()) [ "--help" ];
       check_the_control_keeps_the_uncommitted_work (method_binary ()) [ "--help" ];
+      check_the_audit_tells_the_two_apart (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

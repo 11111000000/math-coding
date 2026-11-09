@@ -240,11 +240,19 @@ let clean_residue ~(root : string) (before : changed list) (after : changed list
     a check that fails for an unrelated reason looks exactly like one
     that fails for the right one. That limit is named rather than
     hidden. *)
-let run_control ~(root : string) ~(control : string) ~(requirement : string) :
-    Domain.outcome * string option =
+type control_result = {
+  outcome : Domain.outcome;
+  reason : string option;
+  (* What the control reached. *)
+  reach : Domain.reach;
+}
+
+let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
+    ~(requirement : string) : control_result =
   let before = dirty_paths ~root in
   let snapshot = take_snapshot ~root before in
   let before_fingerprint = Git.tree_fingerprint root in
+  let before_subject = Git.digest_of_scope root scope in
   let control_code = exit_code_of ~root control in
   (* DID THE CONTROL ACTUALLY CHANGE ANYTHING?
 
@@ -265,6 +273,17 @@ let run_control ~(root : string) ~(control : string) ~(requirement : string) :
      with nothing to show for it. *)
   let after_fingerprint = Git.tree_fingerprint root in
   let broke = before_fingerprint <> after_fingerprint in
+  (* WHAT THE CONTROL REACHED. The subject, something else in the
+     tree, or nothing. A control that breaks a FIXTURE proves that the
+     check is not vacuous and says nothing about the subject - and the
+     difference between the two is the whole distance between "the
+     check can fail" and "the check sees this". *)
+  let after_subject = Git.digest_of_scope root scope in
+  let reach =
+    if before_subject <> after_subject then Domain.Subject
+    else if broke then Domain.Elsewhere
+    else Domain.Nothing
+  in
   let control_problem =
     if control_code = 126 || control_code = 127 then
       Some
@@ -282,7 +301,7 @@ let run_control ~(root : string) ~(control : string) ~(requirement : string) :
   | Some why ->
       restore_snapshot ~root snapshot;
       remove_tree snapshot.dir;
-      (Domain.Unresolved, Some why)
+      { outcome = Domain.Unresolved; reason = Some why; reach = Domain.Nothing }
   | None ->
       (* THE CHECK, ON THE BROKEN SUBJECT. *)
       let check_code = exit_code_of ~root requirement in
@@ -323,7 +342,7 @@ let run_control ~(root : string) ~(control : string) ~(requirement : string) :
                   (Printf.sprintf
                      "the check did not run under its negative control (exit %d)" other) )
       in
-      (outcome, reason)
+      { outcome; reason; reach }
 
 (** Run a command and apply the register of the claim it belongs to.
 

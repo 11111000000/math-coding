@@ -259,7 +259,21 @@ let established_scopes (claims : Domain.claim list)
 let control_note (state : Domain.state) (claim : Domain.claim option)
     (evidence : Domain.evidence option) : string =
   match state with
-  | Domain.Holds -> "the control bit: the check was shown able to fail"
+  | Domain.Holds -> (
+      match evidence with
+      | Some e -> (
+          match e.Domain.reach with
+          | Some Domain.Subject ->
+              "the control bit, and it broke the subject: the check was shown able to fail \
+               on this very subject"
+          | Some Domain.Elsewhere ->
+              "the control bit, but it broke something else: the check is not vacuous, and \
+               the demonstration is not about this subject"
+          | Some Domain.Nothing ->
+              "the control bit, but it broke nothing: the check was shown able to fail, \
+               and the demonstration is about nothing"
+          | None -> "the control bit: the check was shown able to fail")
+      | None -> "the control bit: the check was shown able to fail")
   | Domain.Inconclusive -> (
       match claim with
       | None -> ""
@@ -272,7 +286,7 @@ let control_note (state : Domain.state) (claim : Domain.claim option)
               | Some e -> (
                   match e.Domain.control with
                   | Some Domain.Falsified ->
-                      "the control bit: the check was shown able to fail"
+                      "the control did not bite: the check was never shown able to fail"
                   | Some _ ->
                       "the control did not bite: the check was never shown able to fail"
                   | None ->
@@ -282,6 +296,73 @@ let control_note (state : Domain.state) (claim : Domain.claim option)
          refuted, not checkable. A note here would say less than the
          state and be read as a second opinion about it. *)
       ""
+
+(** audit: what the project's own checks really watch.
+
+    Every number the method produces is a number about the method's own
+    records: claims, coverage, states. This is the first number that is
+    about the CODE: how many of the project's claims are watched by a
+    check that was shown able to fail ON THEIR OWN SUBJECT.
+
+    A control that breaks a FIXTURE proves the check is not vacuous and
+    says nothing about the subject - the check read the fixture, not
+    the subject. A control that breaks the SUBJECT proves the stronger
+    thing. The distance between the two is the distance between "the
+    check can fail" and "the check sees this", and a project that
+    cannot tell them apart believes it has the second when it has the
+    first. That is how `typecheck` came to certify a counter that
+    added one to every item.
+
+    The method does not refuse the weaker control - it is a control,
+    and the check is still not vacuous. But it says which kind it is,
+    and it counts them. *)
+let verb_audit () =
+  let spec = load_spec () in
+  let claims = spec.Domain.claims in
+  let states = states_of claims in
+  let evidence = latest_evidence claims in
+  let evidence_of id =
+    List.find_opt (fun (e : Domain.evidence) -> e.claim.id = id) evidence
+  in
+  let watched_on_subject = ref 0 in
+  let watched_elsewhere = ref 0 in
+  let not_established = ref 0 in
+  let weak = ref [] in
+  List.iter
+    (fun (id, state) ->
+      let reach =
+        match evidence_of id with Some e -> e.Domain.reach | None -> None
+      in
+      match (state, reach) with
+      | Domain.Holds, Some Domain.Subject -> incr watched_on_subject
+      | Domain.Holds, Some _ ->
+          incr watched_elsewhere;
+          weak := (id, state, reach) :: !weak
+      | _ -> incr not_established)
+    states;
+  Printf.printf
+    "audit: what the project's own checks watch\n\
+     claims: %d\n\
+     \  watched on their own subject: %d\n\
+     \  watched, but the control broke something else: %d\n\
+     \  not established: %d\n"
+    (List.length claims) !watched_on_subject !watched_elsewhere !not_established;
+  if !weak <> [] then (
+    Printf.printf "\nthe claims whose control did not break their subject:\n";
+    List.iter
+      (fun (id, _, _) ->
+        let scope =
+          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
+          | Some c -> String.concat ", " c.subject.scope
+          | None -> ""
+        in
+        Printf.printf
+          "  %s  %s\n\
+           \    the control bit, but it broke something else: the check is not vacuous,\n\
+           \    and the demonstration is not about this subject\n"
+          id scope)
+      (List.rev !weak));
+  0
 
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
@@ -701,16 +782,19 @@ let verb_run () =
                          somewhere else entirely, and until it is shown
                          red on the broken subject, the green it gives
                          says nothing about the subject. *)
-                       let outcome, reason, control_outcome =
+                       let outcome, reason, control_outcome, control_reach =
                          match (outcome, claim.control) with
                          | Domain.Verified, Some control ->
-                             let c_outcome, c_reason =
-                               Exec.run_control ~root:(root ()) ~control ~requirement:command
+                             let c =
+                               Exec.run_control ~root:(root ()) ~scope:claim.subject.scope
+                                 ~control ~requirement:command
                              in
-                             (match c_outcome with
-                             | Domain.Falsified -> (Domain.Verified, c_reason, Some Domain.Falsified)
-                             | _ -> (Domain.Unresolved, c_reason, Some c_outcome))
-                         | _ -> (outcome, reason, None)
+                             (match c.Exec.outcome with
+                             | Domain.Falsified ->
+                                 (Domain.Verified, c.Exec.reason, Some Domain.Falsified, Some c.Exec.reach)
+                             | _ ->
+                                 (Domain.Unresolved, c.Exec.reason, Some c.Exec.outcome, Some c.Exec.reach))
+                         | _ -> (outcome, reason, None, None)
                        in
                       Printf.printf "%s: %s\n" claim.id
                         (match outcome with
@@ -729,9 +813,10 @@ let verb_run () =
                           reason;
                           at_commit;
                           at;
-                          valid_until = None;
-                          control = control_outcome;
-                        } ))
+                           valid_until = None;
+                           control = control_outcome;
+                           reach = control_reach;
+                         } ))
                 claim.requirements)
         claims
     in
@@ -1732,6 +1817,9 @@ let usage_text () =
       "  mathc budget N            the price of uncertainty, changed by a person;";
       "                               --reason says why";
       "  mathc map               the standing specification: claims, states, uncovered";
+      "  mathc audit             what the project's own checks really watch: how many";
+      "                               claims are watched by a check shown able to fail";
+      "                               ON THEIR OWN SUBJECT, and which are not";
       "  mathc route             what needs a person, and why";
       "  mathc run                execute the checks, bind the results, write the trail";
       "  mathc record CLAIM REQ --by WHO --outcome V";
@@ -2437,6 +2525,7 @@ let () =
                 Printf.eprintf "mathc: control needs CLAIM COMMAND\n";
                 2)
         | "map" -> verb_map o.json
+        | "audit" -> verb_audit ()
         | "route" -> verb_route ()
         | "run" -> verb_run ()
         | "record" -> (

@@ -68,20 +68,12 @@ type subject = {
 (** How a claim must be closed.
 
     Two kinds, and the difference is not cosmetic. A command that exits
-    zero and a person who looked are different kinds of evidence: the
-    first is mechanical and the second is not, and a rule that asks for
-    both is asking for a confirmation that does not come from one
-    place. The third version knew this - it refused to let one object
-    claim to be both, and it counted a review as a review only when a
-    person produced it. The fourth version had one check string and
-    could not say it at all.
-
-    The point of having two kinds is not ceremony. It is that the
-    method can then ask a question it could not ask before: **who
-    closed this?** If the answer is always "the method ran the command
-    in the claim", then every claim in every project is confirmed by
-    the same kind of thing, and a rule confirmed by the agent's own
-    script is worth no more than the agent's confidence. *)
+    zero and a person who looked are different kinds of evidence, and a
+    rule that asks for both is asking for a confirmation that does not
+    come from one place. The point of having two kinds is that the
+    method can ask a question it could not ask before: **who closed
+    this?** A rule confirmed by the agent's own script is worth no more
+    than the agent's confidence. *)
 type requirement =
   | Verified_by of string (* the command that must pass *)
   | Reviewed_by of string (* the authority that must look *)
@@ -172,6 +164,14 @@ type claim = {
   control : string option;
 }
 
+(** What the negative control reached: the subject, something else, or
+    nothing. A control that breaks a FIXTURE proves the check is not
+    vacuous and says nothing about the subject; a control that breaks
+    the SUBJECT proves the stronger thing - that the check reads the
+    thing the claim is about. The difference is the whole distance
+    between "the check can fail" and "the check sees this". *)
+type reach = Subject | Elsewhere | Nothing
+
 (** A result, and the subject it was obtained against. The reason says
     why the outcome is what it is - "the check exited 127" is a fact the
     human needs; a bare [Unresolved] is not.
@@ -209,6 +209,8 @@ type evidence = {
      one are different facts about the same check, and only one of them
      is a proof. *)
   control : outcome option;
+  (* What the control reached: the subject, something else, or nothing. *)
+  reach : reach option;
 }
 
 (** What the human is asked to decide. The reason is not decoration:
