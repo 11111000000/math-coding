@@ -358,6 +358,38 @@ let uncovered (root : string) (claims : Domain.claim list) (files : string list)
       && not (List.exists (fun s -> files_under s [ file ] <> []) scopes))
     files
 
+(** The files that are promised but not verified.
+
+    A file covered by a claim that was never checked, or whose proof
+    has gone out of date, or whose promise was broken, is NOT verified.
+    The coverage number alone hid that: the file was counted as
+    covered, and the reader of the map saw "uncovered: 0" and nothing
+    that said the covering promise had never been checked.
+
+    Measured, before this function existed: three never-checked claims
+    over a three-file tree gave "uncovered: 0 tracked file(s) no claim
+    covers" - the tree looked fully covered while nothing in it had
+    been checked at all.
+
+    So this surface is computed and shown BESIDE the uncovered one, and
+    not merged into it: the uncovered surface is "what nobody speaks
+    about", and this is "what is spoken about but not checked". A file
+    is in it when some claim speaks about it and no ESTABLISHED claim
+    does - established meaning: it holds, a person took responsibility
+    for it, or it is a decision about meaning. A refuted, inconclusive,
+    outdated or never-checked claim does not establish anything. *)
+let promised_but_unverified (root : string) (established : Domain.scope list)
+    (promised : Domain.scope list) (files : string list) : string list =
+  let covered_by scopes file =
+    List.exists (fun scope -> files_under scope [ file ] <> []) scopes
+  in
+  List.filter
+    (fun file ->
+      not (is_a_method_file root file)
+      && covered_by promised file
+      && not (covered_by established file))
+    files
+
 
 (** Is this a git repository?
 
