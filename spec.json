@@ -2,18 +2,8 @@
   "goal": {
     "text": "метод держит спецификацию проекта и проверяет её против кода: то, что заявлено, должно быть проверено, а то, что не проверено, должно быть видно",
     "scope": [
-      "lib/",
-      "test/",
-      "adapter/",
-      "bin/",
-      "format/",
-      "spec.json",
-      "waves/",
-      "flake.nix",
-      "GOAL.md",
-      "PHILOSOPHY.md",
-      "AXIOMS.md",
-      "README.md",
+      "lib/", "test/", "adapter/", "bin/", "format/", "spec.json", "waves/",
+      "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
       "docs/"
     ],
     "by": "p.b.kosov@yandex.ru",
@@ -21,36 +11,16 @@
   },
   "uncertainty_budget": 12,
   "closed_waves": [
-    "wave-1",
-    "wave-4",
-    "wave-2",
-    "wave-3",
-    "wave-5",
-    "wave-6",
-    "wave-7",
-    "wave-8",
-    "wave-9",
-    "wave-10",
-    "wave-11",
-    "wave-12",
-    "wave-13",
-    "wave-14",
-    "wave-15",
-    "wave-16",
-    "wave-17",
-    "wave-18",
-    "wave-19"
+    "wave-1", "wave-4", "wave-2", "wave-3", "wave-5", "wave-6", "wave-7",
+    "wave-8", "wave-9", "wave-10", "wave-11", "wave-12", "wave-13",
+    "wave-14", "wave-15", "wave-16", "wave-17", "wave-18", "wave-19",
+    "wave-20"
   ],
   "claims": [
     {
       "id": "no-scripts",
       "subject": "в каталогах lib/, test/, adapter/ и bin/ нет исполняемых скриптов: метод написан на OCaml",
-      "scope": [
-        "lib/",
-        "test/",
-        "adapter/",
-        "bin/"
-      ],
+      "scope": [ "lib/", "test/", "adapter/", "bin/" ],
       "requirements": [
         {
           "kind": "verifier",
@@ -66,9 +36,7 @@
     {
       "id": "core-is-pure",
       "subject": "ядро метода не содержит эффектов: ни часов, ни случайности, ни ввода-вывода",
-      "scope": [
-        "lib/"
-      ],
+      "scope": [ "lib/" ],
       "requirements": [
         {
           "kind": "verifier",
@@ -84,15 +52,8 @@
     {
       "id": "the-aim-is-a-persons",
       "subject": "цель метода сформулирована человеком и не выведена из того, что оказалось сделано",
-      "scope": [
-        "bin/mathc.ml"
-      ],
-      "requirements": [
-        {
-          "kind": "review",
-          "spec": "owner"
-        }
-      ],
+      "scope": [ "bin/mathc.ml" ],
+      "requirements": [ { "kind": "review", "spec": "owner" } ],
       "falsifier": "цель выводится из сделанного, а не сформулирована: это видно по тому, что смена цели не требует основания",
       "register": "judgment",
       "accepted": null,
@@ -151,23 +112,24 @@
           "bound_to": "e7c03b0175316de3f7a56c01b6282da7d10df75a",
           "at": "1794077461",
           "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "6c382b18191b1b87850a24f8b76b5c0c3b6b118b",
+          "at": "1794202541",
+          "valid_until": null
         }
       ]
     },
     {
       "id": "verbs-work",
       "subject": "пятнадцать глаголов инструмента работают: каждый исполняется, и у каждого есть отрицательный контроль",
-      "scope": [
-        "lib/",
-        "adapter/",
-        "format/",
-        "bin/"
-      ],
+      "scope": [ "lib/", "adapter/", "format/", "bin/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
       "register": "fact",
@@ -178,15 +140,9 @@
     {
       "id": "the-tool-is-documented",
       "subject": "каждый глагол инструмента назван в README: документация инструмента не разошлась с ним",
-      "scope": [
-        "bin/",
-        "README.md"
-      ],
+      "scope": [ "bin/", "README.md" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "глагол есть в бинаре, но не назван в README",
       "register": "fact",
@@ -197,10 +153,7 @@
     {
       "id": "formal-part-matches-the-code",
       "subject": "каждый закон, доказанный в ядре, назван в формальной части: спецификация для доказательства не разошлась с кодом",
-      "scope": [
-        "lib/",
-        "AXIOMS.md"
-      ],
+      "scope": [ "lib/", "AXIOMS.md" ],
       "requirements": [
         {
           "kind": "verifier",
@@ -216,16 +169,9 @@
     {
       "id": "the-plan-carries-its-objection",
       "subject": "каждая волна плана несёт сильнейшее возражение своему подходу и то, что его опровергнет: диалектика живёт на плане",
-      "scope": [
-        "waves/",
-        "format/",
-        "test/"
-      ],
+      "scope": [ "waves/", "format/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/spec_format.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/spec_format.exe" }
       ],
       "falsifier": "волна без возражения или без того, что его опровергнет",
       "register": "fact",
@@ -236,16 +182,9 @@
     {
       "id": "the-specification-is-readable",
       "subject": "стоящая спецификация проекта читается методом, и каждое её утверждение имеет предмет, требования и опровержитель",
-      "scope": [
-        "spec.json",
-        "format/",
-        "test/"
-      ],
+      "scope": [ "spec.json", "format/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/spec_format.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/spec_format.exe" }
       ],
       "falsifier": "спецификация не читается или в ней есть утверждение без предмета, требований или опровержителя",
       "register": "fact",
@@ -256,16 +195,9 @@
     {
       "id": "the-proof-is-anchored-to-the-act",
       "subject": "доказательство помнит коммит, из которого взято содержимое, и момент производства, и срок, после которого оно перестаёт считаться",
-      "scope": [
-        "lib/",
-        "adapter/",
-        "bin/"
-      ],
+      "scope": [ "lib/", "adapter/", "bin/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "в следе нет коммита, из которого взято содержимое, или срок проигнорирован",
       "register": "fact",
@@ -276,17 +208,9 @@
     {
       "id": "the-wave-says-why-and-promises-what-can-be-checked",
       "subject": "каждая волна говорит, зачем эта работа, и обещает, какое утверждение будет в каком состоянии; обещание проверяется при закрытии",
-      "scope": [
-        "waves/",
-        "format/",
-        "test/",
-        "bin/"
-      ],
+      "scope": [ "waves/", "format/", "test/", "bin/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/spec_format.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/spec_format.exe" }
       ],
       "falsifier": "волна без замысла или без обязательства, либо волна закрывается с невыполненным обещанием",
       "register": "fact",
@@ -297,12 +221,7 @@
     {
       "id": "the-attestation-survives-a-clone",
       "subject": "аттестация человека лежит в спецификации, а не в следе, и потому переживает свежий клон",
-      "scope": [
-        "lib/",
-        "format/",
-        "bin/",
-        "test/"
-      ],
+      "scope": [ "lib/", "format/", "bin/", "test/" ],
       "requirements": [
         {
           "kind": "verifier",
@@ -318,15 +237,9 @@
     {
       "id": "the-criterion-is-computable",
       "subject": "стенд печатает критерий GOAL.md — цену метода на один пойманный дефект против цены дефекта — когда цена дефекта объявлена",
-      "scope": [
-        "bin/stand.ml",
-        "test/"
-      ],
+      "scope": [ "bin/stand.ml", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/criterion.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/criterion.exe" }
       ],
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
       "register": "fact",
@@ -337,14 +250,9 @@
     {
       "id": "the-agent-arm-is-measured",
       "subject": "рука агента измерена на чужом проекте: одна задача в двух руках, записано, что поймала каждая и что это стоило",
-      "scope": [
-        "docs/measurements/2026-11-07-agent-arm/"
-      ],
+      "scope": [ "docs/measurements/2026-11-07-agent-arm/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/stand.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/stand.exe" }
       ],
       "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
       "register": "fact",
@@ -355,16 +263,9 @@
     {
       "id": "the-binding-covers-what-ran",
       "subject": "привязка доказательства покрывает рабочее дерево - то самое содержимое, по которому шли проверки, - а не закоммиченное",
-      "scope": [
-        "adapter/",
-        "lib/",
-        "test/"
-      ],
+      "scope": [ "adapter/", "lib/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/adapter_scope.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/adapter_scope.exe" }
       ],
       "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
       "register": "fact",
@@ -375,14 +276,9 @@
     {
       "id": "the-flake-hands-out-a-working-binary",
       "subject": "флейк отдаёт пакет с бинарём метода, и этот бинарь собирается и работает: путь принимающей стороны живой",
-      "scope": [
-        "flake.nix"
-      ],
+      "scope": [ "flake.nix" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "nix build .#default --no-link"
-        }
+        { "kind": "verifier", "spec": "nix build .#default --no-link" }
       ],
       "falsifier": "пакет не собирается или собранный бинарь не работает",
       "register": "fact",
@@ -393,15 +289,9 @@
     {
       "id": "the-entry-point-names-every-verb",
       "subject": "страница входа для агента (AGENTS.md) называет каждый глагол инструмента: страница и орудие не расходятся",
-      "scope": [
-        "AGENTS.md",
-        "test/"
-      ],
+      "scope": [ "AGENTS.md", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/agents.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/agents.exe" }
       ],
       "falsifier": "в инструменте есть глагол, которого не называет страница",
       "register": "fact",
@@ -412,15 +302,9 @@
     {
       "id": "the-tool-can-be-taken-out-of-nix",
       "subject": "флейк отдаёт переносимый бинарь метода и стенда: без runpath в store, с OCaml-рантаймом внутри, и с путеводителем внутри орудия",
-      "scope": [
-        "flake.nix",
-        "bin/"
-      ],
+      "scope": [ "flake.nix", "bin/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "nix build .#portable"
-        }
+        { "kind": "verifier", "spec": "nix build .#portable" }
       ],
       "falsifier": "переносимый бинарь просит библиотеки из store, не запускается без nix или не приносит стенда",
       "register": "fact",
@@ -432,15 +316,10 @@
       "id": "the-criterion-is-computed-on-real-data",
       "subject": "критерий GOAL.md посчитан на данных замера руки агента, и вердикт отрицательный: ни один дефект не пойман, поэтому цена метода на один дефект не определена",
       "scope": [
-        "docs/measurements/2026-11-07-agent-arm/",
-        "bin/stand.ml",
-        "test/"
+        "docs/measurements/2026-11-07-agent-arm/", "bin/stand.ml", "test/"
       ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/stand.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/stand.exe" }
       ],
       "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
       "register": "fact",
@@ -451,16 +330,9 @@
     {
       "id": "the-third-version-comes-across-as-drafts",
       "subject": "решения третьей версии переносятся черновиками: область и верификаторы переносятся, регистр и опровержитель остаются за человеком",
-      "scope": [
-        "adapter/v3.ml",
-        "bin/mathc.ml",
-        "test/"
-      ],
+      "scope": [ "adapter/v3.ml", "bin/mathc.ml", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/v3_draft.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/v3_draft.exe" }
       ],
       "falsifier": "переносится больше, чем механическая часть, или переносится решение без области",
       "register": "fact",
@@ -471,15 +343,9 @@
     {
       "id": "the-agent-arm-is-measured-without-a-foreign-method",
       "subject": "рука агента измерена на предмете, где нет чужого метода: протокольная рука починила посаженную поломку, контрольная её увидела и оставила",
-      "scope": [
-        "docs/measurements/2026-11-07-agent-arm-repeat/",
-        "test/"
-      ],
+      "scope": [ "docs/measurements/2026-11-07-agent-arm-repeat/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/stand.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/stand.exe" }
       ],
       "falsifier": "запись повторного замера отсутствует или её вердикт расходится с её числами",
       "register": "fact",
@@ -490,18 +356,9 @@
     {
       "id": "a-check-that-cannot-fail-proves-nothing",
       "subject": "проверка, которая проходит там, где её контроль обязан был упасть, не доказывает утверждение: оно не установлено, и карта называет причину",
-      "scope": [
-        "lib/",
-        "adapter/",
-        "format/",
-        "bin/",
-        "test/"
-      ],
+      "scope": [ "lib/", "adapter/", "format/", "bin/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/laws.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/laws.exe" }
       ],
       "falsifier": "проверка слепая признаётся доказанной",
       "register": "fact",
@@ -512,15 +369,9 @@
     {
       "id": "the-agent-arm-is-measured-in-four-arms",
       "subject": "рука агента измерена вчетверо: страница входа, закон о контроле проверки и метод отделены друг от друга; результат отрицательный и назван прямо",
-      "scope": [
-        "docs/measurements/2026-11-07-agent-arm-repeat/",
-        "test/"
-      ],
+      "scope": [ "docs/measurements/2026-11-07-agent-arm-repeat/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/stand.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/stand.exe" }
       ],
       "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
       "register": "fact",
@@ -531,17 +382,9 @@
     {
       "id": "a-wave-can-be-made",
       "subject": "волна создаётся глаголом, а не только рукой: очередь в чужом репозитории ведёт, а не молчит",
-      "scope": [
-        "bin/",
-        "format/",
-        "test/",
-        "waves/"
-      ],
+      "scope": [ "bin/", "format/", "test/", "waves/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "волну по-прежнему можно создать только рукописью в JSON, и next её не называет",
       "register": "fact",
@@ -552,18 +395,9 @@
     {
       "id": "a-promise-may-precede-its-subject",
       "subject": "обещание объявляется раньше, чем предмет появляется: пустой репозиторий — законное состояние, а не тупик",
-      "scope": [
-        "lib/",
-        "bin/",
-        "adapter/",
-        "test/",
-        "AXIOMS.md"
-      ],
+      "scope": [ "lib/", "bin/", "adapter/", "test/", "AXIOMS.md" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "объявление обещания о несуществующем предмете снова отказывает",
       "register": "fact",
@@ -574,17 +408,9 @@
     {
       "id": "the-page-for-agents-is-generated-and-installed",
       "subject": "страница для агента генерируется из справки орудия и стоящей спецификации и кладётся в проект, не затирая чужой AGENTS.md",
-      "scope": [
-        "bin/",
-        "adapter/",
-        "test/",
-        "AGENTS.md"
-      ],
+      "scope": [ "bin/", "adapter/", "test/", "AGENTS.md" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "страница называет глагол, которого нет, или затирает чужой текст",
       "register": "fact",
@@ -595,16 +421,9 @@
     {
       "id": "a-project-with-code-has-a-first-step",
       "subject": "проект с кодом и без утверждений получает черновики первых утверждений и видит свои проверки",
-      "scope": [
-        "bin/",
-        "adapter/project.ml",
-        "test/"
-      ],
+      "scope": [ "bin/", "adapter/project.ml", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "черновик не появляется, или решение принимает машина",
       "register": "fact",
@@ -615,15 +434,9 @@
     {
       "id": "the-machine-surface-returns-the-next-step",
       "subject": "машинная поверхность отдаёт следующий шаг, а не список успехов",
-      "scope": [
-        "bin/",
-        "test/mcp.ml"
-      ],
+      "scope": [ "bin/", "test/mcp.ml" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/mcp.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/mcp.exe" }
       ],
       "falsifier": "метод отдаёт список или не отдаёт следующего шага",
       "register": "fact",
@@ -634,15 +447,9 @@
     {
       "id": "the-map-does-not-call-a-non-project-green",
       "subject": "карта не зеленеет там, где проекта нет: каталог без спецификации получает «не знаю», а не «всё хорошо»",
-      "scope": [
-        "bin/",
-        "test/"
-      ],
+      "scope": [ "bin/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "карта в каталоге без spec.json печатает зелёный вердикт",
       "register": "fact",
@@ -653,16 +460,9 @@
     {
       "id": "the-draft-is-made-over-a-check-of-the-code",
       "subject": "черновик делается только над проверкой кода: dev и build доказательствами не являются",
-      "scope": [
-        "bin/",
-        "adapter/project.ml",
-        "test/"
-      ],
+      "scope": [ "bin/", "adapter/project.ml", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/v3_draft.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/v3_draft.exe" }
       ],
       "falsifier": "черновик предлагает в качестве проверки команду, ничего не проверяющую",
       "register": "fact",
@@ -673,15 +473,9 @@
     {
       "id": "every-machine-method-is-called-by-the-check",
       "subject": "каждый метод машинной поверхности вызывается проверкой, а не только называется в списке",
-      "scope": [
-        "bin/",
-        "test/mcp.ml"
-      ],
+      "scope": [ "bin/", "test/mcp.ml" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/mcp.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/mcp.exe" }
       ],
       "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
       "register": "fact",
@@ -692,15 +486,9 @@
     {
       "id": "a-control-that-never-ran-proves-nothing",
       "subject": "контроль, который не запустился, не доказывает: утверждение с опечаткой в контроле больше не читается как доказанное",
-      "scope": [
-        "bin/",
-        "test/"
-      ],
+      "scope": [ "bin/", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "контроль, который не запустился или был убит, читается как сработавший",
       "register": "fact",
@@ -711,16 +499,9 @@
     {
       "id": "the-promised-surface-is-shown",
       "subject": "непроверенные обещания показаны рядом с покрытием: файл, объявленный, но не проверенный, не прячется под нулевым покрытием",
-      "scope": [
-        "bin/",
-        "adapter/git.ml",
-        "test/"
-      ],
+      "scope": [ "bin/", "adapter/git.ml", "test/" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "карта прячет файлы, покрытые обещаниями, которые никто не проверял",
       "register": "fact",
@@ -731,16 +512,9 @@
     {
       "id": "a-control-that-bites-proves-the-check",
       "subject": "контроль, который ломает предмет и на котором проверка краснеет, доказывает проверку: утверждение с таким контролем установлено, а без кусающегося контроля — нет",
-      "scope": [
-        "adapter/exec.ml",
-        "bin/mathc.ml",
-        "test/cli.ml"
-      ],
+      "scope": [ "adapter/exec.ml", "bin/mathc.ml", "test/cli.ml" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "проверка остаётся зелёной на сломанном предмете, или утверждение с кусающимся контролем читается как установленное без него",
       "register": "fact",
@@ -751,15 +525,9 @@
     {
       "id": "the-tree-is-left-as-the-control-found-it",
       "subject": "контроль ломает предмет на время проверки и дерево возвращается в то состояние, в котором было: следующий запуск проверки видит то же дерево",
-      "scope": [
-        "adapter/exec.ml",
-        "test/cli.ml"
-      ],
+      "scope": [ "adapter/exec.ml", "test/cli.ml" ],
       "requirements": [
-        {
-          "kind": "verifier",
-          "spec": "dune runtest test/cli.exe"
-        }
+        { "kind": "verifier", "spec": "dune runtest test/cli.exe" }
       ],
       "falsifier": "после контроля дерево остаётся изменённым, или проверка видит сломанный предмет после возврата",
       "register": "fact",
