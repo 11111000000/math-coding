@@ -423,8 +423,8 @@ let check_the_tool (binary : string) (prefix : string list) =
            [
              "add"; "c1"; "a claim about the subject"; "subject.txt";
              "the claim stops holding"; "fact"; "--requirement";
-             "verifier:true"; "--requirement"; "review:owner"; "--control";
-             "false";
+             "verifier:test ! -e probe.txt"; "--requirement"; "review:owner";
+             "--control"; "touch probe.txt";
            ]);
 
       (* map: the claim is there, and the map is data as well as prose. *)
@@ -444,10 +444,10 @@ let check_the_tool (binary : string) (prefix : string list) =
          human reads, not only in the JSON a program reads. *)
       assert (contains text "the check is not proven able to fail");
 
-      (* run: the verifier runs, and one of the two requirements is
-         closed - so the claim is partly known, which is not the same as
-         holding, and the verdict is UNKNOWN, not green. The exit code
-         says so: 3, and not 0. *)
+      (* run: the verifier runs and its control bites, so the verifier is
+         closed - but the review is not, so the claim is partly known,
+         which is not the same as holding, and the verdict is UNKNOWN,
+         not green. The exit code says so: 3, and not 0. *)
       let code, text = call [ "run" ] in
       expect_code "run" 3 (code, text);
       assert (contains text "c1: verified");
@@ -671,6 +671,44 @@ let check_the_promised_surface (binary : string) (prefix : string list) =
       let _, json = call [ "map"; "--json" ] in
       assert (contains json "\"promised_not_verified\": []"))
 
+(* THE CONTROL THAT BITES.
+
+   A control is only a control if the check goes red on the subject it
+   broke. The tool used to accept a command that merely FAILED: "false"
+   exits 1, so a claim whose control was "false" read as proven - and
+   the method certified checks it had never seen fail.
+
+   Now the control breaks the subject, the check runs on the broken
+   subject, and the check must fail THERE. The tree is put back
+   afterwards, so the next run of the check sees the same tree it saw
+   before, and the trail says that the control bit. *)
+let check_the_control_that_bites (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      (* The check: the probe file is not there. The control: the command
+         that puts it there. *)
+      expect_ok "add"
+        (call
+           [
+             "add"; "c-control"; "the probe file is absent"; "subject.txt";
+             "the probe file appears"; "fact"; "--requirement";
+             "verifier:test ! -e probe.txt"; "--control"; "touch probe.txt";
+           ]);
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c-control: verified");
+      (* THE TREE IS PUT BACK: the control broke the subject on purpose,
+         and the method put it back. *)
+      assert (not (Sys.file_exists (Filename.concat root "probe.txt")));
+      (* AND THE TRAIL SAYS THE CONTROL BIT - a proof made with a
+         control and a proof made without one are different facts. *)
+      let trail = read_file (Filename.concat root ".math/trail.jsonl") in
+      assert (contains trail "\"control\":\"falsified\"");
+      let _, text = call [ "map" ] in
+      assert (contains text "holds"))
+
 (* --- the documentation -------------------------------------------------- *)
 
 (* THE GREENFIELD. A repository with nothing in it.
@@ -756,6 +794,7 @@ let () =
   check_the_tool (method_binary ()) [];
   check_the_greenfield (method_binary ()) [];
   check_the_control_that_never_ran (method_binary ()) [];
+  check_the_control_that_bites (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -767,6 +806,7 @@ let () =
       check_the_tool (method_binary ()) [ "--help" ];
       check_the_greenfield (method_binary ()) [ "--help" ];
       check_the_control_that_never_ran (method_binary ()) [ "--help" ];
+      check_the_control_that_bites (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

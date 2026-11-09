@@ -1,0 +1,33 @@
+{
+  "id": "wave-20",
+  "title": "the control that has to bite",
+  "intent": "The law A16 asked a check to be shown able to fail, and the tool asked for a control that FAILS - which is not the same thing. A command that fails proves nothing about the check it guards: 'false' exits 1, so a claim whose control was 'false' read as proven, and the method certified checks it had never seen fail. Now the control breaks the subject, the check runs on the broken subject and must fail THERE, and the tree is put back afterwards. Every claim of the method also got a requirement that names the file it runs, instead of one suite for all of them: twenty-nine claims ran the whole suite, so a green suite said nothing about any claim in particular.",
+  "touches": [
+    "lib/",
+    "adapter/",
+    "bin/",
+    "test/",
+    "spec.json",
+    "waves/",
+    "AXIOMS.md"
+  ],
+  "checks": [
+    "dune runtest --root . --force"
+  ],
+  "claims": [
+    "a-control-that-bites-proves-the-check",
+    "the-tree-is-left-as-the-control-found-it"
+  ],
+  "commitment": [
+    {
+      "claim": "a-control-that-bites-proves-the-check",
+      "state": "holds"
+    },
+    {
+      "claim": "the-tree-is-left-as-the-control-found-it",
+      "state": "holds"
+    }
+  ],
+  "objection": "The method now refuses to call a claim established unless its check has been seen red on a broken subject - and ten of the method's own claims cannot say that yet, so the map of the method is mostly inconclusive. A method that is stricter than its own repository is a method that has become a brake: it refuses more and more often, on the tree that made it. The answer named here is the same as always - the arm of the agent with this build - and it has still not been run once.",
+  "refuted_by": "the arm of the agent, run on the tree of this method, with a control that bites and one that does not: if the protocol still catches nothing beyond what the agent catches without it, the mechanism is sound and the method is still not useful, and that is a fact about the method rather than about the controls"
+}

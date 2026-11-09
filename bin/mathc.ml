@@ -597,39 +597,31 @@ let verb_run () =
                          succeeding says the same thing - the control
                          proves nothing, and the claim is not
                          established. *)
-                      let outcome, reason =
+                      (* THE CONTROL, AND WHAT IT PROVED. The control
+                         breaks the subject; the check runs on the broken
+                         subject and must fail; the tree is put back
+                         afterwards. The control's own verdict travels
+                         beside the check's: a proof made with a control
+                         and a proof made without one are different facts
+                         about the same check, and the trail says which
+                         this one is.
+
+                         A control that does not bite does not make the
+                         check a bad one - it makes the CLAIM
+                         unestablished: the check may be looking
+                         somewhere else entirely, and until it is shown
+                         red on the broken subject, the green it gives
+                         says nothing about the subject. *)
+                      let outcome, reason, control_outcome =
                         match (outcome, claim.control) with
                         | Domain.Verified, Some control ->
-                            let code = Exec.exit_code_of ~root:(root ()) control in
-                            if code = 0 then
-                              ( Domain.Unresolved,
-                                Some
-                                  "the check passed where its negative control had to fail: \
-                                   it cannot see the subject" )
-                            else if code = 126 || code = 127 then
-                              ( Domain.Unresolved,
-                                Some
-                                  (Printf.sprintf
-                                     "the control did not run (exit %d): a control that never \
-                                      ran proves nothing, so the check is not proven able to \
-                                      fail"
-                                     code) )
-                            else if code >= 128 then
-                              ( Domain.Unresolved,
-                                Some
-                                  (Printf.sprintf
-                                     "the control was killed (exit %d): it did not finish, so \
-                                      it proves nothing"
-                                     code) )
-                            else if code = 2 || code = 3 then
-                              ( Domain.Unresolved,
-                                Some
-                                  (Printf.sprintf
-                                     "the control did not report a failure (exit %d): it \
-                                      proves nothing"
-                                     code) )
-                            else (outcome, reason)
-                        | _ -> (outcome, reason)
+                            let c_outcome, c_reason =
+                              Exec.run_control ~root:(root ()) ~control ~requirement:command
+                            in
+                            (match c_outcome with
+                            | Domain.Falsified -> (Domain.Verified, None, Some Domain.Falsified)
+                            | _ -> (Domain.Unresolved, c_reason, Some c_outcome))
+                        | _ -> (outcome, reason, None)
                       in
                       Printf.printf "%s: %s\n" claim.id
                         (match outcome with
@@ -649,6 +641,7 @@ let verb_run () =
                           at_commit;
                           at;
                           valid_until = None;
+                          control = control_outcome;
                         } ))
                 claim.requirements)
         claims

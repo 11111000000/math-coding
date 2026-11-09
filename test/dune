@@ -1,43 +1,52 @@
 (test
  (name empty_is_green)
+ (modules empty_is_green)
  (libraries mathcoding))
 
 (test
  (name laws)
+ (modules laws)
  (libraries mathcoding))
 
 (test
  (name exit_codes)
+ (modules exit_codes)
  (libraries mathcoding mathcoding_adapter))
 
 (test
  (name spec_format)
+ (modules spec_format)
  (libraries mathcoding mathcoding_format yojson))
 
 (test
  (name paths)
+ (modules paths)
  (libraries mathcoding_adapter))
 
 (test
  (name repository_lints)
+ (modules repository_lints)
  (libraries mathcoding str unix))
 
 ; The verdict of the criterion of GOAL.md, recomputed from the numbers
 ; of the agent-arm measurement.
 (test
  (name criterion)
+ (modules criterion)
  (libraries yojson))
 
 ; The third version's decisions, as drafts: the mechanical part is
 ; carried across, and the rest is left to the person.
 (test
  (name v3_draft)
+ (modules v3_draft)
  (libraries mathcoding mathcoding_adapter yojson))
 
 ; The entry point for an agent: the guide must name every verb the
 ; tool has, and the check must be able to say no.
 (test
  (name agents)
+ (modules agents)
  (libraries unix)
  (deps %{exe:../bin/mathc.exe}))
 
@@ -45,6 +54,7 @@
 ; defect it caught, against what that defect was worth.
 (test
  (name stand)
+ (modules stand)
  (libraries unix)
  (deps %{exe:../bin/stand.exe} %{exe:../bin/mathc.exe}))
 
@@ -53,6 +63,7 @@
 ; found is offered to the law and rejected.
 (test
  (name adapter_scope)
+ (modules adapter_scope)
  (libraries mathcoding mathcoding_adapter unix))
 
 ; The machine surface: the same verbs, spoken over MCP. Each method
@@ -60,6 +71,7 @@
 ; that answers nothing.
 (test
  (name mcp)
+ (modules mcp)
  (libraries yojson unix)
  (deps %{exe:../bin/mathc.exe}))
 
@@ -68,5 +80,6 @@
 ; the tool of this tree and not against something left over.
 (test
  (name cli)
+ (modules cli)
  (libraries mathcoding yojson unix)
  (deps %{exe:../bin/mathc.exe}))

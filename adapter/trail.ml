@@ -62,7 +62,20 @@ let append (root : string) (e : Domain.evidence) : unit =
         ("at", match e.at with Some t -> `String t | None -> `Null);
         (* When the proof stops counting, if the producer says so. *)
         ( "valid_until",
-          match e.valid_until with Some t -> `String t | None -> `Null ) ]
+          match e.valid_until with Some t -> `String t | None -> `Null );
+        (* What the check said when the negative control was applied: the
+           control is what shows the check can fail, and the trail says
+           whether it did. *)
+        ( "control",
+          match e.control with
+          | Some o ->
+              `String
+                (match o with
+                | Domain.Verified -> "verified"
+                | Domain.Falsified -> "falsified"
+                | Domain.Unresolved -> "unresolved"
+                | Domain.Refused -> "refused")
+          | None -> `Null ) ]
   in
   let channel = open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 (trail_path root) in
   output_string channel (Yojson.Safe.to_string json);
@@ -137,6 +150,13 @@ let read (root : string) : Domain.evidence list =
                             at_commit = get "at_commit";
                             at = get "at";
                             valid_until = get "valid_until";
+                            control =
+                              (match get "control" with
+                              | Some "verified" -> Some Domain.Verified
+                              | Some "falsified" -> Some Domain.Falsified
+                              | Some "unresolved" -> Some Domain.Unresolved
+                              | Some "refused" -> Some Domain.Refused
+                              | _ -> None);
                           }
                    | _ -> None)
                | _ -> None)
