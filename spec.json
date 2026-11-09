@@ -201,7 +201,7 @@
       "falsifier": "глагол есть в бинаре, но не назван в README",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i '/^mathc route/d' README.md",
+      "control": "sed -i 's/`mathc route`/`mathc rout`/' README.md",
       "attestations": []
     },
     {
@@ -220,7 +220,7 @@
       "falsifier": "в ядре есть закон, которого нет в AXIOMS.md",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/law_commutative/law_commutative_/g' AXIOMS.md",
+      "control": "sed -i '/law_commutative/d' AXIOMS.md",
       "attestations": []
     },
     {
@@ -280,7 +280,7 @@
       "falsifier": "в следе нет коммита, из которого взято содержимое, или срок проигнорирован",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/at_commit = at_commit;/at_commit = None;/' adapter/trail.ml",
+      "control": "sed -i 's/( \"at_commit\",/( \"at_commit_x\",/' adapter/trail.ml",
       "attestations": []
     },
     {
@@ -335,13 +335,13 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune runtest --root . --force test/criterion.exe"
+          "spec": "dune runtest --root . --force test/stand.exe"
         }
       ],
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-07-agent-arm/numbers.json",
+      "control": "sed -i 's/let caught = count \"refuted\" in/let caught = 0 in/' bin/stand.ml",
       "attestations": []
     },
     {
@@ -353,7 +353,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune runtest --root . --force test/stand.exe"
+          "spec": "dune runtest --root . --force test/criterion.exe"
         }
       ],
       "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
@@ -449,7 +449,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune runtest --root . --force test/stand.exe"
+          "spec": "dune runtest --root . --force test/criterion.exe"
         }
       ],
       "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
@@ -488,7 +488,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune runtest --root . --force test/stand.exe"
+          "spec": "dune runtest --root . --force test/criterion.exe"
         }
       ],
       "falsifier": "запись повторного замера отсутствует или её вердикт расходится с её числами",
@@ -529,7 +529,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "dune runtest --root . --force test/stand.exe"
+          "spec": "dune runtest --root . --force test/criterion.exe"
         }
       ],
       "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
@@ -638,7 +638,7 @@
       "falsifier": "метод отдаёт список или не отдаёт следующего шага",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/(\"next\", `String (String.trim out))/(\"next\", `String \"\")/' bin/mcp.ml",
+      "control": "sed -i 's/(\"map\", json)/(\"map\", `Null)/' bin/mcp.ml",
       "attestations": []
     },
     {
@@ -696,7 +696,7 @@
       "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/(\"next\", `String (String.trim out))/(\"next\", `String \"\")/' bin/mcp.ml",
+      "control": "sed -i 's/(\"map\", json)/(\"map\", `Null)/' bin/mcp.ml",
       "attestations": []
     },
     {
