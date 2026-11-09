@@ -67,46 +67,6 @@ let exit_code_of ~(root : string) (command : string) : int =
   if not (Sys.file_exists root) then 127
   else Sys.command (Printf.sprintf "cd %s && %s" (Filename.quote root) command)
 
-(** The paths git reports as changed, and whether they are tracked.
-
-    THE RAW FORM. The names are read with [git status --porcelain -z],
-    which prints them NUL-separated and UNQUOTED. The quoted form was
-    the reason a file with a non-ASCII name survived the control: git
-    printed the name it would accept on a command line, the restore
-    removed a path that does not exist, and [rm -f] reports a missing
-    file as success. The method declared the tree restored and left the
-    file behind. *)
-type changed = { status : string; path : string }
-
-let dirty_paths ~(root : string) : changed list =
-  let out, code =
-    Git.run_capture
-      (Printf.sprintf "git -C %s status --porcelain -z --untracked-files=all"
-         (Filename.quote root))
-  in
-  if code <> 0 then []
-  else
-    let parts = String.split_on_char '\000' out in
-    let rec go acc = function
-      | p :: rest when String.length p > 3 ->
-          let status = String.sub p 0 2 in
-          let path = String.sub p 3 (String.length p - 3) in
-          (* A rename or a copy is TWO paths: the new one first, then
-             the old one. The new one is the path; the old one is
-             consumed with it. *)
-          let rest =
-            if status.[0] = 'R' || status.[0] = 'C' then
-              match rest with
-              | _old :: more -> more
-              | [] -> []
-            else rest
-          in
-          if path = "" then go acc rest else go ({ status; path } :: acc) rest
-      | _ :: rest -> go acc rest
-      | [] -> List.rev acc
-    in
-    go [] parts
-
 (** A directory of its own, to keep the snapshot of somebody's work
     out of the tree it is a snapshot of. *)
 let fresh_dir () =
@@ -164,12 +124,12 @@ let rec remove_tree dir =
     not, the tree the user gets back is the tree they had. *)
 type snapshot = { dir : string; files : (string * string) list }
 
-let take_snapshot ~(root : string) (paths : changed list) : snapshot =
+let take_snapshot ~(root : string) (paths : Git.changed list) : snapshot =
   let dir = fresh_dir () in
   let rec go n acc = function
     | [] -> { dir; files = List.rev acc }
     | c :: rest ->
-        let src = Filename.concat root c.path in
+        let src = Filename.concat root c.Git.path in
         if Sys.file_exists src && not (Sys.is_directory src) then
           let dst = Filename.concat dir (string_of_int n) in
           if copy_bytes ~from:src ~to_:dst then go (n + 1) ((c.path, dst) :: acc) rest
@@ -191,11 +151,11 @@ let restore_snapshot ~(root : string) (s : snapshot) =
     removed; a tracked one comes back from git. The paths that could
     NOT be put back are returned - a method that cannot restore what
     it broke must say so, and not exit successfully. *)
-let clean_residue ~(root : string) (before : changed list) (after : changed list) :
+let clean_residue ~(root : string) (before : Git.changed list) (after : Git.changed list) :
     string list =
-  let was_dirty path = List.exists (fun (b : changed) -> b.path = path) before in
+  let was_dirty path = List.exists (fun (b : Git.changed) -> b.path = path) before in
   List.filter_map
-    (fun (c : changed) ->
+    (fun (c : Git.changed) ->
       if was_dirty c.path then None
       else
         let ok =
@@ -212,6 +172,39 @@ let clean_residue ~(root : string) (before : changed list) (after : changed list
         in
         if ok then None else Some c.path)
     after
+
+(** A fingerprint of the working tree, for the question "did anything
+    change?".
+
+    It is built from the paths git reports as CHANGED, with the content
+    of each, and not from a hash of the whole tree. The whole-tree hash
+    was tried first and it was WRONG: `git hash-object` refuses a path
+    it cannot hash - a symlink to a directory, say - and the refusal
+    aborts the whole batch, so the fingerprint came back empty before
+    the control and empty after it, and the method concluded that the
+    control had broken nothing. It refused to certify a claim, which is
+    the safe direction, but it did it for the wrong reason, and it made
+    the method unable to establish ANY claim in a repository that had
+    such a symlink. The measurement of 2026-11-10 found this on a real
+    project, and the measurement was right to.
+
+    The changed paths are enough, and they are exact: a control changes
+    the tree by making something dirty, and a file that was already
+    dirty is caught by its CONTENT rather than by its presence. *)
+let tree_fingerprint ~(root : string) : string =
+  let parts =
+    List.map
+      (fun (c : Git.changed) ->
+        let file = Filename.concat root c.path in
+        let content =
+          match Git.hash_of_file file with
+          | Some h -> h
+          | None -> if Sys.is_directory file then "a directory" else "unreadable"
+        in
+        c.path ^ " " ^ content)
+      (Git.dirty_paths root)
+  in
+  Git.hash_content root (String.concat "\n" parts ^ "\n")
 
 (** Run the negative control of a check, and say whether the check bit.
 
@@ -249,9 +242,9 @@ type control_result = {
 
 let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
     ~(requirement : string) : control_result =
-  let before = dirty_paths ~root in
+  let before = Git.dirty_paths root in
   let snapshot = take_snapshot ~root before in
-  let before_fingerprint = Git.tree_fingerprint root in
+  let before_fingerprint = tree_fingerprint ~root in
   let before_subject = Git.digest_of_scope root scope in
   let control_code = exit_code_of ~root control in
   (* DID THE CONTROL ACTUALLY CHANGE ANYTHING?
@@ -271,7 +264,7 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
      that did that could establish no claim at all - every claim read
      as inconclusive, and the method's own repository went unknown
      with nothing to show for it. *)
-  let after_fingerprint = Git.tree_fingerprint root in
+  let after_fingerprint = tree_fingerprint ~root in
   let broke = before_fingerprint <> after_fingerprint in
   (* WHAT THE CONTROL REACHED. The subject, something else in the
      tree, or nothing. A control that breaks a FIXTURE proves that the
@@ -306,7 +299,7 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
       (* THE CHECK, ON THE BROKEN SUBJECT. *)
       let check_code = exit_code_of ~root requirement in
       (* THE TREE, PUT BACK. *)
-      let after = dirty_paths ~root in
+      let after = Git.dirty_paths root in
       let left_behind = clean_residue ~root before after in
       restore_snapshot ~root snapshot;
       remove_tree snapshot.dir;
@@ -332,10 +325,15 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
                  the subject" )
           | 2 ->
               ( Domain.Unresolved,
-                Some "the check could not tell under its negative control (exit 2)" )
+                Some
+                  "the check could not tell under its negative control (exit 2): the method \
+                   reads 2 as \"could not tell\". If 2 means failure in this project, wrap \
+                   the command so that it exits 1: CMD || exit 1" )
           | 3 ->
               ( Domain.Unresolved,
-                Some "the check declined under its negative control (exit 3)" )
+                Some
+                  "the check declined under its negative control (exit 3): if 3 means failure \
+                   in this project, wrap the command so that it exits 1: CMD || exit 1" )
           | other ->
               ( Domain.Unresolved,
                 Some

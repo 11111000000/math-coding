@@ -1,0 +1,54 @@
+{
+  "goal": {
+    "text": "сервис мониторинга компилируется и данные правдивы: проверки проекта проходят, а данные соответствуют тому, что записано",
+    "scope": [
+      "src/",
+      "tests/",
+      "pyproject.toml",
+      "scripts/"
+    ],
+    "by": "agent (измерение 2026-11-10, новый метод)",
+    "at": "1794248451"
+  },
+  "uncertainty_budget": 5,
+  "claims": [
+    {
+      "id": "the-code-compiles",
+      "subject": "весь код сервиса и его тесты компилируются без синтаксических ошибок",
+      "scope": [
+        "src/",
+        "tests/"
+      ],
+      "falsifier": "python3 -m compileall -q src tests выходит с ненулевым кодом",
+      "register": "fact",
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "python3 -m compileall -q src tests || exit 1"
+        }
+      ],
+      "control": "printf '\\ndef broken_by_the_control(:\\n' >> src/__init__.py",
+      "attestations": []
+    },
+    {
+      "id": "the-data-is-true",
+      "subject": "данные, которые сервис показывает, соответствуют тому, что записано",
+      "scope": [
+        "src/",
+        "data/"
+      ],
+      "falsifier": "человек увидит расхождение между тем, что записано, и тем, что показывает сервис",
+      "register": "judgment",
+      "accepted": null,
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "python3 -m compileall -q src"
+        }
+      ],
+      "control": null,
+      "attestations": []
+    }
+  ]
+}

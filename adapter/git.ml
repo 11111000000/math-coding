@@ -300,22 +300,58 @@ let head_commit (root : string) : string option =
   in
   if code <> 0 then None else Some (String.trim out)
 
-(** A fingerprint of the whole working tree: the content hash of every
-    file the repository knows about. Two fingerprints that differ mean
-    the tree changed.
+(** The paths git reports as changed, and whether they are tracked.
 
-    It is the TREE and not the SUBJECT that is compared, because a
-    control may break a fixture rather than the subject: the check
-    "test ! -e probe.txt" is shown able to fail by a control that
-    creates probe.txt, and the subject of the claim is elsewhere. The
-    method cannot tell that from a control that changed nothing at all
-    but its exit code, and it must not refuse the honest one. *)
-let tree_fingerprint (root : string) : string =
-  let files = List.sort compare (repository_files root) in
-  match content_hashes root files with
-  | [] -> "empty"
-  | hashes -> hash_content root (String.concat "\n" hashes ^ "\n")
+    THE RAW FORM. The names are read with [git status --porcelain -z],
+    which prints them NUL-separated and UNQUOTED. The quoted form was
+    the reason a file with a non-ASCII name survived the control: git
+    printed the name it would accept on a command line, the restore
+    removed a path that does not exist, and [rm -f] reports a missing
+    file as success. The method declared the tree restored and left the
+    file behind. *)
+type changed = { status : string; path : string }
 
+let dirty_paths (root : string) : changed list =
+  let out, code =
+    run_capture
+      (Printf.sprintf "git -C %s status --porcelain -z --untracked-files=all"
+         (Filename.quote root))
+  in
+  if code <> 0 then []
+  else
+    let parts = String.split_on_char '\000' out in
+    let rec go acc = function
+      | p :: rest when String.length p > 3 ->
+          let status = String.sub p 0 2 in
+          let path = String.sub p 3 (String.length p - 3) in
+          (* A rename or a copy is TWO paths: the new one first, then
+             the old one. The new one is the path; the old one is
+             consumed with it. *)
+          let rest =
+            if status.[0] = 'R' || status.[0] = 'C' then
+              match rest with
+              | _old :: more -> more
+              | [] -> []
+            else rest
+          in
+          if path = "" then go acc rest else go ({ status; path } :: acc) rest
+      | _ :: rest -> go acc rest
+      | [] -> List.rev acc
+    in
+    go [] parts
+
+(** Does the scope name anything that exists? The check that keeps a
+    claim from being made about nothing - and from being made about HALF
+    of nothing: every path of the scope must be there, because a scope
+    with a missing path is a subject with a hole in it.
+
+    This is the adapter's half of the law [Verdict.law_no_partial_subject]:
+    the core cannot see the tree, so it states the law over the two
+    functions that decide, and the adapter supplies them.
+
+    A path that is new but not ignored is in the repository - it would
+    join it - and so it can be a subject. A path that is ignored is not,
+    and a claim about it cannot be bound to anything. *)
 (** When each file last moved, within the last [days] days.
 
     A map of coverage says what nobody LOOKED at. This says where the
@@ -357,18 +393,6 @@ let last_touched (root : string) ~(days : int) : (string * int) list =
       (String.split_on_char '\n' out);
     List.sort (fun (_, a) (_, b) -> compare b a) !latest
 
-(** Does the scope name anything that exists? The check that keeps a
-    claim from being made about nothing - and from being made about HALF
-    of nothing: every path of the scope must be there, because a scope
-    with a missing path is a subject with a hole in it.
-
-    This is the adapter's half of the law [Verdict.law_no_partial_subject]:
-    the core cannot see the tree, so it states the law over the two
-    functions that decide, and the adapter supplies them.
-
-    A path that is new but not ignored is in the repository - it would
-    join it - and so it can be a subject. A path that is ignored is not,
-    and a claim about it cannot be bound to anything. *)
 let scope_exists (root : string) (scope : Domain.scope) : bool =
   match files_of_scope root scope with
   | Some files -> files <> []

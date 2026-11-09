@@ -875,6 +875,27 @@
       "accepted": null,
       "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
       "attestations": []
+    },
+    {
+      "id": "the-method-establishes-claims-on-a-foreign-project",
+      "subject": "на чужом проекте со своими проверками метод устанавливает утверждение: проверка показана способной падать НА СВОЁМ ПРЕДМЕТЕ, и карта говорит правду о том, что именно сломал контроль",
+      "scope": [
+        "adapter/",
+        "lib/",
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force"
+        }
+      ],
+      "falsifier": "на чужом проекте метод не устанавливает ни одного утверждения, или карта говорит, что контроль сломал предмет, когда он сломал что-то другое",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
     }
   ]
 }
