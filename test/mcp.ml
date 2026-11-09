@@ -207,7 +207,7 @@ let check_the_server_in (binary : string) (root : string) =
   let answers =
     ask binary root
       [
-        {|{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add","arguments":{"id":"mcp-claim","subject":"the subject holds","scope":"subject.txt","falsifier":"the check fails","register":"fact","requirement":"verifier:true","control":"false"}}}|};
+        {|{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"add","arguments":{"id":"mcp-claim","subject":"the subject holds","scope":"subject.txt","falsifier":"the check fails","register":"fact","requirement":"verifier:test ! -e probe.txt","control":"touch probe.txt"}}}|};
       ]
   in
   let content = field (List.hd answers) "content" in
