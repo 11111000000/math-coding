@@ -346,6 +346,7 @@ let verb_audit () =
   let watched_on_subject = ref 0 in
   let watched_elsewhere = ref 0 in
   let not_established = ref 0 in
+  let unknown_reach = ref 0 in
   let weak = ref [] in
   List.iter
     (fun (id, state) ->
@@ -354,9 +355,21 @@ let verb_audit () =
       in
       match (state, reach) with
       | Domain.Holds, Some Domain.Subject -> incr watched_on_subject
-      | Domain.Holds, Some _ ->
+      | Domain.Holds, Some Domain.Elsewhere ->
           incr watched_elsewhere;
           weak := (id, state, reach) :: !weak
+      | Domain.Holds, Some Domain.Nothing ->
+          incr watched_elsewhere;
+          weak := (id, state, reach) :: !weak
+      | Domain.Holds, None ->
+          (* The proof was made by a build that did not say what the
+             control reached. The claim HOLDS - the map says so, and the
+             audit must not say otherwise - but the method does not know
+             whether the control reached the subject. Counting it as
+             "not established" would make the audit contradict the map
+             about the same project, and two truths about one project is
+             exactly what the method forbids. *)
+          incr unknown_reach
       | _ -> incr not_established)
     states;
   Printf.printf
@@ -364,8 +377,10 @@ let verb_audit () =
      claims: %d\n\
      \  watched on their own subject: %d\n\
      \  watched, but the control broke something else: %d\n\
+     \  watched, but the build that made the proof did not say: %d\n\
      \  not established: %d\n"
-    (List.length claims) !watched_on_subject !watched_elsewhere !not_established;
+    (List.length claims) !watched_on_subject !watched_elsewhere !unknown_reach
+    !not_established;
   if !weak <> [] then (
     Printf.printf "\nthe claims whose control did not break their subject:\n";
     List.iter
