@@ -94,7 +94,7 @@ let sample_claim =
   }
 
 let sample_evidence outcome bound_to =
-  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
+  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
 
 (* --- the proof ------------------------------------------------------ *)
 
@@ -289,10 +289,10 @@ let check_evidence_does_not_crosstalk () =
   let claim_b = { other with requirements = [ shared ] } in
   let digest_a = "digest-a" and digest_b = "digest-b" in
   let ev_a =
-    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
+    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
   in
   let ev_b =
-    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None }
+    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
   in
   let evidence = [ ev_a; ev_b ] in
   (* Each claim sees only its own evidence. *)

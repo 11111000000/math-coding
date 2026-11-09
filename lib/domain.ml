@@ -215,6 +215,12 @@ type evidence = {
   at : string option;
   (* When the proof stops counting. Absent means it does not expire. *)
   valid_until : string option;
+  (* What the check said when the negative control was applied. [Some
+     Falsified] means the check bit: it went red on the subject the
+     control broke. A proof made with a control and a proof made without
+     one are different facts about the same check, and only one of them
+     is a proof. *)
+  control : outcome option;
 }
 
 (** What the human is asked to decide. The reason is not decoration:
