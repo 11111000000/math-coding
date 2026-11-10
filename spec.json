@@ -122,6 +122,15 @@
           "bound_to": "6c382b18191b1b87850a24f8b76b5c0c3b6b118b",
           "at": "1794202541",
           "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "1f81ea5bd18519d733c7750e934557a550bc9057",
+          "at": "1794280362",
+          "valid_until": null
         }
       ]
     },
@@ -726,6 +735,38 @@
       "register": "fact",
       "accepted": null,
       "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-10-method-v4/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "the-foundations-have-carriers",
+      "subject": "у каждого принципа метода есть носитель в коде, и основания метода (цель и принципы) связаны с формальной частью: список принципов один и тот же в обоих документах",
+      "scope": [ "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md" ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "принцип назван в PHILOSOPHY.md, но носителя у него нет в AXIOMS.md, или список принципов в двух документах разошёлся",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's;| P15 |;| P16 |;' PHILOSOPHY.md",
+      "attestations": []
+    },
+    {
+      "id": "the-methods-own-controls-are-live",
+      "subject": "контроли собственных утверждений метода живы: каждый пишет в свой предмет и всё ещё что-то меняет, - иначе код ушёл под контролем и утверждение читается проверенным, не будучи им",
+      "scope": [ "spec.json", "test/repository_lints.ml" ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "контроль утверждения метода ничего не меняет или пишет вне своего предмета, и проверка этого не замечает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's|\"control\": \"printf|\"control\": \"XXXprintf|' spec.json",
       "attestations": []
     }
   ]

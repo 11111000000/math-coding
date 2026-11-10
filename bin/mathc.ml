@@ -263,20 +263,27 @@ let control_note (state : Domain.state) (claim : Domain.claim option)
     (evidence : Domain.evidence option) : string =
   match state with
   | Domain.Holds -> (
-      match evidence with
-      | Some e -> (
-          match e.Domain.reach with
-          | Some Domain.Subject ->
-              "the control bit, and it broke the subject: the check was shown able to fail \
-               on this very subject"
-          | Some Domain.Elsewhere ->
-              "the control bit, but it broke something else: the check is not vacuous, and \
-               the demonstration is not about this subject"
-          | Some Domain.Nothing ->
-              "the control bit, but it broke nothing: the check was shown able to fail, \
-               and the demonstration is about nothing"
-          | None -> "the control bit: the check was shown able to fail")
-      | None -> "the control bit: the check was shown able to fail")
+      (* A claim with no control is a judgment closed by a person, and
+         there is nothing to say about a control that does not exist:
+         saying "the control bit" there would be a sentence about
+         nothing. *)
+      match claim with
+      | Some c when c.Domain.control = None -> ""
+      | _ -> (
+          match evidence with
+          | Some e -> (
+              match e.Domain.reach with
+              | Some Domain.Subject ->
+                  "the control bit, and it broke the subject: the check was shown able to \
+                   fail on this very subject"
+              | Some Domain.Elsewhere ->
+                  "the control bit, but it broke something else: the check is not vacuous, \
+                   and the demonstration is not about this subject"
+              | Some Domain.Nothing ->
+                  "the control bit, but it broke nothing: the check was shown able to fail, \
+                   and the demonstration is about nothing"
+              | None -> "the control bit: the check was shown able to fail")
+          | None -> "the control bit: the check was shown able to fail"))
   | Domain.Inconclusive -> (
       match claim with
       | None -> ""
