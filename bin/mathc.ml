@@ -209,8 +209,8 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
     nothing that exists covers no files, so it hides no file and
     settles no question. The map still shows it, and it still has to be
     checked once there is something to check. *)
-let consumption_of (claims : Domain.claim list) : int =
-  let states = states_of claims in
+let consumption_of_states (claims : Domain.claim list)
+    (states : (string * Domain.state) list) : int =
   let claim_of id = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
   let covers (c : Domain.claim) = Git.files_covered (root ()) c.subject.scope <> [] in
   List.fold_left
@@ -219,6 +219,9 @@ let consumption_of (claims : Domain.claim list) : int =
       | Some c -> n + Verdict.cost_of_claim ~covers c state
       | None -> n)
     0 states
+
+let consumption_of (claims : Domain.claim list) : int =
+  consumption_of_states claims (states_of claims)
 
 (* ------------------------------------------------------------------ *)
 (* The verbs.                                                           *)
@@ -408,7 +411,14 @@ let verb_audit () =
     person can read is an artifact that no program can check. *)
 let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let claims = spec.Domain.claims in
+  (* ONCE. The map used to compute the states twice - once for itself
+     and once inside the budget - and to read the whole trail four
+     times over, once per field that needs it. Every state costs a
+     digest of the subject, and the digest is the expensive part of
+     reading the map; the map is what an agent reads first and reads
+     most. *)
   let states = states_of claims in
+  let evidence = latest_evidence claims in
   let files = Git.tracked_files (root ()) in
   let uncovered = uncovered_by_suspicion (root ()) (Git.uncovered (root ()) claims files) in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
@@ -425,7 +435,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
           | Domain.Unknown -> "unknown") );
       ("exit", `Int (Verdict.verdict_to_exit verdict));
       ("claims", `Int (List.length claims));
-      ("uncertainty_consumed", `Int (consumption_of claims));
+      ("uncertainty_consumed", `Int (consumption_of_states claims states));
       ("uncertainty_budget", `Int spec.Domain.budget);
       ("uncovered", `Int (List.length uncovered));
       ( "goal",
@@ -462,7 +472,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                       match
                         List.find_opt
                           (fun (e : Domain.evidence) -> e.claim.id = id)
-                          (latest_evidence claims)
+                          evidence
                       with
                       | Some e -> (
                           match
@@ -496,7 +506,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                       match
                         List.find_opt
                           (fun (e : Domain.evidence) -> e.claim.id = id)
-                          (latest_evidence claims)
+                          evidence
                       with
                       | Some e when state = Domain.Outdated ->
                           if Verdict.expired (Unix.time ()) e.valid_until then `String "the term is over"
@@ -1149,7 +1159,28 @@ let verb_next () =
                  again, and the claim will be as unestablished as it
                  was. The work is to write the command that breaks the
                  subject - and the method now has a verb for it. *)
-              if c.Domain.control = None then
+              (* WHAT THE CLAIM IS WAITING FOR. A claim with a
+                 PROCEDURE waits for a control: the control is what
+                 shows the check can fail. A claim that waits for a
+                 PERSON waits for the person - a control would be
+                 meaningless for it, because there is no procedure to
+                 break. Telling a judgment to get a control sends the
+                 agent on an errand that cannot succeed, and the
+                 method's own repository hit exactly that. *)
+              let waits_for =
+                List.filter_map
+                  (fun (r : Domain.requirement) ->
+                    match r with
+                    | Domain.Reviewed_by authority -> Some authority
+                    | Domain.Verified_by _ -> None)
+                  c.Domain.requirements
+              in
+              if waits_for <> [] then
+                Printf.printf
+                  "next: the claim %s waits for a person: mathc record %s %s --by %s \
+                   --outcome verified\n"
+                  id id (List.hd waits_for) (List.hd waits_for)
+              else if c.Domain.control = None then
                 Printf.printf
                   "next: give the claim %s a control - its check was never shown able to \
                    fail: mathc control %s \"COMMAND\"\n"
