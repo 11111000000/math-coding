@@ -190,7 +190,8 @@ let clean_residue ~(root : string) (before : Git.changed list) (after : Git.chan
     The file is put back whatever happens, and it is put back BY ITS
     CONTENT: the tree may be dirty, and a tree restored from git is
     not the tree the user had. *)
-let sweep ~(root : string) ~(file : string) ~(checks : string list) : bool =
+let sweep ~(root : string) ~(file : string) ~(checks : string list)
+    ~(mutate : string option) : bool =
   let target = Filename.concat root file in
   if not (Sys.file_exists target) then false
   else
@@ -237,8 +238,24 @@ let sweep ~(root : string) ~(file : string) ~(checks : string list) : bool =
       if Sys.file_exists saved then (try Sys.remove saved with _ -> ())
     in
     let noticed = ref false in
+    (* THE MUTATION IS THE PROJECT'S. Deleting the file is the default
+       because it is the only mutation that means the same thing in
+       every language; a project that wants to know whether its checks
+       see a wrong CONSTANT and not merely a missing file knows its own
+       language and can say so. The method runs the mutation, the
+       checks, and the restore, and it does not pretend to know what
+       a good mutation is in a language it has never seen. *)
     (try
-       ignore (Sys.command (Printf.sprintf "cd %s && rm -f -- %s" (Filename.quote root) (Filename.quote file)));
+       let command =
+         match mutate with
+         | Some cmd ->
+             Printf.sprintf "cd %s && %s %s" (Filename.quote root) cmd
+               (Filename.quote file)
+         | None ->
+             Printf.sprintf "cd %s && rm -f -- %s" (Filename.quote root)
+               (Filename.quote file)
+       in
+       ignore (Sys.command command);
        List.iter
          (fun check ->
            if not !noticed then

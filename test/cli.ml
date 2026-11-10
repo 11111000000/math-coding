@@ -1017,7 +1017,40 @@ let check_the_sweep_tells_watched_from_unwatched (binary : string)
       assert (contains text "unwatched.txt");
       assert (contains text "THE CHECKS DO NOT NOTICE IT IS GONE");
       assert (Sys.file_exists (Filename.concat root "watched.txt"));
-      assert (Sys.file_exists (Filename.concat root "unwatched.txt")))
+      assert (Sys.file_exists (Filename.concat root "unwatched.txt"));
+      (* THE MUTATION IS THE PROJECT'S. The method runs it, the checks,
+         and the restore; it does not pretend to know what a good
+         mutation is in a language it has never seen.
+
+         And a mutation asks a BETTER question than a deletion: "do the
+         checks notice this CHANGE". A mutation that removes the file
+         is noticed - the check reads it. A mutation that rewrites its
+         contents is NOT - the check only asks whether the file is
+         there, and the file is there. That is the answer worth
+         having. *)
+      (* The line of THIS file: matched at the start of the line,
+         because "unwatched.txt" contains "watched.txt" and a
+         substring would find the wrong one. *)
+      let line_of text file =
+        let prefix = "  " ^ file in
+        String.split_on_char '\n' text
+        |> List.find_opt (fun l ->
+               String.length l >= String.length prefix
+               && String.sub l 0 (String.length prefix) = prefix)
+        |> Option.value ~default:""
+      in
+      let _, text = call [ "audit"; "--sweep"; "2"; "--mutate"; "rm" ] in
+      assert (contains (line_of text "watched.txt") "the checks notice the change");
+      assert (contains (line_of text "unwatched.txt") "DO NOT NOTICE THE CHANGE");
+      assert (Sys.file_exists (Filename.concat root "watched.txt"));
+      assert (Sys.file_exists (Filename.concat root "unwatched.txt"));
+      let _, text =
+        call [ "audit"; "--sweep"; "2"; "--mutate"; "printf broken >" ]
+      in
+      (* A mutation that rewrites the contents is NOT noticed by a
+         check that only asks whether the file is there. *)
+      assert (contains (line_of text "watched.txt") "DO NOT NOTICE THE CHANGE");
+      assert (Sys.file_exists (Filename.concat root "watched.txt")))
 
 (* A STANDING WORD SURVIVES THE CODE MOVING.
 

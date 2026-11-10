@@ -59,6 +59,9 @@ type options = {
      the content: the aim belongs to a person, and the code moving does
      not ask the person to say so again. *)
   mutable standing : bool;
+  (* The project's own mutation, for the sweep. The method does not
+     know what a good mutation is in a language it has never seen. *)
+  mutable mutate : string;
 }
 
 let read_file path =
@@ -434,15 +437,25 @@ let verb_audit (o : options) =
     let uncovered = Git.uncovered (root ()) claims (Git.tracked_files (root ())) in
     let ranked = uncovered_by_suspicion (root ()) uncovered in
     let sampled = List.filteri (fun i _ -> i < o.sweep) ranked in
-    Printf.printf "\nthe sweep: %d file(s) taken away, %d check(s) run per file\n"
+    Printf.printf "\nthe sweep: %d file(s) mutated, %d check(s) run per file\n"
       (List.length sampled) (List.length checks);
     let unnoticed = ref [] in
     List.iter
       (fun file ->
-        let noticed = Exec.sweep ~root:(root ()) ~file ~checks in
+        let noticed =
+          Exec.sweep ~root:(root ()) ~file ~checks
+            ~mutate:(if o.mutate = "" then None else Some o.mutate)
+        in
+        (* THE QUESTION DEPENDS ON THE MUTATION. Deleting a file asks
+           "do the checks watch this file at all"; a project's own
+           mutation asks the better question, "do the checks notice
+           this CHANGE" - and the answer is worth more. *)
+        let gone, blind =
+          if o.mutate = "" then ("it is gone", "THE CHECKS DO NOT NOTICE IT IS GONE")
+          else ("the change", "THE CHECKS DO NOT NOTICE THE CHANGE")
+        in
         Printf.printf "  %-50s %s\n" file
-          (if noticed then "the checks notice it is gone"
-           else "THE CHECKS DO NOT NOTICE IT IS GONE");
+          (if noticed then "the checks notice " ^ gone else blind);
         if not noticed then unnoticed := file :: !unnoticed)
       sampled;
     let n = List.length !unnoticed in
@@ -2436,6 +2449,7 @@ let parse_args (args : string list) : string list * options =
       touches = [];
       sweep = 0;
       standing = false;
+      mutate = "";
     }
   in
   let rec loop acc = function
@@ -2515,6 +2529,9 @@ let parse_args (args : string list) : string list * options =
         loop acc rest
     | "--standing" :: rest ->
         o.standing <- true;
+        loop acc rest
+    | "--mutate" :: cmd :: rest ->
+        o.mutate <- cmd;
         loop acc rest
     | "--sweep" :: n :: rest -> (
         match int_of_string_opt n with

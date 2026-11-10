@@ -1037,6 +1037,26 @@
       "accepted": null,
       "control": "sed -i 's/else if a.standing then/else if false then/' lib/verdict.ml",
       "attestations": []
+    },
+    {
+      "id": "the-mutation-is-the-projects",
+      "subject": "мутация в свипе — команда проекта: метод исполняет её, проверки и возврат, и не притворяется, что знает хорошую мутацию в языке, которого не видел",
+      "scope": [
+        "adapter/exec.ml",
+        "bin/mathc.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "свип не исполняет мутацию проекта, или дерево после него осталось сломанным",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/ignore (Sys.command command)/ignore (Sys.command \"true\")/' adapter/exec.ml",
+      "attestations": []
     }
   ]
 }
