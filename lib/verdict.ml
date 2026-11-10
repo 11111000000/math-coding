@@ -5,26 +5,19 @@
     equations over its own state, and a proof that they hold.
 
     THE ALGEBRA. The verdicts form a commutative monoid under
-    [combine]. Green is the unit - combining with it changes nothing.
-    Red is absorbing - one refuted claim makes the set red whatever
-    else happened. Unknown sits between: it dominates Green and is
-    dominated by Red. The order is
+    [combine]. Green is the unit, Red is absorbing, and Unknown sits
+    between: it dominates Green and is dominated by Red. The order is
 
         Red  >  Unknown  >  Green
 
-    and [combine] is the maximum in it. Every law below is a fact
-    about that structure.
+    and [combine] is the maximum in it.
 
     THE PROOF. The type is finite - three elements - so the laws are
     proved by exhaustion: every pair, every triple, every empty
     sequence. Not a sample and not a heuristic: it is the whole domain.
     The enumeration lives in the test suite, where the negative
     controls kill each law separately, so a law cannot survive because
-    the check that watches it was weakened.
-
-    WHAT THE LAWS ARE FOR. They are the answer to a question the
-    third version answered with 134 files: how do you know the method
-    does what it says? Here it is equations and a finite proof. *)
+    the check that watches it was weakened. *)
 
 open Domain
 
@@ -41,12 +34,9 @@ let combine a b =
 
 (** What one outcome contributes to the verdict of a set.
 
-    [Refused] contributes [Unknown], not [Green]. This is a change from
-    what the fourth version first wrote, and it is a correction of a
-    contradiction: the philosophy says a green result means "every live
-    claim has a fresh, bound, executed proof", and a refused claim has
-    no executed proof at all. A method that says green anyway is
-    saying something it does not mean. *)
+    [Refused] contributes [Unknown], not [Green]: the philosophy says a
+    green result means "every live claim has a fresh, bound, executed
+    proof", and a refused claim has no executed proof at all. *)
 let verdict_of_outcome = function
   | Verified -> Green
   | Falsified -> Red
@@ -158,6 +148,10 @@ let at_of (moment : string option) : float =
 let state_of_attestation (current : binding option) (now : float)
     (a : attestation) : state =
   if expired now a.valid_until then Outdated
+  else if a.standing then
+    (* A standing word is not about a version of the subject, so the
+       subject moving does not expire it. The TERM still does. *)
+    state_of_outcome a.outcome
   else
     match current with
     | Some b when b = a.bound_to -> state_of_outcome a.outcome
@@ -378,20 +372,27 @@ let law_verified_needs_a_biting_control
 (** The law of the empty requirement set, and of the kinds of proof.
 
     Three obligations over the same function, so they are one law: a
-    claim is not established unless it can be.
+    claim is not established unless it can be. A claim with NO
+    requirement has nothing to close and was never checked - the broken
+    version, which folds an empty list to HOLDS and so made the
+    project green with no proof of anything, is offered to this law and
+    rejected. A claim with a PROCEDURE and no machine proof is not
+    established whatever words it carries: the method could have run
+    that procedure itself, and it cannot tell a word from a proof. A
+    JUDGMENT with nobody's word is not established either: what should
+    be true about meaning is not the machine's to decide. *)
+(** The law of the standing word: a fact that is not about a version
+    of the code is not expired by the code moving. The aim belongs to a
+    person, and that does not stop being true because a file changed.
+    The broken version - one that expires a standing word whenever the
+    subject moves - is offered to this law and rejected. *)
+let law_a_standing_word_survives_the_subject
+    (state_of' : binding option -> float -> attestation -> state)
+    (a : attestation) =
+  not a.standing
+  || (state_of' (Some "moved") 0.0 a <> Outdated
+     && state_of' (Some "moved") 0.0 a = state_of' None 0.0 a)
 
-    - A claim with NO requirement has nothing to close: it was never
-      checked. The broken version - one that folds an empty list to
-      HOLDS, which is what [List.for_all] does and what the
-      implementation used to do, so the project went green with no
-      proof of anything - is offered to this law and rejected.
-
-    - A claim with a PROCEDURE and no machine proof is not established,
-      whatever words it carries: the method could have run that
-      procedure itself, and it cannot tell a word from a proof.
-
-    - A JUDGMENT with nobody's word is not established either: what
-      should be true about meaning is not the machine's to decide. *)
 let law_an_unestablished_claim_is_not_holding
     (state_of' : claim -> binding option -> float -> evidence list -> state)
     (c : claim) =

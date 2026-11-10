@@ -1019,6 +1019,61 @@ let check_the_sweep_tells_watched_from_unwatched (binary : string)
       assert (Sys.file_exists (Filename.concat root "watched.txt"));
       assert (Sys.file_exists (Filename.concat root "unwatched.txt")))
 
+(* A STANDING WORD SURVIVES THE CODE MOVING.
+
+   The aim belongs to a person, and that does not stop being true
+   because a file changed. A word that expires with the code would make
+   the person say it again after every commit - friction where nobody
+   has erred, and the method's friction belongs where the agent errs. *)
+let check_a_standing_word_outlives_the_code (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "add"
+        (call
+           [
+             "add"; "c-standing"; "a standing fact"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "review:owner";
+           ]);
+      (* The person says it, and it is a STANDING word. *)
+      expect_ok "record a standing word"
+        (call
+           [
+             "record"; "c-standing"; "owner"; "--by"; "owner"; "--outcome";
+             "verified"; "--standing";
+           ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "holds");
+      (* THE CODE MOVES. The subject changes, and a word that was about
+         the content would be stale. A standing word is not about a
+         version, so it is not stale. *)
+      let channel = open_out (Filename.concat root "subject.txt") in
+      output_string channel "the subject, changed\n";
+      close_out channel;
+      let _, text = call [ "map" ] in
+      assert (contains text "holds");
+      (* And a word that is NOT standing does go stale with the code. *)
+      expect_ok "add a bound word"
+        (call
+           [
+             "add"; "c-bound"; "a bound fact"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "review:owner";
+           ]);
+      expect_ok "record a bound word"
+        (call
+           [
+             "record"; "c-bound"; "owner"; "--by"; "owner"; "--outcome";
+             "verified";
+           ]);
+      let _, text = call [ "map" ] in
+      assert (contains text "holds");
+      let channel = open_out (Filename.concat root "subject.txt") in
+      output_string channel "the subject, changed again\n";
+      close_out channel;
+      let _, text = call [ "map" ] in
+      assert (contains text "outdated"))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -1053,6 +1108,7 @@ let () =
   check_the_uncovered_surface_is_ranked (method_binary ()) [];
   check_a_non_project_is_not_green (method_binary ()) [];
   check_the_sweep_tells_watched_from_unwatched (method_binary ()) [];
+  check_a_standing_word_outlives_the_code (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -1070,6 +1126,7 @@ let () =
       check_the_uncovered_surface_is_ranked (method_binary ()) [ "--help" ];
       check_a_non_project_is_not_green (method_binary ()) [ "--help" ];
       check_the_sweep_tells_watched_from_unwatched (method_binary ()) [ "--help" ];
+      check_a_standing_word_outlives_the_code (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

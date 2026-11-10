@@ -101,10 +101,12 @@ type attestation = {
   (* When it was produced, as seconds since the epoch. *)
   at : string;
   valid_until : string option;
+  (* A STANDING FACT is not about a version of the code: the aim belongs
+     to a person, and that does not expire when the code moves. *)
+  standing : bool;
 }
 
-(** The digest of a subject as it stands now: if the subject moves,
-    the evidence is about a subject that no longer exists. *)
+(** The digest of a subject as it stands now. *)
 type binding = string
 
 (** The state of one claim, as computed. Not stored: it is derived from
@@ -254,8 +256,7 @@ type wave = {
   title : string;
   (* WHY this unit of work, and what it assumes. The reasoning of the
      plan. The third version kept it in every one of its 134 records,
-     and that is where the corpus grew; here it is one field of one
-     unit of work, and the wave is the unit of work. *)
+     and that is where the corpus grew; here the wave is the unit. *)
   intent : string;
   touches : scope;
   checks : string list;
@@ -266,8 +267,7 @@ type wave = {
      work, where there is one thought to object to. The strongest
      objection to this approach, and what would refute it. A wave
      without them is not parsed: the plan is where the dialectic
-     lives, and a plan that cannot state the objection against itself
-     has not thought. *)
+     lives. *)
   objection : string;
   refuted_by : string;
 }
@@ -282,8 +282,8 @@ type wave = {
     history.
 
     The method cannot tell a person from an agent at the keyboard. It
-    can attribute the aim, and it can make the aim's changes visible.
-    It cannot authenticate, and it does not pretend to. *)
+    can attribute the aim and make its changes visible. It cannot
+    authenticate, and it does not pretend to. *)
 type goal = {
   text : string;
   scope : scope;
@@ -303,10 +303,9 @@ type goal = {
     lifecycle state of a rule - a rule has no such field, and its
     fate is computed from the binding to the subject and to the
     evidence. A wave is a unit of WORK, and the fact that a unit of
-    work is done is a fact about the work. It belongs in the standing
-    specification, which is committed, and not in the trail, which is
-    not: the trail says what ran, and a wave that ran is not a wave
-    that finished. *)
+    work is done belongs in the standing specification, which is
+    committed, and not in the trail, which is not: the trail says what
+    ran, and a wave that ran is not a wave that finished. *)
 type spec = {
   goal : goal option;
   budget : int;

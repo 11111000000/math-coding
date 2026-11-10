@@ -55,6 +55,10 @@ type options = {
      run of the checks per file - so it is bounded by the person who
      asks for it, not by the method's convenience. *)
   mutable sweep : int;
+  (* A standing attestation is about a fact that does not expire with
+     the content: the aim belongs to a person, and the code moving does
+     not ask the person to say so again. *)
+  mutable standing : bool;
 }
 
 let read_file path =
@@ -971,7 +975,8 @@ let verb_run () =
     person. A CI run has a place too: it is somebody else's word about
     the subject, which is what a REVIEW requirement asks for. Declare
     [review:ci] and the record closes it. *)
-let verb_record claim_id spec by outcome (reason : string) (valid_for : string) =
+let verb_record claim_id spec by outcome (reason : string) (valid_for : string)
+    (standing : bool) =
   let spec_loaded = load_spec () in
   let refuse why =
     Printf.eprintf "mathc: %s\n" why;
@@ -1070,6 +1075,7 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
                   bound_to = binding;
                   at;
                   valid_until;
+                  standing;
                 }
               in
               save_spec
@@ -2429,6 +2435,7 @@ let parse_args (args : string list) : string list * options =
       commitments = [];
       touches = [];
       sweep = 0;
+      standing = false;
     }
   in
   let rec loop acc = function
@@ -2505,6 +2512,9 @@ let parse_args (args : string list) : string list * options =
         loop acc rest
     | "--json" :: rest ->
         o.json <- true;
+        loop acc rest
+    | "--standing" :: rest ->
+        o.standing <- true;
         loop acc rest
     | "--sweep" :: n :: rest -> (
         match int_of_string_opt n with
@@ -2687,7 +2697,7 @@ let () =
         | "record" -> (
             match positional with
             | _ :: claim_id :: spec :: _ ->
-                verb_record claim_id spec o.by o.outcome o.reason o.valid_for
+                verb_record claim_id spec o.by o.outcome o.reason o.valid_for o.standing
             | _ ->
                 Printf.eprintf
                   "mathc: record needs CLAIM REQUIREMENT --by WHO --outcome OUTCOME\n";

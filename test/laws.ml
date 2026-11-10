@@ -113,6 +113,16 @@ let state_of_requirements_letting_a_word_close (c : claim) (current : binding op
   if c.attestations <> [] then Holds
   else Verdict.state_of_requirements c current now evidence
 
+(* A standing word that expires when the subject moves. The broken
+   version of the law's carrier - and the reason the law exists: the
+   aim belongs to a person, and asking that person to say so again
+   after every commit is friction where nobody has erred. *)
+let state_expiring_standings (current : binding option) (_now : float)
+    (a : Domain.attestation) : Domain.state =
+  match current with
+  | Some b when b = a.bound_to -> Verdict.state_of_outcome a.outcome
+  | _ -> Domain.Outdated
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -199,9 +209,14 @@ let laws_hold () =
     && law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements
          { sample_claim with register = Judgment }
   in
+  let standing_law =
+    law_a_standing_word_survives_the_subject Verdict.state_of_attestation
+      { requirement = "owner"; who = "owner"; outcome = Verified; reason = None;
+        bound_to = "digest"; at = "0"; valid_until = None; standing = true }
+  in
   commutative && associative && unit && absorbing && law_order combine
   && law_exit_codes_distinct () && law_vacancy_is_green aggregate && judgment
-  && price && control_law && kinds_law
+  && price && control_law && kinds_law && standing_law
 
 (* --- the proof ------------------------------------------------------ *)
 
@@ -422,11 +437,24 @@ let check_negative_controls () =
     (not
        (law_an_unestablished_claim_is_not_holding
           state_of_requirements_folding_empty_to_holds empty));
+  (* THE STANDING WORD. The law accepts the real function... *)
+  assert
+    (law_a_standing_word_survives_the_subject Verdict.state_of_attestation
+       { requirement = "owner"; who = "owner"; outcome = Verified; reason = None;
+         bound_to = "digest"; at = "0"; valid_until = None; standing = true });
+  (* ...and REJECTS the broken one, which expires a standing word
+     whenever the subject moves. *)
+  assert
+    (not
+       (law_a_standing_word_survives_the_subject state_expiring_standings
+          { requirement = "owner"; who = "owner"; outcome = Verified; reason = None;
+            bound_to = "digest"; at = "0"; valid_until = None; standing = true }));
+
   assert
     (not
        (law_an_unestablished_claim_is_not_holding
           state_of_requirements_letting_a_word_close
-          { sample_claim with attestations = [ { requirement = "true"; who = "me"; outcome = Verified; reason = None; bound_to = "digest"; at = "1"; valid_until = None } ] }))
+          { sample_claim with attestations = [ { requirement = "true"; who = "me"; outcome = Verified; reason = None; bound_to = "digest"; at = "1"; valid_until = None; standing = false } ] }))
 
 (** Two claims often share one check - the same test suite verifies
     several rules - and their evidence must not answer for each other.

@@ -18,9 +18,7 @@ let read_object ~what (json : Yojson.Safe.t) ~(fields : string list) :
   match json with
   | `Assoc pairs -> (
       let unknown =
-        List.filter_map
-          (fun (k, _) -> if List.mem k fields then None else Some k)
-          pairs
+        List.filter_map (fun (k, _) -> if List.mem k fields then None else Some k) pairs
       in
       match unknown with
       | k :: _ ->
@@ -96,7 +94,7 @@ let require_outcome ~what (fields : (string * Yojson.Safe.t) list) =
       Error
         (error (what ^ ".attestations.outcome")
            (Printf.sprintf "expected verified, falsified, unresolved or refused; got %S" other))
-
+(* The [standing] flag is optional: an old attestation is not standing. *)
 let require_attestations ~what (pairs : (string * Yojson.Safe.t) list) =
   match List.assoc_opt "attestations" pairs with
   | None -> Ok []
@@ -114,9 +112,12 @@ let require_attestations ~what (pairs : (string * Yojson.Safe.t) list) =
               | Some (`String t) -> Some t
               | _ -> None
             in
+            let flag name =
+              match List.assoc_opt name fields with Some (`Bool b) -> b | _ -> false
+            in
             go
               ({ requirement; who; outcome; reason = text "reason"; bound_to; at;
-                 valid_until = text "valid_until" }
+                 valid_until = text "valid_until"; standing = flag "standing" }
                :: acc)
               rest)
         | _ -> Error (error (what ^ ".attestations") "expected a list of objects")
@@ -320,6 +321,7 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                                   | None -> `Null );
                                 ("bound_to", `String a.bound_to);
                                 ("at", `String a.at);
+                                ("standing", `Bool a.standing);
                                 ( "valid_until",
                                   match a.valid_until with
                                   | Some t -> `String t
@@ -327,7 +329,6 @@ let spec_to_json (s : spec) : Yojson.Safe.t =
                               ])
                           c.attestations) ) ])
              s.claims) )]
-
 
 let state_of_name (text : string) : Domain.state option =
   match text with
