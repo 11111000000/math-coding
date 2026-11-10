@@ -173,6 +173,86 @@ let clean_residue ~(root : string) (before : Git.changed list) (after : Git.chan
         if ok then None else Some c.path)
     after
 
+(** THE SWEEP: would the project's own checks notice if this file were
+    gone?
+
+    The reach of a declared control says what the method BELIEVES about
+    a check; the sweep says what the check DOES. A file can be watched
+    by a check that never looks at it, and the only way to know is to
+    take the file away and watch the checks.
+
+    This is the coarse end of the question - it answers at the level of
+    the FILE, not of the line, and it cannot see a wrong constant or a
+    swapped condition. What it can say is plain and worth knowing:
+    "your test suite passes with this file deleted", which means the
+    suite does not watch that file at all.
+
+    The file is put back whatever happens, and it is put back BY ITS
+    CONTENT: the tree may be dirty, and a tree restored from git is
+    not the tree the user had. *)
+let sweep ~(root : string) ~(file : string) ~(checks : string list) : bool =
+  let target = Filename.concat root file in
+  if not (Sys.file_exists target) then false
+  else
+    (* The copy is kept FLAT: a name built from the file's own path
+       would need its directories created, and the first version of
+       this sweep saved to "mathc-sweep-<pid>-scripts/verify/x.sh",
+       whose directory did not exist - so nothing was copied, the file
+       was deleted, and the tree was left broken. A sweep that breaks
+       the tree it measures is worse than no sweep. *)
+    let saved =
+      Filename.concat (Filename.get_temp_dir_name ())
+        (Printf.sprintf "mathc-sweep-%d-%s" (Unix.getpid ())
+           (String.map (fun c -> if c = '/' then '_' else c) file))
+    in
+    let ok =
+      try
+        let ic = open_in_bin target and oc = open_out_bin saved in
+        let buf = Bytes.create 65536 in
+        let rec pump () =
+          let n = input ic buf 0 65536 in
+          if n > 0 then (
+            output oc buf 0 n;
+            pump ())
+        in
+        pump ();
+        close_in ic;
+        close_out oc;
+        true
+      with _ -> false
+    in
+    let restore () =
+      if ok && Sys.file_exists saved then (
+        let ic = open_in_bin saved and oc = open_out_bin target in
+        let buf = Bytes.create 65536 in
+        let rec pump () =
+          let n = input ic buf 0 65536 in
+          if n > 0 then (
+            output oc buf 0 n;
+            pump ())
+        in
+        pump ();
+        close_in ic;
+        close_out oc);
+      if Sys.file_exists saved then (try Sys.remove saved with _ -> ())
+    in
+    let noticed = ref false in
+    (try
+       ignore (Sys.command (Printf.sprintf "cd %s && rm -f -- %s" (Filename.quote root) (Filename.quote file)));
+       List.iter
+         (fun check ->
+           if not !noticed then
+             let code = exit_code_of ~root check in
+             (* 126 and 127 are the check that could not run at all:
+                they say nothing about the file. *)
+             if code <> 0 && code <> 126 && code <> 127 then noticed := true)
+         checks
+     with e ->
+       restore ();
+       raise e);
+    restore ();
+    !noticed
+
 (** A fingerprint of the working tree, for the question "did anything
     change?".
 

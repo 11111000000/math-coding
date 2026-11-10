@@ -50,6 +50,11 @@ type options = {
   mutable claims : string list;
   mutable commitments : string list;
   mutable touches : string list;
+  (* How many files the sweep may take away. The sweep is the empirical
+     answer to "what do the project's checks watch", and it costs one
+     run of the checks per file - so it is bounded by the person who
+     asks for it, not by the method's convenience. *)
+  mutable sweep : int;
 }
 
 let read_file path =
@@ -358,7 +363,7 @@ let uncovered_by_suspicion (root : string) (uncovered : string list) : string li
     The method does not refuse the weaker control - it is a control,
     and the check is still not vacuous. But it says which kind it is,
     and it counts them. *)
-let verb_audit () =
+let verb_audit (o : options) =
   let spec = load_spec () in
   let claims = spec.Domain.claims in
   let states = states_of claims in
@@ -404,6 +409,43 @@ let verb_audit () =
      \  not established: %d\n"
     (List.length claims) !watched_on_subject !watched_elsewhere !unknown_reach
     !not_established;
+  (* THE SWEEP. The numbers above are what the method BELIEVES about
+     the checks; the sweep says what the checks DO. A file is taken
+     away and the project's own checks are run: if they stay green,
+     the checks do not watch that file, whatever the specification
+     says about it. *)
+  if o.sweep > 0 then (
+    let checks =
+      List.filter_map
+        (fun (c : Domain.claim) ->
+          match c.requirements with
+          | Domain.Verified_by cmd :: _ -> Some cmd
+          | _ -> None)
+        claims
+      |> List.sort_uniq String.compare
+    in
+    (* The files the method has no claim about come first: they are
+       the ones the map already calls nobody's, and the sweep asks
+       whether the CHECKS agree. *)
+    let uncovered = Git.uncovered (root ()) claims (Git.tracked_files (root ())) in
+    let ranked = uncovered_by_suspicion (root ()) uncovered in
+    let sampled = List.filteri (fun i _ -> i < o.sweep) ranked in
+    Printf.printf "\nthe sweep: %d file(s) taken away, %d check(s) run per file\n"
+      (List.length sampled) (List.length checks);
+    let unnoticed = ref [] in
+    List.iter
+      (fun file ->
+        let noticed = Exec.sweep ~root:(root ()) ~file ~checks in
+        Printf.printf "  %-50s %s\n" file
+          (if noticed then "the checks notice it is gone"
+           else "THE CHECKS DO NOT NOTICE IT IS GONE");
+        if not noticed then unnoticed := file :: !unnoticed)
+      sampled;
+    let n = List.length !unnoticed in
+    if n > 0 then
+      Printf.printf
+        "\n%d of %d file(s) are watched by nobody: the checks pass without them.\n"
+        n (List.length sampled));
   if !weak <> [] then (
     Printf.printf "\nthe claims whose control did not break their subject:\n";
     List.iter
@@ -2386,6 +2428,7 @@ let parse_args (args : string list) : string list * options =
       claims = [];
       commitments = [];
       touches = [];
+      sweep = 0;
     }
   in
   let rec loop acc = function
@@ -2463,6 +2506,17 @@ let parse_args (args : string list) : string list * options =
     | "--json" :: rest ->
         o.json <- true;
         loop acc rest
+    | "--sweep" :: n :: rest -> (
+        match int_of_string_opt n with
+        | Some k when k > 0 ->
+            o.sweep <- k;
+            loop acc rest
+        | _ ->
+            Printf.eprintf "mathc: --sweep needs a positive number of files\n";
+            exit 2)
+    | "--sweep" :: [] ->
+        Printf.eprintf "mathc: --sweep needs a number of files\n";
+        exit 2
     | "--version" :: rest ->
         o.version <- true;
         loop acc rest
@@ -2627,7 +2681,7 @@ let () =
                 Printf.eprintf "mathc: control needs CLAIM COMMAND\n";
                 2)
         | "map" -> verb_map o.json
-        | "audit" -> verb_audit ()
+        | "audit" -> verb_audit o
         | "route" -> verb_route ()
         | "run" -> verb_run ()
         | "record" -> (

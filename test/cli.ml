@@ -974,6 +974,51 @@ let check_the_uncovered_surface_is_ranked (binary : string) (prefix : string lis
       let _, text = call [ "next" ] in
       assert (contains text "zzz.txt"))
 
+(* THE SWEEP TELLS WATCHED FROM UNWATCHED.
+
+   The sweep takes a file away and asks whether the project's own
+   checks notice. A check that reads the file must notice; a check
+   that does not must not. The test makes both: one file the check
+   reads and one it does not, both outside any claim - so the sweep has
+   to tell them apart on the evidence of the checks and not on the
+   bookkeeping. *)
+let check_the_sweep_tells_watched_from_unwatched (binary : string)
+    (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      let write name content =
+        let channel = open_out (Filename.concat root name) in
+        output_string channel content;
+        close_out channel
+      in
+      write "watched.txt" "the file the check reads\n";
+      write "unwatched.txt" "the file the check does not read\n";
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell
+        (Printf.sprintf
+           "git -C %s -c user.email=test@example -c user.name=test commit -qm files ."
+           (Filename.quote root));
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      (* The check reads ONE of the two files that no claim covers. *)
+      expect_ok "add"
+        (call
+           [
+             "add"; "c1"; "the subject"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:test -f subject.txt -a -f watched.txt";
+             "--control"; "rm -f watched.txt";
+           ]);
+      expect_ok "run" (call [ "run" ]);
+      let _, text = call [ "audit"; "--sweep"; "2" ] in
+      (* The file the check reads: the checks notice. The file they do
+         not: they do not. And the tree is put back either way. *)
+      assert (contains text "watched.txt");
+      assert (contains text "the checks notice it is gone");
+      assert (contains text "unwatched.txt");
+      assert (contains text "THE CHECKS DO NOT NOTICE IT IS GONE");
+      assert (Sys.file_exists (Filename.concat root "watched.txt"));
+      assert (Sys.file_exists (Filename.concat root "unwatched.txt")))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -1007,6 +1052,7 @@ let () =
   check_the_audit_tells_the_two_apart (method_binary ()) [];
   check_the_uncovered_surface_is_ranked (method_binary ()) [];
   check_a_non_project_is_not_green (method_binary ()) [];
+  check_the_sweep_tells_watched_from_unwatched (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -1023,6 +1069,7 @@ let () =
       check_the_audit_tells_the_two_apart (method_binary ()) [ "--help" ];
       check_the_uncovered_surface_is_ranked (method_binary ()) [ "--help" ];
       check_a_non_project_is_not_green (method_binary ()) [ "--help" ];
+      check_the_sweep_tells_watched_from_unwatched (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true
