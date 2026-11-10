@@ -59,6 +59,14 @@ let object_id (root : string) (path : string) : string option =
     is the hash of the lines "prefix object-id", sorted, so that the
     order of the scope does not change the digest and a change in any
     covered path changes it. *)
+let hash_of_file (path : string) : string option =
+  if not (Sys.file_exists path) then None
+  else
+    let out, code =
+      run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
+    in
+  if code <> 0 then None else Some (String.trim out)
+
 let hash_content (root : string) (content : string) : string =
   let cmd =
     Printf.sprintf "git -C %s hash-object --stdin" (Filename.quote root)
@@ -110,8 +118,21 @@ let path_contains ~(dir : string) ~(path : string) : bool =
       String.sub s 0 (String.length s - 1)
     else s
   in
-  let d = trim dir and p = trim path in
-  if p = d then true
+  (* THE ROOT IS THE WHOLE TREE. "." is the name git gives the root
+     directory, and every path in the tree is under it. The method
+     compared it as an ordinary prefix, so an aim over "." covered
+     nothing - a claim about "lib/" was refused as outside the aim -
+     and a claim over "." named no subject at all: it could never be
+     bound, never be checked, and cost nothing, for ever. Both
+     failures were silent, and both were about the most natural way to
+     state an aim over a repository. *)
+  let norm s =
+    let t = trim s in
+    if t = "." || t = "./" then "" else t
+  in
+  let d = norm dir and p = norm path in
+  if d = "" then true
+  else if p = d then true
   else if String.length p > String.length d && String.sub p 0 (String.length d) = d then
     p.[String.length d] = '/'
   else false
@@ -134,9 +155,11 @@ let files_under_prefix (files : string list) (prefix : string) : string list =
     The two must not be merged - the second refuses on a hole, and the
     first must still say what the scope covers, because that is what
     the uncertainty budget prices. *)
-let files_covered (root : string) (scope : Domain.scope) : string list =
-  let files = repository_files root in
+let files_covered_in (files : string list) (scope : Domain.scope) : string list =
   List.concat (List.map (files_under_prefix files) scope)
+
+let files_covered (root : string) (scope : Domain.scope) : string list =
+  files_covered_in (repository_files root) scope
 
 (** The paths of a scope that are not in the tree.
 
@@ -144,9 +167,11 @@ let files_covered (root : string) (scope : Domain.scope) : string list =
     join it - and so it is not missing. A path that is ignored is
     missing, and so is one that was never there: a promise about it is
     a promise about something that does not exist yet. *)
-let missing_paths (root : string) (scope : Domain.scope) : string list =
-  let files = repository_files root in
+let missing_paths_in (files : string list) (scope : Domain.scope) : string list =
   List.filter (fun prefix -> files_under_prefix files prefix = []) scope
+
+let missing_paths (root : string) (scope : Domain.scope) : string list =
+  missing_paths_in (repository_files root) scope
 
 (** Why a subject cannot be bound, said in words.
 
@@ -172,11 +197,14 @@ let why_no_digest (root : string) (scope : Domain.scope) : string =
     under it, and a file covers itself. [None] means that some prefix
     of the scope names nothing that is in the repository - the subject
     has a hole in it, and a subject with a hole cannot be bound. *)
-let files_of_scope (root : string) (scope : Domain.scope) : string list option =
-  let files = repository_files root in
+let files_of_scope_in (files : string list) (scope : Domain.scope) :
+    string list option =
   let per_prefix = List.map (files_under_prefix files) scope in
   if List.exists (fun xs -> xs = []) per_prefix then None
   else Some (List.concat per_prefix)
+
+let files_of_scope (root : string) (scope : Domain.scope) : string list option =
+  files_of_scope_in (repository_files root) scope
 
 (** The content of the files, as git hashes it - and as it is NOW, not
     as it was committed. One process for all of them: the hash of a
@@ -216,6 +244,72 @@ let content_hashes (root : string) (files : string list) : string list =
     So the paths are collected first and the digest is computed only if
     every one of them is there. A missing path makes the whole subject
     unbound, and an unbound subject cannot be run. *)
+(* THE TREE, HASHED ONCE.
+
+   The scopes of the claims OVERLAP: lib/ is in the scope of a dozen
+   of them, and hashing the same file once per scope is the difference
+   between one process and forty. The map is what an agent reads first
+   and reads most, and the digest is the expensive part of reading it.
+
+   ONE PASS, AND THE FILES THAT CANNOT BE HASHED ARE FOUND BY
+   BISECTION. The batch fails as a whole when one file cannot be
+   hashed - a symlink to a directory, say - and the method needs the
+   hashes of the files it CAN hash while still knowing that the ones it
+   cannot are missing. A scope that names such a file has a hole, and
+   its digest is nothing (law A11): the hole must not be papered over
+   with the hash of the files that happened to work. *)
+type tree = { files : string list; hashes : (string * string) list }
+
+let hash_the_tree (root : string) : tree =
+  let files = List.sort compare (repository_files root) in
+  let rec hash_group acc group =
+    match group with
+    | [] -> acc
+    | [ f ] -> (
+        match hash_of_file (Filename.concat root f) with
+        | Some h -> (f, h) :: acc
+        | None -> acc)
+    | _ ->
+        let cmd =
+          Printf.sprintf "git -C %s hash-object -- %s" (Filename.quote root)
+            (String.concat " " (List.map Filename.quote group))
+        in
+        let out, code = run_capture cmd in
+        let hashes =
+          out |> String.split_on_char '\n' |> List.filter (fun s -> s <> "")
+        in
+        if code = 0 && List.length hashes = List.length group then
+          List.combine group hashes @ acc
+        else
+          let mid = List.length group / 2 in
+          let rec split_at n l acc =
+            if n <= 0 then (List.rev acc, l)
+            else match l with [] -> (List.rev acc, []) | x :: xs -> split_at (n - 1) xs (x :: acc)
+          in
+          let a, b = split_at mid group [] in
+          hash_group (hash_group acc a) b
+  in
+  { files; hashes = List.rev (hash_group [] files) }
+
+(* The digest of a scope, taken from a tree that was hashed once. *)
+let digest_of_scope_in (root : string) (scope : Domain.scope) (tree : tree) :
+    string option =
+  match files_of_scope_in tree.files scope with
+  | None -> None
+  | Some [] -> None
+  | Some files ->
+      let files = List.sort compare files in
+      let lines =
+        List.filter_map
+          (fun f ->
+            match List.assoc_opt f tree.hashes with
+            | Some h -> Some (f ^ " " ^ h)
+            | None -> None)
+          files
+      in
+      if List.length lines <> List.length files then None
+      else Some (hash_content root (String.concat "\n" lines ^ "\n"))
+
 let digest_of_scope (root : string) (scope : Domain.scope) : string option =
   (* THE CONTENT THAT RAN, NOT THE CONTENT THAT WAS COMMITTED. The
      proof is produced by running the checks, and the checks run against
@@ -230,29 +324,26 @@ let digest_of_scope (root : string) (scope : Domain.scope) : string option =
      until it was committed, and nothing said so. The agent guessed -
      it stashed its working tree before running - and the guess cost
      more time than the protocol gained. *)
-  match files_of_scope root scope with
-  | None -> None
-  | Some [] -> None
-  | Some files ->
-      let files = List.sort compare files in
-      let hashes = content_hashes root files in
-      if List.length hashes <> List.length files then None
-      else
-        let lines = List.map2 (fun path hash -> path ^ " " ^ hash) files hashes in
-        Some (hash_content root (String.concat "\n" lines ^ "\n"))
+  digest_of_scope_in root scope (hash_the_tree root)
 
 (** The hash of a file's own bytes, as git hashes it.
 
     The binary says which binary it is by this hash: two different
     builds of one version must not be mistaken for each other, and a
     name is not enough to tell them apart. *)
-let hash_of_file (path : string) : string option =
-  if not (Sys.file_exists path) then None
-  else
-    let out, code =
-      run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
-    in
-    if code <> 0 then None else Some (String.trim out)
+
+(** Is the working tree different from the commit?
+
+    A proof is about the working tree, and the commit is an anchor to
+    the history, not the subject. When the tree is dirty the two are
+    not the same thing, and a map that presents the commit as "the
+    commit the content was read from" is claiming something about the
+    proof that it cannot know. The method says so instead. *)
+let is_dirty (root : string) : bool =
+  let out, code =
+    run_capture (Printf.sprintf "git -C %s status --porcelain" (Filename.quote root))
+  in
+  if code <> 0 then false else String.trim out <> ""
 
 (** The commit the tree is at, as git records it.
 
@@ -274,6 +365,46 @@ let head_commit (root : string) : string option =
   in
   if code <> 0 then None else Some (String.trim out)
 
+(** The paths git reports as changed, and whether they are tracked.
+
+    THE RAW FORM. The names are read with [git status --porcelain -z],
+    which prints them NUL-separated and UNQUOTED. The quoted form was
+    the reason a file with a non-ASCII name survived the control: git
+    printed the name it would accept on a command line, the restore
+    removed a path that does not exist, and [rm -f] reports a missing
+    file as success. The method declared the tree restored and left the
+    file behind. *)
+type changed = { status : string; path : string }
+
+let dirty_paths (root : string) : changed list =
+  let out, code =
+    run_capture
+      (Printf.sprintf "git -C %s status --porcelain -z --untracked-files=all"
+         (Filename.quote root))
+  in
+  if code <> 0 then []
+  else
+    let parts = String.split_on_char '\000' out in
+    let rec go acc = function
+      | p :: rest when String.length p > 3 ->
+          let status = String.sub p 0 2 in
+          let path = String.sub p 3 (String.length p - 3) in
+          (* A rename or a copy is TWO paths: the new one first, then
+             the old one. The new one is the path; the old one is
+             consumed with it. *)
+          let rest =
+            if status.[0] = 'R' || status.[0] = 'C' then
+              match rest with
+              | _old :: more -> more
+              | [] -> []
+            else rest
+          in
+          if path = "" then go acc rest else go ({ status; path } :: acc) rest
+      | _ :: rest -> go acc rest
+      | [] -> List.rev acc
+    in
+    go [] parts
+
 (** Does the scope name anything that exists? The check that keeps a
     claim from being made about nothing - and from being made about HALF
     of nothing: every path of the scope must be there, because a scope
@@ -286,6 +417,47 @@ let head_commit (root : string) : string option =
     A path that is new but not ignored is in the repository - it would
     join it - and so it can be a subject. A path that is ignored is not,
     and a claim about it cannot be bound to anything. *)
+(** When each file last moved, within the last [days] days.
+
+    A map of coverage says what nobody LOOKED at. This says where the
+    work is, and the two are not the same set: the file that changed
+    yesterday and has no claim is worth reading, and the file that has
+    not changed since 2019 and has no claim is history. A queue that
+    lists the uncovered surface in alphabetical order is a filing
+    errand, and the agent that works it does bookkeeping instead of
+    thinking - which is exactly what the measurement of 2026-11-07
+    caught it doing.
+
+    It is the MOMENT and not the count that matters. The count says
+    how often a file moved, and a file that moved once, long ago, and a
+    file that moved once, yesterday, score the same. *)
+let last_touched (root : string) ~(days : int) : (string * int) list =
+  let out, code =
+    run_capture
+      (Printf.sprintf "git -C %s log --since=%d.days.ago --name-only --format=commit:%%ct"
+         (Filename.quote root) days)
+  in
+  if code <> 0 then []
+  else
+    let latest = ref [] in
+    let stamp = ref None in
+    List.iter
+      (fun line ->
+        if String.length line > 7 && String.sub line 0 7 = "commit:" then
+          (match int_of_string_opt (String.trim (String.sub line 7 (String.length line - 7))) with
+          | Some t -> stamp := Some t
+          | None -> stamp := None)
+        else if String.trim line <> "" then
+          match !stamp with
+          | Some t ->
+              latest :=
+                (match List.assoc_opt line !latest with
+                | Some old -> (line, max old t) :: List.remove_assoc line !latest
+                | None -> (line, t) :: !latest)
+          | None -> ())
+      (String.split_on_char '\n' out);
+    List.sort (fun (_, a) (_, b) -> compare b a) !latest
+
 let scope_exists (root : string) (scope : Domain.scope) : bool =
   match files_of_scope root scope with
   | Some files -> files <> []

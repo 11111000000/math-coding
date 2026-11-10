@@ -17,15 +17,14 @@
 
     THE PROOF. The type is finite - three elements - so the laws are
     proved by exhaustion: every pair, every triple, every empty
-    sequence. That is not a sample and not a heuristic. It is the
-    whole domain. [laws_hold] performs the enumeration, and the
-    negative controls in the test suite kill each law separately, so
-    a law cannot survive because the check that watches it was
-    weakened.
+    sequence. Not a sample and not a heuristic: it is the whole domain.
+    The enumeration lives in the test suite, where the negative
+    controls kill each law separately, so a law cannot survive because
+    the check that watches it was weakened.
 
     WHAT THE LAWS ARE FOR. They are the answer to a question the
     third version answered with 134 files: how do you know the method
-    does what it says? Here it is six equations and a finite proof. *)
+    does what it says? Here it is equations and a finite proof. *)
 
 open Domain
 
@@ -62,16 +61,14 @@ let aggregate (results : evidence list) : verdict =
     Green results
 
 (** The state of ONE REQUIREMENT, from its evidence and the subject's
-    current binding. The binding is the crux: evidence obtained
-    against a subject that has since moved is evidence about a subject
-    that no longer exists, and it can never read as verified.
+    current binding. Evidence obtained against a subject that has since
+    moved is evidence about a subject that no longer exists.
 
     The proof's TERM is the second crux. The binding answers "is the
     content the same?"; the term answers "does this proof still
     count?". A proof can be about exactly the right content and still
     be too old to stand - the deployment moved, the dependency
-    changed, the review was for the release that is over. Neither the
-    content nor the truth can see that; only the term can.
+    changed. Neither the content nor the truth can see that.
 
     The moment is a VALUE, not a reading of the clock: the core has no
     clock, and a law that read the clock would be a law about the
@@ -94,6 +91,18 @@ let state_of_outcome (o : outcome) : state =
   | Unresolved -> Inconclusive
   | Refused -> NotCheckable
 
+(** What one proof says about the state of a requirement.
+
+    A proof that says "yes" is a proof only if the same check was shown
+    able to say "no" on the same subject. [e.control] carries what the
+    check said when the negative control was applied: [Some Falsified]
+    means it BIT, and only that is a proof. A proof with no control, or
+    with one that did not bite, is a proof that a command exited zero -
+    a fact about the command and not about the subject.
+
+    THIS IS THE CARRIER OF A16, and it was not one before: the core
+    never read the control, and the map reported a DECLARED control as
+    a control that had bitten. *)
 let state_of_evidence (current : binding option) (now : float)
     (evidence : evidence option) : state =
   match evidence with
@@ -102,6 +111,11 @@ let state_of_evidence (current : binding option) (now : float)
       match current with
       | Some b when e.bound_to = b ->
           if expired now e.valid_until then Outdated
+          else if e.outcome = Verified && e.control <> Some Falsified then
+            (* The check said yes and was never shown able to say no:
+               not established, and not refuted either - nobody has
+               shown it false. *)
+            Inconclusive
           else state_of_outcome e.outcome
       | _ -> Outdated)
 
@@ -119,17 +133,11 @@ let verdict_of_states (states : state list) : verdict =
   List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
 
 (** What the human is asked to decide: the claims that a machine cannot
-    settle. An unresolved claim and a refused claim both need a
-    person; nothing else does. *)
-(** The state of a claim, from the states of its requirements.
-
-    The claim's state is the FOLD of the requirement states, and the
-    fold is the monoid above. A claim with two requirements, one closed
-    and one open, is not "closed" and not "unknown" - it is partly
-    known, which is [Inconclusive], and the map shows which part is
-    missing. That is the answer to the question the third version could
-    not state: what is the state of a thing that needs two kinds of
-    confirmation and has one? *)
+    settle. *)
+(** The state of a claim, from the states of its requirements. A claim
+    with two requirements, one closed and one open, is not "closed" and
+    not "unknown" - it is partly known, which is [Inconclusive], and
+    the map shows which part is missing. *)
 (** What a requirement names - the thing `record` and the attestations
     call it by. *)
 let spec_of (r : requirement) : string =
@@ -146,8 +154,7 @@ let at_of (moment : string option) : float =
 
 (** The state of a requirement closed by an attestation: a proof from
     outside, bound to the subject as it stands. It carries the same
-    freshness rules as any other proof - the subject may have moved,
-    and the attestation may have expired. *)
+    freshness rules as any other proof. *)
 let state_of_attestation (current : binding option) (now : float)
     (a : attestation) : state =
   if expired now a.valid_until then Outdated
@@ -158,6 +165,13 @@ let state_of_attestation (current : binding option) (now : float)
 
 let state_of_requirements (claim : claim) (current : binding option) (now : float)
     (evidence : evidence list) : state =
+  (* WHICH KIND OF PROOF MAY CLOSE WHICH KIND OF REQUIREMENT. The hole
+     was open in both directions. A VERIFIER requirement names a
+     procedure the method could have run itself, so a word from outside
+     cannot stand in for it. A REVIEW requirement names a person, and a
+     person's word is what it asks for. The exception is a JUDGMENT: it
+     has no procedure, the machine is not allowed to decide it, and the
+     attestation is the only thing that can close it. *)
   let for_requirement (r : requirement) =
     (* The evidence is matched by the claim AND the requirement. Two
        claims often share one check - the same test suite verifies
@@ -173,7 +187,7 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
       |> List.fold_left
            (fun acc (e : evidence) ->
              match acc with
-             | Some (prev : evidence) -> Some e
+             | Some (_prev : evidence) -> Some e
              | None -> Some e)
            None
     in
@@ -189,13 +203,17 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
              | None -> Some a)
            None
     in
-    match (latest, latest_attestation) with
-    | None, None -> state_of_evidence current now None
-    | Some e, None -> state_of_evidence current now (Some e)
-    | None, Some a -> state_of_attestation current now a
-    | Some e, Some a ->
-        if at_of (Some a.at) >= at_of e.at then state_of_attestation current now a
-        else state_of_evidence current now (Some e)
+    match r with
+    | Verified_by _ ->
+        if claim.register = Judgment then
+          (match latest_attestation with
+          | Some a -> state_of_attestation current now a
+          | None -> NotCheckable)
+        else state_of_evidence current now latest
+    | Reviewed_by _ -> (
+        match latest_attestation with
+        | Some a -> state_of_attestation current now a
+        | None -> state_of_evidence current now latest)
   in
   let states = List.map for_requirement claim.requirements in
   (* The refinement of the fold. The fold answers "is anything
@@ -203,10 +221,16 @@ let state_of_requirements (claim : claim) (current : binding option) (now : floa
      not-knowing it is, because the human acts differently in each
      case: nobody looked, we looked and the subject moved, we looked
      and could not tell, or the machine is not the one to decide. *)
-  if List.exists (fun s -> s = Refuted) states then Refuted
+  (* THE EMPTY SET IS ITS OWN STATE. [List.for_all f []] is true in
+     OCaml, so a claim with no requirements used to fall into the
+     HOLDS branch above and read as proven: the project went green with
+     no proof of anything. The branch that named the empty case was
+     there, and it was DEAD CODE, because it came after the branch
+     that swallowed it. *)
+  if states = [] then NeverChecked
+  else if List.exists (fun s -> s = Refuted) states then Refuted
   else if List.exists (fun s -> s = NotCheckable) states then NotCheckable
   else if List.for_all (fun s -> s = Holds) states then Holds
-  else if states = [] then NeverChecked
   else if List.for_all (fun s -> s = NeverChecked) states then NeverChecked
   else if List.for_all (fun s -> s = Outdated) states then Outdated
   else Inconclusive
@@ -338,17 +362,57 @@ let law_expired_is_never_verified
     (e : evidence) (current : binding option) =
   state_of' current 1_000_000_000.0 (Some e) <> Holds
 
-(** A scope that names nothing is not a subject. The scope must not be
-    empty; whether it names anything in the tree is the adapter's
-    business, and this law is the part that can be stated here.
+(** The law of A16, over the function that decides it: a proof that
+    says "yes" establishes nothing unless the same check was shown able
+    to say "no" on the same subject.
 
-    It is stated over the FUNCTION that decides, like every other law
-    here, and it used not to be: it was a bare predicate over a scope,
-    which no broken implementation could be offered to, and so it had
-    no negative control and nobody had ever tried to break it. A law
-    that cannot be offered a counterexample is a description of the
-    code. The function is the one that says whether a scope names a
-    subject at all; the law says that such a scope is not empty. *)
+    The broken version - one that reads the outcome and ignores the
+    control - is offered to this law in the test suite and rejected. *)
+let law_verified_needs_a_biting_control
+    (state_of' : binding option -> float -> evidence option -> state)
+    (e : evidence) =
+  if e.outcome <> Verified then true
+  else if e.control = Some Falsified then true
+  else state_of' (Some e.bound_to) 0.0 (Some e) <> Holds
+
+(** The law of the empty requirement set, and of the kinds of proof.
+
+    Three obligations over the same function, so they are one law: a
+    claim is not established unless it can be.
+
+    - A claim with NO requirement has nothing to close: it was never
+      checked. The broken version - one that folds an empty list to
+      HOLDS, which is what [List.for_all] does and what the
+      implementation used to do, so the project went green with no
+      proof of anything - is offered to this law and rejected.
+
+    - A claim with a PROCEDURE and no machine proof is not established,
+      whatever words it carries: the method could have run that
+      procedure itself, and it cannot tell a word from a proof.
+
+    - A JUDGMENT with nobody's word is not established either: what
+      should be true about meaning is not the machine's to decide. *)
+let law_an_unestablished_claim_is_not_holding
+    (state_of' : claim -> binding option -> float -> evidence list -> state)
+    (c : claim) =
+  if c.requirements = [] then state_of' c None 0.0 [] = NeverChecked
+  else
+    let has_procedure =
+      List.exists
+        (fun (r : requirement) -> match r with Verified_by _ -> true | _ -> false)
+        c.requirements
+    in
+    if has_procedure && c.register <> Judgment then
+      state_of' c (Some "digest") 0.0 [] <> Holds
+    else if c.register = Judgment && c.attestations = [] then
+      state_of' c (Some "digest") 0.0 [] <> Holds
+    else true
+
+(** A scope that names nothing is not a subject. Whether it names
+    anything in the tree is the adapter's business; this is the part
+    that can be stated here. It is stated over the FUNCTION that
+    decides, so that a broken implementation can be offered to it: a
+    law that cannot be offered a counterexample is a description. *)
 let law_no_vacant_subject (is_subject : scope -> bool) (s : scope) =
   (not (is_subject s)) || s <> []
 
@@ -381,17 +445,15 @@ let law_judgment_is_never_verified
     (o : outcome) =
   r <> Judgment || (apply' r o <> Verified && apply' r o <> Falsified)
 
-(** The law of the price of uncertainty: an unresolved or refused claim
-    costs something, and the cost is counted rather than asserted. *)
+(** What one outcome costs: an unresolved or refused claim costs one. *)
 let cost_of_outcome (o : outcome) : int =
   match o with
   | Verified | Falsified -> 0
   | Unresolved | Refused -> 1
 
 (** The law of the price of uncertainty: an unresolved or refused claim
-    costs something, and only an answer is free.
-
-    Both halves are needed. "Answers are free" alone is satisfied by a
+    costs something, and only an answer is free. Both halves are
+    needed. "Answers are free" alone is satisfied by a
     cost function that charges nothing for anything, and that is
     exactly the world the principle forbids: an uncertainty that costs
     nothing makes "I do not know" cheaper than checking. *)
@@ -399,16 +461,11 @@ let law_only_answers_are_free (cost' : outcome -> int) =
   List.for_all (fun o -> cost' o = 0) [ Verified; Falsified ]
   && List.for_all (fun o -> cost' o > 0) [ Unresolved; Refused ]
 
-(** The uncertainty a claim costs.
-
-    A plan is not an uncertainty. A promise about code that is not there
-    yet is work to do, and it is resolved by writing the code - not by
-    checking it, because there is nothing to check. So it costs
-    nothing, until there is code: then it is an ordinary claim, and it
-    costs what an ordinary claim costs.
-
-    Whether code exists is not the core's business - the core does not
-    see the tree - so the coverage is given from the outside. *)
+(** The uncertainty a claim costs. A plan is not an uncertainty: a
+    promise about code that is not there yet is work to do, and it is
+    resolved by writing the code. So it costs nothing, until there is
+    code. Whether code exists is not the core's business - the core
+    does not see the tree - so the coverage comes from outside. *)
 let cost_of_claim ~covers (c : claim) (s : state) : int =
   match s with
   | Holds | Refuted | Accepted -> 0
@@ -424,50 +481,3 @@ let law_the_budget_prices_uncertainty
   if answered then cost ~covers c s = 0
   else if covers c then cost ~covers c s = 1
   else cost ~covers c s = 0
-
-(* ------------------------------------------------------------------ *)
-(* The proof.                                                           *)
-(* ------------------------------------------------------------------ *)
-
-(** The domain of the verdicts. Finite, small, and written out so that
-    the proof does not depend on the type staying this way. *)
-let verdict_domain = [ Green; Red; Unknown ]
-
-(** Every law, checked over the whole domain. Not a sample: the
-    domain has three elements, so the pairs are nine and the triples
-    are twenty-seven, and all of them are checked.
-
-    A law that cannot be checked over the whole domain is a law that
-    is being trusted rather than proved, and this method has been
-    burned by exactly that. *)
-let laws_hold () =
-  let d = verdict_domain in
-  let commutative =
-    List.for_all (fun a -> List.for_all (fun b -> law_commutative combine a b) d) d
-  in
-  let associative =
-    List.for_all
-      (fun a ->
-        List.for_all (fun b -> List.for_all (fun c -> law_associative combine a b c) d) d)
-      d
-  in
-  let unit = List.for_all (law_unit combine) d in
-  let absorbing = List.for_all (law_absorbing combine) d in
-  let registers = [ Fact; Hypothesis; Judgment; Undeclared ] in
-  let outcomes = [ Verified; Falsified; Unresolved; Refused ] in
-  let judgment =
-    List.for_all
-      (fun r ->
-        List.for_all
-          (fun o -> law_judgment_is_never_verified apply_register r o)
-          outcomes)
-      registers
-  in
-  let price =
-    List.for_all
-      (fun o -> law_only_answers_are_free cost_of_outcome)
-      outcomes
-  in
-  commutative && associative && unit && absorbing && law_order combine
-  && law_exit_codes_distinct () && law_vacancy_is_green aggregate && judgment
-  && price

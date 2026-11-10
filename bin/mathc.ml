@@ -50,6 +50,11 @@ type options = {
   mutable claims : string list;
   mutable commitments : string list;
   mutable touches : string list;
+  (* How many files the sweep may take away. The sweep is the empirical
+     answer to "what do the project's checks watch", and it costs one
+     run of the checks per file - so it is bounded by the person who
+     asks for it, not by the method's convenience. *)
+  mutable sweep : int;
 }
 
 let read_file path =
@@ -104,9 +109,28 @@ let load_spec () : Domain.spec =
     method is what manages them. *)
 let save_spec (spec : Domain.spec) =
   let json = Spec.spec_to_json spec in
+  let text = Yojson.Safe.pretty_to_string json ^ "\n" in
+  (* THE WRITER PROVES ITSELF BY THE READER, BEFORE IT WRITES.
+
+     A writer that can write a specification the reader refuses has
+     BRICKED the project: every verb begins by reading it, `init`
+     refuses to start a second one, and the only way back is to edit
+     the file by hand. The wave verb already proved itself this way;
+     the others did not, and one `goal` with an empty attribution was
+     enough - from then on `map`, `run`, `next`, `route`, `doctor`,
+     `install` and `goal` itself all failed with "the standing
+     specification is not readable", and `doctor` - whose whole job is
+     to say what is broken - died with the same message and no
+     diagnosis.
+
+     So nothing invalid is ever written. *)
+  (match Spec.parse_spec_string text with
+  | Ok _ -> ()
+  | Error e ->
+      Printf.eprintf "mathc: the specification was not written: %s\n" (Spec.message_of e);
+      exit 2);
   let channel = open_out (spec_path ()) in
-  output_string channel (Yojson.Safe.pretty_to_string json);
-  output_char channel '\n';
+  output_string channel text;
   close_out channel
 
 (** The newest evidence for each claim. The trail may hold many runs of
@@ -146,14 +170,18 @@ let latest_evidence (claims : Domain.claim list) : Domain.evidence list =
 let binding_of (claim : Domain.claim) : Domain.binding option =
   Git.digest_of_scope (root ()) claim.subject.scope
 
-(** The production facts of a proof: the commit the content was read
-    from and the moment of production.
+(** The production facts of a proof: the commit the repository was at
+    when the proof was made, and the moment of production.
 
-    The content the method binds to is the content of HEAD - the
-    committed tree - so the commit is exactly the one the proof is
-    about, and not an approximation of it. A repository with no commits
-    has no HEAD, and then there is nothing to anchor to: the field is
-    absent rather than empty. *)
+    THE COMMIT IS AN ANCHOR, NOT THE SUBJECT. The content a proof is
+    about is the WORKING TREE - the checks ran there, and the binding
+    is the digest of that content - and the comment this one used to
+    carry said the opposite, which is how the anchor came to point at
+    the wrong thing. A commit names a point in the history; it does not
+    name the bytes that were checked when the tree was dirty, and an
+    agent's tree is normally dirty. The digest says which bytes; the
+    commit says where the repository was; the map says both, and says
+    when they are not the same thing. *)
 let production_facts () =
   ( Git.head_commit (root ()),
     Some (Printf.sprintf "%.0f" (Unix.time ())) )
@@ -164,10 +192,22 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   (* The moment, once, for the whole computation: two claims must not
      be judged against two different nows. *)
   let now = Unix.time () in
+  (* THE TREE, HASHED ONCE FOR THE WHOLE COMPUTATION. The scopes of the
+     claims overlap, and the digest of each was computed from its own
+     pass over the same files. *)
+  let tree = Git.hash_the_tree (root ()) in
   List.map
     (fun (claim : Domain.claim) ->
-      (claim.id, Verdict.state_of_claim claim (binding_of claim) now evidence))
+      ( claim.id,
+        Verdict.state_of_claim claim
+          (Git.digest_of_scope_in (root ()) claim.subject.scope tree)
+          now evidence ))
     claims
+
+(* The repository's files, once. It is a FUNCTION and not a value: the
+   root is set from the command line after this module is loaded, and a
+   value would be computed against the wrong tree. *)
+let map_files () = Git.repository_files (root ())
 
 (** How much of the uncertainty budget the project has spent. Only an
     answer is free: a claim that was refuted is answered, and a claim
@@ -186,16 +226,20 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
     nothing that exists covers no files, so it hides no file and
     settles no question. The map still shows it, and it still has to be
     checked once there is something to check. *)
-let consumption_of (claims : Domain.claim list) : int =
-  let states = states_of claims in
+let consumption_of_states (claims : Domain.claim list)
+    (states : (string * Domain.state) list) : int =
   let claim_of id = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
-  let covers (c : Domain.claim) = Git.files_covered (root ()) c.subject.scope <> [] in
+  let files = Git.repository_files (root ()) in
+  let covers (c : Domain.claim) = Git.files_covered_in files c.subject.scope <> [] in
   List.fold_left
     (fun n (id, state) ->
       match claim_of id with
       | Some c -> n + Verdict.cost_of_claim ~covers c state
       | None -> n)
     0 states
+
+let consumption_of (claims : Domain.claim list) : int =
+  consumption_of_states claims (states_of claims)
 
 (* ------------------------------------------------------------------ *)
 (* The verbs.                                                           *)
@@ -220,6 +264,205 @@ let established_scopes (claims : Domain.claim list)
       | _ -> None)
     states
 
+(** WHAT THE CONTROL SHOWED.
+
+    The map used to print "the check is proven able to fail" on the
+    strength of a DECLARED control - a string in the specification -
+    and it said so about a control that had never run, about a command
+    that did not exist, and about a check that was never shown failing.
+    The note is computed from the EVIDENCE now: what the check said when
+    the control was applied, and whether the control changed the subject
+    at all.
+
+    It is computed in ONE place, because the prose map and the machine
+    map are the same map: two forms that said different things about the
+    same project were two truths about it. *)
+let control_note (state : Domain.state) (claim : Domain.claim option)
+    (evidence : Domain.evidence option) : string =
+  match state with
+  | Domain.Holds -> (
+      (* A claim with no control is a judgment closed by a person, and
+         there is nothing to say about a control that does not exist:
+         saying "the control bit" there would be a sentence about
+         nothing. *)
+      match claim with
+      | Some c when c.Domain.control = None -> ""
+      | _ -> (
+          match evidence with
+          | Some e -> (
+              match e.Domain.reach with
+              | Some Domain.Subject ->
+                  "the control bit, and it broke the subject: the check was shown able to \
+                   fail on this very subject"
+              | Some Domain.Elsewhere ->
+                  "the control bit, but it broke something else: the check is not vacuous, \
+                   and the demonstration is not about this subject"
+              | Some Domain.Nothing ->
+                  "the control bit, but it broke nothing: the check was shown able to fail, \
+                   and the demonstration is about nothing"
+              | None -> "the control bit: the check was shown able to fail")
+          | None -> "the control bit: the check was shown able to fail"))
+  | Domain.Inconclusive -> (
+      match claim with
+      | None -> ""
+      | Some c -> (
+          match c.Domain.control with
+          | None -> "no control is declared: the check was never shown able to fail"
+          | Some _ -> (
+              match evidence with
+              | None -> "the control has not run: the check was never shown able to fail"
+              | Some e -> (
+                  match e.Domain.control with
+                  | Some Domain.Falsified ->
+                      "the control did not bite: the check was never shown able to fail"
+                  | Some _ ->
+                      "the control did not bite: the check was never shown able to fail"
+                  | None ->
+                      "the control has not run: the check was never shown able to fail"))))
+  | _ ->
+      (* The state already names the fault: never checked, outdated,
+         refuted, not checkable. A note here would say less than the
+         state and be read as a second opinion about it. *)
+      ""
+
+(** The uncovered surface, most suspicious first.
+
+    The order of the uncovered files is not a detail. A list in
+    alphabetical order is a filing errand: the agent works through it
+    and declares claims about files, and that is bookkeeping wearing the
+    clothes of work. The measurement of 2026-11-07 caught exactly that:
+    the map said "CartProvider.tsx is not covered by any claim", and the
+    agent filed a claim about it instead of reading it - and the bug was
+    right there.
+
+    So the order is by RECENT CHANGE. The file that moved yesterday and
+    has no claim is the one worth reading; the file that has not moved
+    in three years and has no claim is history, and history is not the
+    next work. *)
+let uncovered_by_suspicion (root : string) (uncovered : string list) : string list =
+  let touched = Git.last_touched root ~days:30 in
+  let rank file = match List.assoc_opt file touched with Some t -> t | None -> 0 in
+  List.sort (fun a b -> compare (rank b) (rank a)) uncovered
+
+(** audit: what the project's own checks really watch.
+
+    Every number the method produces is a number about the method's own
+    records: claims, coverage, states. This is the first number that is
+    about the CODE: how many of the project's claims are watched by a
+    check that was shown able to fail ON THEIR OWN SUBJECT.
+
+    A control that breaks a FIXTURE proves the check is not vacuous and
+    says nothing about the subject - the check read the fixture, not
+    the subject. A control that breaks the SUBJECT proves the stronger
+    thing. The distance between the two is the distance between "the
+    check can fail" and "the check sees this", and a project that
+    cannot tell them apart believes it has the second when it has the
+    first. That is how `typecheck` came to certify a counter that
+    added one to every item.
+
+    The method does not refuse the weaker control - it is a control,
+    and the check is still not vacuous. But it says which kind it is,
+    and it counts them. *)
+let verb_audit (o : options) =
+  let spec = load_spec () in
+  let claims = spec.Domain.claims in
+  let states = states_of claims in
+  let evidence = latest_evidence claims in
+  let evidence_of id =
+    List.find_opt (fun (e : Domain.evidence) -> e.claim.id = id) evidence
+  in
+  let watched_on_subject = ref 0 in
+  let watched_elsewhere = ref 0 in
+  let not_established = ref 0 in
+  let unknown_reach = ref 0 in
+  let weak = ref [] in
+  List.iter
+    (fun (id, state) ->
+      let reach =
+        match evidence_of id with Some e -> e.Domain.reach | None -> None
+      in
+      match (state, reach) with
+      | Domain.Holds, Some Domain.Subject -> incr watched_on_subject
+      | Domain.Holds, Some Domain.Elsewhere ->
+          incr watched_elsewhere;
+          weak := (id, state, reach) :: !weak
+      | Domain.Holds, Some Domain.Nothing ->
+          incr watched_elsewhere;
+          weak := (id, state, reach) :: !weak
+      | Domain.Holds, None ->
+          (* The proof was made by a build that did not say what the
+             control reached. The claim HOLDS - the map says so, and the
+             audit must not say otherwise - but the method does not know
+             whether the control reached the subject. Counting it as
+             "not established" would make the audit contradict the map
+             about the same project, and two truths about one project is
+             exactly what the method forbids. *)
+          incr unknown_reach
+      | _ -> incr not_established)
+    states;
+  Printf.printf
+    "audit: what the project's own checks watch\n\
+     claims: %d\n\
+     \  watched on their own subject: %d\n\
+     \  watched, but the control broke something else: %d\n\
+     \  watched, but the build that made the proof did not say: %d\n\
+     \  not established: %d\n"
+    (List.length claims) !watched_on_subject !watched_elsewhere !unknown_reach
+    !not_established;
+  (* THE SWEEP. The numbers above are what the method BELIEVES about
+     the checks; the sweep says what the checks DO. A file is taken
+     away and the project's own checks are run: if they stay green,
+     the checks do not watch that file, whatever the specification
+     says about it. *)
+  if o.sweep > 0 then (
+    let checks =
+      List.filter_map
+        (fun (c : Domain.claim) ->
+          match c.requirements with
+          | Domain.Verified_by cmd :: _ -> Some cmd
+          | _ -> None)
+        claims
+      |> List.sort_uniq String.compare
+    in
+    (* The files the method has no claim about come first: they are
+       the ones the map already calls nobody's, and the sweep asks
+       whether the CHECKS agree. *)
+    let uncovered = Git.uncovered (root ()) claims (Git.tracked_files (root ())) in
+    let ranked = uncovered_by_suspicion (root ()) uncovered in
+    let sampled = List.filteri (fun i _ -> i < o.sweep) ranked in
+    Printf.printf "\nthe sweep: %d file(s) taken away, %d check(s) run per file\n"
+      (List.length sampled) (List.length checks);
+    let unnoticed = ref [] in
+    List.iter
+      (fun file ->
+        let noticed = Exec.sweep ~root:(root ()) ~file ~checks in
+        Printf.printf "  %-50s %s\n" file
+          (if noticed then "the checks notice it is gone"
+           else "THE CHECKS DO NOT NOTICE IT IS GONE");
+        if not noticed then unnoticed := file :: !unnoticed)
+      sampled;
+    let n = List.length !unnoticed in
+    if n > 0 then
+      Printf.printf
+        "\n%d of %d file(s) are watched by nobody: the checks pass without them.\n"
+        n (List.length sampled));
+  if !weak <> [] then (
+    Printf.printf "\nthe claims whose control did not break their subject:\n";
+    List.iter
+      (fun (id, _, _) ->
+        let scope =
+          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
+          | Some c -> String.concat ", " c.subject.scope
+          | None -> ""
+        in
+        Printf.printf
+          "  %s  %s\n\
+           \    the control bit, but it broke something else: the check is not vacuous,\n\
+           \    and the demonstration is not about this subject\n"
+          id scope)
+      (List.rev !weak));
+  0
+
 (** map: the standing specification of the project, computed. What is
     claimed, what is known, what is not covered. *)
 (** The map, as data. The same map the human reads, in a form a program
@@ -230,9 +473,16 @@ let established_scopes (claims : Domain.claim list)
     person can read is an artifact that no program can check. *)
 let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
   let claims = spec.Domain.claims in
+  (* ONCE. The map used to compute the states twice - once for itself
+     and once inside the budget - and to read the whole trail four
+     times over, once per field that needs it. Every state costs a
+     digest of the subject, and the digest is the expensive part of
+     reading the map; the map is what an agent reads first and reads
+     most. *)
   let states = states_of claims in
+  let evidence = latest_evidence claims in
   let files = Git.tracked_files (root ()) in
-  let uncovered = Git.uncovered (root ()) claims files in
+  let uncovered = uncovered_by_suspicion (root ()) (Git.uncovered (root ()) claims files) in
   let verdict = Verdict.verdict_of_states (List.map snd states) in
   (* The names of the states live in the codec: the map and the wave's
      promises must say the same thing about them, and a name written
@@ -247,7 +497,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
           | Domain.Unknown -> "unknown") );
       ("exit", `Int (Verdict.verdict_to_exit verdict));
       ("claims", `Int (List.length claims));
-      ("uncertainty_consumed", `Int (consumption_of claims));
+      ("uncertainty_consumed", `Int (consumption_of_states claims states));
       ("uncertainty_budget", `Int spec.Domain.budget);
       ("uncovered", `Int (List.length uncovered));
       ( "goal",
@@ -280,19 +530,28 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                          | Some c -> `String c
                          | None -> `Null)
                      | None -> `Null );
-                   ( "control",
-                     match
-                       List.find_opt
-                         (fun (c : Domain.claim) -> c.id = id)
-                         claims
-                     with
-                     | Some c -> (
-                         match c.control with
-                         | Some _ -> `String "the check is proven able to fail"
-                         | None ->
-                             `String
-                               "the check is not proven able to fail: declare its control")
-                     | None -> `Null );
+                    ( "control",
+                      match
+                        List.find_opt
+                          (fun (e : Domain.evidence) -> e.claim.id = id)
+                          evidence
+                      with
+                      | Some e -> (
+                          match
+                            List.find_opt
+                              (fun (c : Domain.claim) -> c.id = id)
+                              claims
+                          with
+                          | Some c -> `String (control_note state (Some c) (Some e))
+                          | None -> `Null)
+                      | None -> (
+                          match
+                            List.find_opt
+                              (fun (c : Domain.claim) -> c.id = id)
+                              claims
+                          with
+                          | Some c -> `String (control_note state (Some c) None)
+                          | None -> `Null) );
                    ( "produced_by",
                      match
                        List.find_opt
@@ -309,7 +568,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                       match
                         List.find_opt
                           (fun (e : Domain.evidence) -> e.claim.id = id)
-                          (latest_evidence claims)
+                          evidence
                       with
                       | Some e when state = Domain.Outdated ->
                           if Verdict.expired (Unix.time ()) e.valid_until then `String "the term is over"
@@ -324,7 +583,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                         List.find_opt (fun (c : Domain.claim) -> c.id = id) claims
                       with
                       | Some c -> (
-                          match Git.missing_paths (root ()) c.subject.scope with
+                          match Git.missing_paths_in (map_files ()) c.subject.scope with
                           | [] -> `Null
                           | missing ->
                               `String
@@ -358,7 +617,7 @@ let verb_map json =
     let claims = spec.Domain.claims in
     let states = states_of claims in
     let files = Git.tracked_files (root ()) in
-    let uncovered = Git.uncovered (root ()) claims files in
+    let uncovered = uncovered_by_suspicion (root ()) (Git.uncovered (root ()) claims files) in
     let verdict = Verdict.verdict_of_states (List.map snd states) in
     Printf.printf "verdict: %s (exit %d)\n"
       (match verdict with
@@ -407,15 +666,14 @@ let verb_map json =
 
            The law is A16: a check that cannot fail proves nothing.
            The control is what shows it can. So the map says which is
-           which, in the same breath as the state. *)
-        let control_note =
-          match List.find_opt (fun (c : Domain.claim) -> c.id = id) claims with
-          | Some c -> (
-              match c.Domain.control with
-              | Some _ -> ""
-              | None -> " (the check is not proven able to fail)")
-          | None -> ""
-        in
+           which, in the same breath as the state.
+
+           IT IS NOW SAID FROM THE EVIDENCE. It used to be said from
+           the DECLARATION - the presence of a control string - and it
+           said "the check is proven able to fail" about a control that
+           had never run and about a command that did not exist. A
+           claim that HOLDS needs no note: since the law of A16 entered
+           the core, holding means the control bit. *)
         (* WHY the check could not tell. An inconclusive claim without
            its reason is a shrug with a state attached. *)
         let reason_note =
@@ -436,6 +694,24 @@ let verb_map json =
                   | None -> "")
               | None -> "")
           | _ -> ""
+        in
+        (* THE CONTROL, IN THE PROSE TOO - but only when it is what the
+           state does not already say. A claim that holds needs no note:
+           since A16 entered the core, holding means the control bit. A
+           claim that was never checked, or whose subject moved, is
+           named by its state, and a note beside it would be a second
+           opinion about a fault already named. What is left is the one
+           case the state cannot name by itself: the check passed and
+           was never shown able to fail. *)
+        let control_note =
+          if reason_note <> "" then ""
+          else
+            let note =
+              control_note state
+                (List.find_opt (fun (c : Domain.claim) -> c.id = id) claims)
+                evidence_of_claim
+            in
+            if note = "" then "" else " (" ^ note ^ ")"
         in
         (* THE SUBJECT THAT IS NOT THERE YET. A claim about code that
            does not exist yet is a plan, and the map says so - it does
@@ -530,10 +806,15 @@ let verb_run () =
     print_endline "nothing to run: the standing specification is empty";
     0)
   else
+    let cache = Exec.new_cache () in
+    (* The tree, hashed once for the whole run: the scopes of the
+       claims overlap, and the digest is what the evidence is bound
+       to. *)
+    let tree = Git.hash_the_tree (root ()) in
     let results =
       List.map
         (fun (claim : Domain.claim) ->
-          match binding_of claim with
+          match Git.digest_of_scope_in (root ()) claim.subject.scope tree with
           | None ->
               (* No digest: the subject is not there yet, or it has a
                  hole. Both are said in words, because the reader acts
@@ -551,9 +832,18 @@ let verb_run () =
                         claim.id authority;
                       None
                   | Verified_by command ->
+                      (* THE CHECK IS RUN ONCE PER COMMAND PER TREE.
+                         Twelve of the method's own claims are proved by
+                         one test battery; running it twelve times is
+                         not twelve proofs, it is one proof paid for
+                         twelve times. The key carries the fingerprint
+                         of the tree, so a check that changes the tree
+                         is asked again. *)
+                      let fingerprint = Exec.tree_fingerprint ~root:(root ()) in
+                      let key = Exec.cache_key ~command ~fingerprint in
                       let outcome, reason =
-                        Exec.run_claim_command ~root:(root ()) command
-                          claim.register
+                        Exec.run_claim_command_cached ~cache ~key ~root:(root ())
+                          command claim.register
                       in
                       (* THE NEGATIVE CONTROL OF THE CHECK. A check that
                          passes proves nothing until it is shown that it
@@ -612,17 +902,20 @@ let verb_run () =
                          somewhere else entirely, and until it is shown
                          red on the broken subject, the green it gives
                          says nothing about the subject. *)
-                      let outcome, reason, control_outcome =
-                        match (outcome, claim.control) with
-                        | Domain.Verified, Some control ->
-                            let c_outcome, c_reason =
-                              Exec.run_control ~root:(root ()) ~control ~requirement:command
-                            in
-                            (match c_outcome with
-                            | Domain.Falsified -> (Domain.Verified, None, Some Domain.Falsified)
-                            | _ -> (Domain.Unresolved, c_reason, Some c_outcome))
-                        | _ -> (outcome, reason, None)
-                      in
+                       let outcome, reason, control_outcome, control_reach =
+                         match (outcome, claim.control) with
+                         | Domain.Verified, Some control ->
+                             let c =
+                               Exec.run_control ~root:(root ()) ~scope:claim.subject.scope
+                                 ~control ~requirement:command
+                             in
+                             (match c.Exec.outcome with
+                             | Domain.Falsified ->
+                                 (Domain.Verified, c.Exec.reason, Some Domain.Falsified, Some c.Exec.reach)
+                             | _ ->
+                                 (Domain.Unresolved, c.Exec.reason, Some c.Exec.outcome, Some c.Exec.reach))
+                         | _ -> (outcome, reason, None, None)
+                       in
                       Printf.printf "%s: %s\n" claim.id
                         (match outcome with
                         | Domain.Verified -> "verified"
@@ -640,9 +933,10 @@ let verb_run () =
                           reason;
                           at_commit;
                           at;
-                          valid_until = None;
-                          control = control_outcome;
-                        } ))
+                           valid_until = None;
+                           control = control_outcome;
+                           reach = control_reach;
+                         } ))
                 claim.requirements)
         claims
     in
@@ -661,10 +955,22 @@ let verb_run () =
 
     So: [mathc record CLAIM SPEC --by WHO --outcome OUTCOME] closes the
     requirement of CLAIM that names SPEC, and says who produced it. A
-    verifier requirement is closed by a record of the same command;
-    a review requirement is closed by the authority's word. The binding
+    REVIEW requirement is closed by the authority's word. The binding
     is the subject's digest as it stands now, so the record is about
-    the subject as it is, not as it was. *)
+    the subject as it is, not as it was.
+
+    A VERIFIER REQUIREMENT IS NOT CLOSED BY A RECORD. It used to be,
+    and that was a hole straight through the middle of the method: the
+    method could run the command itself, so a word from outside stood
+    in for a proof the method never made - and nobody could tell the
+    two apart afterwards. A command that does not exist, recorded as
+    verified, made the project green.
+
+    The kinds are the point, and they are separated here and in the
+    core: a procedure is closed by a procedure, a person is closed by a
+    person. A CI run has a place too: it is somebody else's word about
+    the subject, which is what a REVIEW requirement asks for. Declare
+    [review:ci] and the record closes it. *)
 let verb_record claim_id spec by outcome (reason : string) (valid_for : string) =
   let spec_loaded = load_spec () in
   let refuse why =
@@ -715,6 +1021,16 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
                        | Reviewed_by a -> a)
                      claim.requirements)))
       | Some requirement -> (
+          match requirement with
+          | Verified_by _ ->
+              refuse
+                (Printf.sprintf
+                   "a record cannot close the procedure %S of the claim %s: the method can \
+                    run that command itself, and a word from outside cannot stand in for a \
+                    proof it never made. Declare a review requirement (review:ci) if the \
+                    command ran elsewhere"
+                   spec claim_id)
+          | Reviewed_by _ -> (
           match binding_of claim with
           | None ->
               refuse "the scope names no existing path, so nothing could be bound"
@@ -776,7 +1092,7 @@ let verb_record claim_id spec by outcome (reason : string) (valid_for : string) 
               Printf.printf
                 "  the attestation is in the specification, and the subject it was produced against is %s\n"
                 (String.sub binding 0 (min 12 (String.length binding)));
-              0))
+              0)))
 
 (** The waves of a project, in the order they were declared. A wave is
     a slice of work; the queue is these waves that are not yet
@@ -903,20 +1219,63 @@ let verb_next () =
       | Some c -> (
           match Git.missing_paths (root ()) c.subject.scope with
           | [] ->
-              Printf.printf "next: check the claim %s - it is not known now\n" id
+              (* THE NEXT WORK IS SOMETIMES "GIVE IT A CONTROL". A claim
+                 whose check was never shown able to fail cannot be
+                 closed by checking it again: the check will pass
+                 again, and the claim will be as unestablished as it
+                 was. The work is to write the command that breaks the
+                 subject - and the method now has a verb for it. *)
+              (* WHAT THE CLAIM IS WAITING FOR. A claim with a
+                 PROCEDURE waits for a control: the control is what
+                 shows the check can fail. A claim that waits for a
+                 PERSON waits for the person - a control would be
+                 meaningless for it, because there is no procedure to
+                 break. Telling a judgment to get a control sends the
+                 agent on an errand that cannot succeed, and the
+                 method's own repository hit exactly that. *)
+              let waits_for =
+                List.filter_map
+                  (fun (r : Domain.requirement) ->
+                    match r with
+                    | Domain.Reviewed_by authority -> Some authority
+                    | Domain.Verified_by _ -> None)
+                  c.Domain.requirements
+              in
+              if waits_for <> [] then
+                Printf.printf
+                  "next: the claim %s waits for a person: mathc record %s %s --by %s \
+                   --outcome verified\n"
+                  id id (List.hd waits_for) (List.hd waits_for)
+              else if c.Domain.control = None then
+                Printf.printf
+                  "next: give the claim %s a control - its check was never shown able to \
+                   fail: mathc control %s \"COMMAND\"\n"
+                  id id
+              else
+                Printf.printf "next: check the claim %s - it is not known now\n" id
           | missing ->
               Printf.printf
                 "next: write the subject of the claim %s - missing: %s\n" id
                 (String.concat ", " missing))
       | None -> Printf.printf "next: check the claim %s - it is not known now\n" id);
       0
-  | [], [], [], first :: _ ->
-      Printf.printf "next: nothing is unverified; %d tracked file(s) are uncovered, starting with %s\n"
-        (List.length uncovered) first;
-      0
-  | [], [], [], [] ->
-      print_endline "next: nothing to do - every claim is known and everything is covered";
-      0
+  | [], [], [], _ ->
+      (* Nothing is unverified. The work that is left is the uncovered
+         surface - and the uncovered surface is not a list, it is a
+         place to look. The files that changed recently come first, so
+         that the next work is reading the code that is moving and not
+         filing a claim about a file that has not moved since 2019. *)
+      let ranked = uncovered_by_suspicion (root ()) uncovered in
+      (match ranked with
+      | [] ->
+          print_endline "next: nothing to do - every claim is known and everything is covered";
+          0
+      | first :: _ ->
+          Printf.printf
+            "next: nothing is unverified; %d tracked file(s) are uncovered. The first to look \
+             at: %s\n"
+            (List.length uncovered) first;
+          0)
 
 (** close: close a wave.
 
@@ -1124,17 +1483,26 @@ let wave_to_json (w : Domain.wave) : Yojson.Safe.t =
     the verb refuses it. The friction belongs here: this is where an
     agent that wants to skip the dialectic tries to skip it.
 
-    And the promise must name a claim that is declared. A wave that
-    promises a claim nobody declared can never close - the closing
-    compares the promise with the state of the claim - so it would sit
-    in the queue for ever, and the queue would be lying about what it
-    leads to. *)
+    And the promise MAY name a claim that is not declared yet. The
+    order used to be the other way round, and it was backwards: the
+    wave was refused unless its claims already existed, so the INTENT
+    of a unit of work could only be recorded after the thing it was
+    about had already been declared - and the answer to "why did we do
+    this at all" came after the doing.
+
+    A wave is a plan, and a plan names what it will settle. The claims
+    it names are declared DURING the work, and the promise is met - or
+    not - when the wave is closed, which compares the promise with the
+    state of the claim. Until then the wave stays in the queue, which
+    is the truth: the work is not finished.
+
+    So the method can now answer "why" before "what", and the queue
+    leads to the reasoning rather than to the paperwork. *)
 let verb_wave (id : string) (title : string) (o : options) =
   let refuse why =
     Printf.eprintf "mathc: the wave is not created: %s\n" why;
     2
   in
-  let spec = load_spec () in
   let rec parse_commit acc = function
     | [] -> Ok (List.rev acc)
     | text :: rest -> (
@@ -1174,77 +1542,61 @@ let verb_wave (id : string) (title : string) (o : options) =
       match parse_commit [] o.commitments with
       | Error e -> refuse e
       | Ok commitments ->
-          let unknown =
-            List.filter_map
-              (fun (c : Domain.commitment) ->
-                if List.exists (fun (x : Domain.claim) -> x.id = c.claim) spec.Domain.claims
-                then None
-                else Some c.claim)
-              commitments
-          in
-          (match unknown with
-          | claim :: _ ->
-              refuse
-                (Printf.sprintf
-                   "the wave promises the claim %S, which is not declared: a promise \
-                    about a claim nobody declared can never be met"
-                   claim)
-          | [] ->
-              let dir = Filename.concat (root ()) "waves" in
-              let path = Filename.concat dir (id ^ ".json") in
-              if Sys.file_exists path then
-                refuse (Printf.sprintf "there is already a wave %S" id)
-              else (
-                if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
-                (* The claims the wave touches are the claims it promises,
-                   unless it says otherwise: a wave that names them is
-                   saying what it is about. *)
-                let claims =
-                  if o.claims <> [] then o.claims
-                  else
-                    List.map
-                      (fun (c : Domain.commitment) -> c.Domain.claim)
-                      commitments
-                in
-                let wave =
-                  {
-                    Domain.id;
-                    title;
-                    intent = o.intent;
-                    touches = o.touches;
-                    checks = o.checks;
-                    claims;
-                    commitment = commitments;
-                    objection = o.objection;
-                    refuted_by = o.refuted_by;
-                  }
-                in
-                (* THE WRITER PROVES ITSELF BY THE READER. The wave is
-                   written and read back with the same codec: a wave
-                   that cannot be read cannot stand, and saying so here
-                   is better than a queue full of unreadable waves. *)
-                let json = wave_to_json wave in
-                let text = Yojson.Safe.pretty_to_string json ^ "\n" in
-                (match Spec.parse_wave_string text with
-                | Error e ->
-                    refuse ("the wave is not readable: " ^ Spec.message_of e)
-                | Ok _ ->
-                    let channel = open_out path in
-                    output_string channel text;
-                    close_out channel;
-                    Printf.printf "wave %s created:\n" id;
-                    Printf.printf "  %s\n" path;
-                    Printf.printf "  promises: %s\n"
-                      (String.concat ", "
-                         (List.map
-                            (fun (c : Domain.commitment) ->
-                              c.Domain.claim ^ " " ^ Domain.state_name c.Domain.state)
-                            commitments));
-                    Printf.printf "  checks: %s\n" (String.concat ", " o.checks);
-                    print_endline
-                      "next: mathc next names the wave, and mathc close closes it when \
-                       its promises are met";
-                    0))))
+          let dir = Filename.concat (root ()) "waves" in
+          let path = Filename.concat dir (id ^ ".json") in
+          if Sys.file_exists path then
+            refuse (Printf.sprintf "there is already a wave %S" id)
+          else (
+            if not (Sys.file_exists dir) then Unix.mkdir dir 0o755;
+            (* The claims the wave touches are the claims it promises,
+               unless it says otherwise: a wave that names them is
+               saying what it is about. *)
+            let claims =
+              if o.claims <> [] then o.claims
+              else
+                List.map
+                  (fun (c : Domain.commitment) -> c.Domain.claim)
+                  commitments
+            in
+            let wave =
+              {
+                Domain.id;
+                title;
+                intent = o.intent;
+                touches = o.touches;
+                checks = o.checks;
+                claims;
+                commitment = commitments;
+                objection = o.objection;
+                refuted_by = o.refuted_by;
+              }
+            in
+            (* THE WRITER PROVES ITSELF BY THE READER. The wave is
+               written and read back with the same codec: a wave
+               that cannot be read cannot stand, and saying so here
+               is better than a queue full of unreadable waves. *)
+            let json = wave_to_json wave in
+            let text = Yojson.Safe.pretty_to_string json ^ "\n" in
+            (match Spec.parse_wave_string text with
+            | Error e ->
+                refuse ("the wave is not readable: " ^ Spec.message_of e)
+            | Ok _ ->
+                let channel = open_out path in
+                output_string channel text;
+                close_out channel;
+                Printf.printf "wave %s created:\n" id;
+                Printf.printf "  %s\n" path;
+                Printf.printf "  promises: %s\n"
+                  (String.concat ", "
+                     (List.map
+                        (fun (c : Domain.commitment) ->
+                          c.Domain.claim ^ " " ^ Domain.state_name c.Domain.state)
+                        commitments));
+                Printf.printf "  checks: %s\n" (String.concat ", " o.checks);
+                print_endline
+                  "next: mathc next names the wave, and mathc close closes it when \
+                   its promises are met";
+                    0)))
 
 (** A requirement, as it is written on the command line: a kind, a
     colon, and the thing itself. The kind is what makes the evidence
@@ -1280,6 +1632,10 @@ let verb_goal text scope by reason =
     if text = "" then Some "the aim needs a text"
     else if scope = [] then
       Some "the aim needs a scope: an aim about nothing aims at nothing"
+    else if by = "" then
+      Some
+        "the aim needs an author: the aim belongs to a person, and the method attributes \
+         it"
     else if reason = "" && spec.goal <> None then
       Some
         "there is already an aim, and replacing it needs a reason: --reason \"...\""
@@ -1358,6 +1714,8 @@ let verb_add id subject scope requirements falsifier register control =
     | Some _ ->
         if scope = [] then
           Some "the scope is empty: a claim about nothing is not a claim"
+        else if subject = "" then
+          Some "the subject is empty: a claim must say what it claims"
         else if requirements = [] then
           Some "the requirements are empty: a promise with no way to be closed is not a claim"
         else if falsifier = "" then
@@ -1471,6 +1829,52 @@ let verb_budget (budget : int) (reason : string) =
     The acceptance is recorded in the standing specification, so the
     map can show it, and in the trail, so the history of who took
     responsibility for what can be read later. *)
+(** control: give a claim the command that shows its check can fail.
+
+    A claim may be DECLARED without a control - the control is asked
+    for, not forced, because a forced one would be a formality, and a
+    claim about code that is not there yet has nothing to break yet.
+
+    But a claim whose check was never shown able to fail is a request,
+    not a proof (law A16), and a request that cannot be closed is a
+    DEADLOCK: the agent had no way to give the claim its control, and
+    the only way out was to edit the specification by hand. The method
+    calls a legal state it cannot leave "not a state, but a deadlock",
+    and this was one.
+
+    So the control can be given later, and the claim becomes
+    establishable. *)
+let verb_control id command =
+  let spec = load_spec () in
+  let refuse why =
+    Printf.eprintf "mathc: the control is not attached: %s\n" why;
+    2
+  in
+  let problem =
+    if id = "" then Some "a control needs the claim it belongs to"
+    else if command = "" then
+      Some
+        "a control needs a command: the one that breaks the subject and must fail with it"
+    else None
+  in
+  match problem with
+  | Some why -> refuse why
+  | None -> (
+      match List.find_opt (fun (c : Domain.claim) -> c.id = id) spec.Domain.claims with
+      | None -> refuse (Printf.sprintf "there is no claim %S" id)
+      | Some _ ->
+          save_spec
+            {
+              spec with
+              Domain.claims =
+                List.map
+                  (fun (c : Domain.claim) ->
+                    if c.id = id then { c with Domain.control = Some command } else c)
+                  spec.Domain.claims;
+            };
+          Printf.printf "the control of %s is: %s\n" id command;
+          0)
+
 let verb_accept id by reason =
   let spec = load_spec () in
   let problem =
@@ -1551,9 +1955,15 @@ let usage_text () =
       "                                 and must fail with it: a check that cannot fail proves nothing";
       "                               a claim without a requirement is refused";
       "  mathc accept ID BY REASON      a person takes responsibility for an uncertainty";
+      "  mathc control ID CMD       give a claim the command that breaks the subject";
+      "                               and must fail with it: without it the claim";
+      "                               is a request, and a request is not a proof";
       "  mathc budget N            the price of uncertainty, changed by a person;";
       "                               --reason says why";
       "  mathc map               the standing specification: claims, states, uncovered";
+      "  mathc audit             what the project's own checks really watch: how many";
+      "                               claims are watched by a check shown able to fail";
+      "                               ON THEIR OWN SUBJECT, and which are not";
       "  mathc route             what needs a person, and why";
       "  mathc run                execute the checks, bind the results, write the trail";
       "  mathc record CLAIM REQ --by WHO --outcome V";
@@ -1626,10 +2036,9 @@ let entry_page () =
   let b = Buffer.create 4096 in
   let add fmt = Printf.ksprintf (Buffer.add_string b) fmt in
   add "## math-coding in this project\n\n";
-  add "This block is written by `mathc install` and by nothing else.\n";
-  add "Everything outside it belongs to the project and is never touched.\n";
-  add "Re-run `mathc install` after the specification changes;\n";
-  add "`mathc doctor` says whether this block is current.\n\n";
+  add
+    "Written by `mathc install` and by nothing else; everything outside this\n\
+     block belongs to the project. `mathc doctor` says whether it is current.\n\n";
   add "### The aim\n\n";
   (match spec.Domain.goal with
   | Some g ->
@@ -1675,9 +2084,10 @@ let entry_page () =
      mathc next     # the next work, one item\n\
      mathc add ID \"SUBJECT\" SCOPE \"WHAT WOULD REFUTE IT\" fact \\\n\
      \   --requirement verifier:CMD --control CMD\n\
+     mathc control ID CMD   give a claim its control, later\n\
      ```\n\n\
      The control is the command that breaks the subject and must fail with it:\n\
-     a check that cannot fail proves nothing.\n\n\
+     a check that cannot fail proves nothing - and a claim without one is a request.\n\n\
      For an agent the machine surface is cheaper: `mathc --root . mcp` speaks\n\
      JSON-RPC and returns the next step with every method.\n\n";
   add "Every verb: ";
@@ -2018,6 +2428,7 @@ let parse_args (args : string list) : string list * options =
       claims = [];
       commitments = [];
       touches = [];
+      sweep = 0;
     }
   in
   let rec loop acc = function
@@ -2095,6 +2506,17 @@ let parse_args (args : string list) : string list * options =
     | "--json" :: rest ->
         o.json <- true;
         loop acc rest
+    | "--sweep" :: n :: rest -> (
+        match int_of_string_opt n with
+        | Some k when k > 0 ->
+            o.sweep <- k;
+            loop acc rest
+        | _ ->
+            Printf.eprintf "mathc: --sweep needs a positive number of files\n";
+            exit 2)
+    | "--sweep" :: [] ->
+        Printf.eprintf "mathc: --sweep needs a number of files\n";
+        exit 2
     | "--version" :: rest ->
         o.version <- true;
         loop acc rest
@@ -2252,7 +2674,14 @@ let () =
             | _ ->
                 Printf.eprintf "mathc: accept needs ID BY REASON\n";
                 2)
+        | "control" -> (
+            match positional with
+            | _ :: id :: command :: _ -> verb_control id command
+            | _ ->
+                Printf.eprintf "mathc: control needs CLAIM COMMAND\n";
+                2)
         | "map" -> verb_map o.json
+        | "audit" -> verb_audit o
         | "route" -> verb_route ()
         | "run" -> verb_run ()
         | "record" -> (

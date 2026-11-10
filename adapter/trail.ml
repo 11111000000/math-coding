@@ -75,6 +75,15 @@ let append (root : string) (e : Domain.evidence) : unit =
                 | Domain.Falsified -> "falsified"
                 | Domain.Unresolved -> "unresolved"
                 | Domain.Refused -> "refused")
+          | None -> `Null );
+        (* What the control reached: the subject, something else, or
+           nothing. It is the difference between "the check can fail"
+           and "the check sees this". *)
+        ("reach",
+          match e.reach with
+          | Some Domain.Subject -> `String "subject"
+          | Some Domain.Elsewhere -> `String "elsewhere"
+          | Some Domain.Nothing -> `String "nothing"
           | None -> `Null ) ]
   in
   let channel = open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 (trail_path root) in
@@ -156,6 +165,12 @@ let read (root : string) : Domain.evidence list =
                               | Some "falsified" -> Some Domain.Falsified
                               | Some "unresolved" -> Some Domain.Unresolved
                               | Some "refused" -> Some Domain.Refused
+                              | _ -> None);
+                            reach =
+                              (match get "reach" with
+                              | Some "subject" -> Some Domain.Subject
+                              | Some "elsewhere" -> Some Domain.Elsewhere
+                              | Some "nothing" -> Some Domain.Nothing
                               | _ -> None);
                           }
                    | _ -> None)

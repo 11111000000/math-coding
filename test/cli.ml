@@ -378,10 +378,13 @@ let check_the_tool (binary : string) (prefix : string list) =
          there. *)
       expect_refusal "add without a requirement"
         (call [ "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact" ]);
-      (* A claim may be declared without a control - but then the map
-         says that its check is not proven able to fail. The control is
-         asked for, not forced: a forced one would be a formality, and a
-         formality is what the method refuses to be. *)
+      (* A claim may be DECLARED without a control - the control is
+         asked for, not forced, because a forced one would be a
+         formality and a formality is what the method refuses to be.
+         But it is not ESTABLISHED without one: the control is what
+         shows the check can fail, and a check that was never shown
+         able to fail proves nothing (law A16). So the claim runs, and
+         it comes out inconclusive rather than holding. *)
       expect_ok "add without a negative control"
         (call
            [
@@ -424,7 +427,11 @@ let check_the_tool (binary : string) (prefix : string list) =
       close_out channel;
       shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
       let code, text = call [ "run" ] in
-      expect_code "run" 0 (code, text);
+      (* The run is UNKNOWN, not green: one of the claims in this
+         repository has no control, so its check was never shown able
+         to fail, and the method says "I do not know" instead of
+         "it holds". *)
+      expect_code "run" 3 (code, text);
       assert (contains text "c-plan: verified");
       expect_ok "add"
         (call
@@ -449,8 +456,11 @@ let check_the_tool (binary : string) (prefix : string list) =
 
          The law is A16, and the map is where a law becomes visible. So
          the claim without a control is named as such - in the prose the
-         human reads, not only in the JSON a program reads. *)
-      assert (contains text "the check is not proven able to fail");
+         human reads, not only in the JSON a program reads. And it is
+         named from the EVIDENCE, not from the declaration: the map
+         used to say "the check is proven able to fail" about a control
+         that had never run. *)
+      assert (contains text "no control is declared");
 
       (* run: the verifier runs and its control bites, so the verifier is
          closed - but the review is not, so the claim is partly known,
@@ -524,13 +534,30 @@ let check_the_tool (binary : string) (prefix : string list) =
              "wave"; "wave-w"; "a wave"; "--intent"; "why"; "--objection";
              "against"; "--refuted-by"; "how"; "--commit"; "c1=holds";
            ]);
-      expect_refusal "a wave promising a claim nobody declared"
+      (* A wave MAY promise a claim that is not declared yet. The order
+         used to be the other way round, and it was backwards: the
+         wave was refused unless its claims already existed, so the
+         INTENT of a unit of work could only be recorded after the
+         thing it was about had already been declared - and the answer
+         to "why did we do this at all" came after the doing.
+
+         A wave is a plan, and a plan names what it will settle. The
+         claim is declared DURING the work, and the promise is met - or
+         not - when the wave is closed. Until then the wave stays in
+         the queue, which is the truth: the work is not finished. *)
+      expect_ok "a wave promising a claim nobody declared yet"
         (call
            [
-             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "wave"; "wave-later"; "a wave"; "--check"; "true"; "--intent"; "why";
              "--objection"; "against"; "--refuted-by"; "how"; "--commit";
              "nosuchclaim=holds";
            ]);
+      (* And it does not close while the promise is unmet. *)
+      expect_refusal "closing a wave whose promise is not met"
+        (call [ "close"; "wave-later" ]);
+      (* The wave leaves the queue: it is cleaned up, so that the queue
+         below is the queue of the work that is left. *)
+      Sys.remove (Filename.concat root "waves/wave-later.json");
       expect_ok "wave"
         (call
            [
@@ -554,11 +581,15 @@ let check_the_tool (binary : string) (prefix : string list) =
       let _, text = call [ "next" ] in
       assert (not (contains text "wave wave-x"));
 
-      (* next: the work that is left. Nothing is left here, and saying
-         so is the answer. *)
-      let code, text = call [ "next" ] in
-      expect_code "next" 0 (code, text);
-      assert (contains text "nothing to do");
+      (* And the control can be given to a claim that was declared
+         without one: the method does not leave the agent at a dead
+         end. Before the law of A16 entered the core, such a claim was
+         green like any other; now it is a request, and a request has
+         to be closable - so the control can be attached later. *)
+      expect_ok "attach a control to a declared claim"
+        (call [ "control"; "c-nocontrol"; "printf broken > subject.txt" ]);
+      expect_refusal "a control for a claim that is not there"
+        (call [ "control"; "c-nothing"; "true" ]);
 
       (* A wave whose promise is not met does not close, and it stays
          in the queue. The promise is the criterion: a wave that
@@ -663,7 +694,12 @@ let check_the_promised_surface (binary : string) (prefix : string list) =
         (call
            [
              "add"; "c1"; "a claim"; "subject.txt"; "falsifier"; "fact";
-             "--requirement"; "verifier:true";
+             (* The check and the control that breaks it: the check says
+                the subject is there, and the control takes it away. A
+                check that cannot be shown to fail proves nothing, so
+                the pair is what makes the claim establishable. *)
+             "--requirement"; "verifier:test -f subject.txt"; "--control";
+             "rm -f subject.txt";
            ]);
       let _, text = call [ "map" ] in
       assert (contains text "uncovered: 0 tracked file(s) no claim covers");
@@ -678,6 +714,24 @@ let check_the_promised_surface (binary : string) (prefix : string list) =
          must not disagree about the same project. *)
       let _, json = call [ "map"; "--json" ] in
       assert (contains json "\"promised_not_verified\": []"))
+
+(* A DIRECTORY WITH NO SPECIFICATION IS NOT A PROJECT OF THE METHOD.
+
+   The map must say "I do not know" there, not "all good" - the exit
+   code says which. This claim had NO test at all: its verifier was the
+   cli suite, and the cli suite never looked at a directory without a
+   specification. The method noticed - the control broke the behaviour
+   and the check stayed green, which is exactly what the map says when
+   the check cannot see its subject - and the honest response was to
+   write the test that was missing, not to weaken the control. *)
+let check_a_non_project_is_not_green (binary : string) (prefix : string list) =
+  with_empty_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      let code, text = call [ "map" ] in
+      (* NOT green: 0 would mean "every live claim holds", and there are
+         no claims and no specification - there is nothing to hold. *)
+      expect_code "map on a directory with no specification" 3 (code, text);
+      assert (contains text "there is no standing specification here"))
 
 (* THE CONTROL THAT BITES.
 
@@ -742,6 +796,11 @@ let check_the_greenfield (binary : string) (prefix : string list) =
            [
              "add"; "c1"; "the parser and its tests"; "src/"; "falsifier";
              "fact"; "--requirement"; "verifier:test -f src/parser.py";
+             (* The control is written before the subject exists: it
+                names WHAT to break, and there is nothing to break yet -
+                which is fine, because the control runs only when the
+                subject is there. *)
+             "--control"; "rm -f src/parser.py";
            ]);
       (* The map says what it is: a plan, not a proof - and not an
          uncertainty either, so it costs no budget. *)
@@ -774,6 +833,192 @@ let check_the_greenfield (binary : string) (prefix : string list) =
       let _, text = call [ "map" ] in
       assert (contains text "holds"))
 
+(* THE WORK THAT WAS NOT COMMITTED.
+
+   A control breaks the subject on purpose, and the tree is put back
+   afterwards. The old way put it back with git, and that is what
+   destroyed somebody's work: a path that was ALREADY changed before
+   the control was EXCLUDED from the restore - on the right principle,
+   "the method does not know what was in it, and throwing away
+   somebody's unfinished work would be a worse fault than the mess it
+   prevents" - but the control had already OVERWRITTEN it, and the
+   method DID know: it had just asked git. So the work was lost, the
+   tool said nothing, and it exited successfully.
+
+   The fix is to keep the CONTENT, not the fact of the change. And this
+   is the check for it: the claim "the tree is left as the control
+   found it" was HOLDS in the method's own repository while it was
+   false, because the test it was proved by only ever broke a file
+   that was not there before - the easy case. *)
+let check_the_control_keeps_the_uncommitted_work (binary : string)
+    (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      expect_ok "add"
+        (call
+           [
+             "add"; "c-dirty"; "the subject"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:grep -q the.subject subject.txt";
+             "--control"; "printf broken > subject.txt";
+           ]);
+      (* THE WORK THAT IS NOT COMMITTED. The file the control is going
+         to break is a file the user has already changed. *)
+      let subject = Filename.concat root "subject.txt" in
+      let channel = open_out_gen [ Open_append; Open_creat; Open_wronly ] 0o644 subject in
+      output_string channel "MY UNSAVED WORK\n";
+      close_out channel;
+      let code, text = call [ "run" ] in
+      expect_code "run" 0 (code, text);
+      assert (contains text "c-dirty: verified");
+      (* THE WORK IS STILL THERE. The control broke the subject on
+         purpose and the method put the subject back - and the subject
+         was the user's, not the method's. *)
+      let after = read_file subject in
+      assert (contains after "MY UNSAVED WORK");
+      assert (contains after "the subject"))
+
+(* WHAT THE CHECKS REALLY WATCH.
+
+   A control that breaks a FIXTURE proves the check is not vacuous, and
+   says nothing about the subject: the check read the fixture, not the
+   subject. A control that breaks the SUBJECT proves the stronger thing
+   - that the check reads the thing the claim is about. The distance
+   between the two is the distance between "the check can fail" and
+   "the check sees this", and the method measures it instead of
+   assuming the stronger thing. *)
+let check_the_audit_tells_the_two_apart (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      (* The control breaks the SUBJECT. *)
+      expect_ok "add a claim whose control breaks the subject"
+        (call
+           [
+             "add"; "c-subject"; "the subject"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:grep -q the.subject subject.txt";
+             "--control"; "printf broken > subject.txt";
+           ]);
+      (* The control breaks a FIXTURE, and the subject is not it. *)
+      expect_ok "add a claim whose control breaks something else"
+        (call
+           [
+             "add"; "c-fixture"; "the fixture"; "subject.txt"; "falsifier";
+             "fact"; "--requirement"; "verifier:test ! -e probe.txt";
+             "--control"; "touch probe.txt";
+           ]);
+      expect_ok "run" (call [ "run" ]);
+      (* The map says which is which. *)
+      let _, text = call [ "map" ] in
+      assert (contains text "it broke the subject");
+      assert (contains text "it broke something else");
+      (* And the audit counts them: this is the first number the method
+         produces that is about the code and not about its own records. *)
+      let _, text = call [ "audit" ] in
+      assert (contains text "watched on their own subject: 1");
+      assert (contains text "the control broke something else: 1");
+      assert (contains text "c-fixture"))
+
+(* WHERE TO LOOK.
+
+   The uncovered surface is not a list, it is a place to look, and the
+   ORDER of that list is not a detail. A list in alphabetical order is a
+   filing errand: the agent works through it and declares claims about
+   files, and that is bookkeeping wearing the clothes of work. The
+   measurement of 2026-11-07 caught exactly that - the map said
+   "CartProvider.tsx is not covered by any claim", and the agent filed a
+   claim about it instead of reading it, and the bug was right there.
+
+   So the uncovered surface is ranked by WHEN the file last moved. The
+   file that moved yesterday comes first; the file that has not moved
+   in months comes last, and history is not the next work. *)
+let check_the_uncovered_surface_is_ranked (binary : string) (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      (* The file that moved LONG AGO. *)
+      let old = Filename.concat root "aaa.txt" in
+      let channel = open_out old in
+      output_string channel "old\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell
+        (Printf.sprintf
+           "GIT_AUTHOR_DATE='2020-01-01T00:00:00' GIT_COMMITTER_DATE='2020-01-01T00:00:00' \
+            git -C %s commit -qm 'a long time ago'"
+           (Filename.quote root));
+      (* The file that moved YESTERDAY. *)
+      let fresh = Filename.concat root "zzz.txt" in
+      let channel = open_out fresh in
+      output_string channel "fresh\n";
+      close_out channel;
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell (Printf.sprintf "git -C %s commit -qm 'yesterday'" (Filename.quote root));
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "."; "the owner" ]);
+      (* The map leads with the file that moved. *)
+      let _, text = call [ "map" ] in
+      let at haystack needle =
+        let h = String.length haystack and n = String.length needle in
+        let rec go i =
+          if i + n > h then max_int
+          else if String.sub haystack i n = needle then i
+          else go (i + 1)
+        in
+        go 0
+      in
+      assert (at text "zzz.txt" < at text "aaa.txt");
+      (* And the next work is the file that moved, not the first one in
+         the alphabet. *)
+      let _, text = call [ "next" ] in
+      assert (contains text "zzz.txt"))
+
+(* THE SWEEP TELLS WATCHED FROM UNWATCHED.
+
+   The sweep takes a file away and asks whether the project's own
+   checks notice. A check that reads the file must notice; a check
+   that does not must not. The test makes both: one file the check
+   reads and one it does not, both outside any claim - so the sweep has
+   to tell them apart on the evidence of the checks and not on the
+   bookkeeping. *)
+let check_the_sweep_tells_watched_from_unwatched (binary : string)
+    (prefix : string list) =
+  with_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      let write name content =
+        let channel = open_out (Filename.concat root name) in
+        output_string channel content;
+        close_out channel
+      in
+      write "watched.txt" "the file the check reads\n";
+      write "unwatched.txt" "the file the check does not read\n";
+      shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
+      shell
+        (Printf.sprintf
+           "git -C %s -c user.email=test@example -c user.name=test commit -qm files ."
+           (Filename.quote root));
+      expect_ok "init" (call [ "init"; "3" ]);
+      expect_ok "goal" (call [ "goal"; "the aim"; "subject.txt"; "the owner" ]);
+      (* The check reads ONE of the two files that no claim covers. *)
+      expect_ok "add"
+        (call
+           [
+             "add"; "c1"; "the subject"; "subject.txt"; "falsifier"; "fact";
+             "--requirement"; "verifier:test -f subject.txt -a -f watched.txt";
+             "--control"; "rm -f watched.txt";
+           ]);
+      expect_ok "run" (call [ "run" ]);
+      let _, text = call [ "audit"; "--sweep"; "2" ] in
+      (* The file the check reads: the checks notice. The file they do
+         not: they do not. And the tree is put back either way. *)
+      assert (contains text "watched.txt");
+      assert (contains text "the checks notice it is gone");
+      assert (contains text "unwatched.txt");
+      assert (contains text "THE CHECKS DO NOT NOTICE IT IS GONE");
+      assert (Sys.file_exists (Filename.concat root "watched.txt"));
+      assert (Sys.file_exists (Filename.concat root "unwatched.txt")))
+
 (* The source tree. Dune runs the test from the build directory, and the
    build directory is always named _build, so the source tree is its
    parent. *)
@@ -803,6 +1048,11 @@ let () =
   check_the_greenfield (method_binary ()) [];
   check_the_control_that_never_ran (method_binary ()) [];
   check_the_control_that_bites (method_binary ()) [];
+  check_the_control_keeps_the_uncommitted_work (method_binary ()) [];
+  check_the_audit_tells_the_two_apart (method_binary ()) [];
+  check_the_uncovered_surface_is_ranked (method_binary ()) [];
+  check_a_non_project_is_not_green (method_binary ()) [];
+  check_the_sweep_tells_watched_from_unwatched (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -815,6 +1065,11 @@ let () =
       check_the_greenfield (method_binary ()) [ "--help" ];
       check_the_control_that_never_ran (method_binary ()) [ "--help" ];
       check_the_control_that_bites (method_binary ()) [ "--help" ];
+      check_the_control_keeps_the_uncommitted_work (method_binary ()) [ "--help" ];
+      check_the_audit_tells_the_two_apart (method_binary ()) [ "--help" ];
+      check_the_uncovered_surface_is_ranked (method_binary ()) [ "--help" ];
+      check_a_non_project_is_not_green (method_binary ()) [ "--help" ];
+      check_the_sweep_tells_watched_from_unwatched (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

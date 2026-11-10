@@ -81,6 +81,38 @@ let scope_never_empty (_s : scope) = true
 let state_ignoring_the_term (_current : binding option) (_now : float)
     (_e : evidence option) = Holds
 
+(* A proof that says "yes" is taken as a proof, whether or not the same
+   check was ever shown able to say "no". This is what the method did
+   before A16 had a carrier: the control was read by nobody, so a
+   claim with no control at all read exactly like a claim whose
+   control had bitten - and the map said "proven able to fail" about a
+   control that had never run. *)
+let state_ignoring_the_control (current : binding option) (now : float)
+    (e : evidence option) =
+  match e with
+  | Some x -> (
+      match current with
+      | Some b when x.bound_to = b ->
+          if Verdict.expired now x.valid_until then Outdated
+          else Verdict.state_of_outcome x.outcome
+      | _ -> Outdated)
+  | None -> NeverChecked
+
+(* A claim with no requirements reads as proven. The fold of an empty
+   list is HOLDS, because [List.for_all] over nothing is true, and the
+   project went green with no proof of anything. *)
+let state_of_requirements_folding_empty_to_holds (c : claim) (current : binding option)
+    (now : float) (evidence : evidence list) =
+  if c.requirements = [] then Holds
+  else Verdict.state_of_requirements c current now evidence
+
+(* A word from outside closes a procedure: the method could have run
+   that command itself, and it cannot tell a word from a proof. *)
+let state_of_requirements_letting_a_word_close (c : claim) (current : binding option)
+    (now : float) (evidence : evidence list) =
+  if c.attestations <> [] then Holds
+  else Verdict.state_of_requirements c current now evidence
+
 (* --- the claims the control needs ---------------------------------- *)
 
 let sample_claim =
@@ -94,7 +126,82 @@ let sample_claim =
   }
 
 let sample_evidence outcome bound_to =
-  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
+  { claim = sample_claim; requirement = Domain.Verified_by "true"; outcome; bound_to; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None; reach = None }
+
+(* The same proof, with what the negative control said about it. A
+   proof that says "yes" and a control that BIT are different facts
+   about the same check, and only the second makes the first a proof. *)
+let sample_evidence_with_control outcome control =
+  { (sample_evidence outcome "digest") with control }
+
+(* The domain of the verdicts, written out so that the proof does not
+   depend on the type staying this way. It lives HERE and not in the
+   core: the core holds the laws, and the proof is the check's job. The
+   core has a ceiling on its size, and the answer to "the core outgrew
+   its ceiling" is to move code out of the core, not to move the
+   ceiling. *)
+let verdict_domain = [ Green; Red; Unknown ]
+
+(* Every law, checked over the whole domain. Not a sample: the domain
+   has three elements, so the pairs are nine and the triples are
+   twenty-seven, and all of them are checked.
+
+   A law that cannot be checked over the whole domain is a law that is
+   being trusted rather than proved, and this method has been burned by
+   exactly that. *)
+let laws_hold () =
+  let d = verdict_domain in
+  let commutative =
+    List.for_all (fun a -> List.for_all (fun b -> law_commutative combine a b) d) d
+  in
+  let associative =
+    List.for_all
+      (fun a ->
+        List.for_all (fun b -> List.for_all (fun c -> law_associative combine a b c) d) d)
+      d
+  in
+  let unit = List.for_all (law_unit combine) d in
+  let absorbing = List.for_all (law_absorbing combine) d in
+  let registers = [ Fact; Hypothesis; Judgment; Undeclared ] in
+  let outcomes = [ Verified; Falsified; Unresolved; Refused ] in
+  let judgment =
+    List.for_all
+      (fun r ->
+        List.for_all
+          (fun o -> law_judgment_is_never_verified apply_register r o)
+          outcomes)
+      registers
+  in
+  let price =
+    List.for_all (fun o -> law_only_answers_are_free cost_of_outcome) outcomes
+  in
+  (* THE LAWS THAT NEED A CLAIM AND A PROOF. The verdict algebra is
+     proved over its whole domain; these are proved over the claims
+     and the evidence they speak about, and they are the ones that had
+     no carrier at all - the control was read by nobody, and the empty
+     requirement set was swallowed by a branch above. *)
+  let control_law =
+    (* A proof that says yes, with a control that bit: it holds. *)
+    law_verified_needs_a_biting_control Verdict.state_of_evidence
+      (sample_evidence_with_control Verified (Some Falsified))
+    (* A proof that says yes, with no control at all, or with one that
+       did not bite: it does not. *)
+    && law_verified_needs_a_biting_control Verdict.state_of_evidence
+         (sample_evidence_with_control Verified None)
+    && law_verified_needs_a_biting_control Verdict.state_of_evidence
+         (sample_evidence_with_control Verified (Some Unresolved))
+  in
+  let kinds_law =
+    law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements
+      { sample_claim with requirements = [] }
+    && law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements
+         sample_claim
+    && law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements
+         { sample_claim with register = Judgment }
+  in
+  commutative && associative && unit && absorbing && law_order combine
+  && law_exit_codes_distinct () && law_vacancy_is_green aggregate && judgment
+  && price && control_law && kinds_law
 
 (* --- the proof ------------------------------------------------------ *)
 
@@ -263,7 +370,9 @@ let check_negative_controls () =
   (* The term of a proof. A proof whose term is over cannot read as
      verified - even when the content is exactly the one it was
      produced against, which is the case the binding cannot see. *)
-  let dated = { (sample_evidence Verified "digest") with valid_until = Some "100" } in
+  let dated =
+    { (sample_evidence_with_control Verified (Some Falsified)) with valid_until = Some "100" }
+  in
   (* Before the term, it holds. *)
   assert (Verdict.state_of_evidence (Some "digest") 50.0 (Some dated) = Domain.Holds);
   (* After the term, it does not - and it does not read as anything
@@ -274,7 +383,50 @@ let check_negative_controls () =
   (* ...and REJECTS the broken one, which ignores the term. *)
   assert
     (not
-       (law_expired_is_never_verified state_ignoring_the_term dated (Some "digest")))
+       (law_expired_is_never_verified state_ignoring_the_term dated (Some "digest")));
+
+  (* THE CONTROL. A proof that says "yes" is a proof only if the same
+     check was shown able to say "no" on the same subject. This is the
+     carrier of A16, and it had none: the control was read by nobody,
+     the CLI rewrote the outcome imperatively, and the map reported a
+     DECLARED control as a control that had bitten. *)
+  let biting = sample_evidence_with_control Verified (Some Falsified) in
+  let unchecked = sample_evidence_with_control Verified None in
+  let unbiting = sample_evidence_with_control Verified (Some Unresolved) in
+  (* The law accepts the real function... *)
+  assert (law_verified_needs_a_biting_control Verdict.state_of_evidence biting);
+  assert (law_verified_needs_a_biting_control Verdict.state_of_evidence unchecked);
+  assert (law_verified_needs_a_biting_control Verdict.state_of_evidence unbiting);
+  (* ...and REJECTS the broken one, which reads the outcome and ignores
+     the control: that is the implementation the method had. *)
+  assert
+    (not (law_verified_needs_a_biting_control state_ignoring_the_control unchecked));
+  (* And the real function says so: a proof with no control is not
+     established, and a proof with a control that bit is. *)
+  assert (Verdict.state_of_evidence (Some "digest") 0.0 (Some biting) = Domain.Holds);
+  assert (Verdict.state_of_evidence (Some "digest") 0.0 (Some unchecked) = Domain.Inconclusive);
+  assert (Verdict.state_of_evidence (Some "digest") 0.0 (Some unbiting) = Domain.Inconclusive);
+
+  (* THE KINDS OF PROOF. A claim with no requirement has nothing to
+     close; a claim with a procedure is not closed by a word; a
+     judgment is nobody's but a person's. *)
+  let empty = { sample_claim with requirements = [] } in
+  let judgment = { sample_claim with register = Judgment } in
+  (* The law accepts the real function... *)
+  assert (law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements empty);
+  assert (law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements sample_claim);
+  assert (law_an_unestablished_claim_is_not_holding Verdict.state_of_requirements judgment);
+  (* ...and REJECTS the broken ones: the empty fold that reads as
+     proven, and the one that lets a word close a procedure. *)
+  assert
+    (not
+       (law_an_unestablished_claim_is_not_holding
+          state_of_requirements_folding_empty_to_holds empty));
+  assert
+    (not
+       (law_an_unestablished_claim_is_not_holding
+          state_of_requirements_letting_a_word_close
+          { sample_claim with attestations = [ { requirement = "true"; who = "me"; outcome = Verified; reason = None; bound_to = "digest"; at = "1"; valid_until = None } ] }))
 
 (** Two claims often share one check - the same test suite verifies
     several rules - and their evidence must not answer for each other.
@@ -289,10 +441,10 @@ let check_evidence_does_not_crosstalk () =
   let claim_b = { other with requirements = [ shared ] } in
   let digest_a = "digest-a" and digest_b = "digest-b" in
   let ev_a =
-    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
+    { claim = claim_a; requirement = shared; outcome = Verified; bound_to = digest_a; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = Some Falsified; reach = Some Domain.Subject }
   in
   let ev_b =
-    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None }
+    { claim = claim_b; requirement = shared; outcome = Falsified; bound_to = digest_b; producer = "the method"; reason = None; at_commit = None; at = None; valid_until = None; control = None; reach = None }
   in
   let evidence = [ ev_a; ev_b ] in
   (* Each claim sees only its own evidence. *)
