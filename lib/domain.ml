@@ -18,8 +18,7 @@
       tell. It did NOT pass. This is the outcome the third version
       laundered into a pass, and the whole reason it exists.
     - [Refused] — the subject has no canary: there is no procedure
-      that could break it, because it is a decision about meaning. The
-      claim is not wrong; it is not the machine's to decide. *)
+      that could break it, because it is a decision about meaning. *)
 type outcome =
   | Verified
   | Falsified
@@ -36,16 +35,15 @@ type verdict =
 
 (** A register says what kind of claim this is, and therefore what
     evidence it demands. A fact is closed by a procedure that could
-    falsify it. A hypothesis is closed the same way. A judgment - a
-    decision about meaning - has no procedure, and must be refused by
-    the machine rather than verified by it. An undeclared claim does
-    not say what it is, and the method cannot demand a proof it does
-    not know the kind of: it asks instead.
+    falsify it, a hypothesis the same way. A judgment - a decision about
+    meaning - has no procedure, and must be refused by the machine
+    rather than verified by it. An undeclared claim does not say what it
+    is, and the method cannot demand a proof it does not know the kind
+    of: it asks instead.
 
     The last constructor is named [Undeclared] rather than "unknown"
-    because [Unknown] already means something else and does something
-    else: it is a verdict. Two meanings in one namespace are an
-    ambiguity waiting to be resolved the wrong way. *)
+    because [Unknown] already means something else: it is a verdict.
+    Two meanings in one namespace are an ambiguity. *)
 type register =
   | Fact
   | Hypothesis

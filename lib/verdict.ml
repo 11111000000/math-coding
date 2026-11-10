@@ -14,10 +14,9 @@
 
     THE PROOF. The type is finite - three elements - so the laws are
     proved by exhaustion: every pair, every triple, every empty
-    sequence. Not a sample and not a heuristic: it is the whole domain.
-    The enumeration lives in the test suite, where the negative
-    controls kill each law separately, so a law cannot survive because
-    the check that watches it was weakened. *)
+    sequence. Not a sample: it is the whole domain. The enumeration
+    lives in the test suite, where the negative controls kill each law
+    separately. *)
 
 open Domain
 
@@ -294,7 +293,10 @@ let route (binding_of : claim -> binding option) (claims : claim list)
                      (fun (a : attestation) ->
                        a.requirement = spec_of r
                        && a.outcome = Verified
-                       && fresh a.bound_to)
+                       (* A standing word closes the requirement even
+                          when the subject moved: the route must agree
+                          with the state, and the two were differing. *)
+                       && (a.standing || fresh a.bound_to))
                      claim.attestations
               in
               if closed then None
