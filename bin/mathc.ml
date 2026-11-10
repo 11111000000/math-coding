@@ -187,10 +187,22 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
   (* The moment, once, for the whole computation: two claims must not
      be judged against two different nows. *)
   let now = Unix.time () in
+  (* THE TREE, HASHED ONCE FOR THE WHOLE COMPUTATION. The scopes of the
+     claims overlap, and the digest of each was computed from its own
+     pass over the same files. *)
+  let tree = Git.hash_the_tree (root ()) in
   List.map
     (fun (claim : Domain.claim) ->
-      (claim.id, Verdict.state_of_claim claim (binding_of claim) now evidence))
+      ( claim.id,
+        Verdict.state_of_claim claim
+          (Git.digest_of_scope_in (root ()) claim.subject.scope tree)
+          now evidence ))
     claims
+
+(* The repository's files, once. It is a FUNCTION and not a value: the
+   root is set from the command line after this module is loaded, and a
+   value would be computed against the wrong tree. *)
+let map_files () = Git.repository_files (root ())
 
 (** How much of the uncertainty budget the project has spent. Only an
     answer is free: a claim that was refuted is answered, and a claim
@@ -212,7 +224,8 @@ let states_of (claims : Domain.claim list) : (string * Domain.state) list =
 let consumption_of_states (claims : Domain.claim list)
     (states : (string * Domain.state) list) : int =
   let claim_of id = List.find_opt (fun (c : Domain.claim) -> c.id = id) claims in
-  let covers (c : Domain.claim) = Git.files_covered (root ()) c.subject.scope <> [] in
+  let files = Git.repository_files (root ()) in
+  let covers (c : Domain.claim) = Git.files_covered_in files c.subject.scope <> [] in
   List.fold_left
     (fun n (id, state) ->
       match claim_of id with
@@ -528,7 +541,7 @@ let map_to_json (spec : Domain.spec) : Yojson.Safe.t =
                         List.find_opt (fun (c : Domain.claim) -> c.id = id) claims
                       with
                       | Some c -> (
-                          match Git.missing_paths (root ()) c.subject.scope with
+                          match Git.missing_paths_in (map_files ()) c.subject.scope with
                           | [] -> `Null
                           | missing ->
                               `String
@@ -752,10 +765,14 @@ let verb_run () =
     0)
   else
     let cache = Exec.new_cache () in
+    (* The tree, hashed once for the whole run: the scopes of the
+       claims overlap, and the digest is what the evidence is bound
+       to. *)
+    let tree = Git.hash_the_tree (root ()) in
     let results =
       List.map
         (fun (claim : Domain.claim) ->
-          match binding_of claim with
+          match Git.digest_of_scope_in (root ()) claim.subject.scope tree with
           | None ->
               (* No digest: the subject is not there yet, or it has a
                  hole. Both are said in words, because the reader acts

@@ -59,6 +59,14 @@ let object_id (root : string) (path : string) : string option =
     is the hash of the lines "prefix object-id", sorted, so that the
     order of the scope does not change the digest and a change in any
     covered path changes it. *)
+let hash_of_file (path : string) : string option =
+  if not (Sys.file_exists path) then None
+  else
+    let out, code =
+      run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
+    in
+  if code <> 0 then None else Some (String.trim out)
+
 let hash_content (root : string) (content : string) : string =
   let cmd =
     Printf.sprintf "git -C %s hash-object --stdin" (Filename.quote root)
@@ -147,9 +155,11 @@ let files_under_prefix (files : string list) (prefix : string) : string list =
     The two must not be merged - the second refuses on a hole, and the
     first must still say what the scope covers, because that is what
     the uncertainty budget prices. *)
-let files_covered (root : string) (scope : Domain.scope) : string list =
-  let files = repository_files root in
+let files_covered_in (files : string list) (scope : Domain.scope) : string list =
   List.concat (List.map (files_under_prefix files) scope)
+
+let files_covered (root : string) (scope : Domain.scope) : string list =
+  files_covered_in (repository_files root) scope
 
 (** The paths of a scope that are not in the tree.
 
@@ -157,9 +167,11 @@ let files_covered (root : string) (scope : Domain.scope) : string list =
     join it - and so it is not missing. A path that is ignored is
     missing, and so is one that was never there: a promise about it is
     a promise about something that does not exist yet. *)
-let missing_paths (root : string) (scope : Domain.scope) : string list =
-  let files = repository_files root in
+let missing_paths_in (files : string list) (scope : Domain.scope) : string list =
   List.filter (fun prefix -> files_under_prefix files prefix = []) scope
+
+let missing_paths (root : string) (scope : Domain.scope) : string list =
+  missing_paths_in (repository_files root) scope
 
 (** Why a subject cannot be bound, said in words.
 
@@ -185,11 +197,14 @@ let why_no_digest (root : string) (scope : Domain.scope) : string =
     under it, and a file covers itself. [None] means that some prefix
     of the scope names nothing that is in the repository - the subject
     has a hole in it, and a subject with a hole cannot be bound. *)
-let files_of_scope (root : string) (scope : Domain.scope) : string list option =
-  let files = repository_files root in
+let files_of_scope_in (files : string list) (scope : Domain.scope) :
+    string list option =
   let per_prefix = List.map (files_under_prefix files) scope in
   if List.exists (fun xs -> xs = []) per_prefix then None
   else Some (List.concat per_prefix)
+
+let files_of_scope (root : string) (scope : Domain.scope) : string list option =
+  files_of_scope_in (repository_files root) scope
 
 (** The content of the files, as git hashes it - and as it is NOW, not
     as it was committed. One process for all of them: the hash of a
@@ -229,6 +244,72 @@ let content_hashes (root : string) (files : string list) : string list =
     So the paths are collected first and the digest is computed only if
     every one of them is there. A missing path makes the whole subject
     unbound, and an unbound subject cannot be run. *)
+(* THE TREE, HASHED ONCE.
+
+   The scopes of the claims OVERLAP: lib/ is in the scope of a dozen
+   of them, and hashing the same file once per scope is the difference
+   between one process and forty. The map is what an agent reads first
+   and reads most, and the digest is the expensive part of reading it.
+
+   ONE PASS, AND THE FILES THAT CANNOT BE HASHED ARE FOUND BY
+   BISECTION. The batch fails as a whole when one file cannot be
+   hashed - a symlink to a directory, say - and the method needs the
+   hashes of the files it CAN hash while still knowing that the ones it
+   cannot are missing. A scope that names such a file has a hole, and
+   its digest is nothing (law A11): the hole must not be papered over
+   with the hash of the files that happened to work. *)
+type tree = { files : string list; hashes : (string * string) list }
+
+let hash_the_tree (root : string) : tree =
+  let files = List.sort compare (repository_files root) in
+  let rec hash_group acc group =
+    match group with
+    | [] -> acc
+    | [ f ] -> (
+        match hash_of_file (Filename.concat root f) with
+        | Some h -> (f, h) :: acc
+        | None -> acc)
+    | _ ->
+        let cmd =
+          Printf.sprintf "git -C %s hash-object -- %s" (Filename.quote root)
+            (String.concat " " (List.map Filename.quote group))
+        in
+        let out, code = run_capture cmd in
+        let hashes =
+          out |> String.split_on_char '\n' |> List.filter (fun s -> s <> "")
+        in
+        if code = 0 && List.length hashes = List.length group then
+          List.combine group hashes @ acc
+        else
+          let mid = List.length group / 2 in
+          let rec split_at n l acc =
+            if n <= 0 then (List.rev acc, l)
+            else match l with [] -> (List.rev acc, []) | x :: xs -> split_at (n - 1) xs (x :: acc)
+          in
+          let a, b = split_at mid group [] in
+          hash_group (hash_group acc a) b
+  in
+  { files; hashes = List.rev (hash_group [] files) }
+
+(* The digest of a scope, taken from a tree that was hashed once. *)
+let digest_of_scope_in (root : string) (scope : Domain.scope) (tree : tree) :
+    string option =
+  match files_of_scope_in tree.files scope with
+  | None -> None
+  | Some [] -> None
+  | Some files ->
+      let files = List.sort compare files in
+      let lines =
+        List.filter_map
+          (fun f ->
+            match List.assoc_opt f tree.hashes with
+            | Some h -> Some (f ^ " " ^ h)
+            | None -> None)
+          files
+      in
+      if List.length lines <> List.length files then None
+      else Some (hash_content root (String.concat "\n" lines ^ "\n"))
+
 let digest_of_scope (root : string) (scope : Domain.scope) : string option =
   (* THE CONTENT THAT RAN, NOT THE CONTENT THAT WAS COMMITTED. The
      proof is produced by running the checks, and the checks run against
@@ -243,29 +324,13 @@ let digest_of_scope (root : string) (scope : Domain.scope) : string option =
      until it was committed, and nothing said so. The agent guessed -
      it stashed its working tree before running - and the guess cost
      more time than the protocol gained. *)
-  match files_of_scope root scope with
-  | None -> None
-  | Some [] -> None
-  | Some files ->
-      let files = List.sort compare files in
-      let hashes = content_hashes root files in
-      if List.length hashes <> List.length files then None
-      else
-        let lines = List.map2 (fun path hash -> path ^ " " ^ hash) files hashes in
-        Some (hash_content root (String.concat "\n" lines ^ "\n"))
+  digest_of_scope_in root scope (hash_the_tree root)
 
 (** The hash of a file's own bytes, as git hashes it.
 
     The binary says which binary it is by this hash: two different
     builds of one version must not be mistaken for each other, and a
     name is not enough to tell them apart. *)
-let hash_of_file (path : string) : string option =
-  if not (Sys.file_exists path) then None
-  else
-    let out, code =
-      run_capture (Printf.sprintf "git hash-object -- %s" (Filename.quote path))
-    in
-  if code <> 0 then None else Some (String.trim out)
 
 (** Is the working tree different from the commit?
 
