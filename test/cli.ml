@@ -534,13 +534,30 @@ let check_the_tool (binary : string) (prefix : string list) =
              "wave"; "wave-w"; "a wave"; "--intent"; "why"; "--objection";
              "against"; "--refuted-by"; "how"; "--commit"; "c1=holds";
            ]);
-      expect_refusal "a wave promising a claim nobody declared"
+      (* A wave MAY promise a claim that is not declared yet. The order
+         used to be the other way round, and it was backwards: the
+         wave was refused unless its claims already existed, so the
+         INTENT of a unit of work could only be recorded after the
+         thing it was about had already been declared - and the answer
+         to "why did we do this at all" came after the doing.
+
+         A wave is a plan, and a plan names what it will settle. The
+         claim is declared DURING the work, and the promise is met - or
+         not - when the wave is closed. Until then the wave stays in
+         the queue, which is the truth: the work is not finished. *)
+      expect_ok "a wave promising a claim nobody declared yet"
         (call
            [
-             "wave"; "wave-w"; "a wave"; "--check"; "true"; "--intent"; "why";
+             "wave"; "wave-later"; "a wave"; "--check"; "true"; "--intent"; "why";
              "--objection"; "against"; "--refuted-by"; "how"; "--commit";
              "nosuchclaim=holds";
            ]);
+      (* And it does not close while the promise is unmet. *)
+      expect_refusal "closing a wave whose promise is not met"
+        (call [ "close"; "wave-later" ]);
+      (* The wave leaves the queue: it is cleaned up, so that the queue
+         below is the queue of the work that is left. *)
+      Sys.remove (Filename.concat root "waves/wave-later.json");
       expect_ok "wave"
         (call
            [
@@ -907,7 +924,6 @@ let check_the_uncovered_surface_is_ranked (binary : string) (prefix : string lis
       let channel = open_out old in
       output_string channel "old\n";
       close_out channel;
-      shell (Printf.sprintf "git -C %s rm -q --cached aaa.txt" (Filename.quote root));
       shell (Printf.sprintf "git -C %s add -A ." (Filename.quote root));
       shell
         (Printf.sprintf

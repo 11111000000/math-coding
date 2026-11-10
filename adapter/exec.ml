@@ -196,11 +196,14 @@ let tree_fingerprint ~(root : string) : string =
     List.map
       (fun (c : Git.changed) ->
         let file = Filename.concat root c.path in
-        let content =
-          match Git.hash_of_file file with
-          | Some h -> h
-          | None -> if Sys.is_directory file then "a directory" else "unreadable"
-        in
+        (* A path that cannot be hashed - a symlink to a directory, or a
+           file the control has just DELETED - contributes its kind and
+           not its bytes. Asking the file system what kind of thing it
+           is, was itself a crash: the path was gone, and the question
+           was raised about a path that no longer existed. The control
+           that removes a file is exactly the control that must not
+           break the method. *)
+        let content = match Git.hash_of_file file with Some h -> h | None -> "unreadable" in
         c.path ^ " " ^ content)
       (Git.dirty_paths root)
   in
