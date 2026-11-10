@@ -82,10 +82,18 @@ let () =
   let stored_repeat, numbers_repeat =
     check_record "docs/measurements/2026-11-07-agent-arm-repeat/numbers.json"
   in
+  (* The measurement of 2026-11-10 - on foreign projects, with the
+     method's own repair in it - is a record like any other, and its
+     verdict is recomputed from its numbers the same way. A record
+     whose verdict is prose is a claim without a carrier. *)
+  let stored_third, _ =
+    check_record "docs/measurements/2026-11-10-method-v4/numbers.json"
+  in
   (* Both verdicts are the same kind of answer: the method caught
      nothing, so the left-hand side of the criterion has no
      denominator. *)
   assert (stored = stored_repeat);
+  assert (stored = stored_third);
   let caught = int_member "caught_by_A" (member "defects" numbers) in
   assert (caught = 0);
   let fixed = int_member "fixed_by_A" (member "defects" numbers_repeat) in

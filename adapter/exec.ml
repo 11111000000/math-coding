@@ -191,7 +191,7 @@ let clean_residue ~(root : string) (before : Git.changed list) (after : Git.chan
     The changed paths are enough, and they are exact: a control changes
     the tree by making something dirty, and a file that was already
     dirty is caught by its CONTENT rather than by its presence. *)
-let tree_fingerprint ~(root : string) : string =
+let fingerprint_of ~(root : string) (paths : Git.changed list) : string =
   let parts =
     List.map
       (fun (c : Git.changed) ->
@@ -205,9 +205,44 @@ let tree_fingerprint ~(root : string) : string =
            break the method. *)
         let content = match Git.hash_of_file file with Some h -> h | None -> "unreadable" in
         c.path ^ " " ^ content)
-      (Git.dirty_paths root)
+      paths
   in
   Git.hash_content root (String.concat "\n" parts ^ "\n")
+
+let tree_fingerprint ~(root : string) : string =
+  fingerprint_of ~root (Git.dirty_paths root)
+
+(* THE CHECKS THIS RUN HAS ALREADY EXECUTED.
+
+   Two claims that run the SAME command on the SAME tree get the same
+   answer, because the answer IS the same: the command was run on that
+   tree and said that. Running it again is not a stronger proof, it is
+   the same proof paid for twice - and the method's own repository
+   pays it the worst way, because twelve of its claims are proved by
+   one test battery, and the battery itself calls the tool fifty times.
+
+   The key is the command, the register (a judgment's check is refused
+   whatever it says) and the FINGERPRINT OF THE TREE. A check that
+   changes the tree changes the fingerprint, so the next claim asks
+   again - and a check with a side effect that leaves the tree alone
+   would be shared wrongly. That is the limit of the cache, and it is
+   the same limit as any memoisation of a command: it assumes the
+   command answers about the tree and not about the moment. *)
+type cache = { table : (string, Domain.outcome * string option) Hashtbl.t }
+
+let new_cache () : cache = { table = Hashtbl.create 16 }
+
+let cache_key ~command ~fingerprint = command ^ "\000" ^ fingerprint
+
+(* The check, or the answer this tree already gave for it. *)
+let run_check_cached ~(cache : cache) ~(key : string) ~(root : string)
+    (command : string) : Domain.outcome * string option =
+  match Hashtbl.find_opt cache.table key with
+  | Some answer -> answer
+  | None ->
+      let answer = run_check_in ~root command in
+      Hashtbl.replace cache.table key answer;
+      answer
 
 (** Run the negative control of a check, and say whether the check bit.
 
@@ -247,7 +282,7 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
     ~(requirement : string) : control_result =
   let before = Git.dirty_paths root in
   let snapshot = take_snapshot ~root before in
-  let before_fingerprint = tree_fingerprint ~root in
+  let before_fingerprint = fingerprint_of ~root before in
   let before_subject = Git.digest_of_scope root scope in
   let control_code = exit_code_of ~root control in
   (* DID THE CONTROL ACTUALLY CHANGE ANYTHING?
@@ -267,7 +302,8 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
      that did that could establish no claim at all - every claim read
      as inconclusive, and the method's own repository went unknown
      with nothing to show for it. *)
-  let after_fingerprint = tree_fingerprint ~root in
+  let after = Git.dirty_paths root in
+  let after_fingerprint = fingerprint_of ~root after in
   let broke = before_fingerprint <> after_fingerprint in
   (* WHAT THE CONTROL REACHED. The subject, something else in the
      tree, or nothing. A control that breaks a FIXTURE proves that the
@@ -302,7 +338,6 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
       (* THE CHECK, ON THE BROKEN SUBJECT. *)
       let check_code = exit_code_of ~root requirement in
       (* THE TREE, PUT BACK. *)
-      let after = Git.dirty_paths root in
       let left_behind = clean_residue ~root before after in
       restore_snapshot ~root snapshot;
       remove_tree snapshot.dir;
@@ -352,9 +387,8 @@ let run_control ~(root : string) ~(scope : Domain.scope) ~(control : string)
     why. The same holds in the other direction - a command that failed
     says something about the command, not about what should be true
     about meaning. *)
-let run_claim_command ~(root : string) (command : string)
-    (register : Domain.register) : Domain.outcome * string option =
-  let outcome, reason = run_check_in ~root command in
+let apply_claim_register (register : Domain.register) (outcome : Domain.outcome)
+    (reason : string option) : Domain.outcome * string option =
   let applied = Verdict.apply_register register outcome in
   if applied = outcome then (outcome, reason)
   else
@@ -368,6 +402,20 @@ let run_claim_command ~(root : string) (command : string)
             "the check failed, but a failed procedure does not refute what \
              should be true about meaning: that is the person's to decide"
         | _ -> "the claim is a judgment, and the machine does not decide it") )
+
+let run_claim_command ~(root : string) (command : string)
+    (register : Domain.register) : Domain.outcome * string option =
+  let outcome, reason = run_check_in ~root command in
+  apply_claim_register register outcome reason
+
+(* The same, through the cache. The register is applied AFTER the
+   cache, because the cache holds what the command said and the
+   register says what the machine may conclude from it. *)
+let run_claim_command_cached ~(cache : cache) ~(key : string) ~(root : string)
+    (command : string) (register : Domain.register) :
+    Domain.outcome * string option =
+  let outcome, reason = run_check_cached ~cache ~key ~root command in
+  apply_claim_register register outcome reason
 
 (** Run a command and read what it said.
 

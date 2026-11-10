@@ -715,6 +715,24 @@ let check_the_promised_surface (binary : string) (prefix : string list) =
       let _, json = call [ "map"; "--json" ] in
       assert (contains json "\"promised_not_verified\": []"))
 
+(* A DIRECTORY WITH NO SPECIFICATION IS NOT A PROJECT OF THE METHOD.
+
+   The map must say "I do not know" there, not "all good" - the exit
+   code says which. This claim had NO test at all: its verifier was the
+   cli suite, and the cli suite never looked at a directory without a
+   specification. The method noticed - the control broke the behaviour
+   and the check stayed green, which is exactly what the map says when
+   the check cannot see its subject - and the honest response was to
+   write the test that was missing, not to weaken the control. *)
+let check_a_non_project_is_not_green (binary : string) (prefix : string list) =
+  with_empty_repository (fun root ->
+      let call args = run_tool binary root (prefix @ args) in
+      let code, text = call [ "map" ] in
+      (* NOT green: 0 would mean "every live claim holds", and there are
+         no claims and no specification - there is nothing to hold. *)
+      expect_code "map on a directory with no specification" 3 (code, text);
+      assert (contains text "there is no standing specification here"))
+
 (* THE CONTROL THAT BITES.
 
    A control is only a control if the check goes red on the subject it
@@ -988,6 +1006,7 @@ let () =
   check_the_control_keeps_the_uncommitted_work (method_binary ()) [];
   check_the_audit_tells_the_two_apart (method_binary ()) [];
   check_the_uncovered_surface_is_ranked (method_binary ()) [];
+  check_a_non_project_is_not_green (method_binary ()) [];
   check_the_promised_surface (method_binary ()) [];
 
   (* THE NEGATIVE CONTROL. The same battery, pointed at a tool that
@@ -1003,6 +1022,7 @@ let () =
       check_the_control_keeps_the_uncommitted_work (method_binary ()) [ "--help" ];
       check_the_audit_tells_the_two_apart (method_binary ()) [ "--help" ];
       check_the_uncovered_surface_is_ranked (method_binary ()) [ "--help" ];
+      check_a_non_project_is_not_green (method_binary ()) [ "--help" ];
       check_the_promised_surface (method_binary ()) [ "--help" ];
       false
     with _ -> true

@@ -734,6 +734,7 @@ let verb_run () =
     print_endline "nothing to run: the standing specification is empty";
     0)
   else
+    let cache = Exec.new_cache () in
     let results =
       List.map
         (fun (claim : Domain.claim) ->
@@ -755,9 +756,18 @@ let verb_run () =
                         claim.id authority;
                       None
                   | Verified_by command ->
+                      (* THE CHECK IS RUN ONCE PER COMMAND PER TREE.
+                         Twelve of the method's own claims are proved by
+                         one test battery; running it twelve times is
+                         not twelve proofs, it is one proof paid for
+                         twelve times. The key carries the fingerprint
+                         of the tree, so a check that changes the tree
+                         is asked again. *)
+                      let fingerprint = Exec.tree_fingerprint ~root:(root ()) in
+                      let key = Exec.cache_key ~command ~fingerprint in
                       let outcome, reason =
-                        Exec.run_claim_command ~root:(root ()) command
-                          claim.register
+                        Exec.run_claim_command_cached ~cache ~key ~root:(root ())
+                          command claim.register
                       in
                       (* THE NEGATIVE CONTROL OF THE CHECK. A check that
                          passes proves nothing until it is shown that it

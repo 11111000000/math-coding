@@ -184,7 +184,7 @@
       "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/next: nothing to do - every claim is known and everything is covered/next: nothing/' bin/mathc.ml",
+      "control": "sed -i 's/| \"map\" -> verb_map o.json/| \"map\" -> 0/' bin/mathc.ml",
       "attestations": []
     },
     {
@@ -343,7 +343,7 @@
       "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/not computable - no defect was caught/not computable - no defect was caught (mutated)/' bin/stand.ml",
+      "control": "sed -i 's/no defect was caught/no defect was seen/' bin/stand.ml",
       "attestations": []
     },
     {
@@ -558,7 +558,7 @@
       "falsifier": "волну по-прежнему можно создать только рукописью в JSON, и next её не называет",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/next: nothing to do - every claim is known and everything is covered/next: nothing/' bin/mathc.ml",
+      "control": "sed -i 's/let path = Filename.concat dir (id ^ \".json\") in/let path = Filename.concat dir (id ^ \".nope\") in/' bin/mathc.ml",
       "attestations": []
     },
     {
@@ -580,7 +580,7 @@
       "falsifier": "объявление обещания о несуществующем предмете снова отказывает",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/next: nothing to do - every claim is known and everything is covered/next: nothing/' bin/mathc.ml",
+      "control": "sed -i 's/\"the subject is not there yet\"/\"the subject is not there YET\"/' bin/mathc.ml",
       "attestations": []
     },
     {
@@ -621,7 +621,7 @@
       "falsifier": "черновик не появляется, или решение принимает машина",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/next: nothing to do - every claim is known and everything is covered/next: nothing/' bin/mathc.ml",
+      "control": "sed -i 's/| \"propose\" -> verb_propose o/| \"propose\" -> 0/' bin/mathc.ml",
       "attestations": []
     },
     {
@@ -659,7 +659,7 @@
       "falsifier": "карта в каталоге без spec.json печатает зелёный вердикт",
       "register": "fact",
       "accepted": null,
-      "control": "sed -i 's/next: nothing to do - every claim is known and everything is covered/next: nothing/' bin/mathc.ml",
+      "control": "sed -i 's/there is no standing specification here/there is a project here/' bin/mathc.ml",
       "attestations": []
     },
     {
@@ -896,6 +896,25 @@
       "register": "fact",
       "accepted": null,
       "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-measurement-is-recorded-and-recomputed",
+      "subject": "замер на чужих проектах записан рядом с числами, и его вердикт пересчитывается проверкой, а не живёт в прозе",
+      "scope": [
+        "docs/measurements/2026-11-10-method-v4/",
+        "test/criterion.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "вердикт замера расходится с его числами, и проверка этого не замечает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-10-method-v4/numbers.json",
       "attestations": []
     }
   ]
