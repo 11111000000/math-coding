@@ -144,7 +144,13 @@ let rec execute_requirement ?files root claim items requirement : Domain.outcome
         | [] -> Pass
         | requirement :: rest ->
             let outcome = execute_requirement ?files root claim items requirement in
-            if outcome = Pass then run_all rest else outcome
+            (match outcome with
+            | Pass -> run_all rest
+            | Fail -> Fail
+            | Inconclusive | Infrastructure_error | Not_run -> (
+                match run_all rest with
+                | Fail -> Fail
+                | Pass | Inconclusive | Infrastructure_error | Not_run -> outcome))
       in
       (run_all requirements : Domain.outcome)
   | Any requirements ->

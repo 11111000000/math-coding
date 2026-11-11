@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Methodology — math-coding v5</title>
-<meta name="description" content="The v5 methodology: claims, evidence, freshness, independence and the verdict laws.">
+<meta name="description" content="Claims, observations, negative controls, freshness, independence and honest verdicts in Math Coding.">
 <link rel="stylesheet" href="assets/style.css">
 </head>
 <body>
@@ -21,138 +21,105 @@
 <main>
 
 <h1>Methodology</h1>
-<p>math-coding v5 keeps one standing specification per project:
-a goal set by a human, and a set of claims. Each claim binds a requirement
-to a scope, a falsifier, a register and a control. The kernel does not write
-content into this model &mdash; it checks that the content is honest, and
-computes states that cannot be edited by hand.</p>
+<p>Math Coding manages claims about a result and records of observations.
+Its unit of work is a <strong>claim</strong> with a subject, boundaries, a
+falsifier and explicit acceptance conditions. It does not replace requirements,
+ADRs, tests or the development process: it links them and shows what is
+confirmed, stale or still unknown.</p>
+<p class="callout"><a href="METHODOLOGY.md">The complete standalone canonical
+methodology</a> (Russian). This page is an overview, not a second source of
+normative rules.</p>
 
-<h2>Evidence is linked and fresh</h2>
-<p>An evidence record carries the digests of everything it depended on. If
-any of the four changes, the evidence stops being current &mdash; the claim
-becomes <code>outdated</code>, and no green verdict is possible until a new
-run.</p>
-<figure class="figure">
-<svg viewBox="0 0 760 260" role="img" aria-label="Freshness: evidence depends on materials, definition, verifier and environment digests">
-<defs>
-<marker id="arr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-<path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
-</marker>
-</defs>
-<g font-family="SF Mono, Menlo, Consolas, monospace" font-size="12" fill="#1a1a1a">
-<rect x="40" y="20" width="220" height="40" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="150" y="45" text-anchor="middle">materials digest</text>
-<rect x="40" y="80" width="220" height="40" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="150" y="105" text-anchor="middle">definition digest</text>
-<rect x="40" y="140" width="220" height="40" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="150" y="165" text-anchor="middle">verifier digest</text>
-<rect x="40" y="200" width="220" height="40" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="150" y="225" text-anchor="middle">environment fingerprint</text>
-<rect x="500" y="100" width="180" height="60" fill="#f5e9d8" stroke="#8b3a3a"/>
-<text x="590" y="135" text-anchor="middle">evidence</text>
-<line x1="260" y1="40" x2="496" y2="122" stroke="#5a5a5a" marker-end="url(#arr2)"/>
-<line x1="260" y1="100" x2="496" y2="128" stroke="#5a5a5a" marker-end="url(#arr2)"/>
-<line x1="260" y1="160" x2="496" y2="140" stroke="#5a5a5a" marker-end="url(#arr2)"/>
-<line x1="260" y1="220" x2="496" y2="150" stroke="#5a5a5a" marker-end="url(#arr2)"/>
-<text x="380" y="248" text-anchor="middle" fill="#8b3a3a" font-size="11">any change &#8658; outdated</text>
-</g>
-</svg>
-<figcaption>Freshness is multi-factor. A toolchain change alone &mdash; with
-the code untouched &mdash; is enough to expire every proof it produced.</figcaption>
-</figure>
+<h2>From a claim to a verdict</h2>
+<ol>
+<li>The <strong>goal</strong> records the human-provided aim, scope and owner.</li>
+<li>A <strong>claim</strong> names its subject, falsifier, register and evidence
+requirements. A decision source can be linked by digest.</li>
+<li>A <strong>verifier</strong> produces an observation: <code>pass</code>,
+<code>fail</code>, <code>inconclusive</code>, <code>infrastructure-error</code>
+or <code>not-run</code>.</li>
+<li>An <strong>evidence record</strong> binds that observation to the subject,
+definition, verifier, environment, producer and time.</li>
+<li><strong>States and verdicts</strong> are computed from applicable records.
+A successful process alone does not establish <code>holds</code>.</li>
+</ol>
 
-<h2>Independence is explicit</h2>
-<p>Who produced the evidence is part of the evidence. Trust rises along the
-ladder and never rises by fallback: a claim that declares an independent
-check is not promoted because only a self-check is available.</p>
-<figure class="figure">
-<svg viewBox="0 0 760 190" role="img" aria-label="The independence ladder: self-check, fresh context, external system">
-<defs>
-<marker id="arr3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-<path d="M0,0 L10,5 L0,10 z" fill="#8b3a3a"/>
-</marker>
-</defs>
-<g font-family="SF Mono, Menlo, Consolas, monospace" font-size="12" fill="#1a1a1a">
-<rect x="60" y="130" width="180" height="42" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="150" y="155" text-anchor="middle">self-check</text>
-<rect x="310" y="85" width="180" height="42" fill="#ffffff" stroke="#1a1a1a"/>
-<text x="400" y="110" text-anchor="middle">fresh context</text>
-<rect x="560" y="40" width="180" height="42" fill="#f5e9d8" stroke="#8b3a3a"/>
-<text x="650" y="65" text-anchor="middle">external system</text>
-<path d="M240,141 L300,112" fill="none" stroke="#8b3a3a" marker-end="url(#arr3)"/>
-<path d="M490,96 L550,67" fill="none" stroke="#8b3a3a" marker-end="url(#arr3)"/>
-<text x="380" y="186" text-anchor="middle" fill="#8a8a8a" font-size="10.5" font-family="Charter, Georgia, serif" font-style="italic">trust ascends; it never ascends by fallback</text>
-</g>
-</svg>
-</figure>
+<h2>The control checks the check</h2>
+<p>After an initial <code>pass</code>, the control changes the subject in an
+isolated copy. The same verifier runs again and must return an ordinary
+<code>fail</code>. This proves sensitivity to that particular violation only.
+A control that changes nothing, changes unrelated files or fails to break the
+verifier yields <code>inconclusive</code>, not <code>refuted</code>. The live
+tree is left untouched.</p>
 
-<h2>The verdict vocabulary</h2>
+<h2>Freshness and independence have limits</h2>
+<p>Evidence is current only while the materials, definition, verifier/control
+and environment fingerprints match and its validity window is open. The actual
+working contents, including untracked files and modes, matter more than HEAD
+alone. A changed source requires human review and a fresh <code>run</code>.</p>
+<p><code>self</code> means a self-declaration, <code>fresh-context</code> means
+a separate verifier execution with a recorded producer, and
+<code>external</code> means an external system or human review. These levels
+describe provenance, not an independent author of the requirement or test.
+Trust is never raised by fallback.</p>
+
+<h2>Claim states</h2>
 <table>
-<thead><tr><th>word</th><th>meaning</th></tr></thead>
+<thead><tr><th>state</th><th>meaning</th></tr></thead>
 <tbody>
-<tr><td><span class="v-pill v-green">green</span></td><td>every claim holds; the set of claims is non-empty</td></tr>
-<tr><td><span class="v-pill v-red">red</span></td><td>at least one claim is refuted &mdash; refutation dominates every other state</td></tr>
-<tr><td><span class="v-pill v-unknown">unknown</span></td><td>something cannot be computed; never presented as success</td></tr>
-<tr><td><span class="v-pill v-vacant">vacant</span></td><td>no claims at all &mdash; an empty specification is not a confirmation</td></tr>
-</tbody>
-</table>
-<table>
-<thead><tr><th>claim state</th><th>meaning</th></tr></thead>
-<tbody>
-<tr><td><span class="v-pill v-holds">holds</span></td><td>fresh pass, control reached the subject, independence satisfied</td></tr>
-<tr><td><span class="v-pill v-outdated">outdated</span></td><td>materials, definition, verifier or environment changed; or the source ADR changed</td></tr>
-<tr><td><span class="v-pill v-refuted">refuted</span></td><td>the verifier failed, or the control failed to break the subject</td></tr>
-<tr><td><span class="v-pill v-waived">waived</span></td><td>a time-boxed human risk acceptance &mdash; not a pass, never covers refutation</td></tr>
+<tr><td><span class="v-pill v-holds">holds</span></td><td>every required condition has fresh, sufficiently independent evidence; a machine verifier also has a proven subject control</td></tr>
+<tr><td><span class="v-pill v-refuted">refuted</span></td><td>an applicable observation rejected the claim</td></tr>
+<tr><td><span class="v-pill v-inconclusive">inconclusive</span></td><td>observations neither establish nor refute the claim; a weak or missing control belongs here</td></tr>
+<tr><td><span class="v-pill v-outdated">outdated</span></td><td>materials, definition, verifier, environment or source changed, or validity expired</td></tr>
+<tr><td><span class="v-pill v-never-checked">never-checked</span></td><td>no applicable observation has been recorded</td></tr>
+<tr><td><span class="v-pill v-not-checkable">not-checkable</span></td><td>no suitable check exists in the current formulation; reserved in the domain and not produced by the current <code>run</code></td></tr>
+<tr><td><span class="v-pill v-waived">waived</span></td><td>an active human acceptance of an uncertain risk; neither a pass nor a cover for refutation</td></tr>
 </tbody>
 </table>
 
-<h2>The laws the kernel enforces</h2>
-<div class="law"><h3>unknown &ne; pass</h3>
-<p>Not-run is not failure and not success. Unknown cannot be hidden by
-acceptance, standing, a missing record or an empty scope.</p></div>
-<div class="law"><h3>refutation dominates</h3>
-<p>A single refuted claim makes the whole map red. Confidence does not
-average out a falsified requirement.</p></div>
-<div class="law"><h3>freshness is multi-factor</h3>
-<p>Evidence expires when the claim definition, the verifier, the materials
-or the environment fingerprint changes, or when its validity window closes.
-The current environment must match the evidence, not merely exist.</p></div>
-<div class="law"><h3>no green without a fresh run</h3>
-<p>A machine <code>holds</code> requires a fresh pass, a control that reached
-the subject, and satisfied independence requirements. After
-<code>review-source</code>, a new <code>run</code> is mandatory.</p></div>
-<div class="law"><h3>history is never rewritten</h3>
-<p>A changed ADR yields <code>source_changed</code>: the claim goes
-<code>outdated</code>, the waiver is cleared, and the previous digest is kept.
-The historical decision itself is never edited.</p></div>
-<div class="law"><h3>judgment is human</h3>
-<p>The <code>judgment</code> register is installed only by an external human
-review. A machine verifier produces an observation; it neither installs nor
-refutes a judgment.</p></div>
-<div class="law"><h3>waivers are bounded</h3>
-<p>A waiver has a subject, an issuer, a reason, an expiry, compensating
-controls and a recovery plan. It is valid only inside
-<code>[issued_at, expires_at)</code> and never turns a failure into a pass.</p></div>
-
-<h2>Registers</h2>
+<h2>Verdict and coverage are different</h2>
 <table>
-<thead><tr><th>register</th><th>who can confirm it</th></tr></thead>
+<thead><tr><th>verdict</th><th>condition</th></tr></thead>
 <tbody>
-<tr><td><code>fact</code></td><td>a machine verifier, re-run in a fresh context</td></tr>
-<tr><td><code>hypothesis</code></td><td>a machine verifier &mdash; until the falsifier fires</td></tr>
-<tr><td><code>judgment</code></td><td>only an external human review, recorded with author and reason</td></tr>
+<tr><td><span class="v-pill v-green">green</span></td><td>a non-empty set of claims, all <code>holds</code></td></tr>
+<tr><td><span class="v-pill v-red">red</span></td><td>at least one claim is <code>refuted</code>; refutation dominates</td></tr>
+<tr><td><span class="v-pill v-unknown">unknown</span></td><td>no refutation, but not every claim <code>holds</code></td></tr>
+<tr><td><span class="v-pill v-vacant">vacant</span></td><td>there are no claims</td></tr>
 </tbody>
 </table>
+<p><code>Green</code> means neither full coverage nor correctness of the whole
+program. Goal-scope paths outside every claim are reported separately as
+<code>uncovered</code>. Established claims, a fully inspected scope and human
+acceptance are three different outcomes.</p>
 
-<p class="callout">The kernel constrains what may be claimed. The human
-decides what to do with the verdict &mdash; and the decision itself is
-recorded.</p>
+<h2>Composing requirements</h2>
+<div class="law"><h3>All: every branch is required</h3>
+<p>Any <code>fail</code> refutes <code>All</code> and stops execution. After
+<code>inconclusive</code>, <code>infrastructure-error</code> or
+<code>not-run</code>, the remaining branches still execute so that a later
+refutation is not lost.</p></div>
+<div class="law"><h3>Any: one alternative is enough</h3>
+<p>The first <code>pass</code> stops execution. <code>Any</code> is refuted only
+when every alternative is refuted; otherwise an unconfirmed result remains
+uncertain.</p></div>
+
+<h2>Registers and human decisions</h2>
+<p><code>fact</code>, <code>hypothesis</code> and <code>unknown</code> share the
+same evidence rules: the register describes the kind of claim and does not lower
+the standard. <code>judgment</code> is established only by an external human
+review. A review record has an author and an outcome; a source review has an
+author, a reason and the previous digest.</p>
+<p>A waiver is bounded by its gap, issuer, reason, expiry and recovery plan. The
+schema also carries compensating controls and review triggers; the standard CLI
+leaves those two lists empty. Reviews, waivers, source reviews and authorizations
+are decision journals, not authentication.</p>
 
 </main>
 <footer class="site-footer">
 <p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
 &middot; <a href="index.html">home</a> &middot;
 <a href="workflow.html">workflow</a> &middot;
+<a href="METHODOLOGY.md">canonical text (RU)</a> &middot;
 <a href="methodology.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
 <p class="meta"><!-- @META@ --></p>
 </footer>

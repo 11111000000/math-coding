@@ -60,17 +60,24 @@ if [ ! -x "$package/bin/mathc" ] || [ ! -x "$package/bin/stand" ]; then
   printf 'install: not a mathc portable package: %s\n' "$package" >&2
   exit 2
 fi
-if [ ! -f "$repo/skills/math-coding/SKILL.md" ]; then
-  printf 'install: agent skill is missing: %s\n' "$repo/skills/math-coding/SKILL.md" >&2
-  exit 2
-fi
+for required in \
+  "$repo/skills/math-coding/SKILL.md" \
+  "$repo/skills/math-coding/references/PROJECT-SETUP.md" \
+  "$repo/skills/math-coding/references/METHODOLOGY.md"
+do
+  if [ ! -f "$required" ]; then
+    printf 'install: agent skill file is missing: %s\n' "$required" >&2
+    exit 2
+  fi
+done
 
 mkdir -p "$bin_dir" "$skill_dir/references"
 cleanup() {
   rm -f "$bin_dir/mathc.tmp.$$" "$bin_dir/mathc-stand.tmp.$$" \
     "$bin_dir/mathc.candidate.$$" "$bin_dir/mathc-stand.candidate.$$" \
     "$bin_dir/mathc.build-id.tmp.$$" "$skill_dir/SKILL.md.tmp.$$" \
-    "$skill_dir/references/PROJECT-SETUP.md.tmp.$$"
+    "$skill_dir/references/PROJECT-SETUP.md.tmp.$$" \
+    "$skill_dir/references/METHODOLOGY.md.tmp.$$"
 }
 trap cleanup EXIT HUP INT TERM
 
@@ -124,6 +131,8 @@ copy_file "$metadata" "$bin_dir/mathc.build-id" 0644
 copy_file "$repo/skills/math-coding/SKILL.md" "$skill_dir/SKILL.md" 0644
 copy_file "$repo/skills/math-coding/references/PROJECT-SETUP.md" \
   "$skill_dir/references/PROJECT-SETUP.md" 0644
+copy_file "$repo/skills/math-coding/references/METHODOLOGY.md" \
+  "$skill_dir/references/METHODOLOGY.md" 0644
 
 printf 'mathc: %s\nmathc-stand: %s\nskill: %s\n' \
   "$bin_dir/mathc" "$bin_dir/mathc-stand" "$skill_dir/SKILL.md"

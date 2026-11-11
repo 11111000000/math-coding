@@ -1,8 +1,8 @@
 # AGENTS.md — math-coding v5
 
-Активная и единственная линия — v5 в `main`. Старые реализации, ветки, теги,
-worktree и бинари удалены. Не возвращай старый код без сценария и
-отрицательного контроля.
+Активная линия — v5 в `main`. Разработка ведётся в отдельных ветках и
+worktree; после проверок изменения объединяются с `main`. Не возвращай старые
+реализации без сценария и отрицательного контроля.
 
 Для использования в других проектах запусти `./install.sh`: бинари попадут в
 `~/.local/bin`, user-scope skill — в `~/.agents/skills/math-coding`. Существующий
@@ -31,8 +31,10 @@ dune runtest --root . --force
   `site/dist`, подставляя карту claims из `spec.json` и
   `mathc map --json`; `sh site/check.sh` проверяет совпадение.
 
-Перед изменением прочти `docs/ENGINEERING-PRACTICES.md` и
-`docs/V5-ARCHITECTURE-AND-PLAN.md`.
+Перед изменением прочти
+`skills/math-coding/references/METHODOLOGY.md`, `AXIOMS.md`,
+`docs/ENGINEERING-PRACTICES.md` и `docs/V5-ARCHITECTURE-AND-PLAN.md`.
+Каноническая методология самостоятельна; архитектура и измерения не заменяют её.
 
 ## Рабочий цикл
 
@@ -57,9 +59,11 @@ mathc next
 `run`. `judgment` устанавливается только внешним человеческим review; machine
 verifier для него не подходит. Fingerprint среды должен совпадать с evidence.
 Scope и source paths не могут быть absolute, traversal или symlink. `Any`
-останавливается после первого успешного варианта. `record --outcome` принимает
-только пять значений домена. `authorize` не работает без `policy.json`; это
-журнал, не аутентификация.
+останавливается после первого успешного варианта. `All` останавливается после
+`fail`, но после inconclusive/infrastructure/not-run продолжает остальные ветви,
+чтобы не потерять позднее опровержение. `record --outcome` принимает только пять
+значений домена. `authorize` не работает без `policy.json`; это журнал, не
+аутентификация.
 
 ## Запреты
 
@@ -79,7 +83,7 @@ Scope и source paths не могут быть absolute, traversal или symlin
 
 v5 keeps evidence linked, fresh, and independent
 
-12 claim(s).
+13 claim(s).
 
 ```sh
 mathc map

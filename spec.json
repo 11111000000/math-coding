@@ -196,7 +196,7 @@
     },
     {
       "id": "agent-installer",
-      "text": "local binary and agent skill install cleanly",
+      "text": "local binaries, agent skill, and canonical methodology install cleanly",
       "scope": [ "install.sh", "skills/", "test/agent_installer.ml" ],
       "source": null,
       "kind": "acceptance",
@@ -209,9 +209,9 @@
           "spec": "dune runtest --root . --force test/agent_installer.exe"
         }
       ],
-      "falsifier": "the installer succeeds but the binary or skill is unusable",
+      "falsifier": "the installer succeeds but a binary, skill, or canonical methodology is missing or unusable",
       "register": "fact",
-      "control": "sed -i 's|\"$package/bin/mathc\"|\"$package/bin/stand\"|' install.sh",
+      "control": "sed -i 's|\"$skill_dir/references/METHODOLOGY.md\" 0644|\"$skill_dir/references/MISSING.md\" 0644|' install.sh",
       "waiver": null
     },
     {

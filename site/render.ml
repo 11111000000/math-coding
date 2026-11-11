@@ -58,6 +58,10 @@ let contains needle text =
   | Some _ -> true
   | None -> false
 
+let hrefs page = Links.hrefs page
+
+let local_target href = Links.local_target href
+
 let replace_marker marker replacement text =
   match index_of_sub marker text with
   | None -> text
@@ -71,7 +75,9 @@ let pill_class = function
   | Refuted -> "v-refuted"
   | Outdated -> "v-outdated"
   | Waived -> "v-waived"
-  | Inconclusive | NotCheckable | NeverChecked -> "v-unknown"
+  | Inconclusive -> "v-inconclusive"
+  | NotCheckable -> "v-not-checkable"
+  | NeverChecked -> "v-never-checked"
 
 let rec first_verifier = function
   | [] -> None
@@ -129,7 +135,9 @@ let fragment labels states claims uncovered =
             [Printf.sprintf
                "<span><span class=\"v-pill %s\">%s</span> &times;%d</span>"
                (pill_class state) name count])
-        [Holds, "holds"; Outdated, "outdated"; Refuted, "refuted"; Waived, "waived"]
+        [Holds, "holds"; Refuted, "refuted"; Inconclusive, "inconclusive";
+         NotCheckable, "not-checkable"; Outdated, "outdated";
+         NeverChecked, "never-checked"; Waived, "waived"]
     @ [Printf.sprintf "<span>%d %s &middot; %d %s</span>" (List.length states)
          (escape labels.claims_word)
          (List.length uncovered) (escape labels.uncovered)]
@@ -174,6 +182,10 @@ let build root dist meta =
 let check root dist =
   let spec, states, _ = load root in
   let failures = ref 0 in
+  let fail message =
+    Printf.eprintf "check: %s\n" message;
+    incr failures
+  in
   List.iter
     (fun name ->
       let page = Io.read_file (Filename.concat dist name) in
@@ -195,9 +207,34 @@ let check root dist =
               incr failures))
         spec.claims)
     ["index.html"; "index.ru.html"];
+  let canonical = Filename.concat dist "METHODOLOGY.md" in
+  if not (Sys.file_exists canonical) then
+    fail "the canonical methodology was not copied into the site"
+  else if not (contains "# Math Coding:" (Io.read_file canonical)) then
+    fail "the copied canonical methodology is not the methodology document";
+  List.iter
+    (fun name ->
+      let page = Io.read_file (Filename.concat dist name) in
+      if not (contains "href=\"METHODOLOGY.md\"" page) then
+        fail (Printf.sprintf "the canonical methodology is not linked from %s" name))
+    ["methodology.html"; "methodology.ru.html"];
+  List.iter
+    (fun name ->
+      if Filename.check_suffix name ".html" then (
+        let page = Io.read_file (Filename.concat dist name) in
+        List.iter
+          (fun href ->
+            match local_target href with
+            | None -> ()
+            | Some target ->
+              if not (Sys.file_exists (Filename.concat dist target)) then
+                fail (Printf.sprintf "broken local link in %s: %s" name href))
+          (hrefs page)))
+    (Sys.readdir dist |> Array.to_list);
   if !failures > 0 then exit 1;
   Printf.printf "check: site map matches the computed states for %d claims\n"
-    (List.length spec.claims)
+    (List.length spec.claims);
+  Printf.printf "check: canonical methodology and local links are in place\n"
 
 let () =
   match Array.to_list Sys.argv with
