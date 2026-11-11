@@ -12,15 +12,22 @@ type source_kind =
   | Madr
   | Adr_tools
   | Arc42
-  | V3_decision
   | Task
   | Specification
+
+type source_review = {
+  by : string;
+  reason : string;
+  at : int;
+  previous_digest : string;
+}
 
 type source_ref = {
   kind : source_kind;
   path : string;
   section : string option;
   digest : string;
+  review : source_review option;
 }
 
 type obligation_kind = Invariant | Acceptance | Recovery | Operational | Judgment

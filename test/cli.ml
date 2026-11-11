@@ -11,11 +11,22 @@ let add_and_run root =
 
 let () =
   with_repo (fun root ->
+      let help = run root "--help" in
+      check "help is available before project setup"
+        (help.code = 0 && contains help.stdout "review-source" && contains help.stdout "./install.sh");
+      let add_help = run root "help add" in
+      check "command help names valid registers"
+        (add_help.code = 0 && contains add_help.stdout "fact, hypothesis, judgment or unknown");
+      expect root "help unknown-command" 2;
+      let empty = run root "map" in
+      check "empty project is vacant" (empty.code = 3 && contains empty.stderr "project root");
       expect root "init" 0;
-      check "empty project is vacant" ((run root "map").code = 3);
       add_and_run root;
       let map = run root "map" in
       check "valid evidence is green" (map.code = 0 && contains map.stdout "green" && contains map.stdout "holds");
+      let proof = run root "run" in
+      check "run states that the negative control was proven"
+        (proof.code = 0 && contains proof.stdout "negative control proven");
       let next_before = Io.read_file (Filename.concat root "subject.txt") in
       expect root "next" 0;
       check "next is read-only" (Io.read_file (Filename.concat root "subject.txt") = next_before);
@@ -30,6 +41,8 @@ let () =
       expect root "install" 0;
       let second = Io.read_file (Filename.concat root "AGENTS.md") in
       check "install is idempotent" (first = second);
+      check "generated agent page is outside uncovered subject scope"
+        (contains (run root "map").stdout "uncovered: 0 file(s)");
       expect root "doctor" 0;
       print_endline "cli: PASS")
 
@@ -76,6 +89,28 @@ let () =
         (map.code = 3 && contains map.stdout "outdated" && contains map.stdout "source changed");
       let pending = run root "re-evaluate" in
       check "source change requires re-evaluation" (pending.code = 0 && contains pending.stdout "sourced");
+      check "next names the source-review command" (contains (run root "next").stdout "review-source");
+      expect root "review-source sourced --by stranger --reason reviewed" 2;
+      expect root "review-source sourced --by owner --reason \"reviewed the changed ADR\"" 0;
+      let rebound = run root "map" in
+      check "source review never skips fresh verification"
+        (rebound.code = 3 && contains rebound.stdout "outdated" && not (contains rebound.stdout "source changed"));
+      let changed_adr = adr ^ "\nA later decision changes the obligation.\n" in
+      (match Spec.parse_string (Io.read_file (Filename.concat root "spec.json")) with
+       | Error error -> failwith error
+       | Ok { claims = [ claim ]; _ } ->
+           (match claim.source with
+            | Some { review = Some review; digest; _ } ->
+                check "source review records the previous digest" (review.previous_digest = Domain.digest_string adr);
+                check "source review records the new digest" (digest = Domain.digest_string changed_adr);
+                check "source review records the owner and reason"
+                  (review.by = "owner" && review.reason = "reviewed the changed ADR")
+            | _ -> failwith "source review was not retained")
+       | Ok _ -> failwith "unexpected claims");
+      check "source review does not rewrite the ADR" (Io.read_file (Filename.concat root "docs/adr/0001.md") = changed_adr);
+      expect root "run" 0;
+      expect root "map" 0;
+      expect root "review-source sourced --by owner --reason redundant" 2;
       print_endline "source-re-evaluation: PASS")
 
 let () =
@@ -105,6 +140,24 @@ let () =
       expect root "run" 0;
       check "the live deletion is untouched" (not (Sys.file_exists (Filename.concat root "removed.txt")));
       print_endline "isolated-snapshot: PASS")
+
+let () =
+  with_repo (fun root ->
+      write root "subject.sh" "#!/bin/sh\nif [ \"$1\" = expected ]; then printf 'expected\\n'; else exit 1; fi\n";
+      write root "verify.sh" "#!/bin/sh\n./subject.sh expected\n";
+      Unix.chmod (Filename.concat root "subject.sh") 0o755;
+      Unix.chmod (Filename.concat root "verify.sh") 0o755;
+      expect root "init" 0;
+      expect root "goal \"the executable subject is preserved\" subject.sh,verify.sh owner" 0;
+      expect root "add executable \"the executable subject works\" subject.sh,verify.sh \"the subject fails\" fact --requirement \"verifier:sh verify.sh\" --control \"sed -i 's/expected/broken/g' subject.sh\"" 0;
+      expect root "run" 0;
+      expect root "map" 0;
+      Unix.chmod (Filename.concat root "subject.sh") 0o644;
+      let changed_mode = run root "map" in
+      check "a mode change invalidates evidence" (changed_mode.code = 3 && contains changed_mode.stdout "outdated");
+      Unix.chmod (Filename.concat root "subject.sh") 0o755;
+      expect root "map" 0;
+      print_endline "executable-snapshot: PASS")
 
 let () =
   let root = Sys.getcwd () in

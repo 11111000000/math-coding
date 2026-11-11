@@ -114,8 +114,42 @@ let rec parse_args = function
   | "--defect-cost" :: value :: rest -> ("--defect-cost", value) :: parse_args rest
   | project :: rest -> ("project", project) :: parse_args rest
 
+let usage () =
+  print_endline {|usage: mathc-stand PROJECT [PROJECT ...] [COST OPTIONS]
+
+Measure the math-coding protocol against direct verifier execution.
+
+Columns:
+  claims     declared obligations
+  uncovered  files inside the aim that no claim covers
+  caught     refuted claims
+  stale      outdated or inconclusive claims
+  protocol   seconds for mathc run
+  price-arm  seconds for direct verifier reruns
+  overhead   protocol seconds minus price-arm seconds
+
+Cost options:
+  --human-minutes N          human time spent on the work
+  --agent-tokens N           tokens spent by agents
+  --person-minute-cost N     monetary cost of one human minute
+  --machine-second-cost N    monetary cost of one machine second
+  --token-cost N             monetary cost of one agent token
+  --defect-cost N            monetary value of one caught defect
+
+Example:
+  mathc-stand /path/to/project \
+    --human-minutes 30 --agent-tokens 10000 \
+    --person-minute-cost 1 --machine-second-cost 0.01 --token-cost 0.0001 \
+    --defect-cost 100
+
+The ratio is computed only when all five base cost options are supplied.
+The criterion additionally requires --defect-cost and at least one caught defect.|}
+
 let () =
   let arguments = Array.to_list Sys.argv |> List.tl in
+  if List.exists (fun argument -> argument = "--help" || argument = "-h") arguments then (
+    usage ();
+    exit 0);
   let options = parse_args arguments in
   let projects = List.filter_map (fun (key, value) -> if key = "project" then Some value else None) options in
   if projects = [] then (

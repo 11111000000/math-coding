@@ -63,25 +63,33 @@ let digest_of_scope root ~scope =
         let lines =
           List.map
             (fun file ->
-              match digest_of_file (Filename.concat root file) with
-              | Some digest -> Some (file ^ " " ^ digest)
-              | None -> None)
+              let path = Filename.concat root file in
+              match digest_of_file path, Unix.stat path with
+              | Some digest, stat -> Some (file ^ " " ^ string_of_int stat.Unix.st_perm ^ " " ^ digest)
+              | _ -> None)
             covered
         in
         if List.exists (fun line -> line = None) lines then None
         else Some (Domain.digest_string (String.concat "\n" (List.filter_map (fun x -> x) lines) ^ "\n")))
 
-let is_method_file path =
-  path = "spec.json"
-  || path_contains ~dir:".math/" ~path
-  || path_contains ~dir:"docs/lineage/" ~path
+let method_files = [
+  ".gitignore"; "AGENTS.md"; "AXIOMS.md"; "GOAL.md"; "PHILOSOPHY.md";
+  "README.md"; "dune-project"; "flake.lock"; "spec.json";
+  "docs/ENGINEERING-PRACTICES.md"; "docs/V5-ARCHITECTURE-AND-PLAN.md";
+  "docs/V5-DEFECT-CATALOG.md";
+]
 
-let uncovered root (claims : claim list) =
+let method_directories = [ ".math/"; "docs/lineage/"; "docs/measurements/" ]
+
+let is_method_file path =
+  List.mem path method_files
+  || List.exists (fun directory -> path_contains ~dir:directory ~path) method_directories
+
+let uncovered root (claims : claim list) ~goal_scope =
   match repository_files root with
   | Error _ -> []
   | Ok files ->
-      List.filter
-        (fun file ->
-          not (is_method_file file)
-          && not (List.exists (fun (claim : claim) -> files_under [ file ] ~scope:claim.scope <> []) claims))
-        files
+      files_under files ~scope:goal_scope
+      |> List.filter (fun file ->
+        not (is_method_file file)
+        && not (List.exists (fun (claim : claim) -> files_under [ file ] ~scope:claim.scope <> []) claims))

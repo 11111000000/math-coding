@@ -5,11 +5,12 @@
     "scope": [
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
-      "AGENTS.md", "docs/", "dune-project"
+      "AGENTS.md", "docs/", "dune-project", "install.sh", "skills/",
+      ".github/"
     ],
     "by": "owner",
-    "at": 1794331411,
-    "reason": null
+    "at": 1794374658,
+    "reason": "cover CI delivery"
   },
   "claims": [
     {
@@ -172,7 +173,11 @@
     {
       "id": "repository-lints",
       "text": "repository structure and public interfaces stay bounded",
-      "scope": [ "lib/", "format/", "bin/", "test/repository_lints.ml", "test/repository_control.ml" ],
+      "scope": [
+        "lib/", "format/", "bin/", "test/dune", "test/helpers.ml",
+        "test/helpers.mli", "test/repository_lints.ml",
+        "test/repository_control.ml"
+      ],
       "source": null,
       "kind": "acceptance",
       "phase": "pre-merge",
@@ -187,6 +192,66 @@
       "falsifier": "a core or interface exceeds its bound or loses required files",
       "register": "fact",
       "control": "printf 'let broken = 0\\n' > lib/without_interface.ml",
+      "waiver": null
+    },
+    {
+      "id": "agent-installer",
+      "text": "local binary and agent skill install cleanly",
+      "scope": [ "install.sh", "skills/", "test/agent_installer.ml" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/agent_installer.exe"
+        }
+      ],
+      "falsifier": "the installer succeeds but the binary or skill is unusable",
+      "register": "fact",
+      "control": "sed -i 's|\"$package/bin/mathc\"|\"$package/bin/stand\"|' install.sh",
+      "waiver": null
+    },
+    {
+      "id": "external-onboarding",
+      "text": "an installed agent can integrate no-ADR and MADR projects",
+      "scope": [ "test/agent_onboarding.sh" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "nix build .#default .#stand --no-link && MATHC=\"$(nix path-info .#default)/bin/mathc\" MATHC_STAND=\"$(nix path-info .#stand)/bin/stand\" sh test/agent_onboarding.sh"
+        }
+      ],
+      "falsifier": "the onboarding path passes without exercising the actual workflow",
+      "register": "fact",
+      "control": "sed -i 's/source_changed_marker=\"source changed\"/source_changed_marker=\"not found\"/' test/agent_onboarding.sh",
+      "waiver": null
+    },
+    {
+      "id": "ci-contract",
+      "text": "the delivery workflow is valid",
+      "scope": [ ".github/workflows/ci.yml" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "nix shell github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2#actionlint -c actionlint .github/workflows/ci.yml"
+        }
+      ],
+      "falsifier": "an invalid workflow passes validation",
+      "register": "fact",
+      "control": "sed -i 's/^on:/onn:/' .github/workflows/ci.yml",
       "waiver": null
     }
   ]

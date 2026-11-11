@@ -13,20 +13,40 @@ let collect convert items =
   in
   loop [] items
 
+let review_to_json (review : source_review) =
+  `Assoc [ "by", json_string review.by;
+          "reason", json_string review.reason;
+          "at", `Int review.at;
+          "previous_digest", json_string review.previous_digest ]
+
+let review_of_json json =
+  let* pairs = object_ "source_review" [ "by"; "reason"; "at"; "previous_digest" ] json in
+  let* by = string "by" pairs in
+  let* reason = string "reason" pairs in
+  let* at = int "at" pairs in
+  let* previous_digest = string "previous_digest" pairs in
+  Ok { by; reason; at; previous_digest }
+
 let source_to_json (source : source_ref) =
   `Assoc [ "kind", json_string (source_kind_to_string source.kind);
           "path", json_string source.path;
           "section", json_string_opt source.section;
-          "digest", json_string source.digest ]
+          "digest", json_string source.digest;
+          "review", (match source.review with None -> `Null | Some review -> review_to_json review) ]
 
 let source_of_json json =
-  let* pairs = object_ "source" [ "kind"; "path"; "section"; "digest" ] json in
+  let* pairs = object_ "source" [ "kind"; "path"; "section"; "digest"; "review" ] json in
   let* kind = string "kind" pairs in
   let* path = string "path" pairs in
   let* section = string_opt "section" pairs in
   let* digest = string "digest" pairs in
+  let* review =
+    match List.assoc_opt "review" pairs with
+    | None | Some `Null -> Ok None
+    | Some json -> (match review_of_json json with Ok review -> Ok (Some review) | Error error -> Error error)
+  in
   match source_kind_of_string kind with
-  | Some kind -> Ok { kind; path; section; digest }
+  | Some kind -> Ok { kind; path; section; digest; review }
   | None -> Error ("source.kind: unsupported " ^ kind)
 
 let rec requirement_to_json requirement =
@@ -111,15 +131,10 @@ let claim_to_json claim =
       "waiver", (match claim.waiver with None -> `Null | Some waiver -> waiver_to_json waiver) ]
 
 let claim_of_json json =
-  let* pairs = object_ "claim" [ "id"; "text"; "subject"; "scope"; "source"; "kind"; "phase"; "owner";
-                                 "review_on"; "requirements"; "falsifier"; "register"; "control"; "waiver";
-                                 "accepted"; "attestations" ] json in
+  let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "kind"; "phase"; "owner";
+                                 "review_on"; "requirements"; "falsifier"; "register"; "control"; "waiver" ] json in
   let* id = string "id" pairs in
-  let* text =
-    match List.assoc_opt "text" pairs with
-    | Some _ -> string "text" pairs
-    | None -> string "subject" pairs
-  in
+  let* text = string "text" pairs in
   let* scope = string_list "scope" pairs in
   let* source =
     match List.assoc_opt "source" pairs with
@@ -206,12 +221,8 @@ let parse_string text =
   | exception Yojson.Json_error error -> Error error
   | json -> (
       let* pairs = object_ "spec" [ "schema_version"; "goal"; "uncertainty_budget"; "closed_waves"; "claims" ] json in
-      let* version =
-        match List.assoc_opt "schema_version" pairs with
-        | None -> Ok 4
-        | Some _ -> int "schema_version" pairs
-      in
-      let* () = if version = 4 || version = 5 then Ok () else Error ("unsupported schema_version " ^ string_of_int version) in
+      let* version = int "schema_version" pairs in
+      let* () = if version = 5 then Ok () else Error ("unsupported schema_version " ^ string_of_int version) in
       let* goal =
         match List.assoc_opt "goal" pairs with
         | Some `Null | None -> Ok None

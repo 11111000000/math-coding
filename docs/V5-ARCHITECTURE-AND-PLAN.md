@@ -2,17 +2,16 @@
 
 ## Решение
 
-Выбрана **clean-slate v5 в ветке `feat/v5-clean-slate`**, созданной из
-`main`, а не orphan. Прежняя реализация сохранена в `archive/v4` и
-`v4-baseline`.
+Выбрана **clean-slate v5 в `main`**, а не orphan. Прежние реализации, ветки,
+теги, worktree и установленные бинари удалены.
 
-Это не эволюция с двумя реализациями в одном дереве. Старый код доступен
-только через Git history. Новые модули пишутся с нуля, а дефекты и знания
-переносятся как сценарии.
+Это не эволюция с двумя реализациями в одном дереве. Старые состояния
+остаются только в истории Git. Новые модули написаны с нуля, а дефекты и
+знания перенесены как сценарии.
 
 ## Почему не постепенное сосуществование
 
-- `bin/mathc.ml` v4 содержал 2754 строки и почти все обязанности.
+- Прежний монолитный `bin/mathc.ml` содержал 2754 строки и почти все обязанности.
 - Ядро и codec достигли потолков 798/800 и 399/400.
 - Claim/evidence не имели SourceRef, environment и independence.
 - Controls работали через изменение живого дерева.
@@ -43,18 +42,18 @@ ADR / specification / task
 - `lib/freshness.ml` — чистые freshness rules.
 - `lib/verdict.ml` — состояния и агрегация.
 - `format/json_helpers.ml` — строгие JSON predicates.
-- `format/spec.ml` — spec v5 и v4 compatibility reader.
+- `format/spec.ml` — единственный строгий формат spec v5.
 - `format/evidence.ml` — evidence codec.
 - `adapter/` — Git, processes, source/ADR/JUnit, isolated runs.
-- `bin/` — маленький dispatch, отдельные commands, MCP, stand.
+- `bin/` — маленький dispatch, отдельные commands, справка, MCP, stand.
 - `test/` — свойства и accepting/rejecting fixtures.
 
 ## Этапы
 
 ### M0. Baseline
 
-- Архив и тег созданы.
-- Каталог дефектов и исторические измерения сохранены.
+- Старые исполняемые версии и archive refs удалены.
+- Каталог дефектов и измерение независимого onboarding сохранены как данные.
 - Зафиксированы benchmark и границы.
 
 ### M1. Ядро и форматы
@@ -65,9 +64,9 @@ ADR / specification / task
 
 ### M2. Пользовательский цикл
 
-- `init`, `goal`, `add`, `run`, `map`, `next`, `waive`, `migrate`.
+- `init`, `goal`, `add`, `run`, `map`, `next`, `waive`.
 - Read-only map/next/context.
-- Миграция v4 не повышает доверие.
+- Per-command help доступен без spec.json.
 
 ### M3. SourceRef и ADR
 
@@ -88,14 +87,21 @@ ADR / specification / task
 - Текущая реализация вычисляет pending по изменённому source, claim и
   evidence. Полный граф зависимостей между ADR — отдельная следующая работа,
   с rejecting fixtures; он не заявлен как реализованный.
+- `review-source` сохраняет автора, причину и прежний digest, очищает waiver;
+  свежий `run` обязателен и автоматический green запрещён.
 - Protected transitions требуют policy и явной авторизации.
 - Текущий MCP: outputSchema, structuredContent, structured errors.
-- Context capsule и маленький основной цикл.
+- Context capsule и маленький основной цикл; `--help` доступен без spec.json.
+- Покрытие ограничено scope цели и не считает служебные файлы методом.
 
 ### M6. Пилот и поставка
 
 - Чистый clone, все тесты, portable smoke вне Nix store.
+- `install.sh` атомарно устанавливает static `mathc`, `mathc-stand`, build-id и
+  user-scope skill; повторная установка и защита прежнего бинаря проверяются.
 - MADR, no-ADR, weak-checks и handoff projects.
+- Независимый агент проходит onboarding только по установленному skill.
+- CI: быстрые проверки и отдельный cached portable/self-run job.
 - Три руки: agent, checklist, v5 — внешний benchmark ещё предстоит выполнить;
   текущие unit/integration checks его не заменяют.
 - Решение принимается по внешнему результату, не по числу claims.

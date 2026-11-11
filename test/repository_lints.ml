@@ -16,6 +16,6 @@ let () =
   check "format remains small" (List.fold_left (+) 0 (List.map lines (files "format" |> List.map (Filename.concat "format"))) <= 500);
   check "CLI is split" (lines "bin/commands.ml" < 400 && lines "bin/cli.ml" < 200 && lines "bin/mathc.ml" < 50);
   check "no silent filter_map in format" (not (contains (Io.read_file (in_repo "format/spec.ml")) "filter_map"));
-  check "v4 is archived" (Sys.file_exists (in_repo "docs/lineage/v4/BASELINE.md"));
+  check "legacy implementation directories are absent" (not (Sys.file_exists (in_repo "docs/lineage")));
   check "practices are recorded" (Sys.file_exists (in_repo "docs/ENGINEERING-PRACTICES.md"));
   print_endline "repository-lints: PASS"

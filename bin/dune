@@ -1,7 +1,7 @@
 (library
  (name mathc_protocol)
  (wrapped false)
- (modules project commands cli mcp)
+ (modules project commands command_help cli mcp)
  (libraries mathcoding mathcoding_format mathcoding_adapter unix yojson))
 
 (executable

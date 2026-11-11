@@ -12,12 +12,14 @@ type options = {
   mutable requirements : string list;
   mutable write : bool;
   mutable version : bool;
+  mutable help : bool;
   mutable source : string;
 }
 
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
-    valid_for = None; recovery = ""; control = ""; requirements = []; write = false; version = false; source = "" }
+    valid_for = None; recovery = ""; control = ""; requirements = []; write = false;
+    version = false; help = false; source = "" }
 
 let parse_requirement text =
   match String.index_opt text ':' with
@@ -48,6 +50,7 @@ let parse_flags o arguments =
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
     | "--version" :: rest -> o.version <- true; loop acc rest
+    | ("--help" | "-h") :: rest -> o.help <- true; loop acc rest
     | option :: _ when String.length option > 0 && option.[0] = '-' -> failwith ("unknown option: " ^ option)
     | argument :: rest -> loop (argument :: acc) rest
   in
@@ -77,10 +80,14 @@ let main () =
     | exception Failure message -> exit (fail 2 message)
   in
   let code =
-    if o.version then Commands.version ()
+    let topic = match positional with verb :: _ -> Some verb | [] -> None in
+    if o.help then Command_help.help topic
+    else if o.version then Commands.version ()
     else
       match positional with
     | [] -> Commands.map o.root false
+    | "help" :: topic :: _ -> Command_help.help (Some topic)
+    | [ "help" ] -> Command_help.help None
     | [ "init" ] -> Commands.init o.root
     | "goal" :: text :: scope :: by :: _ -> Commands.goal o.root text (split_scope scope) by o.reason
     | "add" :: id :: text :: scope :: falsifier :: register :: _ -> (
@@ -93,12 +100,12 @@ let main () =
     | [ "context" ] -> Commands.context o.root
     | "waive" :: id :: _ -> Commands.waive o.root id o.by o.reason (Option.value ~default:0 o.valid_for) o.recovery
     | "record" :: id :: authority :: _ -> Commands.record o.root id authority o.by o.outcome o.valid_for None
-    | [ "migrate" ] -> Commands.migrate o.root o.write
     | [ "install" ] -> Commands.install o.root
     | [ "doctor" ] -> Commands.doctor o.root
     | [ "adopt" ] -> Adopt.run o.root
     | [ "authorize" ] -> Commands.authorize o.root o.by o.reason
     | [ "re-evaluate" ] -> Commands.re_evaluate o.root
+    | "review-source" :: id :: _ -> Commands.review_source o.root id o.by o.reason
     | "import-adr" :: path :: _ -> Adr.import_file o.root path
     | "import-junit" :: path :: _ -> Junit.import_file path
     | [ "mcp" ] -> Mcp.loop ~root:o.root

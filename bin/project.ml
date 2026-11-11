@@ -4,7 +4,8 @@ let spec_path root = Filename.concat root "spec.json"
 
 let load_spec root =
   let path = spec_path root in
-  if not (Sys.file_exists path) then Error "there is no standing specification here (mathc init)"
+  if not (Sys.file_exists path) then
+    Error "there is no standing specification here (run from the project root or use --root)"
   else
     match Spec.parse_string (Io.read_file path) with
     | Ok spec -> Ok spec
@@ -37,7 +38,9 @@ let environment root =
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
 
-let uncovered root spec = Git.uncovered root spec.claims
+let uncovered root spec =
+  let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
+  Git.uncovered root spec.claims ~goal_scope
 
 let next_text root spec =
   match states root spec with
@@ -52,13 +55,16 @@ let next_text root spec =
             | Holds | Refuted -> None)
           states
       in
+      let sources = List.filter_map (fun claim -> if source_changed root claim then Some claim.id else None) spec.claims in
       let uncovered = uncovered root spec in
       Ok
-        (match refuted, pending, uncovered with
-        | id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
-        | [], id :: _, _ -> "next: check the claim " ^ id
-        | [], [], file :: _ -> "next: inspect uncovered file " ^ file
-        | [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered")
+        (match sources, refuted, pending, uncovered with
+        | id :: _, _, _, _ ->
+            "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
+        | [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
+        | [], [], id :: _, _ -> "next: check the claim " ^ id
+        | [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
+        | [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered")
 
 let map_json root spec =
   match states root spec with

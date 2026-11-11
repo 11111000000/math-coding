@@ -44,8 +44,10 @@ let state_of_attestation ~now ?materials claim requirement = function
 let state_of_claim ~now ?materials claim evidence =
   let latest requirement =
     List.filter (fun e -> e.claim_id = claim.id && e.requirement = requirement) evidence
-    |> List.sort (fun a b -> compare b.issued_at a.issued_at)
-    |> function [] -> None | first :: _ -> Some first
+    |> List.fold_left (fun latest evidence ->
+      match latest with
+      | Some current when current.issued_at > evidence.issued_at -> latest
+      | _ -> Some evidence) None
   in
   let rec fold_states states =
     if states = [] then NeverChecked

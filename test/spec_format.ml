@@ -23,10 +23,6 @@ let () =
   (match Spec.requirement_of_json any with
    | Ok (Any [ Verifier "true" ]) -> ()
    | _ -> failwith "acceptance.any was not preserved");
-  let v4 = Io.read_file (in_repo "docs/lineage/v4/spec.json") in
-  (match Spec.parse_string v4 with
-   | Ok parsed -> check "v4 corpus is read without silent claim drops" (List.length parsed.claims = 46)
-   | Error error -> failwith error);
   let draft = `Assoc [ "id", `String "adr"; "text", `String "draft"; "scope", `List [];
                        "requirements", `List []; "falsifier", `String ""; "register", `String "unknown" ] in
   (match Spec.claim_of_json draft with
@@ -41,6 +37,20 @@ let () =
   expect_error "verifier and acceptance.any cannot be combined"
     (Spec.requirement_of_json (`Assoc [ "kind", `String "verifier"; "spec", `String "true";
                                         "any", `List [] ]));
+  let sourced_claim = { claim with source = Some {
+    kind = Madr; path = "docs/adr/0001.md"; section = None; digest = "new";
+    review = Some { by = "owner"; reason = "reviewed change"; at = 2; previous_digest = "old" } } } in
+  let encoded_claim = Spec.claim_to_json sourced_claim in
+  (match Spec.claim_of_json encoded_claim with
+   | Ok parsed ->
+       (match parsed.source with
+        | Some { review = Some review; _ } ->
+            check "source review survives the codec"
+              (review.by = "owner" && review.reason = "reviewed change" && review.previous_digest = "old")
+        | _ -> failwith "source review was lost")
+   | Error error -> failwith error);
+  expect_error "source review has a strict nested shape"
+    (Spec.claim_of_json (update "source" (update "review" (fun _ -> `String "approved")) encoded_claim));
   let encoded = Evidence.to_json (evidence claim) in
   (match Evidence.of_json encoded with
    | Ok parsed -> check "valid evidence roundtrip is preserved" (parsed.claim_id = claim.id)

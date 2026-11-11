@@ -25,6 +25,7 @@ let temp_dir prefix =
   choose 0
 
 let copy_file source destination =
+  let stat = Unix.stat source in
   let input = open_in_bin source in
   let output = open_out_bin destination in
   let buffer = Bytes.create 65536 in
@@ -34,7 +35,8 @@ let copy_file source destination =
   in
   pump ();
   close_in input;
-  close_out output
+  close_out output;
+  Unix.chmod destination stat.Unix.st_perm
 
 let rec remove_tree path =
   if Sys.file_exists path then (

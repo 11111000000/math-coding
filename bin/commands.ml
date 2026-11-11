@@ -54,7 +54,7 @@ let add root id text scope falsifier register requirements control source_path =
         else
           let full_path = if Filename.is_relative source_path then Filename.concat root source_path else source_path in
           match Git.digest_of_file full_path with
-          | Some digest -> Some { kind = Madr; path = source_path; section = None; digest }
+          | Some digest -> Some { kind = Madr; path = source_path; section = None; digest; review = None }
           | None -> fail 2 ("source file not found: " ^ source_path)
       in
       let claim = {
@@ -111,7 +111,9 @@ let rec execute_requirement root claim items requirement =
           in
           let evidence = evidence_for root claim requirement command outcome reach in
           items := evidence :: !items;
-          Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome))
+          Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
+          if outcome = Pass && reach = Some "subject" then
+            Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id)
   | All requirements | Any requirements ->
       List.iter (execute_requirement root claim items) requirements
 
@@ -219,21 +221,10 @@ let record root id authority by outcome valid_for run_ref =
             print_endline "recorded";
             0
 
-let migrate root write =
-  let spec = load root in
-  let json = Spec.to_json spec in
-  if write then (
-    let path = Filename.concat root "spec.json" in
-    Io.write_atomic (path ^ ".v4-backup") (Io.read_file path);
-    Project.save_spec root spec;
-    print_endline "the specification is migrated to v5; old evidence remains legacy_unverified";
-    0)
-  else (print_endline (Yojson.Safe.pretty_to_string json); 0)
-
 let block_begin = "<!-- math-coding:begin -->"
 let block_end = "<!-- math-coding:end -->"
 
-let usage_verbs = [ "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "migrate"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "re-evaluate"; "mcp" ]
+let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "re-evaluate"; "review-source"; "mcp" ]
 
 let entry_page root =
   let spec = load root in
@@ -292,6 +283,31 @@ let re_evaluate root =
   match Re_evaluation.pending root spec with
   | Error error -> fail 3 error
   | Ok pending -> print_endline (Yojson.Safe.pretty_to_string (`Assoc [ "needs_re_evaluation", `List (List.map (fun id -> `String id) pending) ])); 0
+
+let review_source root id by reason =
+  let spec = load root in
+  match List.find_opt (fun claim -> claim.id = id) spec.claims with
+  | None -> fail 2 ("there is no claim " ^ id)
+  | Some claim -> (
+      match claim.source with
+      | None -> fail 2 "the claim has no source to review"
+      | Some source ->
+          if by = "" || reason = "" then fail 2 "review-source needs --by and --reason"
+          else if claim.owner <> Some by then fail 2 "only the claim owner can review its source"
+          else
+            let full_path = if Filename.is_relative source.path then Filename.concat root source.path else source.path in
+            match Git.digest_of_file full_path with
+            | None -> fail 2 ("source file not found: " ^ source.path)
+            | Some digest when digest = source.digest -> fail 2 "the source has not changed"
+            | Some digest ->
+                let previous_digest = source.digest in
+                let review = Some { by; reason; at = now (); previous_digest } in
+                let source = { source with digest; review } in
+                let claims = List.map (fun current ->
+                  if current.id = id then { current with source = Some source; waiver = None } else current) spec.claims in
+                Project.save_spec root { spec with claims };
+                Printf.printf "claim %s source review recorded; next: mathc run\n" id;
+                0)
 
 let doctor root =
   let broken = ref 0 in

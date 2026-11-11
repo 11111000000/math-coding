@@ -12,15 +12,22 @@ type source_kind =
   | Madr
   | Adr_tools
   | Arc42
-  | V3_decision
   | Task
   | Specification
+
+type source_review = {
+  by : string;
+  reason : string;
+  at : int;
+  previous_digest : string;
+}
 
 type source_ref = {
   kind : source_kind;
   path : string;
   section : string option;
   digest : string;
+  review : source_review option;
 }
 
 type obligation_kind = Invariant | Acceptance | Recovery | Operational | Judgment
@@ -125,7 +132,6 @@ let source_kind_to_string = function
   | Madr -> "madr"
   | Adr_tools -> "adr-tools"
   | Arc42 -> "arc42"
-  | V3_decision -> "v3-decision"
   | Task -> "task"
   | Specification -> "specification"
 
@@ -133,7 +139,6 @@ let source_kind_of_string = function
   | "madr" -> Some Madr
   | "adr-tools" -> Some Adr_tools
   | "arc42" -> Some Arc42
-  | "v3-decision" -> Some V3_decision
   | "task" -> Some Task
   | "specification" -> Some Specification
   | _ -> None
@@ -212,7 +217,13 @@ let definition_digest c =
   let source =
     match c.source with
     | None -> []
-    | Some s -> [ source_kind_to_string s.kind; s.path; Option.value ~default:"" s.section; s.digest ]
+    | Some s ->
+        let review =
+          match s.review with
+          | None -> [ ""; ""; "0"; "" ]
+          | Some r -> [ r.by; r.reason; string_of_int r.at; r.previous_digest ]
+        in
+        [ source_kind_to_string s.kind; s.path; Option.value ~default:"" s.section; s.digest ] @ review
   in
   let requirements = List.map requirement_repr c.requirements |> List.sort_uniq String.compare in
   [ c.id; c.text; String.concat "," c.scope; obligation_kind_to_string c.kind;

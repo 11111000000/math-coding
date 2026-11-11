@@ -27,6 +27,12 @@ case "$mode" in
         exit 1
       fi
     done
+    MATHC_PACKAGE="$package" MATHC_INSTALL_DIR="$work/installed-bin" \
+      MATHC_SKILL_DIR="$work/agent-skill" sh install.sh
+    mathc_bin="$work/installed-bin/mathc"
+    stand_bin="$work/installed-bin/mathc-stand"
+    test -f "$work/agent-skill/SKILL.md"
+    test -f "$work/agent-skill/references/PROJECT-SETUP.md"
     ;;
   *)
     printf 'usage: sh test/package_smoke.sh [default|portable]\n' >&2
@@ -35,6 +41,7 @@ case "$mode" in
 esac
 
 "$mathc_bin" --version
+"$mathc_bin" --help >/dev/null
 git init -q "$project"
 "$mathc_bin" --root "$project" init
 "$mathc_bin" --root "$project" goal "the subject is expected" subject.txt owner

@@ -17,7 +17,8 @@
 (test
  (name adr_junit)
  (modules adr_junit)
- (libraries mathc_test_helpers mathcoding_adapter))
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe}))
 
 (test
  (name cli)
@@ -52,3 +53,10 @@
  (modules stand)
  (libraries mathc_test_helpers mathcoding_adapter)
  (deps %{exe:../bin/mathc.exe} %{exe:../bin/stand.exe}))
+
+(test
+ (name agent_installer)
+ (modules agent_installer)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps ../install.sh ../skills/math-coding/SKILL.md
+  ../skills/math-coding/references/PROJECT-SETUP.md))

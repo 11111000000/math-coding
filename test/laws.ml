@@ -56,4 +56,9 @@ let () =
   let alternative_evidence = { evidence with definition_digest = definition_digest alternatives; verifier_digest = verifier_digest alternatives } in
   check "any alternative can hold" (Verdict.state_of_claim ~now:10 alternatives [ alternative_evidence ] = Holds);
   check "any alternatives without evidence do not hold" (Verdict.state_of_claim ~now:10 alternatives [] = Inconclusive);
+  let failed = { evidence with outcome = Fail } in
+  check "a later failure at the same timestamp wins"
+    (Verdict.state_of_claim ~now:10 ~materials:"materials" claim [ evidence; failed ] = Refuted);
+  check "a later pass at the same timestamp wins"
+    (Verdict.state_of_claim ~now:10 ~materials:"materials" claim [ failed; evidence ] = Holds);
   print_endline "laws: PASS"

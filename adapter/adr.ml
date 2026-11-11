@@ -19,7 +19,10 @@ let first_h1 document =
   List.find_map (function Omd.H1 _ as heading -> Some (text_of heading) | _ -> None) document
 
 let section name sections =
-  match List.assoc_opt name sections with Some body -> String.trim body | None -> ""
+  let normalized = String.lowercase_ascii (String.trim name) in
+  match List.find_opt (fun (title, _) -> String.lowercase_ascii (String.trim title) = normalized) sections with
+  | Some (_, body) -> String.trim body
+  | None -> ""
 
 let slugify text =
   let buffer = Buffer.create (String.length text) in
@@ -50,7 +53,7 @@ let import_file root path =
     in
     let source = {
       kind = Madr; path; section = (if decision = "" then None else Some "Decision");
-      digest = Option.value ~default:"" (Git.digest_of_file full_path);
+      digest = Option.value ~default:"" (Git.digest_of_file full_path); review = None;
     } in
     let claim = {
       id = slugify title; text = (if decision = "" then title else decision);

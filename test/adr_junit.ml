@@ -32,6 +32,8 @@ let () =
       let result = run root "import-adr docs/adr/0001-waiver.md" in
       check "ADR import succeeds" (result.code = 0);
       check "ADR import has source digest" (contains result.stdout "digest");
+      check "ADR title becomes a stable id" (contains result.stdout "use-an-expiring-waiver");
+      check "ADR decision text is preserved" (contains result.stdout "Waiver expires and has a recovery action.");
       check "ADR import does not activate" (contains result.stdout "\"requirements\": []");
       let after = Git.digest_of_file (Filename.concat root "docs/adr/0001-waiver.md") in
       check "ADR file is unchanged" (before = after);

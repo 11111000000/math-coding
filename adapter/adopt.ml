@@ -1,6 +1,6 @@
 let run root =
   let candidates =
-    [ "docs/adr", "madr"; "adr", "adr-tools"; "docs/arc42", "arc42"; "decisions", "v3-decision" ]
+    [ "docs/adr", "madr"; "adr", "adr-tools"; "docs/arc42", "arc42" ]
   in
   let found =
     List.filter_map

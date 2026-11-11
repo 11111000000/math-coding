@@ -1,8 +1,14 @@
 # AGENTS.md — math-coding v5
 
-Активная ветка: `feat/v5-clean-slate`. Прежняя реализация: `archive/v4` и
-тег `v4-baseline`. Не импортируй старый код без сценария и отрицательного
-контроля.
+Активная и единственная линия — v5 в `main`. Старые реализации, ветки, теги,
+worktree и бинари удалены. Не возвращай старый код без сценария и
+отрицательного контроля.
+
+Для использования в других проектах запусти `./install.sh`: бинари попадут в
+`~/.local/bin`, user-scope skill — в `~/.agents/skills/math-coding`. Существующий
+другой CLI не перезаписывай без разрешения человека; `./install.sh --force`
+сохраняет прежние файлы как `*.backup`. `mathc --version` должен печатать
+`mathc 5`. Руководство — `skills/math-coding/references/PROJECT-SETUP.md`.
 
 ## Команды
 
@@ -21,7 +27,6 @@ dune runtest --root . --force
 - `adapter/` — git, процессы, источники, изолированные проверки.
 - `bin/` — маленький CLI, MCP и измеритель.
 - `test/` — accepting и rejecting fixtures.
-- `docs/lineage/v4/` — история, не активная спецификация.
 
 Перед изменением прочти `docs/ENGINEERING-PRACTICES.md` и
 `docs/V5-ARCHITECTURE-AND-PLAN.md`.
@@ -38,13 +43,16 @@ mathc map
 mathc next
 ```
 
-Дополнительные глаголы: `context`, `waive`, `record`, `migrate`, `install`,
-`doctor`, `adopt`, `import-adr`, `import-junit`, `authorize`, `re-evaluate`,
-`mcp`. У `add` необязательный `--source PATH` привязывает существующий ADR по
-digest, не изменяя его. `source_changed` означает `outdated`, а не green;
-`re-evaluate` перечисляет обязательный пересмотр, но не принимает новое решение
-за человека. `record --outcome` принимает только пять значений домена.
-`authorize` не работает без `policy.json`; это журнал, не аутентификация.
+Цель и владельца задаёт человек. `mathc --help` работает и до создания
+спецификации, `mathc help COMMAND` описывает отдельный глагол. Дополнительные
+глаголы: `context`, `waive`, `record`, `install`, `doctor`, `adopt`,
+`import-adr`, `import-junit`, `authorize`,
+`re-evaluate`, `review-source`, `mcp`. У `add` необязательный `--source PATH`
+привязывает существующий ADR по digest, не изменяя его. `source_changed`
+означает `outdated`, а не green. `review-source ID --by ВЛАДЕЛЕЦ --reason WHY`
+сохраняет ревизию и прежний digest, очищает waiver; после него обязателен новый
+`run`. `record --outcome` принимает только пять значений домена. `authorize` не
+работает без `policy.json`; это журнал, не аутентификация.
 
 ## Запреты
 
@@ -53,7 +61,7 @@ digest, не изменяя его. `source_changed` означает `outdated`
 - Не писать свои YAML/XML/Markdown-парсеры.
 - Не менять живое дерево при `map`, `next`, `context` и controls.
 - Не выдавать `Holds` без свежести, control reach `subject` и независимости.
-- Не повышать доверие старым свидетельствам при миграции.
+- Не принимать evidence иной версии и не повышать доверие fallback'ом.
 - Не добавлять команды и поля без accepting/rejecting fixtures.
 
 После изменений проверь `git diff --check`, сборку, все тесты и фактический
@@ -64,7 +72,7 @@ digest, не изменяя его. `source_changed` означает `outdated`
 
 v5 keeps evidence linked, fresh, and independent
 
-9 claim(s).
+12 claim(s).
 
 ```sh
 mathc map
@@ -73,5 +81,5 @@ mathc context
 mathc run
 ```
 
-Every verb: mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc migrate mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc re-evaluate mathc mcp
+Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc re-evaluate mathc review-source mathc mcp
 <!-- math-coding:end -->
