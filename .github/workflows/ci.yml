@@ -84,6 +84,10 @@ jobs:
           primary-key: nix-${{ runner.os }}-pages-${{ hashFiles('flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - run: nix develop -c dune build --root .
+      # The portable package is verified inside `mathc run`, and a verifier
+      # has a bounded execution time. Build it first so the check measures
+      # the package, not the cost of a cold toolchain.
+      - run: nix build .#portable --no-link
       # Fresh evidence in this environment: the deployed map shows the
       # states computed here, and the job fails unless the run is green.
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
