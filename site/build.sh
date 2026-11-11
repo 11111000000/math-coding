@@ -22,10 +22,13 @@ set +e
 "$ROOT/_build/default/bin/mathc.exe" --root "$ROOT" map --json > "$MAP"
 status=$?
 set -e
-if [ "$status" -gt 3 ]; then
-  printf 'site: the map failed with exit %d\n' "$status" >&2
-  exit "$status"
-fi
+case "$status" in
+  0 | 1 | 3) ;;
+  *)
+    printf 'site: the map failed with exit %d\n' "$status" >&2
+    exit "$status"
+    ;;
+esac
 
 META="generated from spec.json @ $(git -C "$ROOT" rev-parse --short HEAD) on $(date -u +%Y-%m-%d) UTC"
 "$ROOT/_build/default/site/render.exe" build "$ROOT" "$DIST" "$META" "$MAP"
