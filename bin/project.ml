@@ -30,8 +30,6 @@ let environment root =
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
 
-let producer_identity () = Sys.executable_name
-
 let states root spec =
   match Trail.read root with
   | Error error -> Error error
