@@ -1,5 +1,6 @@
 open Domain
 
+val valid_path : string -> bool
 val parse_string : string -> (spec, string) result
 val to_json : spec -> Yojson.Safe.t
 val claim_to_json : claim -> Yojson.Safe.t

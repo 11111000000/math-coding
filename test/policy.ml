@@ -11,4 +11,12 @@ let () =
       expect root "authorize --by stranger --reason reviewed" 2;
       let evaluated = run root "re-evaluate" in
       check "re-evaluation returns data" (contains evaluated.stdout "needs_re_evaluation");
+      write root "policy.json" "{\n";
+      let broken = run root "doctor" in
+      check "malformed policy is a readable error" (broken.code = 1 && contains broken.stdout "protected transitions");
+      let outside = Io.temp_dir "mathc-policy-outside" in
+      Fun.protect ~finally:(fun () -> Io.remove_tree outside) (fun () ->
+        match Git.uncovered outside [] ~goal_scope:[ "." ] with
+        | Error _ -> ()
+        | Ok _ -> failwith "repository errors must not become empty coverage");
       print_endline "policy: PASS")

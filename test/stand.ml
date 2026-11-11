@@ -12,4 +12,8 @@ let () =
       let result = Process.run ~root (Printf.sprintf "%s %s --human-minutes 1 --agent-tokens 100 --person-minute-cost 1 --machine-second-cost 0.1 --token-cost 0.01 --defect-cost 100" (Filename.quote stand) (Filename.quote root)) in
       check "stand runs against installed mathc" (result.code = 0);
       check "stand reports the criterion boundary" (contains result.stdout "criterion: not computable - no defect was caught");
+      let negative = Process.run ~root (Printf.sprintf "%s %s --human-minutes -1 --agent-tokens -1 --person-minute-cost -1 --machine-second-cost -1 --token-cost -1 --defect-cost -1" (Filename.quote stand) (Filename.quote root)) in
+      check "negative costs are rejected" (negative.code = 2 && contains negative.stderr "cost parameters must be finite and nonnegative");
+      let unknown = Process.run ~root (Filename.quote stand ^ " --unknown-option") in
+      check "unknown options are rejected" (unknown.code = 2 && contains unknown.stderr "unknown option");
       print_endline "stand: PASS")

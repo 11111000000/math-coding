@@ -5,6 +5,7 @@ type result = {
   outcome : outcome;
   stdout : string;
   stderr : string;
+  truncated : bool;
 }
 
 let classify = function
@@ -27,7 +28,7 @@ let limited_read path =
   in
   pump (1024 * 1024);
   close_in input;
-  Buffer.contents output
+  Buffer.contents output, (Unix.stat path).Unix.st_size > 1024 * 1024
 
 let run ?(timeout = 30.0) ~root command =
   let directory = Io.temp_dir "mathc-process" in
@@ -65,5 +66,7 @@ let run ?(timeout = 30.0) ~root command =
         | Unix.WEXITED code -> code
         | Unix.WSIGNALED signal | Unix.WSTOPPED signal -> 128 + signal
       in
-      { code; outcome = classify code; stdout = limited_read stdout_path;
-        stderr = limited_read stderr_path })
+      let stdout, stdout_truncated = limited_read stdout_path in
+      let stderr, stderr_truncated = limited_read stderr_path in
+      { code; outcome = classify code; stdout; stderr;
+        truncated = stdout_truncated || stderr_truncated })

@@ -12,10 +12,13 @@ let head_commit root =
 
 let repository_files root =
   match Process.run ~timeout:10.0 ~root "git ls-files -z --cached --others --exclude-standard" with
-  | { code = 0; stdout; _ } ->
+  | { code = 0; stdout; truncated = true; _ } -> Error "git ls-files output exceeded the limit"
+  | { code = 0; stdout; truncated = false; _ } ->
       Ok (String.split_on_char '\000' stdout
           |> List.filter (fun value ->
-            value <> "" && Sys.file_exists (Filename.concat root value)))
+            let path = Filename.concat root value in
+            value <> "" && Sys.file_exists path
+            && (try (Unix.lstat path).Unix.st_kind <> Unix.S_LNK with _ -> false)))
   | { code; stderr; _ } -> Error (Printf.sprintf "git ls-files failed (%d): %s" code stderr)
 
 let path_contains ~dir ~path =
@@ -48,8 +51,17 @@ let digest_of_file path =
   else
     try Some (Domain.digest_string (Io.read_file path)) with _ -> None
 
-let digest_of_scope root ~scope =
-  match repository_files root with
+let digest_of_repo_file root path =
+  if not (Spec.valid_path path) then None
+  else
+    let full_path = Filename.concat root path in
+    if not (Sys.file_exists full_path) || Sys.is_directory full_path then None
+    else if (Unix.lstat full_path).Unix.st_kind = Unix.S_LNK then None
+    else digest_of_file full_path
+
+let digest_of_scope ?files root ~scope =
+  let repository = match files with Some files -> Ok files | None -> repository_files root in
+  match repository with
   | Error _ -> None
   | Ok files -> (
       let covered = files_under files ~scope in
@@ -87,9 +99,10 @@ let is_method_file path =
 
 let uncovered root (claims : claim list) ~goal_scope =
   match repository_files root with
-  | Error _ -> []
+  | Error error -> Error error
   | Ok files ->
-      files_under files ~scope:goal_scope
-      |> List.filter (fun file ->
-        not (is_method_file file)
-        && not (List.exists (fun (claim : claim) -> files_under [ file ] ~scope:claim.scope <> []) claims))
+      Ok
+        (files_under files ~scope:goal_scope
+         |> List.filter (fun file ->
+           not (is_method_file file)
+           && not (List.exists (fun (claim : claim) -> files_under [ file ] ~scope:claim.scope <> []) claims)))

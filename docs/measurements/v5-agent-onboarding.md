@@ -50,4 +50,6 @@ agent page и пройти doctor.
 exec-бита.
 
 После исправлений полный build/test run, default/portable smoke и внешний
-onboarding проходят повторно.
+onboarding проходят повторно. Аудит затем добавил проверки точного environment
+fingerprint, judgment только через внешний review, безопасные source paths,
+транзакционную установку и короткое выполнение `Any`.

@@ -19,6 +19,21 @@ let () =
   expect_error "duplicate field is rejected" (Spec.parse_string "{\"schema_version\":5,\"schema_version\":5,\"goal\":null,\"claims\":[]}");
   expect_error "bad nested requirement is rejected" (Spec.parse_string "{\"schema_version\":5,\"goal\":null,\"claims\":[{\"id\":\"x\",\"text\":\"x\",\"scope\":[],\"requirements\":[{\"kind\":\"verifier\",\"spec\":1}],\"falsifier\":\"x\",\"register\":\"fact\"}]}");
   expect_error "bad goal is rejected" (Spec.parse_string "{\"schema_version\":5,\"goal\":1,\"claims\":[]}");
+  expect_error "goal timestamp must be an integer"
+    (Spec.parse_string "{\"schema_version\":5,\"goal\":{\"text\":\"aim\",\"scope\":[],\"by\":\"owner\",\"at\":\"1\",\"reason\":null},\"claims\":[]}");
+  expect_error "an empty scope path is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [ `String "" ];
+                                   "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
+  check "directory scopes retain their trailing slash" (Spec.valid_path "lib/");
+  check "internal empty path segments are rejected" (not (Spec.valid_path "lib//broken"));
+  expect_error "traversal scope is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [ `String "../outside" ];
+                                   "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
+  expect_error "traversal source is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                   "source", `Assoc [ "kind", `String "madr"; "path", `String "../outside";
+                                                     "section", `Null; "digest", `String "abc"; "review", `Null ];
+                                   "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   let any = `Assoc [ "any", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ] ] in
   (match Spec.requirement_of_json any with
    | Ok (Any [ Verifier "true" ]) -> ()

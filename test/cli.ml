@@ -57,6 +57,7 @@ let () =
       expect root "waive sample --by owner --reason reason --valid-for nope --recovery rerun" 2;
       expect root "add reviewed \"human review\" subject.txt \"review refutes it\" fact --requirement \"review:owner\"" 0;
       expect root "record reviewed owner --by owner --outcome invented" 2;
+      expect root "record reviewed owner --by owner --outcome pass --valid-for -1" 2;
       write root ".math/v5/evidence.jsonl" "not-json\n";
       let corrupted = run root "map" in
       check "a malformed evidence trail is a readable error"
@@ -111,6 +112,10 @@ let () =
       expect root "run" 0;
       expect root "map" 0;
       expect root "review-source sourced --by owner --reason redundant" 2;
+      expect root "add traversal \"outside source\" subject.txt \"outside source\" fact --requirement \"verifier:true\" --source ../outside.md" 2;
+      expect root "add outside-scope \"outside scope\" ../outside.txt \"outside scope\" fact --requirement \"verifier:true\"" 2;
+      Unix.symlink (Filename.concat root "docs/adr/0001.md") (Filename.concat root "link.md");
+      expect root "add linked \"symlink source\" subject.txt \"symlink source\" fact --requirement \"verifier:true\" --source link.md" 2;
       print_endline "source-re-evaluation: PASS")
 
 let () =
@@ -132,9 +137,13 @@ let () =
       expect root "goal \"the control mirrors the live tree\" subject.txt owner" 0;
       write root "subject.txt" "expected\n";
       Unix.unlink (Filename.concat root "removed.txt");
-      let exact = Isolated_run.with_copy root (fun copy ->
-        let staged = Process.run ~root:copy "git diff --cached --name-only" in
-        not (Sys.file_exists (Filename.concat copy "removed.txt")) && contains staged.stdout "subject.txt") in
+      let exact =
+        match Isolated_run.with_copy root (fun copy ->
+          let staged = Process.run ~root:copy "git diff --cached --name-only" in
+          not (Sys.file_exists (Filename.concat copy "removed.txt")) && contains staged.stdout "subject.txt") with
+        | Ok value -> value
+        | Error error -> failwith error
+      in
       check "the snapshot contains new files and excludes deleted files" exact;
       expect root "add exact-copy \"the control sees only current files\" subject.txt \"a deleted file is still visible\" fact --requirement \"verifier:test ! -e removed.txt && grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
       expect root "run" 0;
@@ -160,9 +169,50 @@ let () =
       print_endline "executable-snapshot: PASS")
 
 let () =
+  with_repo (fun root ->
+      write root "flake.lock" "{\"nodes\":{}}\n";
+      expect root "init" 0;
+      expect root "goal \"environment must stay bound\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 0;
+      write root "flake.lock" "{\"nodes\":{\"changed\":true}}\n";
+      let changed = run root "map" in
+      check "changed nonempty environment invalidates evidence"
+        (changed.code = 3 && contains changed.stdout "outdated");
+      print_endline "environment-freshness: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"a judgment needs human evaluation\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add subjective \"subjective quality is excellent\" subject.txt \"a human reviewer disagrees\" judgment --requirement \"verifier:grep -q expected subject.txt\"" 2;
+      expect root "add invalid \"invalid register\" subject.txt \"invalid register\" fax --requirement \"verifier:true\"" 2;
+      expect root "add judged \"subjective quality is excellent\" subject.txt \"a human reviewer disagrees\" judgment --requirement \"review:owner\"" 0;
+      expect root "map" 3;
+      expect root "record judged owner --by owner --outcome pass" 0;
+      expect root "map" 0;
+      print_endline "judgment-register: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"one passing alternative is enough\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let alternative = { claim with requirements = [ Any [ Verifier "grep -q expected subject.txt"; Verifier "printf second > second.txt && false" ] ] } in
+      let spec = { goal = Some { text = "one passing alternative is enough"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ alternative ] } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 0;
+      check "Any stops after the first passing alternative" (not (Sys.file_exists (Filename.concat root "second.txt")));
+      print_endline "any-short-circuit: PASS")
+
+let () =
   let root = Sys.getcwd () in
   check "a signal-like exit is an infrastructure error"
     ((Process.run ~root "exit 137").outcome = Infrastructure_error);
   check "a timeout is an infrastructure error"
     ((Process.run ~timeout:0.05 ~root "sleep 1").outcome = Infrastructure_error);
+  check "large output is marked truncated"
+    (Process.run ~root "python3 -c 'print(\"x\" * 1048577)'").truncated;
   print_endline "process-outcomes: PASS"

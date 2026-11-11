@@ -64,6 +64,10 @@ let measure root =
   ignore (Process.run ~timeout:180.0 ~root (Printf.sprintf "%s --root %s run" (Filename.quote binary) (Filename.quote project_root)));
   let protocol_seconds = Unix.gettimeofday () -. started in
   let mapped = Process.run ~timeout:30.0 ~root (Printf.sprintf "%s --root %s map --json" (Filename.quote binary) (Filename.quote project_root)) in
+  if mapped.truncated then (
+    prerr_endline "stand: mathc map output was truncated";
+    None)
+  else
   match Yojson.Safe.from_string mapped.stdout with
   | exception Yojson.Json_error error -> prerr_endline error; None
   | json -> (
@@ -97,12 +101,25 @@ let parse_costs args =
   in
   let float name = Option.bind (value name) float_of_string_opt in
   let int name = Option.bind (value name) int_of_string_opt in
+  let cost_keys = [ "--human-minutes"; "--agent-tokens"; "--person-minute-cost";
+                    "--machine-second-cost"; "--token-cost"; "--defect-cost" ] in
+  let has_cost_input = List.exists (fun (key, _) -> List.mem key cost_keys) args in
   match float "--human-minutes", int "--agent-tokens", float "--person-minute-cost",
         float "--machine-second-cost", float "--token-cost" with
   | Some human_minutes, Some agent_tokens, Some person_minute_cost, Some machine_second_cost, Some token_cost ->
-      Some { human_minutes; agent_tokens; person_minute_cost; machine_second_cost; token_cost;
-             defect_cost = float "--defect-cost" }
-  | _ -> None
+      let values = [ human_minutes; person_minute_cost; machine_second_cost; token_cost ] in
+      let defect_cost = float "--defect-cost" in
+      if agent_tokens < 0 || List.exists (fun value -> value < 0.0 || value = infinity) values
+         || Option.exists (fun value -> value < 0.0 || value = infinity) defect_cost then
+        Error "cost parameters must be finite and nonnegative"
+      else if List.exists (fun value -> value <> value) values
+         || Option.exists (fun value -> value <> value) defect_cost then
+        Error "cost parameters must not be NaN"
+      else
+        Ok (Some { human_minutes; agent_tokens; person_minute_cost; machine_second_cost; token_cost;
+                   defect_cost })
+  | _ when has_cost_input -> Error "all five base cost parameters are required and must be numbers"
+  | _ -> Ok None
 
 let rec parse_args = function
   | [] -> []
@@ -112,6 +129,8 @@ let rec parse_args = function
   | "--machine-second-cost" :: value :: rest -> ("--machine-second-cost", value) :: parse_args rest
   | "--token-cost" :: value :: rest -> ("--token-cost", value) :: parse_args rest
   | "--defect-cost" :: value :: rest -> ("--defect-cost", value) :: parse_args rest
+  | option :: _ when String.length option > 0 && option.[0] = '-' ->
+      failwith ("unknown option: " ^ option)
   | project :: rest -> ("project", project) :: parse_args rest
 
 let usage () =
@@ -150,7 +169,11 @@ let () =
   if List.exists (fun argument -> argument = "--help" || argument = "-h") arguments then (
     usage ();
     exit 0);
-  let options = parse_args arguments in
+  let options =
+    match parse_args arguments with
+    | exception Failure message -> Printf.eprintf "stand: %s\n" message; exit 2
+    | options -> options
+  in
   let projects = List.filter_map (fun (key, value) -> if key = "project" then Some value else None) options in
   if projects = [] then (
     Printf.eprintf "stand: nothing was measured\nusage: stand PROJECT [PROJECT ...]\n";
@@ -178,9 +201,12 @@ let () =
     (total (fun m -> m.protocol_seconds)) (total (fun m -> m.control_seconds))
     (total (fun m -> m.protocol_seconds -. m.control_seconds));
   match parse_costs options with
-  | None ->
+  | Error message ->
+      Printf.eprintf "stand: %s\n" message;
+      exit 2
+  | Ok None ->
       print_endline "ratio: not computed. Declare human minutes, tokens and their prices."
-  | Some costs ->
+  | Ok (Some costs) ->
       let denominator =
         costs.human_minutes *. costs.person_minute_cost
         +. total (fun m -> m.protocol_seconds) *. costs.machine_second_cost

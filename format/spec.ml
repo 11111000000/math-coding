@@ -34,10 +34,24 @@ let source_to_json (source : source_ref) =
           "digest", json_string source.digest;
           "review", (match source.review with None -> `Null | Some review -> review_to_json review) ]
 
+let valid_path path =
+  if path = "" || not (Filename.is_relative path) then false
+  else if path = "." then true
+  else
+    let rec components = function
+      | [] -> true
+      | [ "" ] -> true
+      | component :: rest ->
+          if component = "" || component = "." || component = ".." then false
+          else components rest
+    in
+    components (String.split_on_char '/' path)
+
 let source_of_json json =
   let* pairs = object_ "source" [ "kind"; "path"; "section"; "digest"; "review" ] json in
   let* kind = string "kind" pairs in
   let* path = string "path" pairs in
+  let* () = if valid_path path then Ok () else Error "source.path must stay inside the project" in
   let* section = string_opt "section" pairs in
   let* digest = string "digest" pairs in
   let* review =
@@ -136,6 +150,7 @@ let claim_of_json json =
   let* id = string "id" pairs in
   let* text = string "text" pairs in
   let* scope = string_list "scope" pairs in
+  let* () = if List.for_all valid_path scope then Ok () else Error "claim.scope contains an invalid path" in
   let* source =
     match List.assoc_opt "source" pairs with
     | Some `Null | None -> Ok None
@@ -199,12 +214,11 @@ let goal_of_json json =
   let* pairs = object_ "goal" [ "text"; "scope"; "by"; "at"; "reason" ] json in
   let* text = string "text" pairs in
   let* scope = string_list "scope" pairs in
+  let* () = if List.for_all valid_path scope then Ok () else Error "goal.scope contains an invalid path" in
   let* by = string "by" pairs in
   let* at =
     match List.assoc_opt "at" pairs with
     | Some (`Int value) -> Ok value
-    | Some (`String value) -> (
-        match int_of_string_opt value with Some timestamp -> Ok timestamp | None -> Error "at must be an integer")
     | Some _ -> Error "at must be an integer"
     | None -> Error "at is required"
   in

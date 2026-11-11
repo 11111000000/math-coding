@@ -1,5 +1,7 @@
 open Domain
 
+let ( let* ) result next = match result with Ok value -> next value | Error error -> Error error
+
 let spec_path root = Filename.concat root "spec.json"
 
 let load_spec root =
@@ -20,23 +22,25 @@ let save_spec root spec =
 let source_changed root (claim : claim) =
   match claim.source with
   | None -> false
-  | Some source -> Git.digest_of_file (Filename.concat root source.path) <> Some source.digest
-
-let states root spec =
-  match Trail.read root with
-  | Error error -> Error error
-  | Ok evidence ->
-      let now = int_of_float (Unix.time ()) in
-      Ok (List.map (fun (claim : claim) ->
-        let state = Verdict.state_of_claim ~now
-          ?materials:(Git.digest_of_scope root ~scope:claim.scope) claim evidence in
-        claim.id, if source_changed root claim then Outdated else state) spec.claims)
+  | Some source -> Git.digest_of_repo_file root source.path <> Some source.digest
 
 let environment root =
   let lock = Filename.concat root "flake.lock" in
   let toolchain = if Sys.file_exists lock then Io.read_file lock else "" in
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
+
+let states root spec =
+  match Trail.read root with
+  | Error error -> Error error
+  | Ok evidence ->
+      let* files = Git.repository_files root in
+      let now = int_of_float (Unix.time ()) in
+      let current_environment = environment root in
+      Ok (List.map (fun (claim : claim) ->
+        let state = Verdict.state_of_claim ~now ~environment:current_environment
+          ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim evidence in
+        claim.id, if source_changed root claim then Outdated else state) spec.claims)
 
 let uncovered root spec =
   let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
@@ -46,6 +50,7 @@ let next_text root spec =
   match states root spec with
   | Error error -> Error error
   | Ok states ->
+      let* uncovered = uncovered root spec in
       let refuted = List.filter_map (fun (id, state) -> if state = Refuted then Some id else None) states in
       let pending =
         List.filter_map
@@ -56,7 +61,6 @@ let next_text root spec =
           states
       in
       let sources = List.filter_map (fun claim -> if source_changed root claim then Some claim.id else None) spec.claims in
-      let uncovered = uncovered root spec in
       Ok
         (match sources, refuted, pending, uncovered with
         | id :: _, _, _, _ ->
@@ -73,6 +77,7 @@ let map_json root spec =
       match next_text root spec with
       | Error error -> Error error
       | Ok next ->
+          let* uncovered = uncovered root spec in
           let states_json =
             List.map
               (fun (id, state) ->
@@ -94,5 +99,5 @@ let map_json root spec =
                   `Assoc [ "text", `String goal.text; "scope", `List (List.map (fun p -> `String p) goal.scope);
                            "by", `String goal.by; "at", `Int goal.at; "reason", match goal.reason with Some r -> `String r | None -> `Null ]);
                 "states", `List states_json;
-                "uncovered", `List (List.map (fun file -> `String file) (uncovered root spec));
+                "uncovered", `List (List.map (fun file -> `String file) uncovered);
                 "next", `String next ]))

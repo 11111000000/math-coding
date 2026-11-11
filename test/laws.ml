@@ -43,6 +43,9 @@ let () =
   check "environment missing is outdated"
     (Verdict.state_of_evidence ~now:10 claim (Verifier "grep -q expected subject.txt")
        (Some { evidence with environment = { class_ = "local"; fingerprint = "" } }) = Outdated);
+  check "a different nonempty environment is outdated"
+    (Verdict.state_of_evidence ~now:10 ~environment:{ class_ = "local"; fingerprint = "different" }
+       claim (Verifier "grep -q expected subject.txt") (Some evidence) = Outdated);
   check "expired evidence is outdated"
     (Verdict.state_of_evidence ~now:10 claim (Verifier "grep -q expected subject.txt")
        (Some { evidence with valid_until = Some 10 }) = Outdated);
@@ -61,4 +64,17 @@ let () =
     (Verdict.state_of_claim ~now:10 ~materials:"materials" claim [ evidence; failed ] = Refuted);
   check "a later pass at the same timestamp wins"
     (Verdict.state_of_claim ~now:10 ~materials:"materials" claim [ failed; evidence ] = Holds);
+  let judged = { claim with register = Judgment; requirements = [ Review { authority = "owner"; minimum_independence = External } ] } in
+  let review_requirement = Review { authority = "owner"; minimum_independence = External } in
+  let attestation = { evidence with
+    requirement = review_requirement;
+    definition_digest = definition_digest judged;
+    verifier_digest = verifier_digest judged;
+    producer = { class_ = "human"; identity = "owner"; run = None };
+    independence = External;
+  } in
+  check "machine-only judgment is not established"
+    (Verdict.state_of_claim ~now:10 judged [ evidence ] = NeverChecked);
+  check "external human review can establish judgment"
+    (Verdict.state_of_claim ~now:10 judged [ attestation ] = Holds);
   print_endline "laws: PASS"

@@ -17,31 +17,37 @@ let verdict_of_states states =
   | [] -> Vacant
   | _ -> List.fold_left (fun v s -> combine v (verdict_of_state s)) Green states
 
-let state_of_evidence ~now ?materials claim requirement = function
+let state_of_evidence ~now ?materials ?environment claim requirement = function
   | None -> NeverChecked
   | Some evidence ->
-      if evidence.issued_at > now || not (Freshness.current ?materials claim evidence) then Outdated
+      if evidence.issued_at > now || not (Freshness.current ?materials ?environment claim evidence) then Outdated
       else if Freshness.expired ~now evidence.valid_until then Outdated
       else
         match evidence.outcome with
         | Fail -> Refuted
         | Inconclusive | Infrastructure_error | Not_run -> Inconclusive
-        | Pass when not (Freshness.requirement_fresh claim requirement evidence) -> Inconclusive
+        | Pass when not (Freshness.requirement_fresh ?materials ?environment claim requirement evidence) -> Inconclusive
         | Pass -> Holds
 
-let state_of_attestation ~now ?materials claim requirement = function
+let state_of_attestation ~now ?materials ?environment claim requirement = function
   | None -> NeverChecked
   | Some evidence ->
       if evidence.issued_at > now || Freshness.expired ~now evidence.valid_until then Outdated
-      else if not (Freshness.current ?materials claim evidence) then Outdated
-      else if not (Freshness.requirement_fresh claim requirement evidence) then Outdated
+      else if not (Freshness.current ?materials ?environment claim evidence) then Outdated
+      else if not (Freshness.requirement_fresh ?materials ?environment claim requirement evidence) then Outdated
       else
         match evidence.outcome with
         | Fail -> Refuted
         | Inconclusive | Infrastructure_error | Not_run -> Inconclusive
         | Pass -> Holds
 
-let state_of_claim ~now ?materials claim evidence =
+let rec judgment_requirements = function
+  | Verifier _ -> None
+  | Review _ as requirement -> Some requirement
+  | All requirements -> Some (All (List.filter_map judgment_requirements requirements))
+  | Any requirements -> Some (Any (List.filter_map judgment_requirements requirements))
+
+let state_of_claim ~now ?materials ?environment claim evidence =
   let latest requirement =
     List.filter (fun e -> e.claim_id = claim.id && e.requirement = requirement) evidence
     |> List.fold_left (fun latest evidence ->
@@ -60,8 +66,8 @@ let state_of_claim ~now ?materials claim evidence =
   in
   let rec evaluate requirement =
     match requirement with
-    | Verifier _ -> state_of_evidence ~now ?materials claim requirement (latest requirement)
-    | Review _ -> state_of_attestation ~now ?materials claim requirement (latest requirement)
+    | Verifier _ -> state_of_evidence ~now ?materials ?environment claim requirement (latest requirement)
+    | Review _ -> state_of_attestation ~now ?materials ?environment claim requirement (latest requirement)
     | All requirements -> fold_states (List.map evaluate requirements)
     | Any requirements -> (
         let states = List.map evaluate requirements in
@@ -69,7 +75,11 @@ let state_of_claim ~now ?materials claim evidence =
         else if states <> [] && List.for_all (fun state -> state = Refuted) states then Refuted
         else Inconclusive)
   in
-  let computed = fold_states (List.map evaluate claim.requirements) in
+  let requirements = match claim.register with
+    | Judgment -> List.filter_map judgment_requirements claim.requirements
+    | Fact | Hypothesis | Undeclared -> claim.requirements
+  in
+  let computed = fold_states (List.map evaluate requirements) in
   match claim.waiver, computed with
   | Some waiver, (Inconclusive | NotCheckable | Outdated | NeverChecked)
     when waiver.issued_at <= now && now < waiver.expires_at -> Waived

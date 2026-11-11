@@ -13,7 +13,7 @@ let pending root spec =
              let changed =
                match claim.source with
                | None -> false
-               | Some source -> Git.digest_of_file (Filename.concat root source.path) <> Some source.digest
+               | Some source -> Git.digest_of_repo_file root source.path <> Some source.digest
              in
              if changed || state <> Holds then Some claim.id else None)
            spec.claims)

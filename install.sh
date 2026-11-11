@@ -68,6 +68,7 @@ fi
 mkdir -p "$bin_dir" "$skill_dir/references"
 cleanup() {
   rm -f "$bin_dir/mathc.tmp.$$" "$bin_dir/mathc-stand.tmp.$$" \
+    "$bin_dir/mathc.candidate.$$" "$bin_dir/mathc-stand.candidate.$$" \
     "$bin_dir/mathc.build-id.tmp.$$" "$skill_dir/SKILL.md.tmp.$$" \
     "$skill_dir/references/PROJECT-SETUP.md.tmp.$$"
 }
@@ -93,17 +94,26 @@ copy_file() {
   mv -f "$temporary" "$destination"
 }
 
-copy_file "$package/bin/mathc" "$bin_dir/mathc" 0755
-copy_file "$package/bin/stand" "$bin_dir/mathc-stand" 0755
-
-if ! version="$("$bin_dir/mathc" --version 2>&1)"; then
-  printf 'install: installed mathc does not run:\n%s\n' "$version" >&2
+candidate="$bin_dir/mathc.candidate.$$"
+candidate_stand="$bin_dir/mathc-stand.candidate.$$"
+cp "$package/bin/mathc" "$candidate"
+cp "$package/bin/stand" "$candidate_stand"
+chmod 0755 "$candidate" "$candidate_stand"
+if ! version="$("$candidate" --version 2>&1)"; then
+  printf 'install: candidate mathc does not run:\n%s\n' "$version" >&2
   exit 1
 fi
 if ! printf '%s\n' "$version" | grep -q '^mathc 5$'; then
   printf 'install: unexpected mathc version:\n%s\n' "$version" >&2
   exit 1
 fi
+if ! "$candidate_stand" --help >/dev/null 2>&1; then
+  printf 'install: candidate mathc-stand does not run\n' >&2
+  exit 1
+fi
+copy_file "$candidate" "$bin_dir/mathc" 0755
+copy_file "$candidate_stand" "$bin_dir/mathc-stand" 0755
+rm -f "$candidate" "$candidate_stand"
 
 build="$(sha256sum "$bin_dir/mathc")"
 build="${build%% *}"

@@ -23,6 +23,16 @@ let goal root text scope by reason =
     print_endline "the aim is set";
     0)
 
+let rec has_verifier = function
+  | Verifier _ -> true
+  | Review _ -> false
+  | All requirements | Any requirements -> List.exists has_verifier requirements
+
+let rec has_review = function
+  | Verifier _ -> false
+  | Review _ -> true
+  | All requirements | Any requirements -> List.exists has_review requirements
+
 let add root id text scope falsifier register requirements control source_path =
   let spec = load root in
   let inside_aim goal_scope prefix =
@@ -36,6 +46,7 @@ let add root id text scope falsifier register requirements control source_path =
         else if scope = [] then Some "the scope is empty"
         else if requirements = [] then Some "at least one requirement is required"
         else if List.exists (fun claim -> claim.id = id) spec.claims then Some "the claim id is already used"
+        else if not (List.for_all Spec.valid_path scope) then Some "scope contains an invalid path"
         else if not (List.for_all (inside_aim goal.scope) scope) then Some "the scope is outside the aim"
         else None
   in
@@ -43,19 +54,21 @@ let add root id text scope falsifier register requirements control source_path =
   | Some error -> fail 2 error
   | None ->
       let register =
-        match register with
-        | "fact" -> Fact
-        | "hypothesis" -> Hypothesis
-        | "judgment" -> Judgment
-        | _ -> Undeclared
+        match register_of_string register with
+        | Some value -> value
+        | None -> fail 2 "register must be fact, hypothesis, judgment or unknown"
       in
+      (if register = Judgment && List.exists has_verifier requirements then
+         fail 2 "a judgment cannot be established by a machine verifier"
+       else if register = Judgment && not (List.exists has_review requirements) then
+         fail 2 "a judgment needs a human review requirement");
       let source =
         if source_path = "" then None
+        else if not (Spec.valid_path source_path) then fail 2 "source path must stay inside the project"
         else
-          let full_path = if Filename.is_relative source_path then Filename.concat root source_path else source_path in
-          match Git.digest_of_file full_path with
+          match Git.digest_of_repo_file root source_path with
           | Some digest -> Some { kind = Madr; path = source_path; section = None; digest; review = None }
-          | None -> fail 2 ("source file not found: " ^ source_path)
+          | None -> fail 2 ("source file not found or not a regular project file: " ^ source_path)
       in
       let claim = {
         id; text; scope; source; kind = Acceptance; phase = Pre_merge;
@@ -67,8 +80,8 @@ let add root id text scope falsifier register requirements control source_path =
       Printf.printf "claim %s declared\n" id;
       0
 
-let evidence_for root (claim : claim) requirement command outcome control_reach =
-  let binding = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope) in
+let evidence_for ?files root (claim : claim) requirement command outcome control_reach =
+  let binding = Option.value ~default:"" (Git.digest_of_scope ?files root ~scope:claim.scope) in
   { claim_id = claim.id; requirement;
     candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
     materials_digest = binding;
@@ -80,23 +93,29 @@ let evidence_for root (claim : claim) requirement command outcome control_reach 
     evidence_ref = None; control_reach }
 
 let report_failure label (result : Process.result) =
-  if result.code <> 0 then (
-    Printf.eprintf "mathc: %s exited %d\n%s%s" label result.code result.stdout result.stderr;
+  if result.code <> 0 || result.truncated then (
+    Printf.eprintf "mathc: %s exited %d%s\n%s%s" label result.code
+      (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
     if result.stdout = "" && result.stderr = "" then prerr_newline ())
 
-let rec execute_requirement root claim items requirement =
+let rec execute_requirement ?files root claim items requirement : Domain.outcome =
   match requirement with
-  | Review { authority; _ } -> Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority
+  | Review { authority; _ } ->
+      Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
+      Inconclusive
   | Verifier command -> (
-      match Git.digest_of_scope root ~scope:claim.scope with
-      | None -> Printf.printf "%s: the subject is not whole or does not exist\n" claim.id
+      match Git.digest_of_scope ?files root ~scope:claim.scope with
+      | None ->
+          Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
+          Inconclusive
       | Some _ ->
           let result = Process.run ~timeout:60.0 ~root command in
           report_failure command result;
+          let outcome = if result.truncated then Infrastructure_error else result.outcome in
           let outcome, reach =
-            match result.outcome, claim.control with
-            | Pass, Some control ->
-                Isolated_run.with_copy root (fun copy ->
+            match outcome, claim.control with
+            | Pass, Some control -> (
+                match Isolated_run.with_copy root (fun copy ->
                     let before = Git.digest_of_scope copy ~scope:claim.scope in
                     let mutation = Process.run ~timeout:30.0 ~root:copy control in
                     report_failure ("negative control: " ^ control) mutation;
@@ -105,23 +124,50 @@ let rec execute_requirement root claim items requirement =
                     let check = Process.run ~timeout:60.0 ~root:copy command in
                     report_failure ("verifier after negative control: " ^ command) check;
                     if reach = "subject" && check.code = 1 then Pass, Some reach
-                    else Inconclusive, Some reach)
+                    else Inconclusive, Some reach) with
+                | Error error ->
+                    Printf.eprintf "mathc: control setup failed: %s\n" error;
+                    Infrastructure_error, None
+                | Ok (outcome, reach) -> outcome, reach)
             | Pass, None -> Not_run, None
             | outcome, _ -> outcome, None
           in
-          let evidence = evidence_for root claim requirement command outcome reach in
+          let evidence = evidence_for ?files root claim requirement command outcome reach in
           items := evidence :: !items;
           Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
           if outcome = Pass && reach = Some "subject" then
-            Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id)
-  | All requirements | Any requirements ->
-      List.iter (execute_requirement root claim items) requirements
+            Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id;
+          outcome)
+  | All requirements ->
+      let rec run_all (requirements : requirement list) : outcome =
+        match requirements with
+        | [] -> Pass
+        | requirement :: rest ->
+            let outcome = execute_requirement ?files root claim items requirement in
+            if outcome = Pass then run_all rest else outcome
+      in
+      (run_all requirements : Domain.outcome)
+  | Any requirements ->
+      let rec run_any (requirements : requirement list) : outcome =
+        match requirements with
+        | [] -> Inconclusive
+        | requirement :: rest ->
+            let outcome = execute_requirement ?files root claim items requirement in
+            if outcome = Pass then Pass else run_any rest
+      in
+      (run_any requirements : Domain.outcome)
 
 let run root =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
+  let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
   let items = ref [] in
-  List.iter (fun claim -> List.iter (execute_requirement root claim items) claim.requirements) spec.claims;
+  List.iter
+    (fun claim ->
+      List.iter
+        (fun requirement -> ignore (execute_requirement ~files root claim items requirement))
+        claim.requirements)
+    spec.claims;
   List.iter (Trail.append root) (List.rev !items);
   match Project.map_json root spec with
   | Error error -> fail 3 error
@@ -156,8 +202,13 @@ let map root json =
             List.iter (fun (id, state) ->
               let changed = match List.find_opt (fun claim -> claim.id = id) spec.claims with Some claim -> Project.source_changed root claim | None -> false in
               Printf.printf "  %-28s %s%s\n" id (state_to_string state) (if changed then " (source changed)" else "")) states;
-            Printf.printf "uncovered: %d file(s)\n" (List.length (Project.uncovered root spec));
-            List.iter (fun file -> Printf.printf "  %s\n" file) (Project.uncovered root spec));
+            let uncovered =
+              match Project.uncovered root spec with
+              | Error error -> fail 3 error
+              | Ok files -> files
+            in
+            Printf.printf "uncovered: %d file(s)\n" (List.length uncovered);
+            List.iter (fun file -> Printf.printf "  %s\n" file) uncovered);
       json_int_field "exit" value
 
 let next root =
@@ -202,6 +253,8 @@ let record root id authority by outcome valid_for run_ref =
       let requirement = Review { authority; minimum_independence = External } in
       if not (List.mem requirement claim.requirements) then fail 2 "the claim has no such review requirement"
       else if by = "" then fail 2 "record needs --by"
+      else if Option.exists (fun days -> days <= 0) valid_for then
+        fail 2 "record --valid-for must be a positive number of days"
       else
         match outcome_of_string outcome with
         | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
@@ -295,8 +348,7 @@ let review_source root id by reason =
           if by = "" || reason = "" then fail 2 "review-source needs --by and --reason"
           else if claim.owner <> Some by then fail 2 "only the claim owner can review its source"
           else
-            let full_path = if Filename.is_relative source.path then Filename.concat root source.path else source.path in
-            match Git.digest_of_file full_path with
+            match Git.digest_of_repo_file root source.path with
             | None -> fail 2 ("source file not found: " ^ source.path)
             | Some digest when digest = source.digest -> fail 2 "the source has not changed"
             | Some digest ->

@@ -59,6 +59,7 @@ ADR / specification / task
 ### M1. Ядро и форматы
 
 - Типы, verdict/freshness, spec/evidence codecs.
+- Fingerprint среды сравнивается точно; `judgment` требует внешний review.
 - Строгие ошибки, никаких молчаливых fallback.
 - Пустое состояние — `vacant`.
 
@@ -77,7 +78,8 @@ ADR / specification / task
 
 ### M4. Evidence и waiver
 
-- Все digests и environment/producer/run.
+- Все digests и environment/producer/run; права файла входят в materials digest.
+- Paths ограничены проектом, symlink не попадает в snapshot.
 - JUnit через `xmlm`.
 - Waiver с expiry/recovery, без превращения fail в pass.
 - Controls — независимые копии, без restore живого дерева.
@@ -90,15 +92,17 @@ ADR / specification / task
 - `review-source` сохраняет автора, причину и прежний digest, очищает waiver;
   свежий `run` обязателен и автоматический green запрещён.
 - Protected transitions требуют policy и явной авторизации.
-- Текущий MCP: outputSchema, structuredContent, structured errors.
+- Текущий MCP: protocol negotiation, JSON-RPC/schema validation, outputSchema,
+  structuredContent и structured errors.
 - Context capsule и маленький основной цикл; `--help` доступен без spec.json.
 - Покрытие ограничено scope цели и не считает служебные файлы методом.
 
 ### M6. Пилот и поставка
 
 - Чистый clone, все тесты, portable smoke вне Nix store.
-- `install.sh` атомарно устанавливает static `mathc`, `mathc-stand`, build-id и
-  user-scope skill; повторная установка и защита прежнего бинаря проверяются.
+- `install.sh` проверяет кандидатов до атомарной замены static `mathc`,
+  `mathc-stand`, build-id и user-scope skill; rollback при failed upgrade
+  сохраняет прежний бинарь.
 - MADR, no-ADR, weak-checks и handoff projects.
 - Независимый агент проходит onboarding только по установленному skill.
 - CI: быстрые проверки и отдельный cached portable/self-run job.

@@ -81,6 +81,18 @@ Control обязан менять предмет claim и заставлять v
 - Не редактируй evidence trail, не ослабляй verifier и не меняй control ради
   зелёного результата.
 
+## Регистры, среда и пути
+
+- `fact` и `hypothesis` могут подтверждаться verifier'ом. `judgment` требует
+  `review:WHO` и внешнего human review; machine verifier для него не подходит.
+- Evidence считается текущим только при совпадении fingerprint среды. Смена
+  toolchain, lock-файла или бинаря запуска делает его устаревшим.
+- Scope и source paths должны быть относительными и внутри проекта. Absolute
+  path, `..` и symlink отклоняются; repository/Git errors не означают пустое
+  покрытие.
+- `Any` прекращает исполнение после первого успешного варианта. `All`
+  останавливается на первом неуспехе.
+
 ## ADR и человеческие решения
 
 `add --source PATH` связывает claim с digest ADR. После изменения ADR:

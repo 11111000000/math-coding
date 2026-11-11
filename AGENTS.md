@@ -51,8 +51,12 @@ mathc next
 привязывает существующий ADR по digest, не изменяя его. `source_changed`
 означает `outdated`, а не green. `review-source ID --by ВЛАДЕЛЕЦ --reason WHY`
 сохраняет ревизию и прежний digest, очищает waiver; после него обязателен новый
-`run`. `record --outcome` принимает только пять значений домена. `authorize` не
-работает без `policy.json`; это журнал, не аутентификация.
+`run`. `judgment` устанавливается только внешним человеческим review; machine
+verifier для него не подходит. Fingerprint среды должен совпадать с evidence.
+Scope и source paths не могут быть absolute, traversal или symlink. `Any`
+останавливается после первого успешного варианта. `record --outcome` принимает
+только пять значений домена. `authorize` не работает без `policy.json`; это
+журнал, не аутентификация.
 
 ## Запреты
 

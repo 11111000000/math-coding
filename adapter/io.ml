@@ -25,7 +25,8 @@ let temp_dir prefix =
   choose 0
 
 let copy_file source destination =
-  let stat = Unix.stat source in
+  let stat = Unix.lstat source in
+  if stat.Unix.st_kind = Unix.S_LNK then failwith ("refusing to copy a symlink: " ^ source);
   let input = open_in_bin source in
   let output = open_out_bin destination in
   let buffer = Bytes.create 65536 in

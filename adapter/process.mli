@@ -5,6 +5,7 @@ type result = {
   outcome : outcome;
   stdout : string;
   stderr : string;
+  truncated : bool;
 }
 
 val run : ?timeout:float -> root:string -> string -> result

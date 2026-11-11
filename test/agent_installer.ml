@@ -12,7 +12,8 @@ let () =
       Unix.putenv "MATHC_PACKAGE" package;
       executable work "package/bin/mathc"
         "if [ \"${1:-}\" = \"--version\" ]; then printf 'mathc 5\\nbuild test\\n'; else exit 0; fi\n";
-      executable work "package/bin/stand" "exit 2\n";
+      executable work "package/bin/stand"
+        "if [ \"${1:-}\" = \"--help\" ] || [ \"${1:-}\" = \"-h\" ]; then exit 0; else exit 2; fi\n";
       let bin_dir = Filename.concat work "bin" in
       let skill_dir = Filename.concat work "skills/math-coding" in
       let install options =
@@ -47,4 +48,9 @@ let () =
         (List.exists (fun name -> Io.read_file (Filename.concat bin_dir name) = foreign) backups);
       check "the upgrade restores the expected binary"
         ((Process.run ~root:work (Filename.quote installed ^ " --version")).code = 0);
+      executable work "package/bin/mathc" "exit 2\n";
+      let previous = Io.read_file installed in
+      let failed = install " --force" in
+      check "a failed upgrade preserves the previous binary"
+        (failed.code <> 0 && Io.read_file installed = previous);
       print_endline "agent-installer: PASS")

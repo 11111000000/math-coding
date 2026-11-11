@@ -57,3 +57,14 @@
 44. Изолированная копия сохраняет режим файла, а digest предмета включает
     права; chmod инвалидирует evidence, а control не падает из-за потерянного
     executable-бита.
+45. Разные непустые environment fingerprints дают `outdated`, а не `holds`.
+46. `judgment` без внешнего review не устанавливается; machine-only judgment не
+    становится `holds`.
+47. Absolute/traversal scope/source paths и symlink отклоняются; setup и Git
+    errors возвращают инфраструктурную ошибку, а не пустое состояние.
+48. `mathc-stand` отклоняет отрицательные/нечисловые cost parameters и unknown
+    options; `Any` не запускает варианты после первого успеха.
+49. Установленный кандидат проверяется до замены рабочего бинаря; failed upgrade
+    сохраняет прежний бинарь.
+50. `Any` коротко замыкается после первого pass, а output truncation не
+    превращается в успешный verifier.
