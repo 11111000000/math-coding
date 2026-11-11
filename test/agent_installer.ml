@@ -29,9 +29,12 @@ let () =
       check "skill is installed" (contains (Io.read_file (Filename.concat skill_dir "SKILL.md")) "review-source");
       check "skill setup reference is installed"
         (Sys.file_exists (Filename.concat skill_dir "references/PROJECT-SETUP.md"));
-      check "canonical methodology is installed verbatim"
-        (Io.read_file (Filename.concat skill_dir "references/METHODOLOGY.md")
-         = Io.read_file (Filename.concat project "skills/math-coding/references/METHODOLOGY.md"));
+      let installed_methodology = Filename.concat skill_dir "references/METHODOLOGY.md" in
+      check "canonical methodology is installed" (Sys.file_exists installed_methodology);
+      if Sys.file_exists installed_methodology then
+        check "canonical methodology is installed verbatim"
+          (Io.read_file installed_methodology
+           = Io.read_file (Filename.concat project "skills/math-coding/references/METHODOLOGY.md"));
       let version = Process.run ~root:work (Filename.quote installed ^ " --version") in
       check "installed binary runs" (version.code = 0 && contains version.stdout "mathc 5");
       check "installation is idempotent" ((install "").code = 0);

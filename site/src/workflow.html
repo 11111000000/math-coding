@@ -21,7 +21,9 @@
 <main>
 
 <h1>Workflow</h1>
-<p>The main loop is five commands. Reading verbs never modify the working
+<p>The main loop is <code>init</code>, <code>goal</code>, <code>add</code>,
+<code>run</code> and <code>map</code>; <code>next</code> names one concrete next
+action. Reading verbs never modify the working
 tree; controls run in isolated copies; human decisions are recorded
 explicitly with an author and decision-specific data.
 <code>mathc help COMMAND</code> describes each verb and works before any
@@ -29,6 +31,7 @@ specification exists. The full model is in the
 <a href="METHODOLOGY.md">canonical methodology</a> (Russian).</p>
 
 <h2>The main loop</h2>
+<p>An example loop in a project whose claim is confirmed:</p>
 <div class="terminal"><span class="t-dim">$</span> mathc init
 <span class="t-dim">$</span> mathc goal <span class="t-amber">"payments stay idempotent"</span> <span class="t-amber">"src/,test/"</span> <span class="t-amber">"anna"</span>
 <span class="t-dim">$</span> mathc add retry-safety <span class="t-amber">"a retried charge is never applied twice"</span> \
