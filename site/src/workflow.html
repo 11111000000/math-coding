@@ -21,7 +21,9 @@
 <main>
 
 <h1>Workflow</h1>
-<p>The main loop is five commands. Reading verbs never modify the working
+<p>The main loop is <code>init</code>, <code>goal</code>, <code>add</code>,
+<code>run</code> and <code>map</code>; <code>next</code> names one concrete next
+action. Reading verbs never modify the working
 tree; controls run in isolated copies; human decisions are recorded
 explicitly with an author and decision-specific data.
 <code>mathc help COMMAND</code> describes each verb and works before any
