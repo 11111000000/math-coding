@@ -28,8 +28,8 @@ dune runtest --root . --force
 - `bin/` — маленький CLI, MCP и измеритель.
 - `test/` — accepting и rejecting fixtures.
 - `site/` — статический сайт (en + ru); `sh site/build.sh` генерирует
-  `site/dist`, подставляя карту claims из `spec.json` и
-  `mathc map --json`; `sh site/check.sh` проверяет совпадение.
+  `site/dist`, подставляя карту claims из вывода `mathc map --json`;
+  `sh site/check.sh` проверяет, что страница показывает именно эту карту.
 
 Перед изменением прочти
 `skills/math-coding/references/METHODOLOGY.md`, `AXIOMS.md`,
