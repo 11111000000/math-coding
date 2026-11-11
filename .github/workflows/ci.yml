@@ -54,5 +54,6 @@ jobs:
           primary-key: nix-${{ runner.os }}-portable-${{ hashFiles('flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - run: nix develop -c sh test/package_smoke.sh portable
+      - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor
