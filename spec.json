@@ -6,11 +6,11 @@
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
       "AGENTS.md", "docs/", "dune-project", "install.sh", "skills/",
-      ".github/"
+      ".github/", "site/"
     ],
     "by": "owner",
-    "at": 1794374658,
-    "reason": "cover CI delivery"
+    "at": 1794415364,
+    "reason": "cover the project site"
   },
   "claims": [
     {
@@ -252,6 +252,21 @@
       "falsifier": "an invalid workflow passes validation",
       "register": "fact",
       "control": "sed -i 's/^on:/onn:/' .github/workflows/ci.yml",
+      "waiver": null
+    },
+    {
+      "id": "site-render",
+      "text": "the site is generated from spec.json and the live map and shows every claim with its current state",
+      "scope": [ "site/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [ { "kind": "verifier", "spec": "sh site/check.sh" } ],
+      "falsifier": "a claim is missing from the rendered map or shows a state that mathc map does not report",
+      "register": "fact",
+      "control": "sed -i 's/(escape claim.id)/(escape \"tampered\")/' site/render.ml",
       "waiver": null
     }
   ]

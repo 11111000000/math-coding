@@ -27,6 +27,9 @@ dune runtest --root . --force
 - `adapter/` — git, процессы, источники, изолированные проверки.
 - `bin/` — маленький CLI, MCP и измеритель.
 - `test/` — accepting и rejecting fixtures.
+- `site/` — статический сайт (en + ru); `sh site/build.sh` генерирует
+  `site/dist`, подставляя карту claims из `spec.json` и
+  `mathc map --json`; `sh site/check.sh` проверяет совпадение.
 
 Перед изменением прочти `docs/ENGINEERING-PRACTICES.md` и
 `docs/V5-ARCHITECTURE-AND-PLAN.md`.

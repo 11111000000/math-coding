@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Рабочий цикл — math-coding v5</title>
+<meta name="description" content="Рабочий цикл math-coding v5: init, goal, add, run, map, next — и человеческие решения вокруг него.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.ru.html">math-coding</a>
+<div class="nav-inner">
+<a class="nav-link" href="index.ru.html">главная</a>
+<a class="nav-link" href="methodology.ru.html">методология</a>
+<a class="nav-link active" href="workflow.ru.html">цикл</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="workflow.html">en</a>
+</nav>
+<main>
+
+<h1>Рабочий цикл</h1>
+<p>Основной цикл — пять команд. Читающие глаголы не изменяют рабочее
+дерево; контроли исполняются в изолированных копиях; каждое решение
+человека записывается с автором и причиной.
+<code>mathc help COMMAND</code> описывает каждый глагол и работает до
+создания спецификации.</p>
+
+<h2>Основной цикл</h2>
+<div class="terminal"><span class="t-dim">$</span> mathc init
+<span class="t-dim">$</span> mathc goal <span class="t-amber">"платежи остаются идемпотентными"</span> <span class="t-amber">"src/,test/"</span> <span class="t-amber">"anna"</span>
+<span class="t-dim">$</span> mathc add retry-safety <span class="t-amber">"повторное списание не применяется дважды"</span> \
+    src/payments.ml,test/payments.ml \
+    <span class="t-amber">"двойное списание проходит набор тестов"</span> fact \
+    --requirement <span class="t-amber">"verifier:dune runtest test/payments.exe"</span> \
+    --control <span class="t-amber">"sed -i 's/dedupe//g' src/payments.ml"</span>
+<span class="t-dim">$</span> mathc run
+<span class="t-dim">$</span> mathc map
+verdict: <span class="t-green">green</span>
+  retry-safety                 <span class="t-green">holds</span>
+<span class="t-dim">$</span> mathc next
+next: nothing to do - declared evidence is current and the tree is covered</div>
+
+<table>
+<thead><tr><th>глагол</th><th>что делает</th><th>трогает дерево?</th></tr></thead>
+<tbody>
+<tr><td><code>init</code> / <code>goal</code></td><td>создают спецификацию; записывают цель и владельца, заданных человеком</td><td>пишет <code>spec.json</code></td></tr>
+<tr><td><code>add</code></td><td>объявляет обязательство: требование, scope, опровержитель, регистр, проверка, контроль</td><td>пишет <code>spec.json</code></td></tr>
+<tr><td><code>run</code></td><td>производит свежие доказательства; контроли идут в изолированных копиях</td><td>только след доказательств</td></tr>
+<tr><td><code>map</code> / <code>next</code> / <code>context</code></td><td>вычисляют состояния, называют следующее действие, отдают капсулу агенту</td><td>read-only</td></tr>
+</tbody>
+</table>
+
+<h2>Привязка ADR</h2>
+<p>ADR хранит мотивацию и историю; math-coding ничего в него не пишет.
+<code>import-adr</code> печатает черновик, <code>adopt</code> перечисляет
+найденные источники, и только явный <code>add --source</code> привязывает
+обязательство к документу &mdash; по digest.</p>
+<figure class="figure">
+<svg viewBox="0 0 760 170" role="img" aria-label="Цикл изменения ADR: source_changed, outdated, review-source, run, holds">
+<defs>
+<marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+</marker>
+<marker id="arr4b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#8b3a3a"/>
+</marker>
+</defs>
+<g font-family="SF Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#1a1a1a">
+<rect x="10" y="55" width="130" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="75" y="81" text-anchor="middle">ADR изменён</text>
+<rect x="185" y="55" width="150" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="260" y="74" text-anchor="middle">source_changed</text>
+<text x="260" y="90" text-anchor="middle" fill="#b07a1a">&#8594; outdated</text>
+<rect x="380" y="55" width="170" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="465" y="74" text-anchor="middle">review-source</text>
+<text x="465" y="90" text-anchor="middle" fill="#5a5a5a">автор + причина + digest</text>
+<rect x="595" y="55" width="70" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="630" y="81" text-anchor="middle">run</text>
+<rect x="680" y="55" width="70" height="44" fill="#f5e9d8" stroke="#8b3a3a"/>
+<text x="715" y="81" text-anchor="middle">holds</text>
+<line x1="140" y1="77" x2="180" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="335" y1="77" x2="375" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="550" y1="77" x2="590" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="665" y1="77" x2="676" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<path d="M75,99 C75,150 630,150 632,103" fill="none" stroke="#8b3a3a" stroke-dasharray="5 4" marker-end="url(#arr4b)"/>
+<text x="355" y="152" text-anchor="middle" fill="#8b3a3a" font-size="10.5">нет ревью &#8658; нет green: автоматическое восстановление запрещено</text>
+</g>
+</svg>
+<figcaption>Ревью сохраняет автора, причину, время и прежний digest,
+очищает waiver и не переписывает ADR. Свежий run после него обязателен.</figcaption>
+</figure>
+
+<h2>Решения человека</h2>
+<ul>
+<li><code>mathc record ID AUTHORITY --by WHO --outcome OUTCOME</code> &mdash;
+записывает внешнее ревью для объявленного требования
+<code>review:AUTHORITY</code>. Существует ровно пять исходов:
+<code>pass</code>, <code>fail</code>, <code>inconclusive</code>,
+<code>infrastructure-error</code>, <code>not-run</code>.</li>
+<li><code>mathc waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION</code> &mdash;
+ограниченное принятие риска. Это не pass, и оно не покрывает отказ.</li>
+<li><code>mathc authorize --by WHO --reason WHY</code> &mdash; работает
+только при наличии <code>policy.json</code>; это журнал разрешения, а не
+аутентификация.</li>
+<li><code>mathc install</code> обновляет маркированный блок в
+<code>AGENTS.md</code>; <code>mathc doctor</code> проверяет настройку и
+ничего не исправляет.</li>
+</ul>
+
+<h2>Коды выхода</h2>
+<table>
+<thead><tr><th>код</th><th>значение</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td>green, либо действие успешно</td></tr>
+<tr><td><code>1</code></td><td>red, либо отказ защищённого перехода</td></tr>
+<tr><td><code>2</code></td><td>ошибка вызова</td></tr>
+<tr><td><code>3</code></td><td>unknown или vacant &mdash; состояние невозможно вычислить</td></tr>
+</tbody>
+</table>
+<p>Повреждённый след доказательств не игнорируется и не считается
+отсутствием доказательств. Точные коды по глаголу показывает
+<code>mathc help COMMAND</code>.</p>
+
+<p class="callout">Минимальное достаточное трение: обычная работа не требует
+карточек на каждый файл. Структура добавляется только там, где измерена
+польза.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.ru.html">главная</a> &middot;
+<a href="methodology.ru.html">методология</a> &middot;
+<a href="workflow.html">english</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>

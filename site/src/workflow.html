@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Workflow — math-coding v5</title>
+<meta name="description" content="The math-coding v5 working loop: init, goal, add, run, map, next — and the human decisions around it.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.html">math-coding</a>
+<div class="nav-inner">
+<a class="nav-link" href="index.html">home</a>
+<a class="nav-link" href="methodology.html">methodology</a>
+<a class="nav-link active" href="workflow.html">workflow</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="workflow.ru.html">ru</a>
+</nav>
+<main>
+
+<h1>Workflow</h1>
+<p>The main loop is five commands. Reading verbs never modify the working
+tree; controls run in isolated copies; everything a human decides is
+recorded with an author and a reason. <code>mathc help COMMAND</code>
+describes each verb and works before any specification exists.</p>
+
+<h2>The main loop</h2>
+<div class="terminal"><span class="t-dim">$</span> mathc init
+<span class="t-dim">$</span> mathc goal <span class="t-amber">"payments stay idempotent"</span> <span class="t-amber">"src/,test/"</span> <span class="t-amber">"anna"</span>
+<span class="t-dim">$</span> mathc add retry-safety <span class="t-amber">"a retried charge is never applied twice"</span> \
+    src/payments.ml,test/payments.ml \
+    <span class="t-amber">"a duplicate charge passes the suite"</span> fact \
+    --requirement <span class="t-amber">"verifier:dune runtest test/payments.exe"</span> \
+    --control <span class="t-amber">"sed -i 's/dedupe//g' src/payments.ml"</span>
+<span class="t-dim">$</span> mathc run
+<span class="t-dim">$</span> mathc map
+verdict: <span class="t-green">green</span>
+  retry-safety                 <span class="t-green">holds</span>
+<span class="t-dim">$</span> mathc next
+next: nothing to do - declared evidence is current and the tree is covered</div>
+
+<table>
+<thead><tr><th>verb</th><th>what it does</th><th>touches the tree?</th></tr></thead>
+<tbody>
+<tr><td><code>init</code> / <code>goal</code></td><td>create the specification; record the human&rsquo;s goal and owner</td><td>writes <code>spec.json</code></td></tr>
+<tr><td><code>add</code></td><td>declare a claim: requirement, scope, falsifier, register, verifier, control</td><td>writes <code>spec.json</code></td></tr>
+<tr><td><code>run</code></td><td>produce fresh evidence; controls execute in isolated copies</td><td>evidence trail only</td></tr>
+<tr><td><code>map</code> / <code>next</code> / <code>context</code></td><td>compute states, name the next action, hand a capsule to an agent</td><td>read-only</td></tr>
+</tbody>
+</table>
+
+<h2>Linking an ADR</h2>
+<p>ADRs keep motivation and history; math-coding never writes into them.
+<code>import-adr</code> prints a draft, <code>adopt</code> lists discovered
+sources, and only an explicit <code>add --source</code> binds a claim to the
+document &mdash; by digest.</p>
+<figure class="figure">
+<svg viewBox="0 0 760 170" role="img" aria-label="ADR change loop: source changed, outdated, review-source, run, holds">
+<defs>
+<marker id="arr4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+</marker>
+<marker id="arr4b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#8b3a3a"/>
+</marker>
+</defs>
+<g font-family="SF Mono, Menlo, Consolas, monospace" font-size="11.5" fill="#1a1a1a">
+<rect x="10" y="55" width="130" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="75" y="81" text-anchor="middle">ADR edited</text>
+<rect x="185" y="55" width="150" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="260" y="74" text-anchor="middle">source_changed</text>
+<text x="260" y="90" text-anchor="middle" fill="#b07a1a">&#8594; outdated</text>
+<rect x="380" y="55" width="170" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="465" y="74" text-anchor="middle">review-source</text>
+<text x="465" y="90" text-anchor="middle" fill="#5a5a5a">by + reason + old digest</text>
+<rect x="595" y="55" width="70" height="44" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="630" y="81" text-anchor="middle">run</text>
+<rect x="680" y="55" width="70" height="44" fill="#f5e9d8" stroke="#8b3a3a"/>
+<text x="715" y="81" text-anchor="middle">holds</text>
+<line x1="140" y1="77" x2="180" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="335" y1="77" x2="375" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="550" y1="77" x2="590" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<line x1="665" y1="77" x2="676" y2="77" stroke="#5a5a5a" marker-end="url(#arr4)"/>
+<path d="M75,99 C75,150 630,150 632,103" fill="none" stroke="#8b3a3a" stroke-dasharray="5 4" marker-end="url(#arr4b)"/>
+<text x="355" y="152" text-anchor="middle" fill="#8b3a3a" font-size="10.5">no review &#8658; no green: automatic recovery is forbidden</text>
+</g>
+</svg>
+<figcaption>Review keeps the author, the reason, the time and the previous
+digest, clears the waiver, and never rewrites the ADR. A fresh run after it
+is mandatory.</figcaption>
+</figure>
+
+<h2>Human decisions</h2>
+<ul>
+<li><code>mathc record ID AUTHORITY --by WHO --outcome OUTCOME</code> &mdash;
+records an external review for a declared <code>review:AUTHORITY</code>
+requirement. Exactly five outcomes exist: <code>pass</code>, <code>fail</code>,
+<code>inconclusive</code>, <code>infrastructure-error</code>, <code>not-run</code>.</li>
+<li><code>mathc waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION</code> &mdash;
+a bounded risk acceptance. It is not a pass and never covers a failure.</li>
+<li><code>mathc authorize --by WHO --reason WHY</code> &mdash; works only with
+a <code>policy.json</code>; it is a permission log, not authentication.</li>
+<li><code>mathc install</code> refreshes the marked block in
+<code>AGENTS.md</code>; <code>mathc doctor</code> checks the setup and fixes
+nothing.</li>
+</ul>
+
+<h2>Exit codes</h2>
+<table>
+<thead><tr><th>code</th><th>meaning</th></tr></thead>
+<tbody>
+<tr><td><code>0</code></td><td>green, or the action succeeded</td></tr>
+<tr><td><code>1</code></td><td>red, or a protected transition was refused</td></tr>
+<tr><td><code>2</code></td><td>invocation error</td></tr>
+<tr><td><code>3</code></td><td>unknown or vacant &mdash; the state cannot be computed</td></tr>
+</tbody>
+</table>
+<p>A corrupted evidence trail is neither ignored nor treated as absence of
+evidence. <code>mathc help COMMAND</code> prints the exact codes per verb.</p>
+
+<p class="callout">Minimal sufficient friction: ordinary work needs no
+paperwork per file. Structure is added only where a measured benefit
+exists.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.html">home</a> &middot;
+<a href="methodology.html">methodology</a> &middot;
+<a href="workflow.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>

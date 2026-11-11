@@ -1,0 +1,5 @@
+(executable
+ (name render)
+ (modules render)
+ (libraries mathc_protocol mathcoding mathcoding_format mathcoding_adapter
+   unix yojson))

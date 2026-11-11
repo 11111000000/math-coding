@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>math-coding v5 — связанные, свежие, независимые доказательства</title>
+<meta name="description" content="math-coding v5 — слой проверки связей между требованиями, решениями, кодом и доказательствами. Показывает, что подтверждено, что устарело и что остаётся неизвестным.">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.ru.html">math-coding</a>
+<div class="nav-inner">
+<a class="nav-link active" href="index.ru.html">главная</a>
+<a class="nav-link" href="methodology.ru.html">методология</a>
+<a class="nav-link" href="workflow.ru.html">цикл</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="index.html">en</a>
+</nav>
+<main>
+
+<section class="hero">
+<h1>math-coding</h1>
+<p class="version">v5 &middot; одна активная модель &middot; ядро на OCaml</p>
+<p class="tagline">Слой проверки связей между требованиями, решениями, кодом
+и доказательствами. Отвечает на четыре вопроса: что должно быть истинным,
+чем это подтверждено и насколько независимо, что изменилось и требует
+перепроверки, и что остаётся неизвестным.</p>
+<div class="cta">
+<a class="cta-primary" href="workflow.ru.html">цикл из пяти команд</a>
+<a class="cta-secondary" href="methodology.ru.html">методология</a>
+</div>
+</section>
+
+<section>
+<h2>Цепочка, которую проверяет ядро</h2>
+<p class="lede">Каждое обязательство называет источник, область, машинную
+проверку, опровержитель и контроль, который обязан его сломать.
+Доказательство записывается с digest'ами всего, от чего оно зависело,
+&mdash; поэтому карта ниже вычисляется, а не декларируется.</p>
+<figure class="figure">
+<svg viewBox="0 0 760 205" role="img" aria-label="Цепочка v5: источник, обязательство, код, доказательство, вердикт и дуга разрыва">
+<defs>
+<marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+<path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
+</marker>
+</defs>
+<g font-family="SF Mono, Menlo, Consolas, monospace" font-size="12" fill="#1a1a1a">
+<rect x="10" y="60" width="120" height="46" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="70" y="87" text-anchor="middle">источник</text>
+<rect x="165" y="60" width="120" height="46" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="225" y="87" text-anchor="middle">обязат.</text>
+<rect x="320" y="60" width="120" height="46" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="380" y="87" text-anchor="middle">код</text>
+<rect x="475" y="60" width="120" height="46" fill="#ffffff" stroke="#1a1a1a"/>
+<text x="535" y="87" text-anchor="middle">доказ-во</text>
+<rect x="630" y="60" width="120" height="46" fill="#ffffff" stroke="#8b3a3a"/>
+<text x="690" y="87" text-anchor="middle">вердикт</text>
+<line x1="130" y1="83" x2="160" y2="83" stroke="#5a5a5a" marker-end="url(#arr)"/>
+<line x1="285" y1="83" x2="315" y2="83" stroke="#5a5a5a" marker-end="url(#arr)"/>
+<line x1="440" y1="83" x2="470" y2="83" stroke="#5a5a5a" marker-end="url(#arr)"/>
+<line x1="595" y1="83" x2="625" y2="83" stroke="#5a5a5a" marker-end="url(#arr)"/>
+<path d="M690,106 C690,170 225,170 225,110" fill="none" stroke="#8b3a3a" stroke-dasharray="5 4" marker-end="url(#arr)"/>
+<text x="455" y="172" text-anchor="middle" fill="#8b3a3a" font-size="11">разрыв &#8594; run / waive / review</text>
+</g>
+<g font-family="Charter, Georgia, serif" font-style="italic" font-size="10.5" fill="#8a8a8a">
+<text x="70" y="126" text-anchor="middle">SourceRef + digest</text>
+<text x="225" y="126" text-anchor="middle">scope + опровержитель</text>
+<text x="380" y="126" text-anchor="middle">материалы</text>
+<text x="535" y="126" text-anchor="middle">свежесть + независимость</text>
+<text x="690" y="126" text-anchor="middle">green / red / unknown</text>
+</g>
+</svg>
+<figcaption>Модель v5. ExecutionLog фиксирует стоимость; о правильности
+говорит только Evidence. Они не смешиваются никогда.</figcaption>
+</figure>
+</section>
+
+<section>
+<h2>Быстрый старт</h2>
+<p class="lede">Шестьдесят секунд, один статический бинарь, никаких
+зависимостей, кроме Git и POSIX shell.</p>
+<ol class="steps">
+<li><code>curl -sSfL https://raw.githubusercontent.com/11111000000/math-coding/main/install.sh | sh</code><br>
+Устанавливает <code>~/.local/bin/mathc</code> и user-scope skill. Чужой
+бинарь не перезаписывает; <code>--force</code> сохраняет резервные копии.</li>
+<li><code>mathc init &amp;&amp; mathc goal "ЦЕЛЬ" "src/,test/" "ВЛАДЕЛЕЦ"</code><br>
+Цель и владельца задаёт человек. Инструмент не выдумывает ни того, ни
+другого.</li>
+<li><code>mathc add ID "ТРЕБОВАНИЕ" SCOPE "ОПРОВЕРЖИТЕЛЬ" fact --requirement "verifier:КОМАНДА" --control "ЛОМАЕТ_ПРЕДМЕТ"</code><br>
+Обязательство рождается вместе с экспериментом, который его опровергнет.</li>
+<li><code>mathc run</code> &mdash; свежие доказательства в изолированной
+копии. Затем <code>mathc map</code> показывает истину, а
+<code>mathc next</code> называет следующее действие.</li>
+</ol>
+<div class="terminal"><span class="t-dim">$</span> mathc map
+verdict: <span class="t-green">green</span>
+  core-laws                    <span class="t-green">holds</span>
+  strict-codecs                <span class="t-green">holds</span>
+  cli-evidence                 <span class="t-green">holds</span>
+  <span class="t-dim">&hellip;</span>
+uncovered: 0 file(s)</div>
+</section>
+
+<section>
+<h2>Живая карта</h2>
+<p class="lede">Эта сетка не написана вручную. Она генерируется при сборке
+из <code>spec.json</code> и <code>mathc map --json</code> &mdash; того самого
+вывода, который использует CI. Если доказательство устареет, страница
+скажет об этом после следующей сборки.</p>
+<!-- @CLAIMS:ru@ -->
+</section>
+
+<section>
+<h2>Что v5 отказывается делать</h2>
+<ul>
+<li><code>Unknown</code> никогда не показывается как успех; waiver не
+является pass.</li>
+<li>Машинное доказательство никогда не устанавливает <code>judgment</code>
+&mdash; только внешнее человеческое ревью.</li>
+<li>Изменённый ADR переводит обязательства в <code>outdated</code> и никогда
+&mdash; молча в green; история не переписывается.</li>
+<li>Читающие глаголы (<code>map</code>, <code>next</code>,
+<code>context</code>) не трогают рабочее дерево; контроли исполняются в
+изолированных копиях.</li>
+<li>Агент не может подтвердить собственную правоту одной декларацией.</li>
+</ul>
+</section>
+
+<p class="callout">Каждое обязательство на этой странице проверяется
+инструментом, который страница описывает. Методология — это артефакт;
+артефакт следует методологии.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="methodology.ru.html">методология</a> &middot;
+<a href="workflow.ru.html">цикл</a> &middot;
+<a href="index.html">english</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>
