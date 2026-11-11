@@ -33,6 +33,7 @@ case "$mode" in
     stand_bin="$work/installed-bin/mathc-stand"
     test -f "$work/agent-skill/SKILL.md"
     test -f "$work/agent-skill/references/PROJECT-SETUP.md"
+    test -f "$work/agent-skill/references/METHODOLOGY.md"
     ;;
   *)
     printf 'usage: sh test/package_smoke.sh [default|portable]\n' >&2

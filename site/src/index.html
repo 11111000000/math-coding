@@ -35,10 +35,10 @@ unknown.</p>
 
 <section>
 <h2>The chain the kernel checks</h2>
-<p class="lede">Every claim names its source, its scope, a machine verifier,
-a falsifier, and a control that must break it. Evidence is recorded with the
-digests of everything it depended on &mdash; so the map below is computed,
-not declared.</p>
+<p class="lede">Every claim names its scope, falsifier, evidence requirements
+and control; a source is linked when present. Evidence records the subject,
+definition, verifier and environment digests &mdash; so the map below is
+computed, not declared.</p>
 <figure class="figure">
 <svg viewBox="0 0 760 205" role="img" aria-label="The v5 chain: source, claim, code, evidence, verdict, with a gap arc back">
 <defs>
@@ -72,26 +72,27 @@ not declared.</p>
 <text x="690" y="126" text-anchor="middle">green / red / unknown</text>
 </g>
 </svg>
-<figcaption>The model of v5. An ExecutionLog records cost; only Evidence
-speaks about correctness. The two never mix.</figcaption>
+<figcaption>Execution-cost observations are separate from Evidence about
+correctness. They never mix and never raise confidence in a claim.</figcaption>
 </figure>
 </section>
 
 <section>
 <h2>Quick start</h2>
-<p class="lede">Sixty seconds, one static binary, no runtime dependencies
-beyond Git and a POSIX shell.</p>
+<p class="lede">The installer provides static <code>mathc</code> and
+<code>mathc-stand</code> binaries. Nix is needed to build; running them needs
+Git, a POSIX shell and the verifier commands declared by the project.</p>
 <ol class="steps">
-<li><code>curl -sSfL https://raw.githubusercontent.com/11111000000/math-coding/main/install.sh | sh</code><br>
-Installs <code>~/.local/bin/mathc</code> and a user-scope skill. Refuses to
-overwrite a foreign binary; <code>--force</code> keeps backups.</li>
+<li><code>git clone https://github.com/11111000000/math-coding &amp;&amp; cd math-coding &amp;&amp; ./install.sh</code><br>
+Installs the binaries, user-scope skill and complete methodology. It refuses
+to overwrite a foreign file; <code>--force</code> keeps backups.</li>
 <li><code>mathc init &amp;&amp; mathc goal "GOAL" "src/,test/" "OWNER"</code><br>
 The human states the goal and the owner. The tool never invents either.</li>
 <li><code>mathc add ID "REQUIREMENT" SCOPE "FALSIFIER" fact --requirement "verifier:COMMAND" --control "BREAKS_THE_SUBJECT"</code><br>
-A claim is born with the experiment that would refute it.</li>
-<li><code>mathc run</code> &mdash; fresh evidence, produced in an isolated copy.
-Then <code>mathc map</code> shows the truth, <code>mathc next</code> names the
-next action.</li>
+The claim receives a subject, a verifier and a control of its sensitivity.</li>
+<li><code>mathc run</code> executes the verifier on the candidate and the
+control in an isolated copy. Then <code>mathc map</code> computes the states,
+and <code>mathc next</code> names the next action.</li>
 </ol>
 <div class="terminal"><span class="t-dim">$</span> mathc map
 verdict: <span class="t-green">green</span>

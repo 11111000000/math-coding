@@ -1,5 +1,8 @@
 # Установка и подключение проекта
 
+Семантика метода полностью определена в `references/METHODOLOGY.md`. Здесь
+находятся только установка, команды и ограничения текущего CLI.
+
 ## Одна команда на сервере
 
 Из каталога исходников math-coding:
@@ -13,7 +16,8 @@
 - `~/.local/bin/mathc` — статический бинарь v5;
 - `~/.local/bin/mathc-stand` — измеритель, который находит `mathc` рядом;
 - `~/.local/bin/mathc.build-id` — версия и SHA-256 бинаря;
-- `~/.agents/skills/math-coding/` — user-scope skill для других агентов.
+- `~/.agents/skills/math-coding/` — user-scope skill для других агентов,
+  включая `references/METHODOLOGY.md` и это руководство.
 
 Nix нужен только для сборки. Для запуска нужны системные Git, POSIX shell и
 команды, объявленные проектом как verifiers. OCaml/Nix runtime не требуется.
@@ -114,16 +118,23 @@ mathc-stand /absolute/path/to/project \
 требует `--defect-cost` и хотя бы одного пойманного дефекта; иначе инструмент
 честно печатает, что критерий не вычислим.
 
-## Регистры и среда
+## Исполняемый профиль
 
-`fact` и `hypothesis` могут подтверждаться verifier'ом. `judgment` требует
-`review:WHO` и внешнего human review; machine-only judgment не считается
-установленным. Fingerprint текущей среды должен совпадать с evidence, поэтому
-при смене lock-файла или toolchain нужен новый `run`.
+`fact`, `hypothesis` и `unknown` используют одни evidence rules; регистр не
+снижает требования. `judgment` требует `review:WHO` и внешнего human review.
+Fingerprint текущей среды должен совпадать с evidence, поэтому смена lock-файла,
+toolchain или бинаря требует нового `run`.
 
 Scope и source paths относительны к проекту и не могут быть absolute, `..` или
-symlink. `Any` прекращает исполнение после первого успеха, `All` останавливается
-на первом неуспехе.
+symlink. `Any` прекращает исполнение после первого успеха. `All` останавливается
+на `fail`, но после inconclusive/infrastructure/not-run выполняет остальные
+ветви, чтобы сохранить возможное позднее опровержение.
+
+Verifier без control получает `not-run` контроля и `inconclusive`, не `refuted`.
+`mathc add` создаёт `acceptance/pre-merge` с пустым `review_on`. Стандартный
+`waive` принимает автора, причину, срок и recovery; compensating controls и
+review triggers остаются пустыми. Эти ограничения не нужно обходить ручным
+редактированием ради зелёного результата.
 
 ## Границы
 

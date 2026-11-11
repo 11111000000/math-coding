@@ -391,7 +391,9 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
 .v-refuted  { background: var(--refuted); }
 .v-outdated { background: var(--outdated); }
 .v-waived   { background: var(--waived); }
-.v-unknown, .v-vacant { background: var(--unknown); }
+.v-unknown, .v-vacant, .v-inconclusive, .v-not-checkable, .v-never-checked {
+  background: var(--unknown);
+}
 .v-green { background: var(--holds); }
 .v-red   { background: var(--refuted); }
 

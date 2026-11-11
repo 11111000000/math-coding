@@ -208,6 +208,53 @@ let () =
       print_endline "any-short-circuit: PASS")
 
 let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"every required branch must pass\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let required = { claim with requirements = [ All [
+        Verifier "grep -q expected subject.txt";
+        Verifier "test \"$(cat subject.txt)\" = expected";
+      ] ] } in
+      let spec = { goal = Some { text = "every required branch must pass"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 0;
+      check "All accepts fresh passing branches" (contains (run root "map").stdout "holds");
+      print_endline "all-accepting: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"a later refutation must be observed\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let required = { claim with requirements = [ All [
+        Verifier "exit 2";
+        Verifier "printf second > second.txt && false";
+      ] ] } in
+      let spec = { goal = Some { text = "a later refutation must be observed"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 1;
+      check "All preserves a refutation after an inconclusive branch"
+        (contains (run root "map").stdout "refuted");
+      check "All executes the later refuting branch" (Sys.file_exists (Filename.concat root "second.txt"));
+      print_endline "all-late-refutation: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"a refutation ends required evaluation\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let required = { claim with requirements = [ All [
+        Verifier "false";
+        Verifier "printf second > second.txt && true";
+      ] ] } in
+      let spec = { goal = Some { text = "a refutation ends required evaluation"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 1;
+      check "All stops after a refutation" (not (Sys.file_exists (Filename.concat root "second.txt")));
+      print_endline "all-refusal-short-circuit: PASS")
+
+let () =
   let root = Sys.getcwd () in
   check "a signal-like exit is an infrastructure error"
     ((Process.run ~root "exit 137").outcome = Infrastructure_error);

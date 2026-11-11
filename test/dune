@@ -59,4 +59,5 @@
  (modules agent_installer)
  (libraries mathc_test_helpers mathcoding_adapter)
  (deps ../install.sh ../skills/math-coding/SKILL.md
-  ../skills/math-coding/references/PROJECT-SETUP.md))
+  ../skills/math-coding/references/PROJECT-SETUP.md
+  ../skills/math-coding/references/METHODOLOGY.md))
