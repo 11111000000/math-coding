@@ -1,0 +1,14 @@
+open Helpers
+
+let () =
+  with_repo (fun root ->
+      write root "policy.json" "{\"protected_paths\":[\"subject.txt\"],\"authorized_by\":\"owner\"}\n";
+      ignore (run root "init");
+      write root "subject.txt" "expected\n";
+      expect root "run" 1;
+      expect root "authorize --by owner --reason reviewed" 0;
+      expect root "run" 3;
+      expect root "authorize --by stranger --reason reviewed" 2;
+      let evaluated = run root "re-evaluate" in
+      check "re-evaluation returns data" (contains evaluated.stdout "needs_re_evaluation");
+      print_endline "policy: PASS")

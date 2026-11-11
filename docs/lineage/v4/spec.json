@@ -1,0 +1,1062 @@
+{
+  "goal": {
+    "text": "метод держит спецификацию проекта и проверяет её против кода: то, что заявлено, должно быть проверено, а то, что не проверено, должно быть видно",
+    "scope": [
+      "lib/",
+      "test/",
+      "adapter/",
+      "bin/",
+      "format/",
+      "spec.json",
+      "waves/",
+      "flake.nix",
+      "GOAL.md",
+      "PHILOSOPHY.md",
+      "AXIOMS.md",
+      "README.md",
+      "docs/"
+    ],
+    "by": "p.b.kosov@yandex.ru",
+    "at": "1794066238"
+  },
+  "uncertainty_budget": 12,
+  "closed_waves": [
+    "wave-1",
+    "wave-4",
+    "wave-2",
+    "wave-3",
+    "wave-5",
+    "wave-6",
+    "wave-7",
+    "wave-8",
+    "wave-9",
+    "wave-10",
+    "wave-11",
+    "wave-12",
+    "wave-13",
+    "wave-14",
+    "wave-15",
+    "wave-16",
+    "wave-17",
+    "wave-18",
+    "wave-19",
+    "wave-20",
+    "wave-21",
+    "wave-22",
+    "wave-23",
+    "wave-24",
+    "wave-25",
+    "wave-26"
+  ],
+  "claims": [
+    {
+      "id": "no-scripts",
+      "subject": "в каталогах lib/, test/, adapter/ и bin/ нет исполняемых скриптов: метод написан на OCaml",
+      "scope": [
+        "lib/",
+        "test/",
+        "adapter/",
+        "bin/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "в scope появляется файл с расширением .sh, .py, .bash или .zsh",
+      "register": "fact",
+      "accepted": null,
+      "control": "touch lib/probe.sh",
+      "attestations": []
+    },
+    {
+      "id": "core-is-pure",
+      "subject": "ядро метода не содержит эффектов: ни часов, ни случайности, ни ввода-вывода",
+      "scope": [
+        "lib/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "в lib/ появляется обращение к эффекту: print_endline, Unix.*, Random.*, Sys.command или чтение файла",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let _probe = print_endline \"x\"\\n' >> lib/domain.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-aim-is-a-persons",
+      "subject": "цель метода сформулирована человеком и не выведена из того, что оказалось сделано",
+      "scope": [
+        "bin/mathc.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "review",
+          "spec": "owner"
+        }
+      ],
+      "falsifier": "цель выводится из сделанного, а не сформулирована: это видно по тому, что смена цели не требует основания",
+      "register": "judgment",
+      "accepted": null,
+      "control": null,
+      "attestations": [
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "4a549a0bdbdcbbbe9d957b7ecfafd6b5acb60900",
+          "at": "1794005365",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
+          "at": "1794005390",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7e7f7457f536081261269330a2079ffeceb430ff",
+          "at": "1794033979",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "7ce3ce5b65b5400300965702ba0e26e18c7c8f5a",
+          "at": "1794071155",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "e7c03b0175316de3f7a56c01b6282da7d10df75a",
+          "at": "1794074529",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "e7c03b0175316de3f7a56c01b6282da7d10df75a",
+          "at": "1794077461",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "6c382b18191b1b87850a24f8b76b5c0c3b6b118b",
+          "at": "1794202541",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "1f81ea5bd18519d733c7750e934557a550bc9057",
+          "at": "1794280362",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "aa240fbece0d8db32a0cd4d48a02cbcc83be55ba",
+          "at": "1794281517",
+          "standing": false,
+          "valid_until": null
+        },
+        {
+          "requirement": "owner",
+          "who": "owner",
+          "outcome": "verified",
+          "reason": "да, это моя цель",
+          "bound_to": "88feac4f5d9a1c247cb3021a71b7eefb1a2dfdad",
+          "at": "1794286435",
+          "standing": true,
+          "valid_until": null
+        }
+      ]
+    },
+    {
+      "id": "verbs-work",
+      "subject": "пятнадцать глаголов инструмента работают: каждый исполняется, и у каждого есть отрицательный контроль",
+      "scope": [
+        "lib/",
+        "adapter/",
+        "format/",
+        "bin/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "глагол перестал работать или его отрицательный контроль перестал краснеть",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/| \"map\" -> verb_map o.json/| \"map\" -> 0/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-tool-is-documented",
+      "subject": "каждый глагол инструмента назван в README: документация инструмента не разошлась с ним",
+      "scope": [
+        "bin/",
+        "README.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "глагол есть в бинаре, но не назван в README",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/`mathc route`/`mathc rout`/' README.md",
+      "attestations": []
+    },
+    {
+      "id": "formal-part-matches-the-code",
+      "subject": "каждый закон, доказанный в ядре, назван в формальной части: спецификация для доказательства не разошлась с кодом",
+      "scope": [
+        "lib/",
+        "AXIOMS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "в ядре есть закон, которого нет в AXIOMS.md",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i '/law_commutative/d' AXIOMS.md",
+      "attestations": []
+    },
+    {
+      "id": "the-plan-carries-its-objection",
+      "subject": "каждая волна плана несёт сильнейшее возражение своему подходу и то, что его опровергнет: диалектика живёт на плане",
+      "scope": [
+        "waves/",
+        "format/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/spec_format.exe"
+        }
+      ],
+      "falsifier": "волна без возражения или без того, что его опровергнет",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"objection\"; \"refuted_by\"/\"objection\"; \"refuted_by_\"/' format/spec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-specification-is-readable",
+      "subject": "стоящая спецификация проекта читается методом, и каждое её утверждение имеет предмет, требования и опровержитель",
+      "scope": [
+        "spec.json",
+        "format/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/spec_format.exe"
+        }
+      ],
+      "falsifier": "спецификация не читается или в ней есть утверждение без предмета, требований или опровержителя",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"falsifier\"/\"falsifier_\"/' format/spec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-proof-is-anchored-to-the-act",
+      "subject": "доказательство помнит коммит, из которого взято содержимое, и момент производства, и срок, после которого оно перестаёт считаться",
+      "scope": [
+        "lib/",
+        "adapter/",
+        "bin/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "в следе нет коммита, из которого взято содержимое, или срок проигнорирован",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/( \"at_commit\",/( \"at_commit_x\",/' adapter/trail.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-wave-says-why-and-promises-what-can-be-checked",
+      "subject": "каждая волна говорит, зачем эта работа, и обещает, какое утверждение будет в каком состоянии; обещание проверяется при закрытии",
+      "scope": [
+        "waves/",
+        "format/",
+        "test/",
+        "bin/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/spec_format.exe"
+        }
+      ],
+      "falsifier": "волна без замысла или без обязательства, либо волна закрывается с невыполненным обещанием",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"objection\"; \"refuted_by\"/\"objection\"; \"refuted_by_\"/' format/spec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-attestation-survives-a-clone",
+      "subject": "аттестация человека лежит в спецификации, а не в следе, и потому переживает свежий клон",
+      "scope": [
+        "lib/",
+        "format/",
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/empty_is_green.exe"
+        }
+      ],
+      "falsifier": "аттестация записана только в след, который пересобирается прогоном",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/empty_is_green.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-criterion-is-computable",
+      "subject": "стенд печатает критерий GOAL.md — цену метода на один пойманный дефект против цены дефекта — когда цена дефекта объявлена",
+      "scope": [
+        "bin/stand.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/stand.exe"
+        }
+      ],
+      "falsifier": "стенд печатает частоту вместо критерия, или молчит о невычислимости",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/no defect was caught/no defect was seen/' bin/stand.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-agent-arm-is-measured",
+      "subject": "рука агента измерена на чужом проекте: одна задача в двух руках, записано, что поймала каждая и что это стоило",
+      "scope": [
+        "docs/measurements/2026-11-07-agent-arm/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "замера нет, или в записи нет процедуры, или в ней нет чисел",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-07-agent-arm/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "the-binding-covers-what-ran",
+      "subject": "привязка доказательства покрывает рабочее дерево - то самое содержимое, по которому шли проверки, - а не закоммиченное",
+      "scope": [
+        "adapter/",
+        "lib/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/adapter_scope.exe"
+        }
+      ],
+      "falsifier": "привязка считается по закоммиченному содержимому, и доказательство об изменённом файле оказывается привязано к другому",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/adapter_scope.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-flake-hands-out-a-working-binary",
+      "subject": "флейк отдаёт пакет с бинарём метода, и этот бинарь собирается и работает: путь принимающей стороны живой",
+      "scope": [
+        "flake.nix"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "nix build .#default --no-link"
+        }
+      ],
+      "falsifier": "пакет не собирается или собранный бинарь не работает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/^  description = .*/  description = \"broken by a control\"/' flake.nix",
+      "attestations": []
+    },
+    {
+      "id": "the-entry-point-names-every-verb",
+      "subject": "страница входа для агента (AGENTS.md) называет каждый глагол инструмента: страница и орудие не расходятся",
+      "scope": [
+        "AGENTS.md",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/agents.exe"
+        }
+      ],
+      "falsifier": "в инструменте есть глагол, которого не называет страница",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/`map`, `route` и `next`/`map` и `next`/' AGENTS.md",
+      "attestations": []
+    },
+    {
+      "id": "the-tool-can-be-taken-out-of-nix",
+      "subject": "флейк отдаёт переносимый бинарь метода и стенда: без runpath в store, с OCaml-рантаймом внутри, и с путеводителем внутри орудия",
+      "scope": [
+        "flake.nix",
+        "bin/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "nix build .#portable"
+        }
+      ],
+      "falsifier": "переносимый бинарь просит библиотеки из store, не запускается без nix или не приносит стенда",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/^  description = .*/  description = \"broken by a control\"/' flake.nix",
+      "attestations": []
+    },
+    {
+      "id": "the-criterion-is-computed-on-real-data",
+      "subject": "критерий GOAL.md посчитан на данных замера руки агента, и вердикт отрицательный: ни один дефект не пойман, поэтому цена метода на один дефект не определена",
+      "scope": [
+        "docs/measurements/2026-11-07-agent-arm/",
+        "bin/stand.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "вердикт в записи расходится с числами замера или вовсе не назван",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-07-agent-arm/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "the-third-version-comes-across-as-drafts",
+      "subject": "решения третьей версии переносятся черновиками: область и верификаторы переносятся, регистр и опровержитель остаются за человеком",
+      "scope": [
+        "adapter/v3.ml",
+        "bin/mathc.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/v3_draft.exe"
+        }
+      ],
+      "falsifier": "переносится больше, чем механическая часть, или переносится решение без области",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/v3_draft.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-agent-arm-is-measured-without-a-foreign-method",
+      "subject": "рука агента измерена на предмете, где нет чужого метода: протокольная рука починила посаженную поломку, контрольная её увидела и оставила",
+      "scope": [
+        "docs/measurements/2026-11-07-agent-arm-repeat/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "запись повторного замера отсутствует или её вердикт расходится с её числами",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-07-agent-arm-repeat/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "a-check-that-cannot-fail-proves-nothing",
+      "subject": "проверка, которая проходит там, где её контроль обязан был упасть, не доказывает утверждение: оно не установлено, и карта называет причину",
+      "scope": [
+        "lib/",
+        "adapter/",
+        "format/",
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "проверка слепая признаётся доказанной",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/| Green -> b/| Green -> a/' lib/verdict.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-agent-arm-is-measured-in-four-arms",
+      "subject": "рука агента измерена вчетверо: страница входа, закон о контроле проверки и метод отделены друг от друга; результат отрицательный и назван прямо",
+      "scope": [
+        "docs/measurements/2026-11-07-agent-arm-repeat/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "запись о четырёх руках отсутствует или её числа расходятся с её вердиктом",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-07-agent-arm-repeat/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "a-wave-can-be-made",
+      "subject": "волна создаётся глаголом, а не только рукой: очередь в чужом репозитории ведёт, а не молчит",
+      "scope": [
+        "bin/",
+        "format/",
+        "test/",
+        "waves/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "волну по-прежнему можно создать только рукописью в JSON, и next её не называет",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/let path = Filename.concat dir (id ^ \".json\") in/let path = Filename.concat dir (id ^ \".nope\") in/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-promise-may-precede-its-subject",
+      "subject": "обещание объявляется раньше, чем предмет появляется: пустой репозиторий — законное состояние, а не тупик",
+      "scope": [
+        "lib/",
+        "bin/",
+        "adapter/",
+        "test/",
+        "AXIOMS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "объявление обещания о несуществующем предмете снова отказывает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"the subject is not there yet\"/\"the subject is not there YET\"/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-page-for-agents-is-generated-and-installed",
+      "subject": "страница для агента генерируется из справки орудия и стоящей спецификации и кладётся в проект, не затирая чужой AGENTS.md",
+      "scope": [
+        "bin/",
+        "adapter/",
+        "test/",
+        "AGENTS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "страница называет глагол, которого нет, или затирает чужой текст",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/let entry_page () =/let entry_page () = \"\";/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-project-with-code-has-a-first-step",
+      "subject": "проект с кодом и без утверждений получает черновики первых утверждений и видит свои проверки",
+      "scope": [
+        "bin/",
+        "adapter/project.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "черновик не появляется, или решение принимает машина",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/| \"propose\" -> verb_propose o/| \"propose\" -> 0/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-machine-surface-returns-the-next-step",
+      "subject": "машинная поверхность отдаёт следующий шаг, а не список успехов",
+      "scope": [
+        "bin/",
+        "test/mcp.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/mcp.exe"
+        }
+      ],
+      "falsifier": "метод отдаёт список или не отдаёт следующего шага",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/(\"map\", json)/(\"map\", `Null)/' bin/mcp.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-map-does-not-call-a-non-project-green",
+      "subject": "карта не зеленеет там, где проекта нет: каталог без спецификации получает «не знаю», а не «всё хорошо»",
+      "scope": [
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "карта в каталоге без spec.json печатает зелёный вердикт",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/there is no standing specification here/there is a project here/' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-draft-is-made-over-a-check-of-the-code",
+      "subject": "черновик делается только над проверкой кода: dev и build доказательствами не являются",
+      "scope": [
+        "bin/",
+        "adapter/project.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/v3_draft.exe"
+        }
+      ],
+      "falsifier": "черновик предлагает в качестве проверки команду, ничего не проверяющую",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> adapter/project.ml",
+      "attestations": []
+    },
+    {
+      "id": "every-machine-method-is-called-by-the-check",
+      "subject": "каждый метод машинной поверхности вызывается проверкой, а не только называется в списке",
+      "scope": [
+        "bin/",
+        "test/mcp.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/mcp.exe"
+        }
+      ],
+      "falsifier": "метод волны или закрытия не вызывается ни одной проверкой",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/(\"map\", json)/(\"map\", `Null)/' bin/mcp.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-control-that-never-ran-proves-nothing",
+      "subject": "контроль, который не запустился, не доказывает: утверждение с опечаткой в контроле больше не читается как доказанное",
+      "scope": [
+        "adapter/",
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "контроль, который не запустился или был убит, читается как сработавший",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/if control_code = 126 || control_code = 127 then/if false then/' adapter/exec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-promised-surface-is-shown",
+      "subject": "непроверенные обещания показаны рядом с покрытием: файл, объявленный, но не проверенный, не прячется под нулевым покрытием",
+      "scope": [
+        "bin/",
+        "adapter/git.ml",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "карта прячет файлы, покрытые обещаниями, которые никто не проверял",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-control-that-bites-proves-the-check",
+      "subject": "контроль, который ломает предмет и на котором проверка краснеет, доказывает проверку: утверждение с таким контролем установлено, а без кусающегося контроля — нет",
+      "scope": [
+        "adapter/exec.ml",
+        "bin/mathc.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "проверка остаётся зелёной на сломанном предмете, или утверждение с кусающимся контролем читается как установленное без него",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/let check_code = exit_code_of ~root requirement in/let check_code = 0 in/' adapter/exec.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-tree-is-left-as-the-control-found-it",
+      "subject": "контроль ломает предмет на время проверки и дерево возвращается в то состояние, в котором было: следующий запуск проверки видит то же дерево",
+      "scope": [
+        "adapter/exec.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "после контроля дерево остаётся изменённым, или проверка видит сломанный предмет после возврата",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
+      "attestations": []
+    },
+    {
+      "id": "every-check-of-the-method-is-run-again-not-remembered",
+      "subject": "каждая проверка метода запускается заново, а не возвращается из кэша: проверка, которая читает дерево, обязана говорить --force, иначе она помнит прежний ответ и не видит сломанный предмет",
+      "scope": [
+        "spec.json",
+        "test/spec_force.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/spec_force.exe"
+        }
+      ],
+      "falsifier": "требование утверждения метода может быть выполнено без --force и при этом остаться проверкой",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/dune runtest --root . --force/dune runtest --root ./' spec.json",
+      "attestations": []
+    },
+    {
+      "id": "the-page-of-the-method-costs-the-agent-nothing-to-read",
+      "subject": "страница для агента стоит не больше 1 400 байт: она несёт следующий шаг, счётчики и команды, а не словарь утилиты и не таблицу утверждений",
+      "scope": [
+        "bin/mathc.ml",
+        "test/cli.ml",
+        "AGENTS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "страница перерастает бюджет: словарь утилиты или таблица утверждений возвращаются в неё",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's|add \"### The next step|add \"### The verbs\\\\n\\\\n\" ^ usage_text () ^ \"\\\\n\\\\n### The next step|' bin/mathc.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-check-never-shown-to-fail-is-not-established",
+      "subject": "a claim whose check was never shown able to fail is not established: the method reads the control in the evidence, in the core, and the verdict is unknown rather than green",
+      "scope": [
+        "lib/verdict.ml",
+        "test/laws.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "a claim with no control, or with a control that did not bite, reads as holds",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-tree-keeps-the-work-that-was-not-committed",
+      "subject": "a control that breaks the subject leaves the tree as it was, including the changes the user had not committed: the content is kept and put back, not the fact of the change",
+      "scope": [
+        "adapter/exec.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "the control overwrites a file that was already changed, and the uncommitted work is lost without a word",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/cli.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-word-from-outside-cannot-close-a-procedure",
+      "subject": "a procedure the method could have run itself is closed by the method, and a person's word cannot close it: the kinds of proof do not mix, and a judgment is closed by the person alone",
+      "scope": [
+        "lib/verdict.ml",
+        "test/laws.ml",
+        "bin/mathc.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "mathc record closes a verifier requirement, or a judgment reads as established without anybody's word",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-method-establishes-claims-on-a-foreign-project",
+      "subject": "на чужом проекте со своими проверками метод устанавливает утверждение: проверка показана способной падать НА СВОЁМ ПРЕДМЕТЕ, и карта говорит правду о том, что именно сломал контроль",
+      "scope": [
+        "adapter/",
+        "lib/",
+        "bin/",
+        "test/"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force"
+        }
+      ],
+      "falsifier": "на чужом проекте метод не устанавливает ни одного утверждения, или карта говорит, что контроль сломал предмет, когда он сломал что-то другое",
+      "register": "fact",
+      "accepted": null,
+      "control": "printf 'let broken_by_the_control =\\n' >> test/laws.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-measurement-is-recorded-and-recomputed",
+      "subject": "замер на чужих проектах записан рядом с числами, и его вердикт пересчитывается проверкой, а не живёт в прозе",
+      "scope": [
+        "docs/measurements/2026-11-10-method-v4/",
+        "test/criterion.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/criterion.exe"
+        }
+      ],
+      "falsifier": "вердикт замера расходится с его числами, и проверка этого не замечает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/\"defects_caught_by_the_method\": 0/\"defects_caught_by_the_method\": 1/' docs/measurements/2026-11-10-method-v4/numbers.json",
+      "attestations": []
+    },
+    {
+      "id": "the-foundations-have-carriers",
+      "subject": "у каждого принципа метода есть носитель в коде, и основания метода (цель и принципы) связаны с формальной частью: список принципов один и тот же в обоих документах",
+      "scope": [
+        "GOAL.md",
+        "PHILOSOPHY.md",
+        "AXIOMS.md"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "принцип назван в PHILOSOPHY.md, но носителя у него нет в AXIOMS.md, или список принципов в двух документах разошёлся",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's;| P15 |;| P16 |;' PHILOSOPHY.md",
+      "attestations": []
+    },
+    {
+      "id": "the-methods-own-controls-are-live",
+      "subject": "контроли собственных утверждений метода живы: каждый пишет в свой предмет и всё ещё что-то меняет, - иначе код ушёл под контролем и утверждение читается проверенным, не будучи им",
+      "scope": [
+        "spec.json",
+        "test/repository_lints.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/repository_lints.exe"
+        }
+      ],
+      "falsifier": "контроль утверждения метода ничего не меняет или пишет вне своего предмета, и проверка этого не замечает",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's|\"control\": \"printf|\"control\": \"XXXprintf|' spec.json",
+      "attestations": []
+    },
+    {
+      "id": "the-sweep-tells-watched-from-unwatched",
+      "subject": "замер берёт файл и смотрит, заметят ли проверки: файлы, которые полоса проверок проекта не видит, названы, и дерево после замера цело",
+      "scope": [
+        "adapter/exec.ml",
+        "bin/mathc.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "замер берёт файл, проверки остаются зелёными, а метод говорит, что они его видят",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/if code <> 0 && code <> 126 && code <> 127 then noticed := true/if false then noticed := true/' adapter/exec.ml",
+      "attestations": []
+    },
+    {
+      "id": "a-standing-word-outlives-the-code",
+      "subject": "стоящее слово человека о факте проекта не протухает вместе с кодом: факт не о версии, и требовать его заново после каждой правки — трение там, где никто не ошибался",
+      "scope": [
+        "lib/verdict.ml",
+        "lib/domain.ml",
+        "format/spec.ml",
+        "test/laws.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/laws.exe"
+        }
+      ],
+      "falsifier": "стоящее слово протухает, когда предмет двигается, и человеку приходится повторять его после каждой правки",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/else if a.standing then/else if false then/' lib/verdict.ml",
+      "attestations": []
+    },
+    {
+      "id": "the-mutation-is-the-projects",
+      "subject": "мутация в свипе — команда проекта: метод исполняет её, проверки и возврат, и не притворяется, что знает хорошую мутацию в языке, которого не видел",
+      "scope": [
+        "adapter/exec.ml",
+        "bin/mathc.ml",
+        "test/cli.ml"
+      ],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/cli.exe"
+        }
+      ],
+      "falsifier": "свип не исполняет мутацию проекта, или дерево после него осталось сломанным",
+      "register": "fact",
+      "accepted": null,
+      "control": "sed -i 's/ignore (Sys.command command)/ignore (Sys.command \"true\")/' adapter/exec.ml",
+      "attestations": []
+    }
+  ]
+}

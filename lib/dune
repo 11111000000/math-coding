@@ -1,13 +1,5 @@
-; The core: types and laws, and nothing else. Pure - no clock, no
-; randomness, no I/O - and under its ceiling, because a core nobody
-; read is not a core whose laws are laws.
-;
-; The strict readers and writers of the formats live in format/, which
-; is pure as well but is a codec rather than an algebra: it says how
-; the outside is shaped, not what is true. The lint checks both for
-; purity and bounds each separately.
 (library
  (name mathcoding)
  (wrapped false)
- (modules domain verdict)
- (libraries unix))
+ (modules domain verdict freshness)
+ (libraries digestif))

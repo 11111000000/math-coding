@@ -1,0 +1,312 @@
+open Domain
+
+let fail code message = Printf.eprintf "mathc: %s\n" message; exit code
+let now () = int_of_float (Unix.time ())
+let load root =
+  match Project.load_spec root with
+  | Ok spec -> spec
+  | Error error -> Printf.eprintf "mathc: %s\n" error; exit 3
+
+let init root =
+  if Sys.file_exists (Filename.concat root "spec.json") then fail 2 "there is already a standing specification"
+  else (
+    Project.save_spec root { goal = None; claims = [] };
+    print_endline "the standing specification is created\nnext: state the aim (mathc goal TEXT SCOPE BY)";
+    0)
+
+let goal root text scope by reason =
+  let spec = load root in
+  if text = "" || scope = [] || by = "" then fail 2 "goal needs TEXT SCOPE BY"
+  else if spec.goal <> None && reason = "" then fail 2 "replacing the aim needs --reason"
+  else (
+    Project.save_spec root { spec with goal = Some { text; scope; by; at = now (); reason = (if reason = "" then None else Some reason) } };
+    print_endline "the aim is set";
+    0)
+
+let add root id text scope falsifier register requirements control source_path =
+  let spec = load root in
+  let inside_aim goal_scope prefix =
+    List.exists (fun allowed -> Git.path_contains ~dir:allowed ~path:prefix) goal_scope
+  in
+  let problem =
+    match spec.goal with
+    | None -> Some "state the aim first"
+    | Some goal ->
+        if id = "" || text = "" || falsifier = "" then Some "id, text and falsifier are required"
+        else if scope = [] then Some "the scope is empty"
+        else if requirements = [] then Some "at least one requirement is required"
+        else if List.exists (fun claim -> claim.id = id) spec.claims then Some "the claim id is already used"
+        else if not (List.for_all (inside_aim goal.scope) scope) then Some "the scope is outside the aim"
+        else None
+  in
+  match problem with
+  | Some error -> fail 2 error
+  | None ->
+      let register =
+        match register with
+        | "fact" -> Fact
+        | "hypothesis" -> Hypothesis
+        | "judgment" -> Judgment
+        | _ -> Undeclared
+      in
+      let source =
+        if source_path = "" then None
+        else
+          let full_path = if Filename.is_relative source_path then Filename.concat root source_path else source_path in
+          match Git.digest_of_file full_path with
+          | Some digest -> Some { kind = Madr; path = source_path; section = None; digest }
+          | None -> fail 2 ("source file not found: " ^ source_path)
+      in
+      let claim = {
+        id; text; scope; source; kind = Acceptance; phase = Pre_merge;
+        owner = Option.map (fun goal -> goal.by) spec.goal; review_on = [];
+        requirements; falsifier; register; control = (if control = "" then None else Some control);
+        waiver = None;
+      } in
+      Project.save_spec root { spec with claims = spec.claims @ [ claim ] };
+      Printf.printf "claim %s declared\n" id;
+      0
+
+let evidence_for root (claim : claim) requirement command outcome control_reach =
+  let binding = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope) in
+  { claim_id = claim.id; requirement;
+    candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
+    materials_digest = binding;
+    definition_digest = definition_digest claim;
+    verifier_digest = verifier_digest claim;
+    environment = Project.environment root;
+    producer = { class_ = "mathc"; identity = Sys.executable_name; run = Some command };
+    independence = Fresh_context; outcome; issued_at = now (); valid_until = None;
+    evidence_ref = None; control_reach }
+
+let report_failure label (result : Process.result) =
+  if result.code <> 0 then (
+    Printf.eprintf "mathc: %s exited %d\n%s%s" label result.code result.stdout result.stderr;
+    if result.stdout = "" && result.stderr = "" then prerr_newline ())
+
+let rec execute_requirement root claim items requirement =
+  match requirement with
+  | Review { authority; _ } -> Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority
+  | Verifier command -> (
+      match Git.digest_of_scope root ~scope:claim.scope with
+      | None -> Printf.printf "%s: the subject is not whole or does not exist\n" claim.id
+      | Some _ ->
+          let result = Process.run ~timeout:60.0 ~root command in
+          report_failure command result;
+          let outcome, reach =
+            match result.outcome, claim.control with
+            | Pass, Some control ->
+                Isolated_run.with_copy root (fun copy ->
+                    let before = Git.digest_of_scope copy ~scope:claim.scope in
+                    let mutation = Process.run ~timeout:30.0 ~root:copy control in
+                    report_failure ("negative control: " ^ control) mutation;
+                    let after = Git.digest_of_scope copy ~scope:claim.scope in
+                    let reach = if before = after then "nothing" else "subject" in
+                    let check = Process.run ~timeout:60.0 ~root:copy command in
+                    report_failure ("verifier after negative control: " ^ command) check;
+                    if reach = "subject" && check.code = 1 then Pass, Some reach
+                    else Inconclusive, Some reach)
+            | Pass, None -> Not_run, None
+            | outcome, _ -> outcome, None
+          in
+          let evidence = evidence_for root claim requirement command outcome reach in
+          items := evidence :: !items;
+          Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome))
+  | All requirements | Any requirements ->
+      List.iter (execute_requirement root claim items) requirements
+
+let run root =
+  (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
+  let spec = load root in
+  let items = ref [] in
+  List.iter (fun claim -> List.iter (execute_requirement root claim items) claim.requirements) spec.claims;
+  List.iter (Trail.append root) (List.rev !items);
+  match Project.map_json root spec with
+  | Error error -> fail 3 error
+  | Ok json -> (
+      match json with
+      | `Assoc fields -> (
+          match List.assoc_opt "exit" fields with Some (`Int code) -> code | _ -> 3)
+      | _ -> 3)
+
+let json_string_field name json =
+  match json with
+  | `Assoc fields -> (
+      match List.assoc_opt name fields with Some (`String value) -> value | _ -> "")
+  | _ -> ""
+
+let json_int_field name json =
+  match json with
+  | `Assoc fields -> (match List.assoc_opt name fields with Some (`Int value) -> value | _ -> 3)
+  | _ -> 3
+
+let map root json =
+  let spec = load root in
+  match Project.map_json root spec with
+  | Error error -> fail 3 error
+  | Ok value ->
+      if json then print_endline (Yojson.Safe.pretty_to_string value)
+      else (
+        match Project.states root spec with
+        | Error error -> fail 3 error
+        | Ok states ->
+            Printf.printf "verdict: %s\n" (json_string_field "verdict" value);
+            List.iter (fun (id, state) ->
+              let changed = match List.find_opt (fun claim -> claim.id = id) spec.claims with Some claim -> Project.source_changed root claim | None -> false in
+              Printf.printf "  %-28s %s%s\n" id (state_to_string state) (if changed then " (source changed)" else "")) states;
+            Printf.printf "uncovered: %d file(s)\n" (List.length (Project.uncovered root spec));
+            List.iter (fun file -> Printf.printf "  %s\n" file) (Project.uncovered root spec));
+      json_int_field "exit" value
+
+let next root =
+  let spec = load root in
+  match Project.next_text root spec with
+  | Error error -> fail 3 error
+  | Ok text -> print_endline text; 0
+
+let context root =
+  let spec = load root in
+  match Project.map_json root spec with
+  | Error error -> fail 3 error
+  | Ok value -> print_endline (Yojson.Safe.pretty_to_string value); 0
+
+let waive root id by reason valid_for recovery =
+  let spec = load root in
+  match List.find_opt (fun claim -> claim.id = id) spec.claims with
+  | None -> fail 2 ("there is no claim " ^ id)
+  | Some claim -> (
+      match Project.states root spec with
+      | Error error -> fail 3 error
+      | Ok states ->
+          if by = "" || reason = "" || recovery = "" || valid_for <= 0 then
+            fail 2 "waive needs --by, --reason, --valid-for DAYS and --recovery"
+          else if List.assoc_opt id states = Some Refuted then fail 2 "a refuted claim cannot be waived"
+          else
+            let waiver = {
+              gap = id; scope = claim.scope; issuer = by; issued_at = now ();
+              expires_at = now () + (valid_for * 86400); reason;
+              compensating_controls = []; recovery; review_on = [];
+            } in
+            let claims = List.map (fun current -> if current.id = id then { current with waiver = Some waiver } else current) spec.claims in
+            Project.save_spec root { spec with claims };
+            Printf.printf "claim %s: waived until %d\n" id waiver.expires_at;
+            0)
+
+let record root id authority by outcome valid_for run_ref =
+  let spec = load root in
+  match List.find_opt (fun claim -> claim.id = id) spec.claims with
+  | None -> fail 2 ("there is no claim " ^ id)
+  | Some claim ->
+      let requirement = Review { authority; minimum_independence = External } in
+      if not (List.mem requirement claim.requirements) then fail 2 "the claim has no such review requirement"
+      else if by = "" then fail 2 "record needs --by"
+      else
+        match outcome_of_string outcome with
+        | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+        | Some outcome ->
+            let evidence = {
+              claim_id = id; requirement;
+              candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
+              materials_digest = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope);
+              definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
+              environment = Project.environment root;
+              producer = { class_ = "human"; identity = by; run = run_ref };
+              independence = External; outcome; issued_at = now ();
+              valid_until = Option.map (fun days -> now () + (days * 86400)) valid_for;
+              evidence_ref = run_ref; control_reach = None;
+            } in
+            Trail.append root evidence;
+            print_endline "recorded";
+            0
+
+let migrate root write =
+  let spec = load root in
+  let json = Spec.to_json spec in
+  if write then (
+    let path = Filename.concat root "spec.json" in
+    Io.write_atomic (path ^ ".v4-backup") (Io.read_file path);
+    Project.save_spec root spec;
+    print_endline "the specification is migrated to v5; old evidence remains legacy_unverified";
+    0)
+  else (print_endline (Yojson.Safe.pretty_to_string json); 0)
+
+let block_begin = "<!-- math-coding:begin -->"
+let block_end = "<!-- math-coding:end -->"
+
+let usage_verbs = [ "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "migrate"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "re-evaluate"; "mcp" ]
+
+let entry_page root =
+  let spec = load root in
+  let claims = List.length spec.claims in
+  let goal = match spec.goal with Some goal -> goal.text | None -> "No aim is stated yet." in
+  Printf.sprintf
+    "## math-coding in this project\n\n%s\n\n%d claim(s).\n\n```sh\nmathc map\nmathc next\nmathc context\nmathc run\n```\n\nEvery verb: %s\n"
+    goal claims (String.concat " " (List.map (fun verb -> "mathc " ^ verb) usage_verbs))
+
+let index_of haystack needle =
+  let n = String.length haystack and m = String.length needle in
+  let found = ref None and index = ref 0 in
+  while !found = None && !index + m <= n do
+    if String.sub haystack !index m = needle then found := Some !index;
+    incr index
+  done;
+  !found
+
+let contains haystack needle = index_of haystack needle <> None
+
+let with_block existing block =
+  match index_of existing block_begin with
+  | None -> (if existing = "" then block else existing ^ "\n" ^ block)
+  | Some first -> (
+      match index_of (String.sub existing (first + String.length block_begin)
+                         (String.length existing - first - String.length block_begin)) block_end with
+      | None -> existing ^ "\n" ^ block
+      | Some last ->
+          let last = first + String.length block_begin + last in
+          let tail = String.sub existing (last + String.length block_end)
+              (String.length existing - last - String.length block_end) in
+          let tail = if String.length tail > 0 && tail.[0] = '\n' then String.sub tail 1 (String.length tail - 1) else tail in
+          String.sub existing 0 first ^ block ^ tail)
+
+let install root =
+  let path = Filename.concat root "AGENTS.md" in
+  let existing = if Sys.file_exists path then Io.read_file path else "" in
+  let block = block_begin ^ "\n" ^ entry_page root ^ block_end ^ "\n" in
+  Io.write_atomic path (with_block existing block);
+  print_endline "the page for agents is written";
+  0
+
+let version () =
+  let build = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
+  Printf.printf "mathc 5\nbuild %s\n" build;
+  0
+
+let authorize root by reason =
+  match Policy.load root with
+  | Error error -> fail 2 error
+  | Ok None -> fail 2 "there is no policy.json; protected transitions are not configured"
+  | Ok (Some policy) -> Policy.authorize root policy by reason
+
+let re_evaluate root =
+  let spec = load root in
+  match Re_evaluation.pending root spec with
+  | Error error -> fail 3 error
+  | Ok pending -> print_endline (Yojson.Safe.pretty_to_string (`Assoc [ "needs_re_evaluation", `List (List.map (fun id -> `String id) pending) ])); 0
+
+let doctor root =
+  let broken = ref 0 in
+  let report ok message = if not ok then incr broken; Printf.printf "  %s %s\n" (if ok then "ok" else "wrong") message in
+  report (Git.is_repository root) "this is a git repository";
+  report (Sys.file_exists (Filename.concat root "spec.json")) "the standing specification is there";
+  let spec = load root in
+  report (spec.goal <> None) "the aim is stated";
+  (match Policy.check root with Ok () -> report true "protected transitions are authorized" | Error _ -> report false "protected transitions are authorized");
+  let page = Filename.concat root "AGENTS.md" in
+  if not (Sys.file_exists page) then report false "there is no page for agents: mathc install"
+  else (
+    let text = Io.read_file page in
+    report (contains text block_begin && contains text block_end) "the page has a math-coding block";
+    let expected = with_block text (block_begin ^ "\n" ^ entry_page root ^ block_end ^ "\n") in
+    report (expected = text) "the page is current";
+    List.iter (fun verb -> report (contains text verb) ("the page names " ^ verb)) usage_verbs);
+  if !broken = 0 then 0 else 1

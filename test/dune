@@ -1,92 +1,54 @@
-(test
- (name empty_is_green)
- (modules empty_is_green)
- (libraries mathcoding))
+(library
+ (name mathc_test_helpers)
+ (wrapped false)
+ (modules helpers)
+ (libraries mathcoding mathcoding_adapter yojson))
 
 (test
  (name laws)
  (modules laws)
- (libraries mathcoding))
-
-(test
- (name exit_codes)
- (modules exit_codes)
- (libraries mathcoding mathcoding_adapter))
+ (libraries mathc_test_helpers mathcoding))
 
 (test
  (name spec_format)
  (modules spec_format)
- (libraries mathcoding mathcoding_format yojson))
+ (libraries mathc_test_helpers mathcoding_format))
 
 (test
- (name paths)
- (modules paths)
- (libraries mathcoding_adapter))
+ (name adr_junit)
+ (modules adr_junit)
+ (libraries mathc_test_helpers mathcoding_adapter))
+
+(test
+ (name cli)
+ (modules cli)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe}))
+
+(test
+ (name mcp)
+ (modules mcp)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe}))
 
 (test
  (name repository_lints)
  (modules repository_lints)
- (libraries mathcoding str unix yojson))
+ (libraries mathc_test_helpers mathcoding_adapter))
 
-; The verdict of the criterion of GOAL.md, recomputed from the numbers
-; of the agent-arm measurement.
 (test
- (name criterion)
- (modules criterion)
- (libraries yojson))
+ (name repository_control)
+ (modules repository_control)
+ (libraries mathc_test_helpers mathcoding_adapter))
 
-; The third version's decisions, as drafts: the mechanical part is
-; carried across, and the rest is left to the person.
 (test
- (name v3_draft)
- (modules v3_draft)
- (libraries mathcoding mathcoding_adapter yojson))
-
-; The entry point for an agent: the guide must name every verb the
-; tool has, and the check must be able to say no.
-(test
- (name agents)
- (modules agents)
- (libraries unix)
+ (name policy)
+ (modules policy)
+ (libraries mathc_test_helpers mathcoding_adapter)
  (deps %{exe:../bin/mathc.exe}))
 
-; The stand, and the criterion of GOAL.md: what the method cost per
-; defect it caught, against what that defect was worth.
 (test
  (name stand)
  (modules stand)
- (libraries unix)
- (deps %{exe:../bin/stand.exe} %{exe:../bin/mathc.exe}))
-
-; The subject is whole or it is not: a scope with a path that is not in
-; the tree has no digest, and the adapter that hashed only the paths it
-; found is offered to the law and rejected.
-(test
- (name adapter_scope)
- (modules adapter_scope)
- (libraries mathcoding mathcoding_adapter unix))
-
-; The machine surface: the same verbs, spoken over MCP. Each method
-; returns the next step, and the battery must fail against a server
-; that answers nothing.
-(test
- (name mcp)
- (modules mcp)
- (libraries yojson unix)
- (deps %{exe:../bin/mathc.exe}))
-
-; The tool itself: the ten verbs, end to end, against a temporary git
-; repository. The tool is built first, so the test always runs against
-; the tool of this tree and not against something left over.
-(test
- (name cli)
- (modules cli)
- (libraries mathcoding yojson unix)
- (deps %{exe:../bin/mathc.exe}))
-
-; Every check of the method is run again, not remembered: dune caches a
-; test result, and a test that reads the tree has no dependency on it.
-(test
- (name spec_force)
- (modules spec_force)
- (libraries yojson))
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe} %{exe:../bin/stand.exe}))

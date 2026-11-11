@@ -1,394 +1,164 @@
-(** The measurement stand.
+open Domain
 
-    The method's own claim about its usefulness is a ratio: the defects
-    it caught, over the cost it took. The third version measured that
-    on five external projects and then REFUSED to publish the number,
-    because the harness that produced it could not be reproduced. That
-    refusal was honest and it cost the method its only measurement.
-
-    So the stand is part of the delivery, not a tool for later. It
-    runs the protocol over projects that are not this one and reports
-    what it can actually measure.
-
-    WHAT IT MEASURES, AND WHAT IT CANNOT.
-
-    It measures: the wall-clock cost of running the checks, the size
-    of the covered surface, the size of the uncovered surface, and the
-    number of claims the protocol found to be untrue, undetermined, or
-    moved. Those are facts about a run, and they are reproducible
-    because the stand is the harness.
-
-    It cannot measure: how many defects a human would have found
-    anyway, and how many tokens the agent spent. The first needs a
-    control arm - the same project without the protocol - and the
-    second needs the agent, not the method. The stand says so rather
-    than producing a number it cannot stand behind.
-
-    THE RATIO THE GOAL ASKS FOR IS NOT YET MEASURABLE HERE, and the
-    stand does not pretend otherwise. What it produces is the
-    denominator and the numerator's raw material, on more than one
-    project, so that the claim in GOAL.md can be tested rather than
-    asserted. *)
-
-let read_file path =
-  let channel = open_in path in
-  let content = In_channel.input_all channel in
-  close_in channel;
-  content
-
-(** Run a command and return how long it took, in seconds. *)
-let timed (command : string) : float * int =
-  let start = Unix.gettimeofday () in
-  let code = Sys.command command in
-  (Unix.gettimeofday () -. start, code)
-
-(** The method's own binary. The stand sits beside it, and an adopter
-    does not have it in the project: the method is a tool the project
-    uses, not a file the project carries. *)
-let method_binary () =
-  match Sys.getenv_opt "MATHC" with
-  | Some p -> p
-  | None -> Filename.concat (Filename.dirname Sys.argv.(0)) "mathc.exe"
-
-(** The claims of a project, read from its standing specification. The
-    control arm needs them: it runs the project's own commands, and the
-    protocol is what is being left out. *)
-let claims_of (root : string) : Domain.claim list =
-  let path = Filename.concat root "spec.json" in
-  if not (Sys.file_exists path) then []
-  else
-    match Yojson.Safe.from_string (read_file path) with
-    | json -> (
-        match Spec.parse_spec json with
-        | Ok spec -> spec.Domain.claims
-        | Error _ -> [])
-    | exception Yojson.Json_error _ -> []
-
-(** One project's measurement. *)
 type measurement = {
   project : string;
   claims : int;
-  covered : int;
   uncovered : int;
-  seconds : float;
-  exit : int;
-  (* A DEFECT CAUGHT: a claim that was refuted. Nothing else counts.
-     An outdated claim is not a catch - it is a claim nobody has
-     re-checked since the subject moved, and calling that a catch
-     would put unverified work into the numerator of the measure. *)
   caught : int;
-  (* Claims that need work but are not catches: the subject moved, or
-     the check could not tell. *)
   stale : int;
-  (* The price arm: the same checks, run directly, without the
-     protocol. It answers "what does the protocol cost" - and nothing
-     more. It is NOT the agent arm: an agent without the protocol
-     solves the task and not merely the checks, and it will be faster,
-     because it keeps no bookkeeping. That arm is a separate
-     measurement, and the difference between it and this one is what
-     the protocol adds. *)
+  protocol_seconds : float;
   control_seconds : float;
-  control_failed : int;
 }
 
-(** Read the map of a project, as the method wrote it. The map is JSON
-    because the stand is a program and the map is its input. *)
-let read_map (root : string) : (string * Yojson.Safe.t) option =
-  let path = Filename.concat root "spec.json" in
-  if not (Sys.file_exists path) then None
-  else
-    match Yojson.Safe.from_string (read_file path) with
-    | _ -> None
-
-(** The map of a project, computed by the method itself. The stand
-    does not count anything the method does not already count: a
-    second counter would be a second truth. *)
-let measure (root : string) : measurement option =
-  let map_bin = method_binary () in
-  if not (Sys.file_exists map_bin) then None
-  else
-    (* The cost of the method is the CHECKS, not the map: the map is
-       computed from what the checks produced, and it is cheap. So the
-       timed thing is the run. *)
-    let seconds, exit =
-      timed (Printf.sprintf "%s --root %s run" (Filename.quote map_bin) (Filename.quote root))
-    in
-    (* The method's own map, read back as data. *)
-    let out = Filename.temp_file "stand-map" ".json" in
-    let cmd =
-      Printf.sprintf "%s --root %s map --json > %s 2>/dev/null"
-        (Filename.quote map_bin) (Filename.quote root) (Filename.quote out)
-    in
-    ignore (Sys.command cmd);
-    let json =
-      try Some (Yojson.Safe.from_string (read_file out)) with Yojson.Json_error _ -> None
-    in
-    Sys.remove out;
-    (* The control arm. The claims' checks are the project's own
-       commands, so the control runs them directly - no binding, no
-       map, no route, no budget. What it cannot say is what nobody
-       looked at, what went stale, and what the machine must not
-       decide; the difference between the arms is exactly the yield
-       of the protocol, and the difference in seconds is its price. *)
-    let control_seconds, control_failed =
-      match json with
-      | None -> (0.0, 0)
-      | Some _ ->
-          let claims = claims_of root in
-          List.fold_left
-            (fun (total, failed) (claim : Domain.claim) ->
-              List.fold_left
-                (fun (total, failed) (r : Domain.requirement) ->
-                  match r with
-                  | Domain.Reviewed_by _ -> (total, failed)
-                  | Domain.Verified_by command ->
-                      let started = Unix.gettimeofday () in
-                      let code =
-                        Sys.command
-                          (Printf.sprintf "cd %s && %s" (Filename.quote root) command)
-                      in
-                      (total +. (Unix.gettimeofday () -. started),
-                       if code = 0 then failed else failed + 1))
-                (total, failed) claim.Domain.requirements)
-            (0.0, 0) claims
-    in
-    match json with
-    | Some (`Assoc fields) ->
-        let get name = List.assoc_opt name fields in
-        let int_of name = match get name with Some (`Int n) -> n | _ -> 0 in
-        let count wanted =
-          match get "states" with
-          | Some (`List states) ->
-              List.length
-                (List.filter
-                   (fun s ->
-                     match s with
-                     | `Assoc kv ->
-                         (match List.assoc_opt "state" kv with
-                         | Some (`String st) -> st = wanted
-                         | _ -> false)
-                     | _ -> false)
-                   states)
-          | _ -> 0
-        in
-        let caught = count "refuted" in
-        let stale = count "outdated" + count "inconclusive" in
-        Some
-          {
-            project = root;
-            claims = int_of "claims";
-            covered = int_of "claims";
-            uncovered = int_of "uncovered";
-            seconds;
-            exit;
-            caught;
-            stale;
-            control_seconds;
-            control_failed;
-          }
-    | _ -> None
-
-(** The costs the method cannot see.
-
-    The ratio GOAL.md asks for has three terms in its denominator: a
-    person's minutes, the machine's seconds, and the agent's tokens.
-    The stand measures the second. The first and the third are facts
-    about people, and a method that guessed them would be publishing a
-    number it invented - which is the thing the third version refused
-    to do and was right to refuse.
-
-    So they are declared. The person who ran the adoption says how long
-    it took them and how many tokens the agent spent, and the stand
-    divides. Until they are declared, the stand prints the denominator
-    it knows and no ratio. *)
-type declared_costs = {
+type costs = {
   human_minutes : float;
   agent_tokens : int;
-  (* The price of ONE defect, in the same money as the three costs
-     below. This is a fact about the project, not about the method:
-     nobody can measure it from here, and the stand does not guess it.
-     Without it the criterion of GOAL.md has no right-hand side, and
-     the stand says so instead of printing a number that looks like
-     one. *)
-  defect_cost : float option;
-  (* The weights. The criterion in GOAL.md divides the defects caught
-     by "the minutes of a person plus the seconds of a machine plus the
-     tokens of an agent" - three quantities in three different units,
-     and a sum of them is not a quantity. The weights are what make
-     them commensurable, and they are a fact about the world, not
-     about the method, so they are declared with the costs. *)
   person_minute_cost : float;
   machine_second_cost : float;
   token_cost : float;
+  defect_cost : float option;
 }
 
-let declared_costs = ref None
+let absolute path =
+  if Filename.is_relative path then Filename.concat (Sys.getcwd ()) path else path
 
-(** The projects to measure. Given on the command line, one per
-    argument. A project without a standing specification is not
-    measured: the method has nothing to say about a project that has
-    not stated its aim, and the stand does not state aims on its
-    behalf. *)
-(** The command line: project paths, and the costs the stand cannot
-    measure on its own. *)
-let parse_args (args : string list) : string list * declared_costs option =
-  let projects = ref [] in
-  let minutes = ref None in
-  let tokens = ref None in
-  let person_minute_cost = ref None in
-  let machine_second_cost = ref None in
-  let token_cost = ref None in
-  let defect_cost = ref None in
-  let rec loop = function
-    | [] -> ()
-    | "--human-minutes" :: v :: rest ->
-        minutes := float_of_string_opt v;
-        loop rest
-    | "--agent-tokens" :: v :: rest ->
-        tokens := int_of_string_opt v;
-        loop rest
-    | "--person-minute-cost" :: v :: rest ->
-        person_minute_cost := float_of_string_opt v;
-        loop rest
-    | "--machine-second-cost" :: v :: rest ->
-        machine_second_cost := float_of_string_opt v;
-        loop rest
-    | "--token-cost" :: v :: rest ->
-        token_cost := float_of_string_opt v;
-        loop rest
-    | "--defect-cost" :: v :: rest ->
-        defect_cost := float_of_string_opt v;
-        loop rest
-    | ( "--human-minutes"
-      | "--agent-tokens"
-      | "--person-minute-cost"
-      | "--machine-second-cost"
-      | "--token-cost"
-      | "--defect-cost" )
-      :: [] ->
-        Printf.eprintf "stand: that option needs a number\n";
-        exit 2
-    | p :: rest ->
-        projects := p :: !projects;
-        loop rest
+let method_binary () =
+  match Sys.getenv_opt "MATHC" with
+  | Some path -> absolute path
+  | None ->
+      let directory = Filename.dirname Sys.argv.(0) in
+      let candidates =
+        List.map absolute
+          [ Filename.concat directory "mathc"; Filename.concat directory "mathc.exe";
+            Filename.concat directory "../bin/mathc"; Filename.concat directory "../bin/mathc.exe" ]
+      in
+      match List.find_opt Sys.file_exists candidates with Some path -> path | None -> "mathc"
+
+let field name json =
+  match json with `Assoc pairs -> List.assoc_opt name pairs | _ -> None
+
+let int_field name json = match field name json with Some (`Int value) -> value | _ -> 0
+
+let states_field json = match field "states" json with Some (`List states) -> states | _ -> []
+
+let count_uncovered json = match field "uncovered" json with Some (`List files) -> List.length files | _ -> 0
+
+let count_state wanted json =
+  List.length
+    (List.filter
+       (fun state ->
+         match state with
+         | `Assoc pairs -> (match List.assoc_opt "state" pairs with Some (`String value) -> value = wanted | _ -> false)
+         | _ -> false)
+       (states_field json))
+
+let rec commands = function
+  | Verifier command -> [ command ]
+  | Review _ -> []
+  | All requirements | Any requirements -> List.concat_map commands requirements
+
+let measure root =
+  let binary = method_binary () in
+  let project_root = absolute root in
+  let started = Unix.gettimeofday () in
+  ignore (Process.run ~timeout:180.0 ~root (Printf.sprintf "%s --root %s run" (Filename.quote binary) (Filename.quote project_root)));
+  let protocol_seconds = Unix.gettimeofday () -. started in
+  let mapped = Process.run ~timeout:30.0 ~root (Printf.sprintf "%s --root %s map --json" (Filename.quote binary) (Filename.quote project_root)) in
+  match Yojson.Safe.from_string mapped.stdout with
+  | exception Yojson.Json_error error -> prerr_endline error; None
+  | json -> (
+      match Project.load_spec root with
+      | Error error -> prerr_endline error; None
+      | Ok spec ->
+          let control_seconds =
+            List.fold_left
+              (fun total claim ->
+                List.fold_left
+                  (fun total command ->
+                    let started = Unix.gettimeofday () in
+                    ignore (Process.run ~timeout:180.0 ~root command);
+                    total +. Unix.gettimeofday () -. started)
+                  total (List.concat_map commands claim.requirements))
+              0.0 spec.claims
+          in
+          Some {
+            project = root;
+            claims = int_field "claims" json;
+            uncovered = count_uncovered json;
+            caught = count_state "refuted" json;
+            stale = count_state "outdated" json + count_state "inconclusive" json;
+            protocol_seconds;
+            control_seconds;
+          })
+
+let parse_costs args =
+  let value name =
+    List.find_map (fun (key, value) -> if key = name then Some value else None) args
   in
-  loop args;
-  ( List.rev !projects,
-    match
-      ( !minutes,
-        !tokens,
-        !person_minute_cost,
-        !machine_second_cost,
-        !token_cost,
-        !defect_cost )
-    with
-    | Some m, Some t, Some pm, Some ms, Some tk, dc ->
-        Some
-          {
-            human_minutes = m;
-            agent_tokens = t;
-            person_minute_cost = pm;
-            machine_second_cost = ms;
-            token_cost = tk;
-            defect_cost = dc;
-          }
-    | _ -> None )
+  let float name = Option.bind (value name) float_of_string_opt in
+  let int name = Option.bind (value name) int_of_string_opt in
+  match float "--human-minutes", int "--agent-tokens", float "--person-minute-cost",
+        float "--machine-second-cost", float "--token-cost" with
+  | Some human_minutes, Some agent_tokens, Some person_minute_cost, Some machine_second_cost, Some token_cost ->
+      Some { human_minutes; agent_tokens; person_minute_cost; machine_second_cost; token_cost;
+             defect_cost = float "--defect-cost" }
+  | _ -> None
+
+let rec parse_args = function
+  | [] -> []
+  | "--human-minutes" :: value :: rest -> ("--human-minutes", value) :: parse_args rest
+  | "--agent-tokens" :: value :: rest -> ("--agent-tokens", value) :: parse_args rest
+  | "--person-minute-cost" :: value :: rest -> ("--person-minute-cost", value) :: parse_args rest
+  | "--machine-second-cost" :: value :: rest -> ("--machine-second-cost", value) :: parse_args rest
+  | "--token-cost" :: value :: rest -> ("--token-cost", value) :: parse_args rest
+  | "--defect-cost" :: value :: rest -> ("--defect-cost", value) :: parse_args rest
+  | project :: rest -> ("project", project) :: parse_args rest
 
 let () =
-  let projects, costs = parse_args (Array.to_list Sys.argv |> List.tl) in
-  declared_costs := costs;
+  let arguments = Array.to_list Sys.argv |> List.tl in
+  let options = parse_args arguments in
+  let projects = List.filter_map (fun (key, value) -> if key = "project" then Some value else None) options in
+  if projects = [] then (
+    Printf.eprintf "stand: nothing was measured\nusage: stand PROJECT [PROJECT ...]\n";
+    exit 2);
   let measurements = List.filter_map measure projects in
   if measurements = [] then (
     Printf.eprintf "stand: nothing was measured\n";
-    print_endline "usage: stand PROJECT [PROJECT ...]";
-    print_endline "  each project must have a standing specification and a built method";
     exit 2);
-  Printf.printf "%-34s %6s %9s %7s %6s %9s %9s %8s\n" "project" "claims" "uncovered"
-    "caught" "stale" "protocol" "price-arm" "overhead";
+  Printf.printf "%-30s %6s %9s %7s %6s %9s %9s %8s\n" "project" "claims" "uncovered" "caught" "stale" "protocol" "price-arm" "overhead";
   List.iter
-    (fun (m : measurement) ->
-      Printf.printf "%-34s %6d %9d %7d %6d %9.1f %9.1f %8.1f\n" m.project m.claims
-        m.uncovered m.caught m.stale m.seconds m.control_seconds
-        (m.seconds -. m.control_seconds))
+    (fun measurement ->
+      Printf.printf "%-30s %6d %9d %7d %6d %9.1f %9.1f %8.1f\n"
+        measurement.project measurement.claims measurement.uncovered measurement.caught
+        measurement.stale measurement.protocol_seconds measurement.control_seconds
+        (measurement.protocol_seconds -. measurement.control_seconds))
     measurements;
-  let total_uncovered =
-    List.fold_left (fun n (m : measurement) -> n + m.uncovered) 0 measurements
+  let total field =
+    List.fold_left (fun total measurement -> total +. field measurement) 0.0 measurements
   in
-  let total_caught =
-    List.fold_left (fun n (m : measurement) -> n + m.caught) 0 measurements
-  in
-  let total_stale =
-    List.fold_left (fun n (m : measurement) -> n + m.stale) 0 measurements
-  in
-  let total_seconds =
-    List.fold_left (fun t (m : measurement) -> t +. m.seconds) 0.0 measurements
-  in
-  let total_price_arm =
-    List.fold_left (fun t (m : measurement) -> t +. m.control_seconds) 0.0 measurements
-  in
-  Printf.printf
-    "\nprojects: %d, uncovered: %d, caught: %d, needs work: %d\nprotocol seconds: %.1f, price-arm seconds: %.1f, overhead: %.1f\n"
-    (List.length measurements) total_uncovered total_caught total_stale total_seconds
-    total_price_arm (total_seconds -. total_price_arm);
-  print_endline "";
-  print_endline
-    "The price arm is the same checks, run directly, without the protocol: it says";
-  print_endline
-    "what the protocol costs. It does not say what the protocol is worth, because";
-  print_endline
-    "that needs the AGENT arm - the same task solved by an agent with no protocol.";
-  print_endline
-    "That agent will be faster, and it should be: it keeps no bookkeeping. So the";
-  print_endline
-    "comparison is not about speed. It is about what the method caught that the agent";
-  print_endline
-    "without the protocol did not - and whether that was worth what it cost.";
-  print_endline "";
-  match !declared_costs with
+  let caught = List.fold_left (fun total measurement -> total + measurement.caught) 0 measurements in
+  Printf.printf "\nprojects: %d, uncovered: %.0f, caught: %d, needs work: %.0f\n"
+    (List.length measurements) (total (fun m -> float_of_int m.uncovered)) caught
+    (total (fun m -> float_of_int m.stale));
+  Printf.printf "protocol seconds: %.1f, price-arm seconds: %.1f, overhead: %.1f\n"
+    (total (fun m -> m.protocol_seconds)) (total (fun m -> m.control_seconds))
+    (total (fun m -> m.protocol_seconds -. m.control_seconds));
+  match parse_costs options with
+  | None ->
+      print_endline "ratio: not computed. Declare human minutes, tokens and their prices."
   | Some costs ->
       let denominator =
-        (costs.human_minutes *. costs.person_minute_cost)
-        +. (total_seconds *. costs.machine_second_cost)
-        +. (float_of_int costs.agent_tokens *. costs.token_cost)
+        costs.human_minutes *. costs.person_minute_cost
+        +. total (fun m -> m.protocol_seconds) *. costs.machine_second_cost
+        +. float_of_int costs.agent_tokens *. costs.token_cost
       in
-      Printf.printf
-        "declared: %.0f person-minutes at %.2f, %.1f machine-seconds at %.4f, %d agent tokens at %.6f\n"
-        costs.human_minutes costs.person_minute_cost total_seconds
-        costs.machine_second_cost costs.agent_tokens costs.token_cost;
-      if denominator <= 0.0 then
-        print_endline "ratio: not computable - the denominator is zero"
+      if denominator <= 0.0 then print_endline "ratio: not computable - the denominator is zero"
       else (
-        Printf.printf "cost: %.4f; ratio (defects caught per unit of cost): %.4f\n"
-          denominator (float_of_int total_caught /. denominator);
-        (* THE CRITERION OF GOAL.md. The left side is what the method
-           cost per defect it caught; the right side is what that
-           defect was worth, and the right side is a fact about the
-           project that only the project can say. Without it the
-           criterion is not computable, and the stand says that
-           instead of printing something that looks like an answer. *)
+        Printf.printf "cost: %.4f; defects caught per unit of cost: %.4f\n" denominator (float_of_int caught /. denominator);
         match costs.defect_cost with
-        | None ->
-            print_endline
-              "criterion: not computed. The price of a defect is a fact about the";
-            print_endline
-              "  project, and the stand does not guess it. Declare it with";
-            print_endline "  --defect-cost N   (in the same money as the costs above)"
-        | Some price when total_caught = 0 ->
-            print_endline
-              "criterion: not computable - no defect was caught, so the cost of the";
-            print_endline
-              "  method per defect it caught has no denominator"
+        | None -> print_endline "criterion: not computed. Declare --defect-cost."
+        | Some _ when caught = 0 -> print_endline "criterion: not computable - no defect was caught"
         | Some price ->
-            let per_defect = denominator /. float_of_int total_caught in
-            Printf.printf
-              "criterion: the method cost %.4f per defect it caught; the defect was worth %.4f; %s\n"
-              per_defect price
-              (if per_defect <= price then "the criterion holds" else "the criterion does not hold"))
-  | None ->
-      print_endline "ratio: not computed. The person-minutes and the agent's tokens are";
-      print_endline
-        "facts about people, and the stand does not guess them. Declare them with";
-      print_endline
-        "  --human-minutes N --agent-tokens N --person-minute-cost N";
-      print_endline
-        "  --machine-second-cost N --token-cost N   (one unit of cost for all three)" 
+            let per_defect = denominator /. float_of_int caught in
+            Printf.printf "criterion: the method cost %.4f per defect; the defect was worth %.4f; %s\n"
+              per_defect price (if per_defect <= price then "the criterion holds" else "the criterion does not hold"))
