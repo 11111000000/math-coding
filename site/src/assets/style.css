@@ -248,13 +248,14 @@ nav.site-nav .brand {
   text-decoration: none;
   white-space: nowrap;
 }
-nav.site-nav .brand::after {
-  content: "";
-  width: 0.45rem;
-  height: 0.45rem;
-  background: var(--accent);
-  box-shadow: 0 0 0 3px rgba(139, 58, 58, 0.28);
+/* the mark: two oxblood brackets around the verdict check */
+nav.site-nav .brand-logo {
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  flex-shrink: 0;
 }
+nav.site-nav .brand:hover .brand-logo { filter: brightness(1.2); }
 nav.site-nav .brand:hover { color: #fff; }
 
 nav.site-nav .nav-inner {
@@ -415,6 +416,12 @@ tbody tr:last-child td { border-bottom: 0; }
   pointer-events: none;
 }
 .hero > * { position: relative; z-index: 1; }
+.hero .hero-logo {
+  width: 78px;
+  height: 78px;
+  display: block;
+  margin: 0 auto 1.5rem;
+}
 .hero h1 {
   font-size: clamp(2.4rem, 5vw, 3.4rem);
   font-weight: 400;
