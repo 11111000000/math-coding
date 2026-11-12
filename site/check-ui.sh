@@ -117,6 +117,26 @@ for page in $(find "$DIST" -name '*.html' | sort); do
   done
 done
 
+# --- every page offers the same navigation -------------------------------
+
+# The navigation is written by hand on every page, and a page that forgets
+# one item hides it from its reader. The items are compared by target, so
+# the English and the Russian pages must offer the same ones.
+nav_targets() {
+  sed -n '/<div class="nav-inner">/,/<\/div>/p' "$1" \
+    | sed -n 's/.*href="\([^"]*\)".*/\1/p' \
+    | sed -e 's|^\.\./||' -e 's/\.ru\.html$/.html/' \
+    | sort | tr '\n' ' '
+}
+
+reference=$(nav_targets "$DIST/index.html")
+for page in $(find "$DIST" -name '*.html' | sort); do
+  found=$(nav_targets "$page")
+  if [ "$found" != "$reference" ]; then
+    fail "$page offers a different navigation: $found"
+  fi
+done
+
 # --- the rendered pages, measured in a phone viewport ---------------------
 
 if ! command -v python3 >/dev/null 2>&1; then
