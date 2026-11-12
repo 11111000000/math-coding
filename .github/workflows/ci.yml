@@ -59,10 +59,15 @@ jobs:
         with:
           primary-key: nix-${{ runner.os }}-portable-${{ hashFiles('flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
-      - run: nix develop -c sh test/package_smoke.sh portable
-      - run: nix develop -c dune build --root . bin/mathc.exe
-      - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
-      - run: ./_build/default/bin/mathc.exe --root . doctor
+      # The OCaml 5 runtime sizes its signal stack from the stack rlimit. A
+      # runner leaves that limit unlimited, and a cold static build then
+      # fails with "Failed to allocate signal stack for domain 0". The limit
+      # is set inside each step that runs a binary, because every step is
+      # its own shell.
+      - run: ulimit -s 8192 && nix develop -c sh test/package_smoke.sh portable
+      - run: ulimit -s 8192 && nix develop -c dune build --root . bin/mathc.exe
+      - run: ulimit -s 8192 && nix develop -c ./_build/default/bin/mathc.exe --root . run
+      - run: ulimit -s 8192 && ./_build/default/bin/mathc.exe --root . doctor
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved and the
