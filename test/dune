@@ -61,3 +61,11 @@
  (deps ../install.sh ../skills/math-coding/SKILL.md
   ../skills/math-coding/references/PROJECT-SETUP.md
   ../skills/math-coding/references/METHODOLOGY.md))
+
+(test
+ (name measurement_ledger)
+ (modules measurement_ledger)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps ../docs/measurements/task-ledger.py
+  ../docs/measurements/dry-run.jsonl
+  ../docs/measurements/field-tasks.jsonl))

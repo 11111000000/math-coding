@@ -285,6 +285,28 @@
       "register": "fact",
       "control": "printf '\\nnav.site-nav .nav-inner { overflow: hidden; max-height: 26px; }\\n' >> site/src/assets/style.css",
       "waiver": null
+    },
+    {
+      "id": "field-measurement",
+      "text": "the field pilot ledger accepts consistent records and rejects inconsistent comparisons",
+      "scope": [
+        "docs/measurements/", "test/measurement_ledger.ml", "test/dune"
+      ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/measurement_ledger.exe"
+        }
+      ],
+      "falsifier": "an inconsistent task record is accepted or a valid dry run is rejected",
+      "register": "fact",
+      "control": "sed -i 's/accepted_by is None/accepted_by is not None/' docs/measurements/task-ledger.py",
+      "waiver": null
     }
   ]
 }
