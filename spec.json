@@ -268,6 +268,23 @@
       "register": "fact",
       "control": "sed -i 's/(escape claim.id)/(escape \"tampered\")/' site/render.ml",
       "waiver": null
+    },
+    {
+      "id": "site-interface",
+      "text": "the navigation keeps every item and every frame on a phone screen, and the English and the Russian pages are drawn by the same typefaces",
+      "scope": [ "site/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        { "kind": "verifier", "spec": "sh site/check-ui.sh" }
+      ],
+      "falsifier": "a navigation item or a button is cut off on a phone screen, or the English and the Russian pages are drawn by different typefaces",
+      "register": "fact",
+      "control": "printf '\\nnav.site-nav .nav-inner { overflow: hidden; max-height: 26px; }\\n' >> site/src/assets/style.css",
+      "waiver": null
     }
   ]
 }

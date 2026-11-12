@@ -303,8 +303,8 @@ let history_svg records =
     Printf.sprintf
       "<svg viewBox=\"0 0 %d 74\" role=\"img\" aria-label=\"history of observations\">\
        %s<line x1=\"10\" y1=\"50\" x2=\"%d\" y2=\"50\" stroke=\"#d4d0c8\"/>\
-       <text x=\"10\" y=\"66\" font-family=\"SF Mono, Menlo, monospace\" font-size=\"9\" fill=\"#8a8a8a\">%s</text>\
-       <text x=\"%d\" y=\"66\" text-anchor=\"end\" font-family=\"SF Mono, Menlo, monospace\" font-size=\"9\" fill=\"#8a8a8a\">%s</text>\
+       <text x=\"10\" y=\"66\" font-family=\"JetBrains Mono, ui-monospace, monospace\" font-size=\"9\" fill=\"#8a8a8a\">%s</text>\
+       <text x=\"%d\" y=\"66\" text-anchor=\"end\" font-family=\"JetBrains Mono, ui-monospace, monospace\" font-size=\"9\" fill=\"#8a8a8a\">%s</text>\
        </svg>"
       width segments (width - 10) (escape (timestamp first.issued_at))
       (width - 10) (escape (timestamp last.issued_at))
