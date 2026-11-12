@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Measurements — math-coding v5</title>
+<meta name="description" content="What the math-coding v5 project has measured so far, and what it has not. The acceptance criterion and the honest boundary of the claim.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.html">math-coding</a>
+<div class="nav-inner">
+<a class="nav-link" href="index.html">home</a>
+<a class="nav-link" href="methodology.html">methodology</a>
+<a class="nav-link" href="workflow.html">workflow</a>
+<a class="nav-link active" href="measurements.html">measurements</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="measurements.ru.html">ru</a>
+</nav>
+<main>
+
+<h1>Measurements</h1>
+<p class="lede">A method is judged by the result it produces, not by the number
+of claims it accumulates. This page separates what has been observed from what
+is still only a criterion.</p>
+
+<section>
+<h2>What has been observed</h2>
+<table class="status-table">
+<thead><tr><th>Observation</th><th>Result</th><th>Where</th></tr></thead>
+<tbody>
+<tr><td>Independent onboarding: an agent given only the binary, the skill and an empty repository</td><td><span class="done">done</span> &mdash; first pass green; five gaps found and fixed; a second agent confirmed</td><td><a href="https://github.com/11111000000/math-coding/blob/main/docs/measurements/v5-agent-onboarding.md">report</a></td></tr>
+<tr><td>Every claim of this repository, with a negative control that must break the subject</td><td><span class="done">done</span> &mdash; the live map on the home page is the current result</td><td><a href="index.html">live map</a></td></tr>
+<tr><td>Delivery: clean clone, full build, forced tests, portable static binary, install and doctor</td><td><span class="done">done</span> &mdash; every push</td><td><a href="https://github.com/11111000000/math-coding/actions">CI</a></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>What has not been measured</h2>
+<table class="status-table">
+<thead><tr><th>Claim under test</th><th>State</th><th>Why it matters</th></tr></thead>
+<tbody>
+<tr><td>Three arms on equal tasks: plain agent, short checklist, math-coding v5</td><td><span class="pending">not run</span></td><td>the only comparison that can show the method is worth its cost</td></tr>
+<tr><td>Escaped defects and returns reduced by at least 30%</td><td><span class="pending">criterion</span></td><td>the acceptance target of the project, not a result</td></tr>
+<tr><td>Total cost growth within 10&ndash;15%</td><td><span class="pending">criterion</span></td><td>the method must pay for itself</td></tr>
+<tr><td>Full dependency graph between ADRs</td><td><span class="pending">partial</span></td><td>re-evaluation follows changed sources, claims and evidence; the full graph is separate work</td></tr>
+</tbody>
+</table>
+<p>Unit, integration and package checks do not prove a gain in development
+speed. Until the three-arm benchmark is executed and reviewed independently,
+the honest statement is: the method is verified to work, and its benefit is
+still an open question.</p>
+</section>
+
+<section>
+<h2>How a measurement is decided</h2>
+<ol class="steps">
+<li><strong>The task set is declared before the run.</strong> Tasks, acceptance
+criteria and the order of independent review are fixed in advance.</li>
+<li><strong>All outcomes count.</strong> Unsuccessful runs are recorded, not
+discarded.</li>
+<li><strong>The numbers are about the result.</strong> Time to an accepted
+result, handoff and repeated research, defects found after acceptance, returns
+to rework, false &ldquo;everything is verified&rdquo; claims, manual actions,
+and the real time, tokens and cost.</li>
+<li><strong>The comparison decides, not the count.</strong> Two independent
+losses against the plain checklist mean the mechanism is simplified or
+removed &mdash; not extended.</li>
+</ol>
+</section>
+
+<p class="callout">A green map says the declared claims hold. It says
+nothing about whether the method is worth its cost &mdash; that question has
+its own experiment, and it is still open.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.html">home</a> &middot;
+<a href="methodology.html">methodology</a> &middot;
+<a href="workflow.html">workflow</a> &middot;
+<a href="measurements.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>

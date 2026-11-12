@@ -97,3 +97,19 @@ jobs:
           path: site/dist
       - id: deployment
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+      # The deployment is only finished when the published page carries the
+      # commit that was deployed. Pages needs a moment to propagate, so the
+      # check retries before it fails the job.
+      - name: Check the published site
+        run: |
+          sha=$(git rev-parse --short HEAD)
+          for attempt in $(seq 1 12); do
+            if curl -fsSL https://11111000000.github.io/math-coding/ | grep -q "@ $sha "; then
+              echo "published: $sha"
+              exit 0
+            fi
+            echo "attempt $attempt: the published site does not carry $sha yet"
+            sleep 10
+          done
+          echo "the published site does not carry $sha" >&2
+          exit 1

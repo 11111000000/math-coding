@@ -465,6 +465,49 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
 }
 .law p { margin: 0; color: var(--fg-muted); font-size: 0.95rem; }
 
+/* --- claim pages --- */
+
+.claim-lede {
+  font-size: 1.15rem;
+  color: var(--fg-muted);
+  margin: 0 0 2rem;
+}
+
+.claim-link { border-bottom: 0; }
+.claim-link:hover { border-bottom: 1px solid var(--accent); }
+
+.back-link {
+  display: inline-block;
+  margin-bottom: 1.5rem;
+  font-family: var(--mono-stack);
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+dl.evidence {
+  margin: 0 0 1.5rem;
+  font-size: 0.92rem;
+}
+dl.evidence dt {
+  font-family: var(--mono-stack);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+  color: var(--fg-faint);
+  margin-top: 0.6rem;
+}
+dl.evidence dt:first-child { margin-top: 0; }
+dl.evidence dd { margin: 0.15rem 0 0; }
+dl.evidence dd code { word-break: break-all; font-size: 0.85em; }
+
+.muted { color: var(--fg-muted); font-style: italic; }
+
+.status-table { table-layout: fixed; }
+.status-table td:first-child { width: 38%; }
+.status-table td:nth-child(2) { width: 30%; }
+.status-table .done { color: var(--holds); font-family: var(--mono-stack); font-size: 0.85em; }
+.status-table .pending { color: var(--outdated); font-family: var(--mono-stack); font-size: 0.85em; }
+
 /* final callout */
 .callout {
   font-style: italic;

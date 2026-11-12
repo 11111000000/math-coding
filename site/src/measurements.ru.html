@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Измерения — math-coding v5</title>
+<meta name="description" content="Что в проекте math-coding v5 уже измерено, а что пока остаётся критерием. Граница честного утверждения.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.ru.html">math-coding</a>
+<div class="nav-inner">
+<a class="nav-link" href="index.ru.html">главная</a>
+<a class="nav-link" href="methodology.ru.html">методология</a>
+<a class="nav-link" href="workflow.ru.html">цикл</a>
+<a class="nav-link active" href="measurements.ru.html">измерения</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="measurements.html">en</a>
+</nav>
+<main>
+
+<h1>Измерения</h1>
+<p class="lede">Метод оценивается по принятому результату, а не по числу
+обязательств. Эта страница разделяет то, что наблюдалось, и то, что пока
+остаётся только критерием.</p>
+
+<section>
+<h2>Что наблюдалось</h2>
+<table class="status-table">
+<thead><tr><th>Наблюдение</th><th>Результат</th><th>Где</th></tr></thead>
+<tbody>
+<tr><td>Независимый onboarding: агенту дали только бинарь, skill и пустой репозиторий</td><td><span class="done">проведено</span> &mdash; первый проход зелёный; найдено и исправлено пять пробелов; второй агент подтвердил</td><td><a href="https://github.com/11111000000/math-coding/blob/main/docs/measurements/v5-agent-onboarding.md">отчёт</a></td></tr>
+<tr><td>Каждое обязательство этого репозитория, с отрицательным контролем, обязанным сломать предмет</td><td><span class="done">проведено</span> &mdash; живая карта на главной и есть текущий результат</td><td><a href="index.ru.html">живая карта</a></td></tr>
+<tr><td>Поставка: чистый clone, полная сборка, принудительные тесты, статический portable-бинарь, установка и doctor</td><td><span class="done">проведено</span> &mdash; на каждом пуше</td><td><a href="https://github.com/11111000000/math-coding/actions">CI</a></td></tr>
+</tbody>
+</table>
+</section>
+
+<section>
+<h2>Что не измерено</h2>
+<table class="status-table">
+<thead><tr><th>Проверяемое утверждение</th><th>Состояние</th><th>Почему это важно</th></tr></thead>
+<tbody>
+<tr><td>Три руки на одинаковых задачах: обычный агент, короткий чек-лист, math-coding v5</td><td><span class="pending">не выполнено</span></td><td>единственное сравнение, способное показать, что метод стоит своих затрат</td></tr>
+<tr><td>Снижение escaped defects и возвратов не менее чем на 30%</td><td><span class="pending">критерий</span></td><td>это цель приёмки проекта, а не результат</td></tr>
+<tr><td>Рост полной стоимости не более 10&ndash;15%</td><td><span class="pending">критерий</span></td><td>метод должен окупать себя</td></tr>
+<tr><td>Полный граф зависимостей между ADR</td><td><span class="pending">частично</span></td><td>переоценка следует за изменёнными источниками, обязательствами и evidence; полный граф &mdash; отдельная работа</td></tr>
+</tbody>
+</table>
+<p>Unit, integration и package-проверки не доказывают рост эффективности
+разработки. Пока трёхрукий benchmark не выполнен и не оценён независимо,
+честная формулировка такая: метод проверен как работающий, а его польза
+остаётся открытым вопросом.</p>
+</section>
+
+<section>
+<h2>Как принимается решение об измерении</h2>
+<ol class="steps">
+<li><strong>Набор задач объявляется до прогона.</strong> Задачи, критерии
+приёмки и порядок независимой оценки фиксируются заранее.</li>
+<li><strong>Считаются все исходы.</strong> Неуспешные прогоны записываются,
+а не отбрасываются.</li>
+<li><strong>Числа относятся к результату.</strong> Время до принятого
+результата, передача работы и повторные исследования, дефекты после приёмки,
+возвраты на доработку, ложные «всё проверено», ручные действия и фактические
+время, токены и стоимость.</li>
+<li><strong>Решает сравнение, а не число.</strong> Два независимых проигрыша
+простому чек-листу означают упрощение или удаление механизма, а не его
+расширение.</li>
+</ol>
+</section>
+
+<p class="callout">Зелёная карта говорит, что объявленные обязательства
+holds. Она ничего не говорит о том, стоит ли метод своих затрат &mdash; у
+этого вопроса свой эксперимент, и он ещё открыт.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.ru.html">главная</a> &middot;
+<a href="methodology.ru.html">методология</a> &middot;
+<a href="workflow.ru.html">цикл</a> &middot;
+<a href="measurements.html">english</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>
