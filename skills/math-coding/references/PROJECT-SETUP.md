@@ -60,8 +60,6 @@ mathc add parser "parser accepts the documented format" \
   --requirement "verifier:dune runtest --root . --force test/parser.exe" \
   --control "sed -i 's/expected/broken/' test/parser.ml"
 mathc run
-mathc map
-mathc next
 mathc install
 mathc doctor
 ```
@@ -69,6 +67,8 @@ mathc doctor
 Имена путей, владельца и команды замените на реальные. `init` выполняйте только
 если `spec.json` отсутствует. Цель и владельца задаёт человек. Не переносите
 пример control без проверки: он должен менять предмет claim и ломать проверку.
+`run` завершается текущими verdict, состояниями, `uncovered` и следующим
+действием; машинный потребитель может использовать `run --json`.
 
 `mathc install` записывает только блок между `math-coding:begin/end` в
 `AGENTS.md`; остальная страница сохраняется. `doctor` ничего не исправляет.
@@ -93,7 +93,6 @@ mathc add storage "the storage decision is implemented" \
 ```sh
 mathc review-source storage --by owner --reason "reviewed the superseding ADR"
 mathc run
-mathc map
 ```
 
 Не редактируйте digest вручную. Пересмотр не заменяет свежую проверку кода.

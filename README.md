@@ -63,8 +63,6 @@ mathc add ID "ТРЕБОВАНИЕ" "src/file.ml,test/file.ml" "ОПРОВЕРЖ
   --requirement "verifier:КОМАНДА_ПРОЕКТА" \
   --control "КОМАНДА_ЛОМАЕТ_ПРЕДМЕТ"
 mathc run
-mathc map
-mathc next
 mathc install
 mathc doctor
 ```
@@ -72,9 +70,11 @@ mathc doctor
 Вместо смены каталога можно передать `--root /absolute/path`. Цель и владельца
 задаёт человек. В scope claim включаются и предмет, и файлы проверки.
 
-`run` выполняет verifier на кандидате и negative control в изолированной копии.
-Машинный `holds` требует свежего `pass`, достаточной независимости и контроля,
-который изменил предмет и заставил verifier отклонить изменение.
+`run` выполняет verifier на кандидате и negative control в изолированной копии,
+затем показывает текущие verdict, состояния, `uncovered` и одно следующее
+действие; `run --json` отдаёт ту же карту в JSON. Машинный `holds` требует
+свежего `pass`, достаточной независимости и контроля, который изменил предмет и
+заставил verifier отклонить изменение.
 
 `Green` означает, что все объявленные claims имеют `holds`. Он не означает
 полное покрытие или доказательство правильности программы; смотрите `uncovered`
@@ -90,7 +90,6 @@ mathc doctor
 mathc re-evaluate
 mathc review-source ID --by ВЛАДЕЛЕЦ --reason "ПРИЧИНА_ПЕРЕСМОТРА"
 mathc run
-mathc map
 ```
 
 Пересмотр сохраняет автора, причину, время и прежний digest, очищает waiver и

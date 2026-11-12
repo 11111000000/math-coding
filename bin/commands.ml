@@ -98,15 +98,15 @@ let report_failure label (result : Process.result) =
       (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
     if result.stdout = "" && result.stderr = "" then prerr_newline ())
 
-let rec execute_requirement ?files root claim items requirement : Domain.outcome =
+let rec execute_requirement ?files ?(quiet = false) root claim items requirement : Domain.outcome =
   match requirement with
   | Review { authority; _ } ->
-      Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
+      if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
       Inconclusive
   | Verifier command -> (
       match Git.digest_of_scope ?files root ~scope:claim.scope with
       | None ->
-          Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
+          if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
           Inconclusive
       | Some _ ->
           let result = Process.run ~timeout:60.0 ~root command in
@@ -134,16 +134,17 @@ let rec execute_requirement ?files root claim items requirement : Domain.outcome
           in
           let evidence = evidence_for ?files root claim requirement command outcome reach in
           items := evidence :: !items;
-          Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
-          if outcome = Pass && reach = Some "subject" then
-            Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id;
+          if not quiet then (
+            Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
+            if outcome = Pass && reach = Some "subject" then
+              Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
           outcome)
   | All requirements ->
       let rec run_all (requirements : requirement list) : outcome =
         match requirements with
         | [] -> Pass
         | requirement :: rest ->
-            let outcome = execute_requirement ?files root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet root claim items requirement in
             (match outcome with
             | Pass -> run_all rest
             | Fail -> Fail
@@ -158,12 +159,12 @@ let rec execute_requirement ?files root claim items requirement : Domain.outcome
         match requirements with
         | [] -> Inconclusive
         | requirement :: rest ->
-            let outcome = execute_requirement ?files root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet root claim items requirement in
             if outcome = Pass then Pass else run_any rest
       in
       (run_any requirements : Domain.outcome)
 
-let run root =
+let run root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
   let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
@@ -171,51 +172,23 @@ let run root =
   List.iter
     (fun claim ->
       List.iter
-        (fun requirement -> ignore (execute_requirement ~files root claim items requirement))
+        (fun requirement -> ignore (execute_requirement ~files ~quiet:json root claim items requirement))
         claim.requirements)
     spec.claims;
   List.iter (Trail.append root) (List.rev !items);
-  match Project.map_json root spec with
+  match Project.map_output root spec with
   | Error error -> fail 3 error
-  | Ok json -> (
-      match json with
-      | `Assoc fields -> (
-          match List.assoc_opt "exit" fields with Some (`Int code) -> code | _ -> 3)
-      | _ -> 3)
-
-let json_string_field name json =
-  match json with
-  | `Assoc fields -> (
-      match List.assoc_opt name fields with Some (`String value) -> value | _ -> "")
-  | _ -> ""
-
-let json_int_field name json =
-  match json with
-  | `Assoc fields -> (match List.assoc_opt name fields with Some (`Int value) -> value | _ -> 3)
-  | _ -> 3
+  | Ok output ->
+      if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
+      output.exit_code
 
 let map root json =
   let spec = load root in
-  match Project.map_json root spec with
+  match Project.map_output root spec with
   | Error error -> fail 3 error
-  | Ok value ->
-      if json then print_endline (Yojson.Safe.pretty_to_string value)
-      else (
-        match Project.states root spec with
-        | Error error -> fail 3 error
-        | Ok states ->
-            Printf.printf "verdict: %s\n" (json_string_field "verdict" value);
-            List.iter (fun (id, state) ->
-              let changed = match List.find_opt (fun claim -> claim.id = id) spec.claims with Some claim -> Project.source_changed root claim | None -> false in
-              Printf.printf "  %-28s %s%s\n" id (state_to_string state) (if changed then " (source changed)" else "")) states;
-            let uncovered =
-              match Project.uncovered root spec with
-              | Error error -> fail 3 error
-              | Ok files -> files
-            in
-            Printf.printf "uncovered: %d file(s)\n" (List.length uncovered);
-            List.iter (fun file -> Printf.printf "  %s\n" file) uncovered);
-      json_int_field "exit" value
+  | Ok output ->
+      if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
+      output.exit_code
 
 let next root =
   let spec = load root in
@@ -290,7 +263,7 @@ let entry_page root =
   let claims = List.length spec.claims in
   let goal = match spec.goal with Some goal -> goal.text | None -> "No aim is stated yet." in
   Printf.sprintf
-    "## math-coding in this project\n\n%s\n\n%d claim(s).\n\n```sh\nmathc map\nmathc next\nmathc context\nmathc run\n```\n\nEvery verb: %s\n"
+    "## math-coding in this project\n\n%s\n\n%d claim(s).\n\n```sh\nmathc run\n```\n\nEvery verb: %s\n"
     goal claims (String.concat " " (List.map (fun verb -> "mathc " ^ verb) usage_verbs))
 
 let index_of haystack needle =

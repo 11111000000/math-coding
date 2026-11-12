@@ -27,6 +27,21 @@ let () =
       let proof = run root "run" in
       check "run states that the negative control was proven"
         (proof.code = 0 && contains proof.stdout "negative control proven");
+      let map_text = run root "map" in
+      check "run shows the same map as the map command"
+        (map_text.code = 0 && contains proof.stdout map_text.stdout);
+      let proof_json = run root "run --json" in
+      let proof_map = Yojson.Safe.from_string proof_json.stdout in
+      check "structured run output is actionable"
+        (proof_json.code = 0
+        && not (contains proof_json.stdout "negative control proven")
+        && field "verdict" proof_map = Some (`String "green")
+        && field "exit" proof_map = Some (`Int 0)
+        &&
+        match field "next" proof_map with
+        | Some (`String next) -> contains next "nothing to do"
+        | _ -> false);
+      check "structured run binds fresh evidence" ((run root "map").code = 0);
       let next_before = Io.read_file (Filename.concat root "subject.txt") in
       expect root "next" 0;
       check "next is read-only" (Io.read_file (Filename.concat root "subject.txt") = next_before);
@@ -62,6 +77,14 @@ let () =
       let corrupted = run root "map" in
       check "a malformed evidence trail is a readable error"
         (corrupted.code = 3 && contains corrupted.stderr "evidence trail");
+      let corrupted_run = run root "run" in
+      check "run does not print a summary over a malformed evidence trail"
+        (corrupted_run.code = 3 && contains corrupted_run.stderr "evidence trail"
+        && not (contains corrupted_run.stdout "verdict:"));
+      let corrupted_json = run root "run --json" in
+      check "structured run stays empty over a malformed evidence trail"
+        (corrupted_json.code = 3 && contains corrupted_json.stderr "evidence trail"
+        && corrupted_json.stdout = "");
       print_endline "cli-boundary: PASS")
 
 let () =
@@ -88,6 +111,11 @@ let () =
       let map = run root "map" in
       check "source change invalidates the green verdict"
         (map.code = 3 && contains map.stdout "outdated" && contains map.stdout "source changed");
+      let changed_run = run root "run" in
+      check "run routes a changed source to review"
+        (changed_run.code = 3 && contains changed_run.stdout "outdated"
+        && contains changed_run.stdout "source changed"
+        && contains changed_run.stdout "next: review the changed source of sourced");
       let pending = run root "re-evaluate" in
       check "source change requires re-evaluation" (pending.code = 0 && contains pending.stdout "sourced");
       check "next names the source-review command" (contains (run root "next").stdout "review-source");
@@ -124,10 +152,31 @@ let () =
       expect root "goal \"the control must reach the subject\" subject.txt owner" 0;
       write root "subject.txt" "expected\n";
       expect root "add weak-control \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"true\"" 0;
-      expect root "run" 3;
+      let weak = run root "run" in
+      check "an ineffective control is routed as unknown"
+        (weak.code = 3 && contains weak.stdout "verdict: unknown"
+        && contains weak.stdout "weak-control" && contains weak.stdout "inconclusive"
+        && contains weak.stdout "next: check the claim weak-control"
+        && not (contains weak.stdout "verdict: green"));
       check "an ineffective control cannot hold" (contains (run root "map").stdout "inconclusive");
       check "an ineffective control leaves the live tree alone" (Io.read_file (Filename.concat root "subject.txt") = "expected\n");
       print_endline "control-reach: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"cover the stated area\" subject.txt,extra.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      write root "extra.txt" "unexamined\n";
+      expect root "add covered \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let result = run root "run" in
+      check "run keeps green separate from uncovered work"
+        (result.code = 0 && contains result.stdout "verdict: green"
+        && contains result.stdout "uncovered: 1 file(s)"
+        && contains result.stdout "  extra.txt"
+        && contains result.stdout "next: inspect uncovered file extra.txt"
+        && not (contains result.stdout "uncovered: 0 file(s)"));
+      print_endline "run-uncovered: PASS")
 
 let () =
   with_repo (fun root ->
@@ -191,6 +240,11 @@ let () =
       expect root "add invalid \"invalid register\" subject.txt \"invalid register\" fax --requirement \"verifier:true\"" 2;
       expect root "add judged \"subjective quality is excellent\" subject.txt \"a human reviewer disagrees\" judgment --requirement \"review:owner\"" 0;
       expect root "map" 3;
+      let judged_json = run root "run --json" in
+      check "structured run stays quiet for a human review"
+        (judged_json.code = 3
+        && not (contains judged_json.stdout "review by")
+        && field "verdict" (Yojson.Safe.from_string judged_json.stdout) = Some (`String "unknown"));
       expect root "record judged owner --by owner --outcome pass" 0;
       expect root "map" 0;
       print_endline "judgment-register: PASS")
@@ -233,9 +287,21 @@ let () =
       ] ] } in
       let spec = { goal = Some { text = "a later refutation must be observed"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
       write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
-      expect root "run" 1;
+      let refused = run root "run" in
       check "All preserves a refutation after an inconclusive branch"
         (contains (run root "map").stdout "refuted");
+      check "run routes a refutation without reporting green"
+        (refused.code = 1 && contains refused.stdout "verdict: red"
+        && contains refused.stdout "sample" && contains refused.stdout "refuted"
+        && contains refused.stdout "next: the claim sample is refuted"
+        && not (contains refused.stdout "verdict: green")
+        && not (contains refused.stdout "nothing to do"));
+      let refused_json = run root "run --json" in
+      let refused_map = Yojson.Safe.from_string refused_json.stdout in
+      check "structured run reports a refutation without progress lines"
+        (refused_json.code = 1 && field "verdict" refused_map = Some (`String "red")
+        && field "exit" refused_map = Some (`Int 1)
+        && not (contains refused_json.stdout "sample: fail"));
       check "All executes the later refuting branch" (Sys.file_exists (Filename.concat root "second.txt"));
       print_endline "all-late-refutation: PASS")
 

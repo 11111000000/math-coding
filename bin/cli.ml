@@ -94,7 +94,7 @@ let main () =
         match parse_all o.requirements with
         | Error error -> fail 2 error
         | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
-    | [ "run" ] -> Commands.run o.root
+    | [ "run" ] -> Commands.run o.root o.json
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root
     | [ "context" ] -> Commands.context o.root

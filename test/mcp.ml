@@ -6,7 +6,7 @@ let () =
       ignore (run root "goal \"measure\" subject.txt owner");
       write root "subject.txt" "expected\n";
       let requests =
-        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\"}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"map\",\"arguments\":{}}}\n{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"id\":\"sample\",\"text\":\"measure\",\"scope\":\"subject.txt\",\"falsifier\":\"not measured\",\"requirement\":\"verifier:true\"}}}\n{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"1.0\"}}\n{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"text\":\"missing id\"}}}\n{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"id\":\"x\",\"text\":\"x\",\"scope\":\"subject.txt\",\"falsifier\":\"x\",\"requirement\":\"verifier:true\",\"unknown\":true}}}\n{\"jsonrpc\":\"1.0\",\"id\":8,\"method\":\"ping\"}\nnot-json\n"
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\"}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/list\"}\n{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"tools/call\",\"params\":{\"name\":\"map\",\"arguments\":{}}}\n{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"id\":\"sample\",\"text\":\"measure\",\"scope\":\"subject.txt\",\"falsifier\":\"not measured\",\"requirement\":\"verifier:true\"}}}\n{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"1.0\"}}\n{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"text\":\"missing id\"}}}\n{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"tools/call\",\"params\":{\"name\":\"add\",\"arguments\":{\"id\":\"x\",\"text\":\"x\",\"scope\":\"subject.txt\",\"falsifier\":\"x\",\"requirement\":\"verifier:true\",\"unknown\":true}}}\n{\"jsonrpc\":\"1.0\",\"id\":8,\"method\":\"ping\"}\n{\"jsonrpc\":\"2.0\",\"id\":10,\"method\":\"tools/call\",\"params\":{\"name\":\"run\",\"arguments\":{}}}\nnot-json\n"
       in
       let command = Printf.sprintf "%s --root %s mcp" (Filename.quote (binary ())) (Filename.quote root) in
       let channel = Unix.open_process_in (Printf.sprintf "%s <<'EOF'\n%sEOF" command requests) in
@@ -42,4 +42,25 @@ let () =
                 check "a textual add result is not a tool error" (field "isError" result = Some (`Bool false))
             | None -> failwith "add has no result")
        | None -> failwith "add has no response");
+      let ran = List.find_opt (fun response -> field "id" response = Some (`Int 10)) responses in
+      (match ran with
+       | Some response ->
+           (match field "result" response with
+            | Some result ->
+                check "an unknown run is a tool error" (field "isError" result = Some (`Bool true));
+                (match field "structuredContent" result with
+                 | Some content ->
+                     check "run returns an unsuccessful structured result" (field "ok" content = Some (`Bool false));
+                     (match field "data" content with
+                      | Some data ->
+                          check "run returns the current map as data"
+                            (field "verdict" data = Some (`String "unknown")
+                            &&
+                            match field "next" data with
+                            | Some (`String next) -> contains next "check the claim sample"
+                            | _ -> false)
+                      | None -> failwith "run has no map data")
+                 | None -> failwith "run has no structured content")
+            | None -> failwith "run has no result")
+       | None -> failwith "run has no response");
       print_endline "mcp: PASS")

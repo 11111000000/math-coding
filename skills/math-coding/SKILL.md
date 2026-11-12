@@ -32,8 +32,6 @@ mathc add ID "ТРЕБОВАНИЕ" "src/file.ml" "ЧТО_ОПРОВЕРГАЕТ
   --requirement "verifier:КОМАНДА_ПРОВЕРКИ" \
   --control "КОМАНДА_ЛОМАЕТ_ПРЕДМЕТ"
 mathc run
-mathc map
-mathc next
 ```
 
 `init` отклонит существующий `spec.json`. Не заменяй существующую цель.
@@ -64,11 +62,13 @@ mathc add hello "hello script prints the expected text" \
   --requirement "verifier:sh test/check_hello.sh" \
   --control "sed -i 's/hello math-coding/hello broken/' scripts/hello.sh"
 mathc run
-mathc map
 ```
 
 Control обязан менять предмет claim и заставлять verifier упасть. `run`
-печатает `negative control proven`, только когда это действительно произошло.
+печатает `negative control proven`, только когда это действительно произошло,
+и завершается текущими verdict, состояниями, `uncovered` и одним следующим
+действием. Для машинного потребителя используй `mathc run --json`: он выводит
+только JSON-карту.
 
 ## Правила доказательств
 
@@ -107,7 +107,6 @@ Control обязан менять предмет claim и заставлять v
 mathc re-evaluate
 mathc review-source ID --by ВЛАДЕЛЕЦ --reason "ПРИЧИНА_ПЕРЕСМОТРА"
 mathc run
-mathc map
 ```
 
 Выполняй `review-source` только после реального пересмотра решения человеком.

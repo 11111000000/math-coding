@@ -410,8 +410,6 @@ mathc add hello "команда печатает ожидаемый текст" 
   --requirement "verifier:sh test/check_hello.sh" \
   --control "sed -i 's/hello math-coding/hello broken/' scripts/hello.sh"
 mathc run
-mathc map
-mathc next
 ```
 
 В область входят и предмет, и проверка. Поэтому изменение любого из них

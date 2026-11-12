@@ -44,11 +44,11 @@ mathc goal "ЦЕЛЬ" "SCOPE" "ВЛАДЕЛЕЦ"
 mathc add ID "ТРЕБОВАНИЕ" "SCOPE" "ОПРОВЕРЖИТЕЛЬ" fact \
   --requirement "verifier:КОМАНДА" --control "ЛОМАЕТ_ПРЕДМЕТ"
 mathc run
-mathc map
-mathc next
 ```
 
-Цель и владельца задаёт человек. `mathc --help` работает и до создания
+`run` исполняет проверки, записывает evidence и показывает текущие verdict,
+состояния, `uncovered` и одно следующее действие. Цель и владельца задаёт
+человек. `mathc --help` работает и до создания
 спецификации, `mathc help COMMAND` описывает отдельный глагол. Дополнительные
 глаголы: `context`, `waive`, `record`, `install`, `doctor`, `adopt`,
 `import-adr`, `import-junit`, `authorize`,
@@ -76,7 +76,11 @@ Scope и source paths не могут быть absolute, traversal или symlin
 - Не добавлять команды и поля без accepting/rejecting fixtures.
 
 После изменений проверь `git diff --check`, сборку, все тесты и фактический
-сценарий пользователя. Не коммить и не публикуй без явного разрешения.
+сценарий пользователя. Если все проверки зелёные, нет неразрешённых находок,
+посторонних файлов и запроса остановиться, закоммить изменение, отправь ветку
+на GitHub, слей её в `main` и отправь `main`. Красные проверки, непроверенный
+сценарий, подозрение на секреты или явный запрет публикации останавливают
+commit, push и merge.
 
 <!-- math-coding:begin -->
 ## math-coding in this project
@@ -86,9 +90,6 @@ v5 keeps evidence linked, fresh, and independent
 14 claim(s).
 
 ```sh
-mathc map
-mathc next
-mathc context
 mathc run
 ```
 

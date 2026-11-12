@@ -30,7 +30,15 @@ let environment root =
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
 
-let states root spec =
+type evaluated_state = { id : string; state : state; changed : bool }
+
+type map_output = {
+  json : Yojson.Safe.t;
+  text : string;
+  exit_code : int;
+}
+
+let evaluated_states root spec =
   match Trail.read root with
   | Error error -> Error error
   | Ok evidence ->
@@ -40,64 +48,88 @@ let states root spec =
       Ok (List.map (fun (claim : claim) ->
         let state = Verdict.state_of_claim ~now ~environment:current_environment
           ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim evidence in
-        claim.id, if source_changed root claim then Outdated else state) spec.claims)
+        let changed = source_changed root claim in
+        { id = claim.id; state = (if changed then Outdated else state); changed }) spec.claims)
+
+let states root spec =
+  match evaluated_states root spec with
+  | Error error -> Error error
+  | Ok states -> Ok (List.map (fun item -> item.id, item.state) states)
 
 let uncovered root spec =
   let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
   Git.uncovered root spec.claims ~goal_scope
 
+let next_of_states states uncovered =
+  let sources = List.filter_map (fun item -> if item.changed then Some item.id else None) states in
+  let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item.id else None) states in
+  let pending =
+    List.filter_map
+      (fun item ->
+        match item.state with
+        | Outdated | Inconclusive | NeverChecked | NotCheckable | Waived -> Some item.id
+        | Holds | Refuted -> None)
+      states
+  in
+  match sources, refuted, pending, uncovered with
+  | id :: _, _, _, _ ->
+      "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
+  | [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
+  | [], [], id :: _, _ -> "next: check the claim " ^ id
+  | [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
+  | [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
+
 let next_text root spec =
-  match states root spec with
+  match evaluated_states root spec with
   | Error error -> Error error
   | Ok states ->
       let* uncovered = uncovered root spec in
-      let refuted = List.filter_map (fun (id, state) -> if state = Refuted then Some id else None) states in
-      let pending =
-        List.filter_map
-          (fun (id, state) ->
-            match state with
-            | Outdated | Inconclusive | NeverChecked | NotCheckable | Waived -> Some id
-            | Holds | Refuted -> None)
+      Ok (next_of_states states uncovered)
+
+let text_of verdict states uncovered next =
+  String.concat ""
+    ([ Printf.sprintf "verdict: %s\n" (verdict_to_string verdict) ]
+    @ List.map
+        (fun item ->
+          Printf.sprintf "  %-28s %s%s\n" item.id (state_to_string item.state)
+            (if item.changed then " (source changed)" else ""))
+        states
+    @ [ Printf.sprintf "uncovered: %d file(s)\n" (List.length uncovered) ]
+    @ List.map (fun file -> Printf.sprintf "  %s\n" file) uncovered
+    @ [ next ^ "\n" ])
+
+let map_output root spec =
+  match evaluated_states root spec with
+  | Error error -> Error error
+  | Ok states ->
+      let* uncovered = uncovered root spec in
+      let next = next_of_states states uncovered in
+      let verdict = Verdict.verdict_of_states (List.map (fun item -> item.state) states) in
+      let states_json =
+        List.map
+          (fun item ->
+            `Assoc
+              [ "id", `String item.id;
+                "state", `String (state_to_string item.state);
+                "source_changed", `Bool item.changed ])
           states
       in
-      let sources = List.filter_map (fun claim -> if source_changed root claim then Some claim.id else None) spec.claims in
-      Ok
-        (match sources, refuted, pending, uncovered with
-        | id :: _, _, _, _ ->
-            "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
-        | [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
-        | [], [], id :: _, _ -> "next: check the claim " ^ id
-        | [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
-        | [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered")
+      let json =
+        `Assoc
+          [ "schema_version", `Int 5;
+            "verdict", `String (verdict_to_string verdict);
+            "exit", `Int (verdict_to_exit verdict);
+            "claims", `Int (List.length spec.claims);
+            "goal", (match spec.goal with None -> `Null | Some goal ->
+              `Assoc [ "text", `String goal.text; "scope", `List (List.map (fun p -> `String p) goal.scope);
+                       "by", `String goal.by; "at", `Int goal.at; "reason", match goal.reason with Some r -> `String r | None -> `Null ]);
+            "states", `List states_json;
+            "uncovered", `List (List.map (fun file -> `String file) uncovered);
+            "next", `String next ]
+      in
+      Ok { json; text = text_of verdict states uncovered next; exit_code = verdict_to_exit verdict }
 
 let map_json root spec =
-  match states root spec with
+  match map_output root spec with
   | Error error -> Error error
-  | Ok states -> (
-      match next_text root spec with
-      | Error error -> Error error
-      | Ok next ->
-          let* uncovered = uncovered root spec in
-          let states_json =
-            List.map
-              (fun (id, state) ->
-                let claim = List.find_opt (fun c -> c.id = id) spec.claims in
-                `Assoc
-                  [ "id", `String id;
-                    "state", `String (state_to_string state);
-                    "source_changed", `Bool (match claim with Some claim -> source_changed root claim | None -> false) ])
-              states
-          in
-          let verdict = Verdict.verdict_of_states (List.map snd states) in
-          Ok
-            (`Assoc
-              [ "schema_version", `Int 5;
-                "verdict", `String (verdict_to_string verdict);
-                "exit", `Int (verdict_to_exit verdict);
-                "claims", `Int (List.length spec.claims);
-                "goal", (match spec.goal with None -> `Null | Some goal ->
-                  `Assoc [ "text", `String goal.text; "scope", `List (List.map (fun p -> `String p) goal.scope);
-                           "by", `String goal.by; "at", `Int goal.at; "reason", match goal.reason with Some r -> `String r | None -> `Null ]);
-                "states", `List states_json;
-                "uncovered", `List (List.map (fun file -> `String file) uncovered);
-                "next", `String next ]))
+  | Ok output -> Ok output.json

@@ -2,7 +2,7 @@ let command_help = function
   | "init" -> "init: create an empty spec.json; refuses to overwrite an existing specification."
   | "goal" -> "goal AIM SCOPE OWNER [--reason WHY]; SCOPE is comma-separated. Replacing an existing goal requires --reason."
   | "add" -> "add ID TEXT SCOPE FALSIFIER REGISTER --requirement verifier:CMD|review:WHO [--control CMD] [--source PATH]; REGISTER is fact, hypothesis, judgment or unknown; SCOPE is comma-separated. Judgment requires review:WHO and cannot use machine verifiers."
-  | "run" -> "run: execute declared verifiers and negative controls, then bind evidence. Exit 0 green, 1 refuted/protected, 3 unknown."
+  | "run" -> "run [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. Exit 0 green, 1 refuted/protected, 3 unknown."
   | "map" -> "map [--json]: show the verdict, claim states, uncovered files and next action. Exit 0 green, 1 red, 3 unknown/vacant."
   | "next" -> "next: print exactly one next action. Exit 0 when an action can be printed."
   | "context" -> "context: print the bounded task context as JSON. Exit 0 on success, 3 when unknown."

@@ -21,7 +21,13 @@ let parsed ~root args =
     `Assoc [ "ok", `Bool false; "text", `String "verifier output was truncated"; "next", next_step ~root ]
   else
   match Yojson.Safe.from_string result.stdout with
-  | json -> `Assoc [ "ok", `Bool (result.code = 0); "data", json; "next", next_step ~root ]
+  | json ->
+      let next =
+        match json with
+        | `Assoc pairs -> (match List.assoc_opt "next" pairs with Some (`String value) -> `String value | _ -> next_step ~root)
+        | _ -> next_step ~root
+      in
+      `Assoc [ "ok", `Bool (result.code = 0); "data", json; "next", next ]
   | exception Yojson.Json_error _ ->
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String (result.stdout ^ result.stderr);
                "next", next_step ~root ]
@@ -55,7 +61,7 @@ let tools =
   [ tool "map" "The current obligations, evidence, uncovered files and next action." (schema []);
     tool "next" "One read-only next action." (schema []);
     tool "context" "The bounded context for continuing the current task." (schema []);
-    tool "run" "Execute project checks and bind evidence. May have side effects." (schema []);
+    tool "run" "Execute project checks, bind evidence and return the current map. May have side effects." (schema []);
     tool "adopt" "Detect ADR and specification sources without changing them." (schema []);
     tool "import-adr" "Read an ADR into a source-linked draft, never active."
       (schema ~required:[ "path" ] [ "path", `Assoc [ "type", `String "string" ] ]);
@@ -114,10 +120,7 @@ let call ~root name args =
       let result = run_verb ~root [ "next" ] in
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String result.stdout;
                "next", next_step ~root ])
-  | "run" -> (
-      let result = run_verb ~root [ "run" ] in
-      `Assoc [ "ok", `Bool (result.code = 0); "text", `String (result.stdout ^ result.stderr);
-               "next", next_step ~root ])
+  | "run" -> parsed ~root [ "run"; "--json" ]
   | "adopt" -> parsed ~root [ "adopt" ]
   | "import-adr" -> parsed ~root [ "import-adr"; string_arg "path" args ]
   | "doctor" -> (
