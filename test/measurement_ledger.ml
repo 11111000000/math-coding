@@ -24,12 +24,13 @@ let () =
   check "summary preserves infrastructure and handoff"
     (summary.code = 0 && contains summary.stdout "\"infrastructure\": 1"
     && contains summary.stdout "\"handoff_seconds_median\": 20");
-  let empty = invoke root ("validate " ^ Filename.quote (in_repo "docs/measurements/field-tasks.jsonl")) in
-  check "an empty field ledger is valid without claiming results"
-    (empty.code = 0 && contains empty.stdout "valid: 0 run(s)");
   let dry_lines = String.split_on_char '\n' (Io.read_file dry_run) in
   let protocol = List.nth dry_lines 2 |> Yojson.Safe.from_string in
   with_repo (fun root ->
+      write root "empty-ledger.jsonl" "";
+      let empty = invoke root ("validate " ^ Filename.quote (Filename.concat root "empty-ledger.jsonl")) in
+      check "an empty field ledger is valid without claiming results"
+        (empty.code = 0 && contains empty.stdout "valid: 0 run(s)");
       write_json root "missing-reviewer.jsonl" (replace "accepted_by" `Null protocol);
       let rejected = invoke root ("validate " ^ Filename.quote (Filename.concat root "missing-reviewer.jsonl")) in
       check "acceptance requires an independent reviewer"

@@ -67,5 +67,4 @@
  (modules measurement_ledger)
  (libraries mathc_test_helpers mathcoding_adapter)
  (deps ../docs/measurements/task-ledger.py
-  ../docs/measurements/dry-run.jsonl
-  ../docs/measurements/field-tasks.jsonl))
+  ../docs/measurements/dry-run.jsonl))
