@@ -37,6 +37,8 @@ jobs:
           MATHC="$(nix path-info .#default)/bin/mathc"
           MATHC_STAND="$(nix path-info .#stand)/bin/stand"
           sh test/agent_onboarding.sh
+      - name: Drop the store locks a failed build left behind
+        run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
 
   portable:
     needs: verify
@@ -49,6 +51,10 @@ jobs:
           extra-conf: |
             accept-flake-config = true
             experimental-features = nix-command flakes
+      # The static toolchain is not in the public binary cache: it is built
+      # from source and it is the whole cost of this job. Its closure is
+      # therefore cached under a key that the pages job restores as well,
+      # so the package is built once and not once per job and per run.
       - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
         with:
           primary-key: nix-${{ runner.os }}-portable-${{ hashFiles('flake.lock') }}
@@ -57,6 +63,12 @@ jobs:
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor
+      # A failed build leaves lock files in the store that the runner user
+      # cannot read. The cache action archives the store with tar, and tar
+      # refuses to continue on them: the cache is then never saved and the
+      # next job builds the whole toolchain again.
+      - name: Drop the store locks a failed build left behind
+        run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
 
   pages:
     needs: portable
@@ -79,9 +91,11 @@ jobs:
           extra-conf: |
             accept-flake-config = true
             experimental-features = nix-command flakes
+      # The same cache as the portable job: the static toolchain is already
+      # in it, so the package here is a lookup and not a build.
       - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
         with:
-          primary-key: nix-${{ runner.os }}-pages-${{ hashFiles('flake.lock') }}
+          primary-key: nix-${{ runner.os }}-portable-${{ hashFiles('flake.lock') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - run: nix develop -c dune build --root .
       # The portable package is verified inside `mathc run`, and a verifier
@@ -113,3 +127,5 @@ jobs:
           done
           echo "the published site does not carry $sha" >&2
           exit 1
+      - name: Drop the store locks a failed build left behind
+        run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
