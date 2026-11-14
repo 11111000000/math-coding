@@ -8,15 +8,15 @@ export default function contribute(client: PluginClientContext) {
   client.addWorkspacePanel({
     id: PANEL_ID,
     title: "Math Coding",
-    icon: "Workflow",
+    icon: "UserRoundCheck",
     locations: ["workspace", "explorer"],
     Component: ConsolePanel,
   });
   client.addCommandCenterItem({
     id: "open-math-coding-map",
-    title: "Open Math Coding map",
-    icon: "Workflow",
-    keywords: ["mathc", "evidence", "claims", "coverage", "proof"],
+    title: "Open Math Coding attention desk",
+    icon: "UserRoundCheck",
+    keywords: ["mathc", "attention", "decisions", "agent", "evidence", "claims", "coverage", "proof"],
     context: "workspace",
     onSelect({ openPanel }) {
       openPanel(PANEL_ID);
@@ -24,7 +24,7 @@ export default function contribute(client: PluginClientContext) {
   });
   client.addSlashCommand({
     name: "mc",
-    description: "Open the Math Coding evidence map",
+    description: "Open the Math Coding attention desk",
     argumentHint: "",
     context: "workspace",
     onSubmit({ openPanel }) {
@@ -33,8 +33,8 @@ export default function contribute(client: PluginClientContext) {
   });
   client.addSettingsScreen({
     id: "math-coding",
-    title: "Map and runtime",
-    icon: "Workflow",
+    title: "Attention and runtime",
+    icon: "UserRoundCheck",
     Component: SettingsScreen,
   });
   return () => {};

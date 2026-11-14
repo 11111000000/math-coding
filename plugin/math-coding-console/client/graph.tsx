@@ -82,7 +82,7 @@ function NodeView({ theme, node, selected, faded, onSelect }: {
   );
 }
 
-export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleClaim, selected, onSelect }: {
+export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleClaim, selected, onSelect, onClose }: {
   theme: PluginTheme;
   compact: boolean;
   snapshot: SnapshotReady;
@@ -91,6 +91,7 @@ export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleCl
   onToggleClaim: (claimId: string) => void;
   selected: GraphSelection | null;
   onSelect: (selection: GraphSelection | null) => void;
+  onClose?: () => void;
 }) {
   const [query, setQuery] = useState("");
   const [scale, setScale] = useState(compact ? 0.85 : 1);
@@ -117,6 +118,7 @@ export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleCl
       <View style={{ flexDirection: compact ? "column" : "row", gap: 8, alignItems: compact ? "stretch" : "center" }}>
         <View style={{ flex: 1 }}><SearchBox theme={theme} value={query} onChange={setQuery} placeholder="Filter the visible graph" /></View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
+          {onClose && <Button theme={theme} compact label="Back to lists" icon="ArrowLeft" onPress={onClose} />}
           <Button theme={theme} compact label="Expand" icon="UnfoldVertical" onPress={() => snapshot.claims.forEach((claim) => { if (!expanded.has(claim.id)) onToggleClaim(claim.id); })} />
           <Button theme={theme} compact label="Collapse" icon="FoldVertical" onPress={() => [...expanded].forEach(onToggleClaim)} />
         </View>

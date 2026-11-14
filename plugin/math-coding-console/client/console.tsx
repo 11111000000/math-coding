@@ -2,9 +2,11 @@ import type { PluginWorkspacePanelProps } from "@getpaseo/plugin/client";
 import { useRpc, useSettings } from "@getpaseo/plugin/client";
 import { Modal, useToast } from "@getpaseo/plugin/client/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { preferences, runChecksRpc, snapshotRpc, type SnapshotReady } from "../shared/contracts";
+import { buildAttentionModel } from "./attention";
+import { AttentionView } from "./attention-view";
 import { ClaimsView } from "./claims";
 import { CoverageView } from "./coverage";
 import { ClaimDetailView } from "./detail";
@@ -14,10 +16,15 @@ import { GraphView, type GraphSelection } from "./graph";
 import { Body, Button, Card, Empty, Mono, Note, Segmented } from "./parts";
 
 const VIEWS = [
-  { value: "map", label: "Map", icon: "Workflow" },
-  { value: "claims", label: "Claims", icon: "Boxes" },
+  { value: "attention", label: "Attention", icon: "UserRoundCheck" },
+  { value: "explore", label: "Explore", icon: "Search" },
   { value: "evidence", label: "Evidence", icon: "History" },
-  { value: "coverage", label: "Coverage", icon: "ScanSearch" },
+] as const;
+
+const EXPLORE_VIEWS = [
+  { value: "claims", label: "Claims", icon: "Boxes" },
+  { value: "proof", label: "Proof graph", icon: "Workflow" },
+  { value: "scope", label: "Scope", icon: "FolderTree" },
 ] as const;
 
 export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePanelProps) {
@@ -27,22 +34,25 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
   const fetchSnapshot = useRpc(snapshotRpc);
   const runChecks = useRpc(runChecksRpc);
   const settings = useSettings(preferences);
-  const [view, setView] = useState("map");
-  const [mapMode, setMapMode] = useState<"proof" | "scope">("proof");
+  const [view, setView] = useState("attention");
+  const [exploreView, setExploreView] = useState("claims");
+  const [showScopeGraph, setShowScopeGraph] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [selected, setSelected] = useState<GraphSelection | null>(null);
   const [confirmRun, setConfirmRun] = useState(false);
+  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
+  useEffect(() => {
+    const timer = setInterval(() => setNowSeconds(Math.floor(Date.now() / 1000)), 60_000);
+    return () => clearInterval(timer);
+  }, []);
   const run = useMutation({
     mutationFn: () => runChecks({ workspaceId, confirmation: "RUN_CHECKS" }),
     onSuccess: ({ snapshot }) => {
       queryClient.setQueryData(["mathcoding-snapshot", workspaceId], snapshot);
       setConfirmRun(false);
-      setView("evidence");
-      const counts = snapshot.map.states.reduce<Record<string, number>>((result, state) => {
-        result[state.state] = (result[state.state] ?? 0) + 1;
-        return result;
-      }, {});
-      toast.show(`Checks finished: ${snapshot.map.verdict} · ${counts.holds ?? 0} holds`, {
+      setView("attention");
+      const holds = snapshot.map.states.filter((state) => state.state === "holds").length;
+      toast.show(`Checks finished: ${snapshot.map.verdict} · ${holds} holds`, {
         variant: snapshot.map.verdict === "green" ? "success" : snapshot.map.verdict === "red" ? "error" : "warning",
       });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
@@ -72,6 +82,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
     });
   };
   const snapshot = snapshotQuery.data?.status === "ready" ? snapshotQuery.data : undefined;
+  const attention = useMemo(() => snapshot ? buildAttentionModel(snapshot, nowSeconds) : undefined, [snapshot, nowSeconds]);
   const runEnabled = settings.status === "ready" ? settings.values.allowRunChecks : null;
   const snapshotError = snapshotQuery.error ? String(snapshotQuery.error) : null;
   const workspaceBusy = snapshotError?.includes("busy") ?? false;
@@ -93,29 +104,36 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
             <Mono theme={theme}>mathc init</Mono>
           </Card>
         </View>
-      ) : snapshot ? (
+      ) : snapshot && attention ? (
         <View style={{ flex: 1, flexDirection: compact ? "column" : "row" }}>
           <View style={{ flex: 1 }}>
             <ScrollView nestedScrollEnabled contentContainerStyle={{ padding: compact ? 10 : 16, gap: 10 }}>
               {snapshotQuery.isError && (
                 <Note theme={theme} tone="bad">Refresh failed. The visible data is the last successful snapshot from {snapshot.generatedAt}: {String(snapshotQuery.error)}</Note>
               )}
-              <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
-              <Segmented theme={theme} options={VIEWS} value={view} onChange={(value) => { setView(value); if (value !== "map") setSelected(null); }} />
-              {view === "map" && (
+              <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
+              <Segmented theme={theme} options={VIEWS} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
+              {view === "attention" && (
+                <AttentionView theme={theme} compact={compact} model={attention} onSelect={setSelected} onRun={() => setConfirmRun(true)} runEnabled={runEnabled === true} />
+              )}
+              {view === "explore" && (
                 <>
                   <Segmented
                     theme={theme}
-                    options={[{ value: "proof", label: "Proof structure", icon: "ListTree" }, { value: "scope", label: "Scope links", icon: "FolderTree" }]}
-                    value={mapMode}
-                    onChange={(value) => setMapMode(value as "proof" | "scope")}
+                    options={EXPLORE_VIEWS}
+                    value={exploreView}
+                    onChange={(value) => { setExploreView(value); setShowScopeGraph(false); }}
                   />
-                  <GraphView theme={theme} compact={compact} snapshot={snapshot} mode={mapMode} expanded={expanded} onToggleClaim={toggleClaim} selected={selected} onSelect={setSelected} />
+                  {exploreView === "claims" && <ClaimsView theme={theme} compact={compact} snapshot={snapshot} onSelect={setSelected} />}
+                  {exploreView === "proof" && <GraphView theme={theme} compact={compact} snapshot={snapshot} mode="proof" expanded={expanded} onToggleClaim={toggleClaim} selected={selected} onSelect={setSelected} />}
+                  {exploreView === "scope" && (
+                    showScopeGraph
+                      ? <GraphView theme={theme} compact={compact} snapshot={snapshot} mode="scope" expanded={expanded} onToggleClaim={toggleClaim} selected={selected} onSelect={setSelected} onClose={() => setShowScopeGraph(false)} />
+                      : <CoverageView theme={theme} compact={compact} snapshot={snapshot} onSelect={setSelected} onOpenScope={() => setShowScopeGraph(true)} />
+                  )}
                 </>
               )}
-              {view === "claims" && <ClaimsView theme={theme} compact={compact} snapshot={snapshot} onSelect={setSelected} />}
               {view === "evidence" && <EvidenceView theme={theme} compact={compact} snapshot={snapshot} />}
-              {view === "coverage" && <CoverageView theme={theme} compact={compact} snapshot={snapshot} onSelect={setSelected} onOpenScope={() => { setView("map"); setMapMode("scope"); }} />}
             </ScrollView>
           </View>
           {selected && (

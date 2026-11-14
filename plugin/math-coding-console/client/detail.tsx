@@ -8,6 +8,7 @@ import type { SnapshotReady } from "../shared/contracts";
 import { claimDetailRpc } from "../shared/contracts";
 import type { Claim, ClaimState, EvidenceRecord } from "../shared/domain";
 import { flattenRequirements, requirementKey, requirementLabel } from "../shared/requirements";
+import { DecisionBoundary } from "./decision-boundary";
 import { EvidenceRecordCard } from "./evidence-record";
 import type { GraphSelection } from "./graph";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note } from "./parts";
@@ -93,6 +94,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
         </View>
       </Card>
       <ProofChain theme={theme} compact={compact} claim={claim} state={state?.state} requirementPath={selection.requirementPath} evidenceCount={records.length} />
+      <DecisionBoundary theme={theme} compact={compact} claim={claim} state={state?.state} sourceChanged={state?.source_changed ?? false} />
       <ClaimFacts theme={theme} compact={compact} claim={claim} />
       <Card theme={theme} compact={compact} title="Requirements" subtitle="The actual all/any tree. Select a branch to filter observations.">
         {flattenRequirements(claim).map((node) => {

@@ -31,11 +31,11 @@ dune runtest --root . --force
   `site/dist`, подставляя карту claims из вывода `mathc map --json`;
   `sh site/check.sh` проверяет, что страница показывает именно эту карту.
 - `plugin/math-coding-console/` — Paseo workspace panel над Math Coding v5;
-  verdict и claim states приходят только из `mathc map --json`, а plugin
-  показывает связи goal/source/claim/requirement/evidence и declared scope.
-  Команды проверки: `npm run typecheck`, `npm test`, `npm run test:render`,
-  `npm run test:negative`, `npm run audit:client`. Подробности:
-  `plugin/math-coding-console/README.md`.
+  первый экран разделяет решения человека, делегируемую агенту работу и
+  принятые риски, а verdict и claim states приходят только из
+  `mathc map --json`. Команды проверки: `npm run typecheck`, `npm test`,
+  `npm run test:render`, `npm run test:negative`, `npm run audit:client`.
+  Подробности: `plugin/math-coding-console/README.md`.
 
 Перед изменением прочти
 `skills/math-coding/references/METHODOLOGY.md`, `AXIOMS.md`,

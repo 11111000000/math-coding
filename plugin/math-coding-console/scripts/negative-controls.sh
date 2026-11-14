@@ -67,4 +67,40 @@ run_control \
   's/if (!values.allowRunChecks)/if (false)/' \
   "test/service.test.ts"
 
+run_control \
+  "a changed source cannot be delegated to an agent" \
+  "client/attention.ts" \
+  's/if (sourceChanged) {/if (false \&\& sourceChanged) {/' \
+  "test/attention.test.ts"
+
+run_control \
+  "a waiver record is not accepted risk without canonical waived state" \
+  "client/attention.ts" \
+  's/state === "waived" && claim.waiver/claim.waiver/' \
+  "test/attention.test.ts"
+
+run_control \
+  "a waived review cannot become a pending human decision" \
+  "client/attention.ts" \
+  's/reviews.length > 0 && state !== "holds" && state !== "waived"/reviews.length > 0 && state !== "holds"/' \
+  "test/attention.test.ts"
+
+run_control \
+  "an expired waiver cannot override canonical holds" \
+  "client/attention.ts" \
+  's/claim.waiver && nowSeconds >= claim.waiver.expires_at && state !== "holds"/claim.waiver \&\& nowSeconds >= claim.waiver.expires_at/' \
+  "test/attention.test.ts"
+
+run_control \
+  "an expired canonical waiver cannot disappear" \
+  "client/attention.ts" \
+  's/claim.waiver && nowSeconds >= claim.waiver.expires_at && state !== "holds"/claim.waiver \&\& nowSeconds >= claim.waiver.expires_at \&\& state === "holds"/' \
+  "test/attention.test.ts"
+
+run_control \
+  "machine work in a mixed claim cannot be hidden" \
+  "client/attention.ts" \
+  's/machineRequirements(claim).length === 0/true/' \
+  "test/attention.test.ts"
+
 echo "negative-control: PASS"
