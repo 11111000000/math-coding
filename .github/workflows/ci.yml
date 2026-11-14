@@ -31,6 +31,17 @@ jobs:
       - run: nix develop -c dune build --root .
       - run: nix develop -c dune runtest --root . --force
       - run: nix develop -c sh test/package_smoke.sh
+      - name: Verify the Paseo Math Coding plugin
+        run: |
+          nix develop -c bash -c '
+            cd plugin/math-coding-console
+            npm ci --ignore-scripts
+            npm run typecheck
+            npm test
+            npm run test:render
+            npm run test:negative
+            npm run audit:client
+          '
       - name: Exercise installed project onboarding
         run: >-
           nix build .#default .#stand --no-link &&

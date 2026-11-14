@@ -44,7 +44,7 @@
       {
         devShells.default = pkgs.mkShell {
           name = "math-coding-5-dev";
-          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused ]);
+          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused nodejs_22 ]);
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
             export OCAMLPATH="${ocamlPath}"

@@ -1,0 +1,9 @@
+{
+  "id": "math-coding-console",
+  "name": "Math Coding v5 map",
+  "description": "Explore Math Coding v5 claims, evidence, scope, and the next action in a workspace",
+  "media": [],
+  "requirements": {
+    "paseo": ">=0.15.2"
+  }
+}

@@ -30,3 +30,7 @@ a.out
 # site/src, spec.json and `mathc map --json`; only the sources are
 # carried in the repository.
 site/dist/
+
+# Local JavaScript dependencies and logs from the Paseo plugin toolchain.
+node_modules/
+npm-debug.log*
