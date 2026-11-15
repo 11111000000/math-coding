@@ -2,6 +2,7 @@ import type { PluginServerContext } from "@getpaseo/plugin/server";
 import {
   claimDetailRpc,
   evidencePageRpc,
+  filePreviewRpc,
   preferences,
   runChecksRpc,
   snapshotRpc,
@@ -20,5 +21,7 @@ export default function contribute(server: PluginServerContext) {
     operations.evidence(new PaseoOperationsHost(paseo, settings), input));
   server.handle(runChecksRpc, async (input, { paseo }) =>
     operations.run(new PaseoOperationsHost(paseo, settings), input));
+  server.handle(filePreviewRpc, async (input, { paseo }) =>
+    operations.filePreview(new PaseoOperationsHost(paseo, settings), input));
   return () => {};
 }

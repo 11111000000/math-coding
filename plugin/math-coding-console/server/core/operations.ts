@@ -1,8 +1,9 @@
 import { isAbsolute, join } from "node:path";
-import type { ClaimDetail, EvidencePage, Preferences, Snapshot, SnapshotReady } from "../../shared/schemas";
+import type { ClaimDetail, EvidencePage, FilePreview, Preferences, Snapshot, SnapshotReady } from "../../shared/schemas";
 import { evidencePage, newestFirst } from "../evidence";
 import { pathExists } from "../files";
 import { loadProject, type ProjectSnapshot } from "../project";
+import { readWorkspaceEntry } from "../workspace-file";
 
 export interface WorkspaceInfo {
   id: string;
@@ -146,6 +147,22 @@ export class ConsoleOperations {
       }
       const project = await loadProject(workspace.directory, runtime.binary, "run");
       return { snapshot: readySnapshot(workspace, project), durationMs: project.durationMs };
+    });
+  }
+
+  /**
+   * The read-only preview of one entry of the workspace.
+   *
+   * The console shows the subject of a claim so the human can read it without
+   * leaving the panel. The read is bounded and stays inside the workspace.
+   */
+  async filePreview(
+    host: OperationsHost,
+    input: { workspaceId: string; path: string; maxBytes: number },
+  ): Promise<FilePreview> {
+    const workspace = await host.resolveWorkspace(input.workspaceId);
+    return this.exclusive(workspace.directory, async () => {
+      return readWorkspaceEntry(workspace.directory, input.path, input.maxBytes);
     });
   }
 }

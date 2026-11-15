@@ -88,6 +88,43 @@ export const runInputSchema = z.strictObject({
   confirmation: z.literal("RUN_CHECKS"),
 });
 
+/**
+ * The read-only preview of one entry of the workspace.
+ *
+ * The console shows the subject of a claim so the human can read it without
+ * leaving the panel. The answer is either the text of a file or a bounded
+ * listing of a directory; it never carries a state and never changes the
+ * project.
+ */
+export const fileContentSchema = z.strictObject({
+  kind: z.literal("file"),
+  path: z.string().min(1),
+  content: z.string(),
+  bytes: z.number().int().nonnegative(),
+  truncated: z.boolean(),
+  binary: z.boolean(),
+});
+
+export const directoryListingSchema = z.strictObject({
+  kind: z.literal("directory"),
+  path: z.string().min(1),
+  entries: z.array(
+    z.strictObject({ name: z.string().min(1), kind: z.enum(["file", "directory"]) }),
+  ),
+  truncated: z.boolean(),
+});
+
+export const filePreviewOutputSchema = z.discriminatedUnion("kind", [
+  fileContentSchema,
+  directoryListingSchema,
+]);
+
+export const filePreviewInputSchema = z.strictObject({
+  workspaceId: z.string().min(1),
+  path: z.string().min(1).max(4096),
+  maxBytes: z.number().int().positive().max(1_048_576).default(131_072),
+});
+
 export const rpcSchemas = {
   snapshot: {
     name: "mathcoding.snapshot",
@@ -108,6 +145,11 @@ export const rpcSchemas = {
     name: "mathcoding.run",
     input: runInputSchema,
     output: runOutputSchema,
+  },
+  file: {
+    name: "mathcoding.file",
+    input: filePreviewInputSchema,
+    output: filePreviewOutputSchema,
   },
 } as const;
 
@@ -141,4 +183,5 @@ export type SnapshotReady = z.output<typeof snapshotReadySchema>;
 export type Snapshot = z.output<typeof snapshotOutputSchema>;
 export type ClaimDetail = z.output<typeof claimDetailOutputSchema>;
 export type EvidencePage = z.output<typeof evidencePageOutputSchema>;
+export type FilePreview = z.output<typeof filePreviewOutputSchema>;
 export type Preferences = z.output<typeof preferencesDefinition.schema>;

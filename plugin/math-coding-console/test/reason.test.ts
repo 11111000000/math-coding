@@ -63,6 +63,7 @@ test("the claim card explains the reason of the state", async () => {
     onClose: () => undefined,
     onSelect: () => undefined,
     onRefresh: () => undefined,
+    onOpenFile: () => undefined,
   }));
   assert.ok(
     markup.includes("The environment changed after the evidence was recorded"),
@@ -81,6 +82,7 @@ test("the claim card says when the program does not report a reason", async () =
     onClose: () => undefined,
     onSelect: () => undefined,
     onRefresh: () => undefined,
+    onOpenFile: () => undefined,
   }));
   assert.ok(
     markup.includes("This version does not report a reason for this state."),

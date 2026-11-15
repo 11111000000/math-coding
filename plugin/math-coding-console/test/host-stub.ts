@@ -15,6 +15,7 @@ import type {
   HostTextInputProps,
 } from "../client/host/contract";
 import { HostProvider } from "../client/host/context";
+import { rpcSchemas } from "../shared/schemas";
 import { snapshot } from "./fixtures";
 
 const React = createElement;
@@ -29,8 +30,9 @@ const React = createElement;
  */
 const Icon = ({ name }: HostIconProps) => React("span", { "data-icon": name });
 const Modal = Object.assign(
-  // The stub always renders the body, so the confirmation text is part of the checked markup.
-  ({ children }: HostModalProps) => children,
+  // The stub behaves like the real hosts: a closed modal draws nothing. A
+  // preview that never opens therefore cannot hide behind a drawn body.
+  ({ children, open }: HostModalProps) => (open ? children : null),
   { Content: ({ children }: { children?: ReactNode }) => children },
 );
 const TextInput = (props: HostTextInputProps) => React("input", {
@@ -61,7 +63,10 @@ export const host: HostContextValue = {
   SettingsSwitch,
   copyText: async () => undefined,
   useToast: () => ({ show: () => undefined, error: () => undefined }),
-  useRpc: ((contract: never) => async () => snapshot()) as unknown as HostContextValue["useRpc"],
+  useRpc: ((contract: unknown) => async () =>
+    contract === rpcSchemas.file
+      ? { kind: "file", path: "docs/adr.md", content: "the subject of the claim\n", bytes: 25, truncated: false, binary: false }
+      : snapshot()) as unknown as HostContextValue["useRpc"],
   useSettings: ((definition: never) => ({
     status: "ready",
     values: { binaryPath: "", allowRunChecks: false, autoRefreshSeconds: 30 },

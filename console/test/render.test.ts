@@ -77,7 +77,8 @@ test("the console panel renders with the browser host", () => {
   );
   assert.ok(markup.length > 500, `the panel rendered too little content: ${String(markup.length)}`);
   assert.ok(markup.includes("test the plugin"), "the goal of the project is missing");
-  assert.ok(markup.includes("Attention"), "the attention view is missing");
+  assert.ok(markup.includes("Queue"), "the queue view is missing");
+  assert.ok(markup.includes("Your queue"), "the human queue is missing");
 });
 
 test("the console panel renders without a snapshot", () => {
@@ -205,6 +206,42 @@ test("the rpc call of the browser host checks its contract", async () => {
 
     answers.push({ status: 500, body: { error: "the workspace is busy" } });
     await assert.rejects(async () => call?.({ workspaceId: "local" }), /busy/);
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
+test("the file rpc call of the browser host checks its contract", async () => {
+  const original = globalThis.fetch;
+  const answers: { status: number; body: unknown }[] = [];
+  const file = { kind: "file", path: "notes.md", content: "the subject\n", bytes: 12, truncated: false, binary: false };
+  globalThis.fetch = (async () => {
+    const answer = answers.shift() ?? { status: 200, body: file };
+    return new Response(JSON.stringify(answer.body), {
+      status: answer.status,
+      headers: { "Content-Type": "application/json" },
+    });
+  }) as typeof fetch;
+  try {
+    let call: ((input: unknown) => Promise<unknown>) | undefined;
+    function Probe() {
+      const rpc = host.useRpc(rpcSchemas.file);
+      call = rpc as unknown as (input: unknown) => Promise<unknown>;
+      return null;
+    }
+    render(createElement(HostProvider, { value: host, children: createElement(Probe) }), client());
+    assert.ok(call, "the rpc call was not created");
+
+    answers.push({ status: 200, body: file });
+    const answer = (await call?.({ workspaceId: "local", path: "notes.md" })) as { kind: string; path: string };
+    assert.equal(answer.kind, "file");
+    assert.equal(answer.path, "notes.md");
+
+    await assert.rejects(async () => call?.({ workspaceId: "local", path: 42 }), /path/);
+    await assert.rejects(async () => call?.({ workspaceId: "local" }), /path/);
+
+    answers.push({ status: 200, body: { kind: "file" } });
+    await assert.rejects(async () => call?.({ workspaceId: "local", path: "notes.md" }));
   } finally {
     globalThis.fetch = original;
   }

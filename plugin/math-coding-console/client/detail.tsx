@@ -12,7 +12,7 @@ import { useHost } from "./host/context";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note, ReasonBlock } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
 
-export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh }: {
+export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh, onOpenFile }: {
   theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
@@ -20,9 +20,10 @@ export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, 
   onClose: () => void;
   onSelect: (selection: GraphSelection) => void;
   onRefresh: () => void;
+  onOpenFile: (path: string) => void;
 }) {
   const { Modal } = useHost();
-  const body = <DetailBody theme={theme} compact={compact} snapshot={snapshot} selection={selection} onClose={onClose} onSelect={onSelect} onRefresh={onRefresh} />;
+  const body = <DetailBody theme={theme} compact={compact} snapshot={snapshot} selection={selection} onClose={onClose} onSelect={onSelect} onRefresh={onRefresh} onOpenFile={onOpenFile} />;
   if (compact) {
     return (
       <Modal title={selection.claimId} open onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -37,7 +38,7 @@ export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, 
   );
 }
 
-function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh }: {
+function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh, onOpenFile }: {
   theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
@@ -45,6 +46,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
   onClose: () => void;
   onSelect: (selection: GraphSelection) => void;
   onRefresh: () => void;
+  onOpenFile: (path: string) => void;
 }) {
   const { useRpc } = useHost();
   const fetchDetail = useRpc(rpcSchemas.claim);
@@ -97,7 +99,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
       </Card>
       <ProofChain theme={theme} compact={compact} claim={claim} state={state?.state} requirementPath={selection.requirementPath} evidenceCount={records.length} />
       <DecisionBoundary theme={theme} compact={compact} claim={claim} state={state?.state} sourceChanged={state?.source_changed ?? false} />
-      <ClaimFacts theme={theme} compact={compact} claim={claim} />
+      <ClaimFacts theme={theme} compact={compact} claim={claim} onOpenFile={onOpenFile} />
       <Card theme={theme} compact={compact} title="Requirements" subtitle="The actual all/any tree. Select a branch to filter observations.">
         {flattenRequirements(claim).map((node) => {
           const selected = selection.requirementPath === node.path;
@@ -182,10 +184,25 @@ function ProofChain({ theme, compact, claim, state, requirementPath, evidenceCou
   );
 }
 
-function ClaimFacts({ theme, compact, claim }: { theme: ConsoleTheme; compact: boolean; claim: Claim }) {
+function ClaimFacts({ theme, compact, claim, onOpenFile }: {
+  theme: ConsoleTheme;
+  compact: boolean;
+  claim: Claim;
+  onOpenFile: (path: string) => void;
+}) {
   return (
     <Card theme={theme} compact={compact} title="Claim definition">
       <KeyValue theme={theme} label="scope" value={claim.scope.length ? claim.scope.join(", ") : "empty"} />
+      {claim.scope.length > 0 && (
+        <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
+          {claim.scope.map((path) => (
+            <Button key={path} theme={theme} compact label={path} icon="FileText" onPress={() => onOpenFile(path)} />
+          ))}
+        </View>
+      )}
+      {claim.source && (
+        <Button theme={theme} compact label={`Open ${claim.source.path}`} icon="FileText" onPress={() => onOpenFile(claim.source!.path)} />
+      )}
       <KeyValue theme={theme} label="falsifier" value={claim.falsifier || "not declared"} />
       <KeyValue theme={theme} label="negative control" value={claim.control ?? "none"} />
       {claim.source && (

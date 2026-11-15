@@ -9,14 +9,19 @@ import { ClaimsView } from "./claims";
 import { CoverageView } from "./coverage";
 import { ClaimDetailView } from "./detail";
 import { EvidenceView } from "./evidence";
+import { FilePreview } from "./file-preview";
 import { InstrumentFrame } from "./frame";
 import { GraphView, type GraphSelection } from "./graph";
 import { useHost } from "./host/context";
+import { buildHumanQueue, queueEvidenceComplete } from "./human-queue";
 import { Body, Button, Card, Empty, Mono, Note, Segmented } from "./parts";
+import { previewIsOpen } from "./preview-target";
+import { QueueView } from "./queue-view";
+import { RunConfirmation } from "./run-confirmation";
 import { runScale } from "./run-scale";
 
 const VIEWS = [
-  { value: "attention", label: "Attention", icon: "UserRoundCheck" },
+  { value: "attention", label: "Queue", icon: "UserRoundCheck" },
   { value: "explore", label: "Explore", icon: "Search" },
   { value: "evidence", label: "Evidence", icon: "History" },
 ] as const;
@@ -39,6 +44,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const queryClient = useQueryClient();
   const toast = useToast();
   const fetchSnapshot = useRpc(rpcSchemas.snapshot);
+  const fetchEvidence = useRpc(rpcSchemas.evidence);
   const runChecks = useRpc(rpcSchemas.run);
   const settings = useSettings(preferencesDefinition);
   const [view, setView] = useState("attention");
@@ -47,6 +53,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [selected, setSelected] = useState<GraphSelection | null>(null);
   const [confirmRun, setConfirmRun] = useState(false);
+  const [previewPath, setPreviewPath] = useState<string | null>(null);
   const autoRefreshSeconds = settings.status === "ready" ? settings.values?.autoRefreshSeconds ?? 0 : 0;
   const run = useMutation({
     mutationFn: () => runChecks({ workspaceId, confirmation: "RUN_CHECKS" }),
@@ -60,6 +67,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
       });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-evidence", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["mathcoding-queue-evidence", workspaceId] });
     },
   });
   const snapshotQuery = useQuery({
@@ -73,6 +81,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     void queryClient.invalidateQueries({ queryKey: ["mathcoding-snapshot", workspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
     void queryClient.invalidateQueries({ queryKey: ["mathcoding-evidence", workspaceId] });
+    void queryClient.invalidateQueries({ queryKey: ["mathcoding-queue-evidence", workspaceId] });
   };
   const toggleClaim = (claimId: string) => {
     setExpanded((current) => {
@@ -87,6 +96,41 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const attention = useMemo(() => snapshot ? buildAttentionModel(snapshot, canonicalNow) : undefined, [snapshot, canonicalNow]);
   const briefContext = useMemo(() => snapshot && attention ? attentionContext(snapshot, attention) : undefined, [snapshot, attention]);
   const scale = useMemo(() => snapshot ? runScale(snapshot) : undefined, [snapshot]);
+  /**
+   * The newest evidence of every condition of every claim.
+   *
+   * The trail is read newest first. The console keeps reading pages until
+   * every condition has a record, so a condition never looks untested
+   * because a page ended too early. When the trail is longer than the pages
+   * the console reads, it says so instead of showing an untested condition
+   * as if it had no evidence at all.
+   */
+  const evidenceQuery = useQuery({
+    queryKey: ["mathcoding-queue-evidence", workspaceId, snapshot?.revision],
+    queryFn: async () => {
+      const records = [] as Awaited<ReturnType<typeof fetchEvidence>>["records"];
+      let cursor = 0;
+      let exhausted = false;
+      for (let page = 0; page < 10; page += 1) {
+        const result = await fetchEvidence({ workspaceId, cursor, limit: 200 });
+        records.push(...result.records);
+        if (!snapshot || queueEvidenceComplete(records, snapshot.claims)) break;
+        if (result.nextCursor === null) { exhausted = true; break; }
+        cursor = result.nextCursor;
+      }
+      return {
+        records,
+        complete: snapshot ? queueEvidenceComplete(records, snapshot.claims) : true,
+        exhausted,
+      };
+    },
+    enabled: Boolean(snapshot),
+    retry: false,
+  });
+  const queue = useMemo(
+    () => snapshot && attention ? buildHumanQueue(snapshot, attention, evidenceQuery.data?.records ?? []) : undefined,
+    [snapshot, attention, evidenceQuery.data],
+  );
   const runEnabled = settings.status === "ready" ? settings.values?.allowRunChecks ?? null : null;
   const snapshotError = snapshotQuery.error ? String(snapshotQuery.error) : null;
   const workspaceBusy = snapshotError?.includes("busy") ?? false;
@@ -117,8 +161,20 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
               )}
               <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
               <Segmented theme={theme} options={VIEWS} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
-              {view === "attention" && (
-                <AttentionView theme={theme} compact={compact} model={attention} context={briefContext} onSelect={setSelected} onRun={() => setConfirmRun(true)} runEnabled={runEnabled === true} />
+              {view === "attention" && queue && briefContext && (
+                <>
+                  <QueueView
+                    theme={theme}
+                    compact={compact}
+                    queue={queue}
+                    context={briefContext}
+                    onOpenFile={setPreviewPath}
+                    onSelect={setSelected}
+                    trailComplete={evidenceQuery.data?.complete ?? true}
+                    trailExhausted={evidenceQuery.data?.exhausted ?? true}
+                  />
+                  <AttentionView theme={theme} compact={compact} model={attention} context={briefContext} onSelect={setSelected} onRun={() => setConfirmRun(true)} runEnabled={runEnabled === true} />
+                </>
               )}
               {view === "explore" && (
                 <>
@@ -141,23 +197,22 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
             </ScrollView>
           </View>
           {selected && (
-            <ClaimDetailView theme={theme} compact={compact} snapshot={snapshot} selection={selected} onClose={() => setSelected(null)} onSelect={setSelected} onRefresh={refresh} />
+            <ClaimDetailView theme={theme} compact={compact} snapshot={snapshot} selection={selected} onClose={() => setSelected(null)} onSelect={setSelected} onRefresh={refresh} onOpenFile={setPreviewPath} />
           )}
         </View>
       ) : null}
+      {previewIsOpen(previewPath) && (
+        <FilePreview theme={theme} compact={compact} workspaceId={workspaceId} path={previewPath} onClose={() => setPreviewPath(null)} />
+      )}
       <Modal title="Run project checks?" open={confirmRun} onOpenChange={(open) => { if (!run.isPending) setConfirmRun(open); }}>
-        <Modal.Content>
-          <View style={{ gap: 14 }}>
-            <Body theme={theme}>This executes the verifier and negative-control commands declared by the project and appends evidence to .math/v5/. Controls use isolated copies; verifiers still execute project code.</Body>
-            <Body theme={theme} muted>Scale: {scale?.claimCount ?? 0} claim(s) and {scale?.commandCount ?? 0} check command(s) will run for this workspace.</Body>
-            <Body theme={theme} muted>Refresh, graph navigation and automatic polling never perform this action. The server also requires Run checks to be enabled in plugin settings.</Body>
-            {run.isError && <Note theme={theme} tone="bad">Run failed: {String(run.error)}</Note>}
-            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-              <Button theme={theme} label="Cancel" onPress={() => setConfirmRun(false)} disabled={run.isPending} />
-              <Button theme={theme} label={run.isPending ? "Running checks" : "Run checks"} icon="Play" variant="danger" onPress={() => run.mutate()} disabled={run.isPending} />
-            </View>
-          </View>
-        </Modal.Content>
+        <RunConfirmation
+          theme={theme}
+          scale={scale}
+          running={run.isPending}
+          error={run.isError ? run.error : null}
+          onCancel={() => setConfirmRun(false)}
+          onRun={() => run.mutate()}
+        />
       </Modal>
     </View>
   );

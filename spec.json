@@ -382,6 +382,46 @@
       "control": "sed -i 's/let pause = ref 0.002/let pause = ref 0.05/' adapter/process.ml",
       "waiver": null,
       "environment": "nix develop -c"
+    },
+    {
+      "id": "human-queue",
+      "text": "the console opens with the queue of the human: the expectations, the checks, the evidence and the state come from the canonical map, and the queue never computes a state of its own",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-claim.sh"
+        }
+      ],
+      "falsifier": "the queue shows a state that the canonical map does not state, or it hides a condition of a declared claim",
+      "register": "fact",
+      "control": "sed -i 's/state: states.get(claim\\.id)?\\.state ?? \"never-checked\"/state: \"holds\"/' plugin/math-coding-console/client/human-queue.ts",
+      "waiver": null
+    },
+    {
+      "id": "workspace-preview",
+      "text": "the console shows the files of the subject inside the repository and reads no file outside it",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-claim.sh"
+        }
+      ],
+      "falsifier": "the panel reads a file outside the workspace, or it follows a symbolic link out of the repository",
+      "register": "fact",
+      "control": "sed -i 's/^  refuseOutside(rootReal, targetReal);$/  void targetReal;/' plugin/math-coding-console/server/workspace-file.ts",
+      "waiver": null
     }
   ]
 }

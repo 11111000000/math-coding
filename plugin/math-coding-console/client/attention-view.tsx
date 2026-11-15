@@ -7,7 +7,6 @@ import {
   type AgentAttentionItem,
   type AttentionBriefContext,
   type AttentionModel,
-  type HumanAttentionItem,
 } from "./attention";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
@@ -27,7 +26,7 @@ export interface AttentionViewProps {
 export function AttentionView({ theme, compact, model, context, onSelect, onRun, runEnabled }: AttentionViewProps) {
   const host = useHost();
   const toast = host.useToast();
-  const copy = async (item: HumanAttentionItem | AgentAttentionItem, label: string) => {
+  const copy = async (item: AgentAttentionItem, label: string) => {
     try {
       await host.copyText(attentionBrief(item, context));
       toast.show(`${label} copied for an agent`);
@@ -37,28 +36,6 @@ export function AttentionView({ theme, compact, model, context, onSelect, onRun,
   };
   return (
     <View style={{ gap: 10 }}>
-      <Card
-        theme={theme}
-        compact={compact}
-        title="Decide now"
-        subtitle={model.needsHuman.length === 0 ? "No human-only decision is waiting" : `${model.needsHuman.length} decision(s) cannot be delegated to an agent`}
-      >
-        {model.needsHuman.length === 0 ? (
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Badge theme={theme} label="clear" tone="good" icon="Check" />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Body theme={theme}>Nothing needs your decision now.</Body>
-              <Body theme={theme} muted>The remaining work can proceed within the declared claims and checks.</Body>
-            </View>
-          </View>
-        ) : (
-          <View style={{ gap: 10 }}>
-            {model.needsHuman.map((item) => (
-              <HumanCard key={item.id} theme={theme} compact={compact} item={item} onSelect={onSelect} onCopy={() => void copy(item, "Decision brief")} />
-            ))}
-          </View>
-        )}
-      </Card>
       <Card
         theme={theme}
         compact={compact}
@@ -96,35 +73,6 @@ export function AttentionView({ theme, compact, model, context, onSelect, onRun,
           </View>
         </Card>
       )}
-    </View>
-  );
-}
-
-function HumanCard({ theme, compact, item, onSelect, onCopy }: {
-  theme: ConsoleTheme;
-  compact: boolean;
-  item: HumanAttentionItem;
-  onSelect: (selection: GraphSelection) => void;
-  onCopy: () => void;
-}) {
-  return (
-    <View style={{ borderWidth: 1, borderColor: theme.colors.statusWarning, borderRadius: 10, padding: compact ? 12 : 14, gap: 9 }}>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-        <Badge theme={theme} label="needs you" tone="warn" icon="UserRoundCheck" />
-        {item.states.map((state) => <Badge key={state} theme={theme} label={state} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
-        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={reason} />)}
-      </View>
-      <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.title}</Text>
-      {item.reasons.length > 0 && <DecisionText theme={theme} label="Reason">{attentionReasonText(item.reasons)}</DecisionText>}
-      <DecisionText theme={theme} label="Why this needs you">{item.why}</DecisionText>
-      <DecisionText theme={theme} label="Your decision" emphasis>{item.humanQuestion}</DecisionText>
-      <DecisionText theme={theme} label="Agent may">{item.agentMay}</DecisionText>
-      <DecisionText theme={theme} label="Agent must not">{item.agentMustNot}</DecisionText>
-      <DecisionText theme={theme} label="Next safe step">{item.suggestedAction}</DecisionText>
-      <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-        {item.claimIds[0] && <Button theme={theme} compact label="Inspect" icon="Search" onPress={() => onSelect({ claimId: item.claimIds[0]! })} />}
-        <Button theme={theme} compact label="Copy brief for agent" icon="Clipboard" onPress={onCopy} />
-      </View>
     </View>
   );
 }

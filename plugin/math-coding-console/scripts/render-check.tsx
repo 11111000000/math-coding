@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
+import { buildHumanQueue } from "../client/human-queue";
 import { renderWithHost } from "../test/host-stub";
+import { runScale } from "../client/run-scale";
 import { theme, snapshot, claim } from "../test/fixtures";
 
 const React = createElement;
@@ -18,6 +20,9 @@ async function main() {
     { EvidenceView },
     { ConsolePanel },
     { SettingsScreen },
+    { QueueView },
+    { RunConfirmation },
+    { FilePreview },
   ] = await Promise.all([
     import("../client/frame"),
     import("../client/attention-view"),
@@ -28,6 +33,9 @@ async function main() {
     import("../client/evidence"),
     import("../client/console"),
     import("../client/settings"),
+    import("../client/queue-view"),
+    import("../client/run-confirmation"),
+    import("../client/file-preview"),
   ]);
   const data = snapshot();
   data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
@@ -71,6 +79,7 @@ async function main() {
   ];
   const humanAttention = buildAttentionModel(humanData, 1_000);
   const humanContext = attentionContext(humanData, humanAttention);
+  const humanQueue = buildHumanQueue(humanData, humanAttention, []);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   queryClient.setQueryData(["mathcoding-snapshot", "workspace-1"], attentionData);
   const render = (element: ReactNode) => renderWithHost(element, queryClient);
@@ -87,25 +96,38 @@ async function main() {
   };
   const views: [string, ReactNode][] = [
     ["instrument frame", React(InstrumentFrame, frameProps)],
-    ["attention human branch", React(AttentionView, { theme, compact: false, model: humanAttention, context: humanContext, onSelect: () => undefined, onRun: () => undefined, runEnabled: true })],
+    ["attention agent branch", React(AttentionView, { theme, compact: false, model: humanAttention, context: humanContext, onSelect: () => undefined, onRun: () => undefined, runEnabled: true })],
+    ["human queue", React(QueueView, { theme, compact: false, queue: humanQueue, context: humanContext, onOpenFile: () => undefined, onSelect: () => undefined })],
     ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["scope graph", React(GraphView, { theme, compact: true, snapshot: data, mode: "scope", expanded: new Set<string>(), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["claims", React(ClaimsView, { theme, compact: false, snapshot: data, onSelect: () => undefined })],
     ["coverage", React(CoverageView, { theme, compact: true, snapshot: data, onSelect: () => undefined, onOpenScope: () => undefined })],
-    ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined })],
+    ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined })],
     ["evidence", React(EvidenceView, { theme, compact: false, snapshot: data })],
+    ["run confirmation", React(RunConfirmation, { theme, scale: runScale(attentionData), running: false, error: null, onCancel: () => undefined, onRun: () => undefined })],
+    ["file preview", React(FilePreview, { theme, compact: false, workspaceId: "workspace-1", path: "docs/adr.md", onClose: () => undefined })],
     ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
     ["settings screen", React(SettingsScreen, { theme })],
   ];
   for (const [name, element] of views) {
     const markup = render(element);
     assert.ok(markup.length > 100, `${name} rendered too little content`);
-    if (name === "attention human branch") {
-      assert.ok(markup.includes("Review the changed source for changed"));
-      assert.ok(markup.includes("Decide the direction of refuted claim refuted"));
+    if (name === "human queue") {
+      assert.ok(markup.includes("Your queue"), "the queue names the human");
+      assert.ok(markup.includes("Review the changed source for changed"), "the queue names the decision");
+      assert.ok(markup.includes("Decide the direction of refuted claim refuted"), "the queue names the second decision");
+      assert.ok(markup.includes("How it is checked"), "the queue says how the claim is checked");
+      assert.ok(markup.includes("Expected"), "the queue says what is expected");
+      assert.ok(markup.includes("Your decision"), "the queue asks the human for a decision");
+      assert.ok(markup.includes("Next safe step"), "the queue names the next safe step");
+      assert.ok(markup.includes("This version does not report a reason for this state."), "the queue keeps the canonical reason");
+      assert.ok(markup.includes("Your standing obligations"), "the queue lists the standing obligations");
+      assert.ok(markup.includes("Accept the result"), "the queue names the third outcome");
+      assert.ok(markup.includes("docs/adr.md"), "the queue offers the source of the claim to open");
+    }
+    if (name === "attention agent branch") {
       assert.ok(markup.includes("Accepted risk for waived"));
       assert.ok(markup.includes("Next safe step"));
-      assert.ok(markup.includes("This version does not report a reason for this state."));
     }
     if (name === "claim detail") {
       assert.ok(markup.includes("The environment changed after the evidence was recorded"), "the claim card does not explain the reason");
@@ -117,7 +139,13 @@ async function main() {
       assert.ok(markup.includes("Nothing needs your decision now"));
       assert.ok(markup.includes("Refresh evidence for 15 claims"));
       assert.ok(markup.includes("Run checks are disabled"));
-      assert.ok(markup.includes("Scale: 15 claim(s) and 30 check command(s) will run"));
+    }
+    if (name === "run confirmation") {
+      assert.ok(markup.includes("Scale: 15 claim(s) and 30 check command(s) will run"), "the confirmation does not name the scale of the run");
+      assert.ok(markup.includes("Run checks"), "the confirmation does not offer the run");
+    }
+    if (name === "file preview") {
+      assert.ok(markup.includes("docs/adr.md"), "the preview does not show the requested file");
     }
     process.stdout.write(`ok: ${name} rendered ${markup.length} bytes\n`);
   }

@@ -165,7 +165,15 @@ function issueText(error: { issues: readonly { path: readonly PropertyKey[]; mes
 
 function statusFor(error: unknown): number {
   const message = messageOf(error);
-  return message.includes("busy") ? 409 : 500;
+  if (message.includes("busy")) return 409;
+  // A path the human asked for that the workspace does not allow is a mistake
+  // in the request, not a failure of the server.
+  if (message.includes("workspace") || message.includes("must be relative") ||
+      message.includes("null byte") || message.includes("A path is required") ||
+      message.includes("does not exist") || message.includes("Only a regular file")) {
+    return 400;
+  }
+  return 500;
 }
 
 const PLACEHOLDER_PAGE = `<!doctype html>
@@ -282,6 +290,21 @@ async function handleRpc(
       const output = rpcSchemas.run.output.safeParse(result);
       if (!output.success) {
         sendError(response, 500, `The run result does not match its contract: ${issueText(output.error)}`);
+        return;
+      }
+      sendJson(response, 200, output.data);
+      return;
+    }
+    if (name === "mathcoding.file") {
+      const input = rpcSchemas.file.input.safeParse(body);
+      if (!input.success) {
+        sendError(response, 400, issueText(input.error));
+        return;
+      }
+      const result = await context.operations.filePreview(context.host, input.data);
+      const output = rpcSchemas.file.output.safeParse(result);
+      if (!output.success) {
+        sendError(response, 500, `The file preview does not match its contract: ${issueText(output.error)}`);
         return;
       }
       sendJson(response, 200, output.data);

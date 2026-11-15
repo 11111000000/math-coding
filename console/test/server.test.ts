@@ -207,3 +207,44 @@ test("the settings live outside the project", async () => {
   assert.equal(stored.version, 2);
   assert.deepEqual(stored.values, { binaryPath: "", allowRunChecks: false, autoRefreshSeconds: 30 });
 });
+
+test("a file of the project is read through the file endpoint", async () => {
+  const { writeFile } = await import("node:fs/promises");
+  await writeFile(join(root, "notes.md"), "the subject\n", "utf8");
+  const answer = await ask({
+    method: "POST",
+    path: "/api/mathcoding.file",
+    body: { workspaceId: "local", path: "notes.md" },
+  });
+  assert.equal(answer.status, 200);
+  assert.equal(answer.body.kind, "file");
+  assert.equal(answer.body.path, "notes.md");
+  assert.equal(answer.body.content, "the subject\n");
+});
+
+test("a path that leaves the project is refused by the file endpoint", async () => {
+  const absolute = await ask({
+    method: "POST",
+    path: "/api/mathcoding.file",
+    body: { workspaceId: "local", path: "/etc/passwd" },
+  });
+  assert.equal(absolute.status, 400);
+  assert.equal(typeof absolute.body.error, "string");
+  const traversal = await ask({
+    method: "POST",
+    path: "/api/mathcoding.file",
+    body: { workspaceId: "local", path: "../outside.txt" },
+  });
+  assert.equal(traversal.status, 400);
+  assert.equal(typeof traversal.body.error, "string");
+});
+
+test("a file request that does not match the contract is a schema error", async () => {
+  const answer = await ask({
+    method: "POST",
+    path: "/api/mathcoding.file",
+    body: { workspaceId: "local", path: "notes.md", maxBytes: "a lot" },
+  });
+  assert.equal(answer.status, 400);
+  assert.equal(typeof answer.body.error, "string");
+});
