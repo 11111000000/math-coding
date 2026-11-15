@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import type { StateReason } from "../shared/domain";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
-import { toneColor, type Tone } from "./vocabulary";
+import { stateReasonText, toneColor, type Tone } from "./vocabulary";
 
 export function Card({ theme, title, subtitle, right, children, compact = false }: {
   theme: ConsoleTheme;
@@ -146,6 +147,24 @@ export function Note({ theme, children, tone = "neutral" }: {
   return (
     <View style={{ borderLeftWidth: 3, borderLeftColor: toneColor(theme, tone), paddingLeft: 10, paddingVertical: 3 }}>
       <Body theme={theme} muted>{children}</Body>
+    </View>
+  );
+}
+
+/**
+ * The reason of a state.
+ *
+ * The reason is the one the canonical map reports. When the program does not
+ * report one, the text says so instead of naming a cause.
+ */
+export function ReasonBlock({ theme, reason }: {
+  theme: ConsoleTheme;
+  reason?: StateReason;
+}) {
+  return (
+    <View style={{ gap: 2 }}>
+      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "600", textTransform: "uppercase" }}>Reason</Text>
+      <Text selectable style={{ color: theme.colors.foreground, fontSize: 12, lineHeight: 17 }}>{stateReasonText(reason)}</Text>
     </View>
   );
 }

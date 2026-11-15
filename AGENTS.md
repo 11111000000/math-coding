@@ -100,7 +100,7 @@ commit, push и merge.
 
 v5 keeps evidence linked, fresh, and independent
 
-15 claim(s).
+16 claim(s).
 
 ```sh
 mathc run

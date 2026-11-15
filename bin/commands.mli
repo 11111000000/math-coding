@@ -13,3 +13,8 @@ val authorize : string -> string -> string -> int
 val re_evaluate : string -> int
 val review_source : string -> string -> string -> string -> int
 val version : unit -> int
+
+(* A declared environment is a prefix for the whole command. The measurer
+   compares the full protocol with the same commands, so it has to run them in
+   the same environment. *)
+val command_in_environment : string option -> string -> string

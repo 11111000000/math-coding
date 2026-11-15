@@ -2,6 +2,22 @@ import { z } from "zod";
 import { claimSchema, evidenceRecordSchema, mapSchema } from "./domain";
 
 /**
+ * The canonical reason of a map state.
+ *
+ * Every state of `mapSchema` may carry a `reason` that says why the claim is
+ * in that state. The field is optional: a host may run against an older
+ * program that does not report it yet, and the console then says that the
+ * reason is unknown instead of inventing one.
+ */
+export {
+  mapSchema,
+  mapStateSchema,
+  stateReasonSchema,
+  STATE_REASONS,
+} from "./domain";
+export type { MapState, StateReason } from "./domain";
+
+/**
  * Host-neutral contracts.
  *
  * Everything in this module is plain data and Zod schemas. The Paseo plugin

@@ -210,6 +210,26 @@ let goal_to_json goal =
           "at", `Int goal.at;
           "reason", json_string_opt goal.reason ]
 
+(* The declared environment is a prefix for the whole command: the command runs
+   as <environment> sh -c <command>. It is optional and additive - without it
+   the checks run exactly as they are declared. *)
+let max_environment_length = 512
+
+let environment_to_json environment =
+  match environment with None -> [] | Some value -> [ "environment", `String value ]
+
+let environment_of_json pairs =
+  match List.assoc_opt "environment" pairs with
+  | None | Some `Null -> Ok None
+  | Some (`String value) ->
+      if value = "" then Error "environment must not be empty"
+      else if String.contains value '\n' || String.contains value '\r' then
+        Error "environment must not contain a line break"
+      else if String.length value > max_environment_length then
+        Error (Printf.sprintf "environment must be at most %d characters" max_environment_length)
+      else Ok (Some value)
+  | Some _ -> Error "environment must be a string"
+
 let goal_of_json json =
   let* pairs = object_ "goal" [ "text"; "scope"; "by"; "at"; "reason" ] json in
   let* text = string "text" pairs in
@@ -226,15 +246,17 @@ let goal_of_json json =
   Ok { text; scope; by; at; reason }
 
 let to_json spec =
-  `Assoc [ "schema_version", `Int 5;
-          "goal", (match spec.goal with None -> `Null | Some goal -> goal_to_json goal);
-          "claims", `List (List.map claim_to_json spec.claims) ]
+  `Assoc
+    ([ "schema_version", `Int 5;
+       "goal", (match spec.goal with None -> `Null | Some goal -> goal_to_json goal);
+       "claims", `List (List.map claim_to_json spec.claims) ]
+     @ environment_to_json spec.environment)
 
 let parse_string text =
   match Yojson.Safe.from_string text with
   | exception Yojson.Json_error error -> Error error
   | json -> (
-      let* pairs = object_ "spec" [ "schema_version"; "goal"; "uncertainty_budget"; "closed_waves"; "claims" ] json in
+      let* pairs = object_ "spec" [ "schema_version"; "goal"; "environment"; "uncertainty_budget"; "closed_waves"; "claims" ] json in
       let* version = int "schema_version" pairs in
       let* () = if version = 5 then Ok () else Error ("unsupported schema_version " ^ string_of_int version) in
       let* goal =
@@ -242,10 +264,11 @@ let parse_string text =
         | Some `Null | None -> Ok None
         | Some json -> (match goal_of_json json with Ok goal -> Ok (Some goal) | Error error -> Error error)
       in
+      let* environment = environment_of_json pairs in
       let* claims =
         match List.assoc_opt "claims" pairs with
         | Some (`List items) -> collect claim_of_json items
         | Some _ -> Error "claims must be a list"
         | None -> Error "claims is required"
       in
-      Ok { goal; claims })
+      Ok { goal; claims; environment })

@@ -19,6 +19,31 @@ export const EVIDENCE_OUTCOMES = [
 ] as const;
 export const INDEPENDENCE_LEVELS = ["self", "fresh-context", "external"] as const;
 
+/**
+ * The canonical reason of a claim state.
+ *
+ * The reason comes from the map. It is optional, because a host may run
+ * against an older program that does not report it yet.
+ */
+export const STATE_REASONS = [
+  "current",
+  "never-checked",
+  "source-changed",
+  "materials-changed",
+  "definition-changed",
+  "verifier-changed",
+  "environment-changed",
+  "expired",
+  "not-run",
+  "inconclusive",
+  "infrastructure-error",
+  "refuted",
+  "waived",
+  "not-checkable",
+] as const;
+
+export const stateReasonSchema = z.enum(STATE_REASONS);
+
 const nullableString = z.string().nullable().default(null);
 const goalSchema = z.strictObject({
   text: z.string().min(1),
@@ -32,6 +57,7 @@ export const mapStateSchema = z.strictObject({
   id: z.string().min(1),
   state: z.enum(CLAIM_STATES),
   source_changed: z.boolean(),
+  reason: stateReasonSchema.optional(),
 });
 
 export const mapSchema = z.strictObject({
@@ -143,7 +169,9 @@ export const evidenceRecordSchema = evidenceSchema.extend({
 });
 
 export type MathMap = z.output<typeof mapSchema>;
+export type MapState = z.output<typeof mapStateSchema>;
 export type ClaimState = (typeof CLAIM_STATES)[number];
+export type StateReason = (typeof STATE_REASONS)[number];
 export type Verdict = (typeof VERDICTS)[number];
 export type EvidenceOutcome = (typeof EVIDENCE_OUTCOMES)[number];
 export type Claim = z.output<typeof claimSchema>;

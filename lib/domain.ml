@@ -98,7 +98,10 @@ type execution_log = {
 
 type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
-type spec = { goal : goal option; claims : claim list }
+(* The optional environment is the prefix every declared check runs under. It is
+   an additive extension of the specification: without it the checks run
+   exactly as they are declared. *)
+type spec = { goal : goal option; claims : claim list; environment : string option }
 
 let outcome_to_string = function
   | Pass -> "pass"

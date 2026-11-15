@@ -3,6 +3,26 @@ open Helpers
 
 let expect = Helpers.expect
 
+(* The map explains every state it reports. *)
+let state_of_text = function
+  | "holds" -> Some Holds
+  | "refuted" -> Some Refuted
+  | "inconclusive" -> Some Inconclusive
+  | "not-checkable" -> Some NotCheckable
+  | "outdated" -> Some Outdated
+  | "never-checked" -> Some NeverChecked
+  | "waived" -> Some Waived
+  | _ -> None
+
+let states_of json =
+  match field "states" json with Some (`List items) -> items | _ -> []
+
+let text_field name item =
+  match field name item with Some (`String value) -> value | _ -> ""
+
+let bool_field name item =
+  match field name item with Some (`Bool value) -> value | _ -> false
+
 let add_and_run root =
   expect root "goal \"the subject is expected\" subject.txt owner" 0;
   write root "subject.txt" "expected\n";
@@ -111,6 +131,12 @@ let () =
       let map = run root "map" in
       check "source change invalidates the green verdict"
         (map.code = 3 && contains map.stdout "outdated" && contains map.stdout "source changed");
+      let changed_map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "a changed source is outdated for the reason source-changed"
+        (List.for_all
+           (fun item -> text_field "reason" item = "source-changed"
+              && bool_field "source_changed" item)
+           (states_of changed_map));
       let changed_run = run root "run" in
       check "run routes a changed source to review"
         (changed_run.code = 3 && contains changed_run.stdout "outdated"
@@ -255,7 +281,7 @@ let () =
       expect root "goal \"one passing alternative is enough\" subject.txt owner" 0;
       write root "subject.txt" "expected\n";
       let alternative = { claim with requirements = [ Any [ Verifier "grep -q expected subject.txt"; Verifier "printf second > second.txt && false" ] ] } in
-      let spec = { goal = Some { text = "one passing alternative is enough"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ alternative ] } in
+      let spec = { goal = Some { text = "one passing alternative is enough"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ alternative ]; environment = None } in
       write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
       expect root "run" 0;
       check "Any stops after the first passing alternative" (not (Sys.file_exists (Filename.concat root "second.txt")));
@@ -270,7 +296,7 @@ let () =
         Verifier "grep -q expected subject.txt";
         Verifier "test \"$(cat subject.txt)\" = expected";
       ] ] } in
-      let spec = { goal = Some { text = "every required branch must pass"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      let spec = { goal = Some { text = "every required branch must pass"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ]; environment = None } in
       write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
       expect root "run" 0;
       check "All accepts fresh passing branches" (contains (run root "map").stdout "holds");
@@ -285,7 +311,7 @@ let () =
         Verifier "exit 2";
         Verifier "printf second > second.txt && false";
       ] ] } in
-      let spec = { goal = Some { text = "a later refutation must be observed"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      let spec = { goal = Some { text = "a later refutation must be observed"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ]; environment = None } in
       write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
       let refused = run root "run" in
       check "All preserves a refutation after an inconclusive branch"
@@ -314,7 +340,7 @@ let () =
         Verifier "false";
         Verifier "printf second > second.txt && true";
       ] ] } in
-      let spec = { goal = Some { text = "a refutation ends required evaluation"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ] } in
+      let spec = { goal = Some { text = "a refutation ends required evaluation"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ required ]; environment = None } in
       write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
       expect root "run" 1;
       check "All stops after a refutation" (not (Sys.file_exists (Filename.concat root "second.txt")));
@@ -329,3 +355,98 @@ let () =
   check "large output is marked truncated"
     (Process.run ~root "python3 -c 'print(\"x\" * 1048577)'").truncated;
   print_endline "process-outcomes: PASS"
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the map explains every state\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      let states = states_of map in
+      check "the map reports a reason for every claim" (List.length states = 1);
+      check "a fresh claim holds for the reason current"
+        (text_field "state" (List.hd states) = "holds"
+        && text_field "reason" (List.hd states) = "current");
+      check "every reported reason belongs to the closed vocabulary"
+        (List.for_all
+           (fun item -> Verdict.reason_of_string (text_field "reason" item) <> None)
+           states);
+      check "every reported reason explains the state it stands for"
+        (List.for_all
+           (fun item ->
+             match state_of_text (text_field "state" item) with
+             | Some state ->
+                 (match Verdict.reason_of_string (text_field "reason" item) with
+                  | Some reason -> Verdict.explains reason state
+                  | None -> false)
+             | None -> false)
+           states);
+      check "the human map prints the reason next to the state"
+        (contains (run root "map").stdout "holds (current)");
+      write root "subject.txt" "changed\n";
+      let stale = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "a changed subject is outdated for the reason materials-changed"
+        (text_field "state" (List.hd (states_of stale)) = "outdated"
+        && text_field "reason" (List.hd (states_of stale)) = "materials-changed");
+      check "the next action names the stale reason"
+        (contains (run root "next").stdout
+           "the evidence of sample is stale (materials-changed), re-run the checks");
+      print_endline "map-reason: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"a check that cannot start stays unknown\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add missing \"the program exists\" subject.txt \"the program is absent\" fact --requirement \"verifier:mathc-no-such-program\"" 0;
+      expect root "run" 3;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      let states = states_of map in
+      check "a check that did not start is inconclusive for the reason not-run"
+        (text_field "state" (List.hd states) = "inconclusive"
+        && text_field "reason" (List.hd states) = "not-run");
+      check "the next action says the check could not start"
+        (contains (run root "next").stdout "the check for missing could not start");
+      print_endline "map-reason-not-run: PASS")
+
+(* A declared environment is the prefix of the whole command. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the checks run inside the declared environment\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let inside = "test \"$MATHC_TEST_ENV\" = inside" in
+      let verifier = { claim with
+        id = "verifier-side";
+        requirements = [ Verifier (inside ^ " && grep -q expected subject.txt") ];
+        control = Some "printf broken > subject.txt" } in
+      let control = { claim with
+        id = "control-side";
+        requirements = [ Verifier "grep -q expected subject.txt" ];
+        control = Some (inside ^ " && printf broken > subject.txt") } in
+      let goal = Some { text = "the checks run inside the declared environment";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
+      let spec = { goal; claims = [ verifier; control ]; environment = Some "env MATHC_TEST_ENV=inside" } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "the declared environment runs the check and the control"
+        (field "verdict" map = Some (`String "green"));
+      check "the environment survives the codec"
+        (match Spec.parse_string (Io.read_file (Filename.concat root "spec.json")) with
+         | Ok parsed -> parsed.environment = Some "env MATHC_TEST_ENV=inside"
+         | Error error -> failwith error);
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json { spec with environment = None }));
+      expect root "run" 1;
+      let plain = Yojson.Safe.from_string (run root "map --json").stdout in
+      let state_of id =
+        List.map (fun item -> (text_field "id" item, text_field "state" item)) (states_of plain)
+        |> List.assoc id
+      in
+      check "without the environment the check cannot pass"
+        (state_of "verifier-side" = "refuted");
+      check "without the environment the control cannot reach the subject"
+        (state_of "control-side" = "inconclusive");
+      print_endline "declared-environment: PASS")

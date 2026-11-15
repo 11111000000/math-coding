@@ -10,7 +10,7 @@ let update name change json =
   | _ -> json
 
 let () =
-  let spec = { goal = Some { text = "aim"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ claim ] } in
+  let spec = { goal = Some { text = "aim"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None }; claims = [ claim ]; environment = None } in
   let text = Yojson.Safe.pretty_to_string (Spec.to_json spec) in
   (match Spec.parse_string text with
    | Ok parsed -> check "roundtrip preserves claim" (List.length parsed.claims = 1 && (List.hd parsed.claims).id = claim.id)
@@ -77,4 +77,33 @@ let () =
     (Evidence.of_json (update "environment" (function `Assoc fields -> `Assoc (fields @ [ "extra", `Bool true ]) | value -> value) encoded));
   expect_error "producer.run has a strict optional type"
     (Evidence.of_json (update "producer" (update "run" (fun _ -> `Int 1)) encoded));
+  (* The declared environment is optional and additive. *)
+  (match Spec.parse_string "{\"schema_version\":5,\"goal\":null,\"claims\":[]}" with
+   | Ok parsed -> check "the environment is optional" (parsed.environment = None)
+   | Error error -> failwith error);
+  (match Spec.parse_string "{\"schema_version\":5,\"goal\":null,\"claims\":[],\"environment\":\"nix develop -c\"}" with
+   | Ok parsed -> check "a declared environment is accepted" (parsed.environment = Some "nix develop -c")
+   | Error error -> failwith error);
+  (match Spec.parse_string
+     (Printf.sprintf "{\"schema_version\":5,\"goal\":null,\"claims\":[],\"environment\":\"%s\"}"
+        (String.make 512 'x'))
+   with
+   | Ok parsed -> check "an environment of the allowed length is accepted" (parsed.environment <> None)
+   | Error error -> failwith error);
+  let with_environment value =
+    Spec.parse_string (Printf.sprintf "{\"schema_version\":5,\"goal\":null,\"claims\":[],\"environment\":%s}" value)
+  in
+  expect_error "an empty environment is rejected" (with_environment "\"\"");
+  expect_error "a line break in the environment is rejected" (with_environment "\"nix develop\\nc\"");
+  expect_error "a carriage return in the environment is rejected" (with_environment "\"nix develop\\rc\"");
+  expect_error "an environment that is not a string is rejected" (with_environment "5");
+  expect_error "an environment that is a list is rejected" (with_environment "[]");
+  expect_error "an overlong environment is rejected"
+    (with_environment (Printf.sprintf "\"%s\"" (String.make 513 'x')));
+  (match Spec.parse_string (Yojson.Safe.pretty_to_string (Spec.to_json { spec with environment = Some "nix develop -c" })) with
+   | Ok parsed -> check "the environment survives the codec" (parsed.environment = Some "nix develop -c")
+   | Error error -> failwith error);
+  (match Spec.parse_string (Yojson.Safe.pretty_to_string (Spec.to_json spec)) with
+   | Ok parsed -> check "a specification without an environment keeps it absent" (parsed.environment = None)
+   | Error error -> failwith error);
   print_endline "spec-format: PASS"

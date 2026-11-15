@@ -2,6 +2,8 @@ import { Text, View } from "react-native";
 import type { ConsoleTheme } from "../shared/theme";
 import {
   attentionBrief,
+  attentionReasonCodes,
+  attentionReasonText,
   type AgentAttentionItem,
   type AttentionBriefContext,
   type AttentionModel,
@@ -110,8 +112,10 @@ function HumanCard({ theme, compact, item, onSelect, onCopy }: {
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
         <Badge theme={theme} label="needs you" tone="warn" icon="UserRoundCheck" />
         {item.states.map((state) => <Badge key={state} theme={theme} label={state} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
+        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={reason} />)}
       </View>
       <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.title}</Text>
+      {item.reasons.length > 0 && <DecisionText theme={theme} label="Reason">{attentionReasonText(item.reasons)}</DecisionText>}
       <DecisionText theme={theme} label="Why this needs you">{item.why}</DecisionText>
       <DecisionText theme={theme} label="Your decision" emphasis>{item.humanQuestion}</DecisionText>
       <DecisionText theme={theme} label="Agent may">{item.agentMay}</DecisionText>
@@ -139,8 +143,10 @@ function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
         <Badge theme={theme} label="agent can act" tone="info" icon="Bot" />
         {item.claimIds.length > 0 && <Badge theme={theme} label={`${item.claimIds.length} claim(s)`} icon="Boxes" />}
         {item.states.map((state) => <Badge key={state} theme={theme} label={state} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
+        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={reason} />)}
       </View>
       <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.title}</Text>
+      {item.reasons.length > 0 && <DecisionText theme={theme} label="Reason">{attentionReasonText(item.reasons)}</DecisionText>}
       <DecisionText theme={theme} label="Why">{item.why}</DecisionText>
       <DecisionText theme={theme} label="Human boundary">{item.humanBoundary}</DecisionText>
       <DecisionText theme={theme} label="Agent may">{item.agentMay}</DecisionText>

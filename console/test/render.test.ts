@@ -89,6 +89,48 @@ test("the console panel renders without a snapshot", () => {
   assert.ok(markup.includes("Reading the canonical map"), "the loading state is missing");
 });
 
+test("the reason of a snapshot passes through the api and is rendered", async () => {
+  const original = globalThis.fetch;
+  const data = snapshot();
+  data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
+  data.map.verdict = "unknown";
+  data.map.exit = 3;
+  globalThis.fetch = (async () => new Response(JSON.stringify(data), {
+    status: 200,
+    headers: { "Content-Type": "application/json" },
+  })) as typeof fetch;
+  try {
+    let call: ((input: unknown) => Promise<unknown>) | undefined;
+    function Probe() {
+      const rpc = host.useRpc(rpcSchemas.snapshot);
+      call = rpc as unknown as (input: unknown) => Promise<unknown>;
+      return null;
+    }
+    render(createElement(HostProvider, { value: host, children: createElement(Probe) }), client());
+    assert.ok(call, "the rpc call was not created");
+
+    const answer = (await call?.({ workspaceId: "local" })) as {
+      status: string;
+      map: { states: Array<{ reason?: string }> };
+    };
+    assert.equal(answer.status, "ready");
+    assert.equal(answer.map.states[0]?.reason, "environment-changed", "the api did not keep the reason of the state");
+
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
+    queryClient.setQueryData(["mathcoding-snapshot", "local"], answer);
+    const markup = render(
+      createElement(Panel, { theme: lightTheme, layout: { compact: false }, workspaceId: "local" }),
+      queryClient,
+    );
+    assert.ok(
+      markup.includes("The environment changed after the evidence was recorded"),
+      "the page does not show the reason of the state",
+    );
+  } finally {
+    globalThis.fetch = original;
+  }
+});
+
 test("the browser host draws icons, modals and inputs", () => {
   const markup = render(
     createElement(

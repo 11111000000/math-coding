@@ -30,7 +30,7 @@ let environment root =
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
 
-type evaluated_state = { id : string; state : state; changed : bool }
+type evaluated_state = { id : string; state : state; changed : bool; reason : Verdict.reason }
 
 type map_output = {
   json : Yojson.Safe.t;
@@ -46,10 +46,13 @@ let evaluated_states root spec =
       let now = int_of_float (Unix.time ()) in
       let current_environment = environment root in
       Ok (List.map (fun (claim : claim) ->
-        let state = Verdict.state_of_claim ~now ~environment:current_environment
+        let state, reason = Verdict.explain_claim ~now ~environment:current_environment
           ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim evidence in
         let changed = source_changed root claim in
-        { id = claim.id; state = (if changed then Outdated else state); changed }) spec.claims)
+        (* A changed source outranks every other reason for staleness. *)
+        if changed then
+          { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed }
+        else { id = claim.id; state; changed = false; reason }) spec.claims)
 
 let states root spec =
   match evaluated_states root spec with
@@ -60,6 +63,21 @@ let uncovered root spec =
   let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
   Git.uncovered root spec.claims ~goal_scope
 
+let next_of_reason item =
+  match item.reason with
+  | Why_materials_changed | Why_definition_changed | Why_verifier_changed
+  | Why_environment_changed | Why_expired ->
+      "next: the evidence of " ^ item.id ^ " is stale (" ^ Verdict.reason_to_string item.reason
+      ^ "), re-run the checks"
+  | Why_not_run -> "next: the check for " ^ item.id ^ " could not start"
+  | Why_infrastructure_error ->
+      "next: the check for " ^ item.id ^ " hit an infrastructure error, re-run the checks"
+  | Why_source_changed ->
+      "next: review the changed source of " ^ item.id ^ " (mathc review-source " ^ item.id
+      ^ " --by WHO --reason WHY)"
+  | Why_current | Why_never_checked | Why_inconclusive | Why_refuted
+  | Why_waived | Why_not_checkable -> "next: check the claim " ^ item.id
+
 let next_of_states states uncovered =
   let sources = List.filter_map (fun item -> if item.changed then Some item.id else None) states in
   let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item.id else None) states in
@@ -67,7 +85,7 @@ let next_of_states states uncovered =
     List.filter_map
       (fun item ->
         match item.state with
-        | Outdated | Inconclusive | NeverChecked | NotCheckable | Waived -> Some item.id
+        | Outdated | Inconclusive | NeverChecked | NotCheckable | Waived -> Some item
         | Holds | Refuted -> None)
       states
   in
@@ -75,7 +93,7 @@ let next_of_states states uncovered =
   | id :: _, _, _, _ ->
       "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
   | [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
-  | [], [], id :: _, _ -> "next: check the claim " ^ id
+  | [], [], item :: _, _ -> next_of_reason item
   | [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
   | [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
 
@@ -91,8 +109,8 @@ let text_of verdict states uncovered next =
     ([ Printf.sprintf "verdict: %s\n" (verdict_to_string verdict) ]
     @ List.map
         (fun item ->
-          Printf.sprintf "  %-28s %s%s\n" item.id (state_to_string item.state)
-            (if item.changed then " (source changed)" else ""))
+          Printf.sprintf "  %-28s %s (%s)\n" item.id (state_to_string item.state)
+            (Verdict.reason_to_words item.reason))
         states
     @ [ Printf.sprintf "uncovered: %d file(s)\n" (List.length uncovered) ]
     @ List.map (fun file -> Printf.sprintf "  %s\n" file) uncovered
@@ -111,7 +129,8 @@ let map_output root spec =
             `Assoc
               [ "id", `String item.id;
                 "state", `String (state_to_string item.state);
-                "source_changed", `Bool item.changed ])
+                "source_changed", `Bool item.changed;
+                "reason", `String (Verdict.reason_to_string item.reason) ])
           states
       in
       let json =

@@ -9,7 +9,7 @@ import { DecisionBoundary } from "./decision-boundary";
 import { EvidenceRecordCard } from "./evidence-record";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
-import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note } from "./parts";
+import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note, ReasonBlock } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
 
 export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh }: {
@@ -79,11 +79,13 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
           <View style={{ flex: 1, gap: 5 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
               {state && <Badge theme={theme} label={state.state} color={claimStateColor(theme, state.state)} icon={claimStateIcon(state.state)} />}
+              {state?.reason && <Badge theme={theme} label={state.reason} icon="CircleHelp" />}
               <Badge theme={theme} label={claim.register} />
               {state?.source_changed && <Badge theme={theme} label="source changed" tone="warn" />}
             </View>
             <Text style={{ color: theme.colors.foreground, fontSize: 20, fontWeight: "700" }}>{claim.id}</Text>
             <Body theme={theme}>{claim.text}</Body>
+            {state && <ReasonBlock theme={theme} reason={state.reason} />}
           </View>
           <Button theme={theme} compact label="Close" icon="X" onPress={onClose} />
         </View>

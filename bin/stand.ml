@@ -80,7 +80,7 @@ let measure root =
                 List.fold_left
                   (fun total command ->
                     let started = Unix.gettimeofday () in
-                    ignore (Process.run ~timeout:180.0 ~root command);
+                    ignore (Process.run ~timeout:180.0 ~root (Commands.command_in_environment spec.environment command));
                     total +. Unix.gettimeofday () -. started)
                   total (List.concat_map commands claim.requirements))
               0.0 spec.claims

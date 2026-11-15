@@ -6,11 +6,11 @@
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
       "AGENTS.md", "docs/", "dune-project", "install.sh", "skills/",
-      ".github/", "site/"
+      ".github/", "site/", "plugin/", "console/"
     ],
     "by": "owner",
-    "at": 1794415364,
-    "reason": "cover the project site"
+    "at": 1794736450,
+    "reason": "the console and its local browser page are part of the method, not exempt from it"
   },
   "claims": [
     {
@@ -306,6 +306,26 @@
       "falsifier": "an inconsistent task record is accepted or a valid dry run is rejected",
       "register": "fact",
       "control": "sed -i 's/accepted_by is None/accepted_by is not None/' docs/measurements/task-ledger.py",
+      "waiver": null
+    },
+    {
+      "id": "console-trust-boundary",
+      "text": "the Math Coding console shows the canonical map only, keeps the host boundary explicit and refuses to invent a reason",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "( cd plugin/math-coding-console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null ) & a=$!; ( cd console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null ) & b=$!; wait $a; i=$?; wait $b; j=$?; [ \"$i\" -eq 0 ] && [ \"$j\" -eq 0 ] || exit 1; ( cd plugin/math-coding-console && npm run audit:client && npm run typecheck && npm test && npm run test:render ) & c=$!; ( cd plugin/math-coding-console && npm run test:negative ) & e=$!; ( cd console && npm run typecheck && npm test && npm run build ) & d=$!; wait $c; k=$?; wait $e; m=$?; wait $d; l=$?; [ \"$k\" -eq 0 ] && [ \"$m\" -eq 0 ] && [ \"$l\" -eq 0 ]"
+        }
+      ],
+      "falsifier": "the console computes a verdict or a claim state on its own, or the shared interface imports the host package directly",
+      "register": "fact",
+      "control": "printf \"\\nimport { Icon } from \\\"@getpaseo/plugin/client/ui\\\";\\n\" >> plugin/math-coding-console/client/parts.tsx",
       "waiver": null
     }
   ]

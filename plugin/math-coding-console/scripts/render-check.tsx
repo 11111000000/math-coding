@@ -1,81 +1,11 @@
 import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import mock from "mock-require";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient } from "@tanstack/react-query";
 import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
-import type {
-  HostContextValue,
-  HostIconProps,
-  HostModalProps,
-  HostSettingsActionProps,
-  HostSettingsCardProps,
-  HostSettingsInputProps,
-  HostSettingsSectionProps,
-  HostSettingsSelectProps,
-  HostSettingsSwitchProps,
-  HostTextInputProps,
-} from "../client/host/contract";
-import { HostProvider } from "../client/host/context";
+import { renderWithHost } from "../test/host-stub";
 import { theme, snapshot, claim } from "../test/fixtures";
 
 const React = createElement;
-
-/**
- * The host stub.
- *
- * The shared interface reaches the host through the contract only, so the
- * check builds a stub implementation of that contract instead of replacing
- * host modules.
- */
-const Icon = ({ name }: HostIconProps) => React("span", { "data-icon": name });
-const Modal = Object.assign(
-  // The stub always renders the body, so the confirmation text is part of the checked markup.
-  ({ children }: HostModalProps) => children,
-  { Content: ({ children }: { children?: ReactNode }) => children },
-);
-const TextInput = (props: HostTextInputProps) => React("input", {
-  readOnly: true,
-  defaultValue: props.value,
-  "aria-label": props.accessibilityLabel ?? props.placeholder,
-});
-const SettingsSection = ({ children }: HostSettingsSectionProps) => React("div", null, children);
-const SettingsCard = ({ children }: HostSettingsCardProps) => React("div", null, children);
-const SettingsInput = ({ label, initialValue }: HostSettingsInputProps) => React("input", {
-  readOnly: true,
-  defaultValue: initialValue,
-  "aria-label": label,
-});
-const SettingsSelect = ({ label }: HostSettingsSelectProps) => React("select", { readOnly: true, "aria-label": label });
-const SettingsAction = ({ actionLabel }: HostSettingsActionProps) => React("button", { type: "button" }, actionLabel);
-const SettingsSwitch = ({ label, value }: HostSettingsSwitchProps) => React("div", null, label, React("input", { type: "checkbox", readOnly: true, checked: value }));
-
-const host: HostContextValue = {
-  Icon,
-  Modal,
-  TextInput,
-  SettingsSection,
-  SettingsCard,
-  SettingsInput,
-  SettingsSelect,
-  SettingsAction,
-  SettingsSwitch,
-  copyText: async () => undefined,
-  useToast: () => ({ show: () => undefined, error: () => undefined }),
-  useRpc: ((contract: never) => async () => snapshot()) as unknown as HostContextValue["useRpc"],
-  useSettings: ((definition: never) => ({
-    status: "ready",
-    values: { binaryPath: "", allowRunChecks: false, autoRefreshSeconds: 30 },
-    revision: "revision",
-    saving: false,
-    saveError: null,
-    save: async () => true,
-    reset: async () => true,
-    reload: async () => undefined,
-  })) as unknown as HostContextValue["useSettings"],
-};
-
-mock("react-native", "react-native-web");
 
 async function main() {
   const [
@@ -100,6 +30,9 @@ async function main() {
     import("../client/settings"),
   ]);
   const data = snapshot();
+  data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
+  data.map.verdict = "unknown";
+  data.map.exit = 3;
   const attentionData = snapshot(Array.from({ length: 15 }, (_, index) => claim({ id: `claim-${index}` })));
   attentionData.map.claims = 15;
   attentionData.map.verdict = "unknown";
@@ -140,9 +73,7 @@ async function main() {
   const humanContext = attentionContext(humanData, humanAttention);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   queryClient.setQueryData(["mathcoding-snapshot", "workspace-1"], attentionData);
-  const render = (element: ReactNode) => renderToStaticMarkup(
-    React(QueryClientProvider, { client: queryClient }, React(HostProvider, { value: host, children: element })),
-  );
+  const render = (element: ReactNode) => renderWithHost(element, queryClient);
   const frameProps = {
     theme,
     compact: false,
@@ -174,6 +105,10 @@ async function main() {
       assert.ok(markup.includes("Decide the direction of refuted claim refuted"));
       assert.ok(markup.includes("Accepted risk for waived"));
       assert.ok(markup.includes("Next safe step"));
+      assert.ok(markup.includes("This version does not report a reason for this state."));
+    }
+    if (name === "claim detail") {
+      assert.ok(markup.includes("The environment changed after the evidence was recorded"), "the claim card does not explain the reason");
     }
     if (name === "console panel") {
       assert.ok(markup.includes("test the plugin"));
@@ -194,6 +129,7 @@ async function main() {
   assert.ok(brief.includes("Accepted risks: 1"), "the brief carries the accepted risks");
   assert.ok(brief.includes("Canonical next action: next: review the changed source for changed"), "the brief carries the canonical next action");
   assert.ok(brief.includes("Human decision (the agent must not make it)"), "the brief keeps the human boundary");
+  assert.ok(brief.includes("Reason: This version does not report a reason for this state."), "the brief carries the reason of the state");
   process.stdout.write(`ok: attention brief carries goal, verdict, coverage, risks and next action (${brief.length} bytes)\n`);
   const light = { ...theme, colors: { ...theme.colors, surface0: "#ffffff", surface1: "#f7f7f7", surface2: "#eeeeee", border: "#cccccc", foreground: "#111111", foregroundMuted: "#555555" } };
   const lightMarkup = render(React(InstrumentFrame, { ...frameProps, theme: light, compact: true }));

@@ -10,7 +10,7 @@ let load root =
 let init root =
   if Sys.file_exists (Filename.concat root "spec.json") then fail 2 "there is already a standing specification"
   else (
-    Project.save_spec root { goal = None; claims = [] };
+    Project.save_spec root { goal = None; claims = []; environment = None };
     print_endline "the standing specification is created\nnext: state the aim (mathc goal TEXT SCOPE BY)";
     0)
 
@@ -98,7 +98,16 @@ let report_failure label (result : Process.result) =
       (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
     if result.stdout = "" && result.stderr = "" then prerr_newline ())
 
-let rec execute_requirement ?files ?(quiet = false) root claim items requirement : Domain.outcome =
+(* A declared environment is a prefix for the whole command: the command runs as
+   <environment> sh -c <command>, so every part of it is inside the
+   environment and not only its first word. Without a declared environment the
+   command runs exactly as it is declared. *)
+let command_in_environment environment command =
+  match environment with
+  | None -> command
+  | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
+
+let rec execute_requirement ?files ?(quiet = false) ~environment root claim items requirement : Domain.outcome =
   match requirement with
   | Review { authority; _ } ->
       if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
@@ -109,7 +118,7 @@ let rec execute_requirement ?files ?(quiet = false) root claim items requirement
           if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
           Inconclusive
       | Some _ ->
-          let result = Process.run ~timeout:60.0 ~root command in
+          let result = Process.run ~timeout:300.0 ~root (command_in_environment environment command) in
           report_failure command result;
           let outcome = if result.truncated then Infrastructure_error else result.outcome in
           let outcome, reach =
@@ -117,11 +126,11 @@ let rec execute_requirement ?files ?(quiet = false) root claim items requirement
             | Pass, Some control -> (
                 match Isolated_run.with_copy root (fun copy ->
                     let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:30.0 ~root:copy control in
+                    let mutation = Process.run ~timeout:120.0 ~root:copy (command_in_environment environment control) in
                     report_failure ("negative control: " ^ control) mutation;
                     let after = Git.digest_of_scope copy ~scope:claim.scope in
                     let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:60.0 ~root:copy command in
+                    let check = Process.run ~timeout:300.0 ~root:copy (command_in_environment environment command) in
                     report_failure ("verifier after negative control: " ^ command) check;
                     if reach = "subject" && check.code = 1 then Pass, Some reach
                     else Inconclusive, Some reach) with
@@ -144,7 +153,7 @@ let rec execute_requirement ?files ?(quiet = false) root claim items requirement
         match requirements with
         | [] -> Pass
         | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet ~environment root claim items requirement in
             (match outcome with
             | Pass -> run_all rest
             | Fail -> Fail
@@ -159,7 +168,7 @@ let rec execute_requirement ?files ?(quiet = false) root claim items requirement
         match requirements with
         | [] -> Inconclusive
         | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet ~environment root claim items requirement in
             if outcome = Pass then Pass else run_any rest
       in
       (run_any requirements : Domain.outcome)
@@ -172,7 +181,7 @@ let run root json =
   List.iter
     (fun claim ->
       List.iter
-        (fun requirement -> ignore (execute_requirement ~files ~quiet:json root claim items requirement))
+        (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment:spec.environment root claim items requirement))
         claim.requirements)
     spec.claims;
   List.iter (Trail.append root) (List.rev !items);

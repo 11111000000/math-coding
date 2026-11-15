@@ -1,6 +1,7 @@
-import type { Claim, ClaimState, Requirement, Verdict } from "../shared/domain";
+import type { Claim, ClaimState, MapState, Requirement, StateReason, Verdict } from "../shared/domain";
 import { flattenRequirements, requirementLabel } from "../shared/requirements";
 import type { SnapshotReady } from "../shared/schemas";
+import { stateReasonText } from "./vocabulary";
 
 export type HumanAttentionKind =
   | "source-review"
@@ -19,12 +20,24 @@ export interface ClaimContext {
   requirements: string[];
 }
 
+/**
+ * The canonical reason of one claim state.
+ *
+ * The reason is the one the map reports. It stays absent when the program
+ * does not report it, and the console then says so instead of guessing.
+ */
+export interface StateReasonEntry {
+  claimId: string;
+  reason?: StateReason;
+}
+
 export interface HumanAttentionItem {
   id: string;
   kind: HumanAttentionKind;
   title: string;
   claimIds: string[];
   states: ClaimState[];
+  reasons: StateReasonEntry[];
   why: string;
   humanQuestion: string;
   agentMay: string;
@@ -40,6 +53,7 @@ export interface AgentAttentionItem {
   title: string;
   claimIds: string[];
   states: ClaimState[];
+  reasons: StateReasonEntry[];
   why: string;
   humanBoundary: string;
   agentMay: string;
@@ -122,14 +136,15 @@ function claimContext(claim: Claim): ClaimContext {
 function humanItem(
   kind: HumanAttentionKind,
   claim: Claim,
-  state: ClaimState,
-  fields: Omit<HumanAttentionItem, "id" | "kind" | "claimIds" | "states" | "sourcePaths" | "claimContext">,
+  mapState: MapState,
+  fields: Omit<HumanAttentionItem, "id" | "kind" | "claimIds" | "states" | "reasons" | "sourcePaths" | "claimContext">,
 ): HumanAttentionItem {
   return {
     id: `${kind}:${claim.id}`,
     kind,
     claimIds: [claim.id],
-    states: [state],
+    states: [mapState.state],
+    reasons: [{ claimId: claim.id, reason: mapState.reason }],
     sourcePaths: sourcePaths(claim),
     claimContext: [claimContext(claim)],
     ...fields,
@@ -138,13 +153,14 @@ function humanItem(
 
 function humanItemForClaim(
   claim: Claim,
-  state: ClaimState,
+  mapState: MapState,
   sourceChanged: boolean,
   nowSeconds: number,
 ): HumanAttentionItem | null {
+  const state = mapState.state;
   if (sourceChanged) {
     const source = claim.source?.path ?? "the linked source";
-    return humanItem("source-review", claim, state, {
+    return humanItem("source-review", claim, mapState, {
       title: `Review the changed source for ${claim.id}`,
       why: `The linked source ${source} changed. Previous evidence no longer applies to the current source.`,
       humanQuestion: `Does ${source} still justify “${claim.text}”, or should the claim, falsifier, or acceptance condition change?`,
@@ -154,7 +170,7 @@ function humanItemForClaim(
     });
   }
   if (state === "refuted") {
-    return humanItem("refutation", claim, state, {
+    return humanItem("refutation", claim, mapState, {
       title: `Decide the direction of refuted claim ${claim.id}`,
       why: "A current observation contradicted the claim. The implementation may be wrong, but the contract may also be wrong.",
       humanQuestion: `Should the implementation be repaired while keeping “${claim.text}” and its falsifier, or does the claim itself need to change?`,
@@ -164,7 +180,7 @@ function humanItemForClaim(
     });
   }
   if (state === "not-checkable") {
-    return humanItem("acceptance-criterion", claim, state, {
+    return humanItem("acceptance-criterion", claim, mapState, {
       title: `Choose an acceptance criterion for ${claim.id}`,
       why: "The canonical map says this claim has no suitable way to establish or refute its current condition.",
       humanQuestion: `What observable condition would prove or refute “${claim.text}”, and should a machine or a human produce it?`,
@@ -176,7 +192,7 @@ function humanItemForClaim(
   const reviews = reviewRequirements(claim);
   if (reviews.length > 0 && state !== "holds" && state !== "waived") {
     const authorities = reviews.map((review) => `${review.spec} (${review.minimum_independence})`).join(", ");
-    return humanItem("human-review", claim, state, {
+    return humanItem("human-review", claim, mapState, {
       title: `Complete the human review for ${claim.id}`,
       why: `The claim requires human review by ${authorities}, and the current canonical state is ${state}.`,
       humanQuestion: `Do the named reviewers confirm “${claim.text}” at the declared independence, or should the condition or authority change?`,
@@ -186,7 +202,7 @@ function humanItemForClaim(
     });
   }
   if (claim.waiver && nowSeconds >= claim.waiver.expires_at && state !== "holds") {
-    return humanItem("expired-waiver", claim, state, {
+    return humanItem("expired-waiver", claim, mapState, {
       title: `Renew or close the expired waiver for ${claim.id}`,
       why: `The accepted risk expired at ${new Date(claim.waiver.expires_at * 1000).toISOString()}. It no longer covers the declared gap.`,
       humanQuestion: `Is “${claim.waiver.gap}” still accepted on the same terms, or should the recovery plan start now?`,
@@ -212,8 +228,9 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
   const investigate: AgentAttentionItem[] = [];
   for (const claim of snapshot.claims) {
     const mapState = states.get(claim.id);
-    const state = mapState?.state;
-    if (!state || agentBlocked(claim, state, mapState?.source_changed ?? false)) continue;
+    if (!mapState) continue;
+    const state = mapState.state;
+    if (agentBlocked(claim, state, mapState.source_changed)) continue;
     if (state === "outdated" || state === "never-checked") {
       refresh.push({
         id: `refresh-evidence:${claim.id}`,
@@ -221,6 +238,7 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
         title: "Refresh current evidence",
         claimIds: [claim.id],
         states: [state],
+        reasons: [{ claimId: claim.id, reason: mapState.reason }],
         why: `The canonical state is ${state}; the declared machine checks can restore current evidence without changing the claim.`,
         humanBoundary: "The machine portion can proceed unless a fresh result reveals that the claim's meaning changed.",
         agentMay: "Run the declared verifier and negative control, then report the canonical result.",
@@ -237,6 +255,7 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
         title: "Investigate an inconclusive result",
         claimIds: [claim.id],
         states: [state],
+        reasons: [{ claimId: claim.id, reason: mapState.reason }],
         why: "The canonical state is inconclusive: the current observations did not establish or refute the claim.",
         humanBoundary: "Bring the claim back to the human only if the intended acceptance criterion remains ambiguous.",
         agentMay: "Inspect the latest observations and propose a fix or a more sensitive check.",
@@ -256,6 +275,7 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
       title: `Refresh evidence for ${refresh.length} claims`,
       claimIds: refresh.flatMap((item) => item.claimIds),
       states: [...new Set(refresh.flatMap((item) => item.states))],
+      reasons: refresh.flatMap((item) => item.reasons),
       why: "These claims have machine-verifiable work that can proceed without waiting for a separate human-only part.",
       humanBoundary: "No human decision is required for the machine portion unless a fresh result changes the intended contract.",
       agentMay: "Run the declared checks and group the outcomes by claim.",
@@ -273,6 +293,7 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
       title: `Investigate ${investigate.length} inconclusive claims`,
       claimIds: investigate.flatMap((item) => item.claimIds),
       states: ["inconclusive"],
+      reasons: investigate.flatMap((item) => item.reasons),
       why: "The current observations left these claims unknown rather than confirming or refuting them.",
       humanBoundary: "Return to the human only if the intended acceptance criterion is ambiguous.",
       agentMay: "Inspect the linked observations and propose fixes or more sensitive checks.",
@@ -290,6 +311,7 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
       title: `Map ${snapshot.map.uncovered.length} uncovered paths to claims`,
       claimIds: [],
       states: [],
+      reasons: [],
       why: "These goal-scope paths are not included in any active claim subject.",
       humanBoundary: "The agent may propose claims and scope; only the human decides whether the goal boundary changes.",
       agentMay: "Inspect the uncovered paths and propose one or more checkable claims.",
@@ -319,9 +341,9 @@ export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = snapsh
   const acceptedRisks: AcceptedRiskItem[] = [];
   for (const claim of snapshot.claims) {
     const mapState = states.get(claim.id);
-    const state = mapState?.state;
-    if (!state) continue;
-    const item = humanItemForClaim(claim, state, mapState?.source_changed ?? false, nowSeconds);
+    if (!mapState) continue;
+    const state = mapState.state;
+    const item = humanItemForClaim(claim, mapState, mapState.source_changed, nowSeconds);
     if (item) needsHuman.push(item);
     if (state === "waived" && claim.waiver && nowSeconds >= claim.waiver.issued_at && nowSeconds < claim.waiver.expires_at) {
       acceptedRisks.push({
@@ -376,6 +398,36 @@ export function attentionContext(snapshot: SnapshotReady, model: AttentionModel)
   };
 }
 
+/**
+ * The reason of an item, in the words of the console.
+ *
+ * The reason comes from the map. A group may carry several of them, and a
+ * program that reports none leaves the reason unknown. An item without any
+ * claim state has no reason to show at all.
+ */
+export function attentionReasonCodes(entries: StateReasonEntry[]): StateReason[] {
+  return [...new Set(entries.map((entry) => entry.reason).filter((reason): reason is StateReason => reason !== undefined))];
+}
+
+export function attentionReasonText(entries: StateReasonEntry[]): string {
+  if (entries.length === 0) return "";
+  const reasons = attentionReasonCodes(entries);
+  if (reasons.length === 0) return stateReasonText(undefined);
+  return reasons.map((reason) => stateReasonText(reason)).join(" ");
+}
+
+/**
+ * The reason lines of a brief.
+ *
+ * A single claim gets one line; a group gets one line per claim, so the
+ * receiver knows what broke for every claim it is asked to work on.
+ */
+export function attentionReasonLines(entries: StateReasonEntry[]): string[] {
+  if (entries.length === 0) return [];
+  if (entries.length === 1) return [`Reason: ${stateReasonText(entries[0]?.reason)}`];
+  return ["Reasons:", ...entries.map((entry) => `  - ${entry.claimId}: ${stateReasonText(entry.reason)}`)];
+}
+
 export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, context: AttentionBriefContext): string {
   const human = "humanQuestion" in item;
   const lines = [
@@ -397,6 +449,7 @@ export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, co
     `Claims: ${item.claimIds.length > 0 ? item.claimIds.join(", ") : "goal coverage"}`,
     `Canonical states: ${item.states.length > 0 ? item.states.join(", ") : "not claim-specific"}`,
   );
+  lines.push(...attentionReasonLines(item.reasons));
   if (item.sourcePaths.length > 0) lines.push(`Sources: ${item.sourcePaths.join(", ")}`);
   if ("uncoveredPaths" in item && item.uncoveredPaths.length > 0) lines.push(`Task uncovered paths: ${item.uncoveredPaths.join(", ")}`);
   if (item.claimContext.length > 0) {
