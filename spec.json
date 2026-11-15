@@ -333,7 +333,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "cd plugin/math-coding-console && npm run audit:client && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null && npm run typecheck && npm test && npm run test:render && npm run test:negative && cd ../../console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null && npm run typecheck && npm test && npm run build"
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-claim.sh"
         }
       ],
       "falsifier": "the console computes a verdict or a claim state on its own, or the shared interface imports the host package directly",
