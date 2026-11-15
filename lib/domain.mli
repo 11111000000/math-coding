@@ -66,6 +66,7 @@ type claim = {
   register : register;
   control : string option;
   waiver : waiver option;
+  environment : string option;
 }
 
 type environment = { class_ : string; fingerprint : string }
@@ -99,6 +100,8 @@ type execution_log = {
 type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
 type spec = { goal : goal option; claims : claim list; environment : string option }
+
+val effective_environment : spec -> claim -> string option
 
 val outcome_to_string : outcome -> string
 val outcome_of_string : string -> outcome option

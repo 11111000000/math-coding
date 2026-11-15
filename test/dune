@@ -63,6 +63,12 @@
   ../skills/math-coding/references/METHODOLOGY.md))
 
 (test
+ (name shell_output)
+ (modules shell_output)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe}))
+
+(test
  (name measurement_ledger)
  (modules measurement_ledger)
  (libraries mathc_test_helpers mathcoding_adapter)

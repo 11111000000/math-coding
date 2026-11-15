@@ -74,7 +74,7 @@ let add root id text scope falsifier register requirements control source_path =
         id; text; scope; source; kind = Acceptance; phase = Pre_merge;
         owner = Option.map (fun goal -> goal.by) spec.goal; review_on = [];
         requirements; falsifier; register; control = (if control = "" then None else Some control);
-        waiver = None;
+        waiver = None; environment = None;
       } in
       Project.save_spec root { spec with claims = spec.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;
@@ -107,7 +107,10 @@ let command_in_environment environment command =
   | None -> command
   | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
 
-let rec execute_requirement ?files ?(quiet = false) ~environment root claim items requirement : Domain.outcome =
+(* An observation enters the journal the moment it is made, so an interrupted
+   run keeps everything it has already proven. The journal stays append-only
+   and the last observation of a claim and requirement is the one that counts. *)
+let rec execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
   match requirement with
   | Review { authority; _ } ->
       if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
@@ -142,7 +145,7 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim item
             | outcome, _ -> outcome, None
           in
           let evidence = evidence_for ?files root claim requirement command outcome reach in
-          items := evidence :: !items;
+          emit evidence;
           if not quiet then (
             Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
             if outcome = Pass && reach = Some "subject" then
@@ -153,7 +156,7 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim item
         match requirements with
         | [] -> Pass
         | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet ~environment root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet ~environment root claim emit requirement in
             (match outcome with
             | Pass -> run_all rest
             | Fail -> Fail
@@ -168,7 +171,7 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim item
         match requirements with
         | [] -> Inconclusive
         | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet ~environment root claim items requirement in
+            let outcome = execute_requirement ?files ~quiet ~environment root claim emit requirement in
             if outcome = Pass then Pass else run_any rest
       in
       (run_any requirements : Domain.outcome)
@@ -177,14 +180,17 @@ let run root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
   let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
-  let items = ref [] in
+  let emit = Trail.append root in
   List.iter
     (fun claim ->
+      (* The environment of the claim is its own when it declares one, and the
+         environment of the specification otherwise. It covers the check and
+         its negative control alike. *)
+      let environment = effective_environment spec claim in
       List.iter
-        (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment:spec.environment root claim items requirement))
+        (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
         claim.requirements)
     spec.claims;
-  List.iter (Trail.append root) (List.rev !items);
   match Project.map_output root spec with
   | Error error -> fail 3 error
   | Ok output ->

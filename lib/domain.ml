@@ -66,8 +66,9 @@ type claim = {
   register : register;
   control : string option;
   waiver : waiver option;
+  (* Its own environment when it declares one, else the one of the spec. *)
+  environment : string option;
 }
-
 type environment = { class_ : string; fingerprint : string }
 type producer = { class_ : string; identity : string; run : string option }
 
@@ -98,11 +99,13 @@ type execution_log = {
 
 type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
-(* The optional environment is the prefix every declared check runs under. It is
-   an additive extension of the specification: without it the checks run
-   exactly as they are declared. *)
+(* The optional environment is the prefix every declared check runs under; without
+   it the checks run exactly as declared. *)
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
+(* The effective environment of a claim: its own, else the one of the spec. *)
+let effective_environment (spec : spec) (claim : claim) =
+  match claim.environment with Some value -> Some value | None -> spec.environment
 let outcome_to_string = function
   | Pass -> "pass"
   | Fail -> "fail"
@@ -237,6 +240,9 @@ let definition_digest c =
   |> String.concat "\n"
   |> digest_string
 
+(* The declared environment is a prefix of the check and of the control, so it
+   belongs to the digest of the check. *)
 let verifier_digest c =
   let commands = List.concat_map verifier_commands c.requirements in
-  String.concat "\n" (commands @ Option.to_list c.control) |> digest_string
+  let environment = match c.environment with None -> [] | Some value -> [ "environment=" ^ value ] in
+  String.concat "\n" (environment @ commands @ Option.to_list c.control) |> digest_string

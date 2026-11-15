@@ -48,13 +48,16 @@
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
             export OCAMLPATH="${ocamlPath}"
-            echo "math-coding 5 dev shell"
-            echo "  dune:   $(which dune)"
-            echo "  ocaml:  $(ocaml --version)"
-            echo ""
-            echo "  build:  dune build --root ."
-            echo "  test:   dune runtest --root . --force"
-            echo "  method: dune exec --root . ./bin/mathc.exe -- map"
+            # The notice goes to stderr: `nix develop -c mathc map --json` must
+            # produce nothing but the map on stdout, and the banner is the
+            # shell's chatter, not the method's answer.
+            echo "math-coding 5 dev shell" >&2
+            echo "  dune:   $(which dune)" >&2
+            echo "  ocaml:  $(ocaml --version)" >&2
+            echo "" >&2
+            echo "  build:  dune build --root ." >&2
+            echo "  test:   dune runtest --root . --force" >&2
+            echo "  method: dune exec --root . ./bin/mathc.exe -- map" >&2
           '';
         };
 

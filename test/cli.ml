@@ -23,6 +23,16 @@ let text_field name item =
 let bool_field name item =
   match field name item with Some (`Bool value) -> value | _ -> false
 
+(* The journal of evidence is a JSONL file: every record is one line. *)
+let trail_records root =
+  let path = Filename.concat root ".math/v5/evidence.jsonl" in
+  if not (Sys.file_exists path) then []
+  else String.split_on_char '\n' (Io.read_file path) |> List.filter (fun line -> line <> "")
+
+let state_of_map map id =
+  List.map (fun item -> (text_field "id" item, text_field "state" item)) (states_of map)
+  |> List.assoc id
+
 let add_and_run root =
   expect root "goal \"the subject is expected\" subject.txt owner" 0;
   write root "subject.txt" "expected\n";
@@ -450,3 +460,130 @@ let () =
       check "without the environment the control cannot reach the subject"
         (state_of "control-side" = "inconclusive");
       print_endline "declared-environment: PASS")
+
+(* A claim may declare its own environment. It covers the check and its
+   negative control, and a claim without one inherits the environment of the
+   specification. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the checks run inside their declared environment\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let own = { claim with
+        id = "own";
+        requirements = [ Verifier "test \"$MATHC_TEST_ENV\" = inside && grep -q expected subject.txt" ];
+        control = Some "test \"$MATHC_TEST_ENV\" = inside && printf broken > subject.txt";
+        environment = Some "env MATHC_TEST_ENV=inside" } in
+      let inherited = { claim with
+        id = "inherited";
+        requirements = [ Verifier "test \"$MATHC_TEST_ENV\" = outside && grep -q expected subject.txt" ];
+        control = Some "test \"$MATHC_TEST_ENV\" = outside && printf broken > subject.txt" } in
+      let goal = Some { text = "the checks run inside their declared environment";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
+      let spec = { goal; claims = [ own; inherited ]; environment = Some "env MATHC_TEST_ENV=outside" } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      expect root "run" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "a claim runs inside its own environment" (state_of_map map "own" = "holds");
+      check "a claim without an environment inherits the one of the specification"
+        (state_of_map map "inherited" = "holds");
+      (* The environment of a claim is applied, not ignored: a wrong one fails the
+         check and its control. *)
+      let wrong = { own with environment = Some "env MATHC_TEST_ENV=wrong" } in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json { spec with claims = [ wrong; inherited ] }));
+      expect root "run" 1;
+      let wrong_map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "a claim with a wrong environment is refuted" (state_of_map wrong_map "own" = "refuted");
+      check "the other claim keeps its own environment" (state_of_map wrong_map "inherited" = "holds");
+      (* A garbage environment of a claim is refused before anything is run. *)
+      let garbage =
+        `Assoc [ "schema_version", `Int 5; "goal", `Null; "environment", `Null;
+                 "claims", `List [ `Assoc [ "id", `String "own"; "text", `String "text"; "scope", `List [];
+                                           "requirements", `List []; "falsifier", `String "x";
+                                           "register", `String "fact"; "environment", `String "" ] ] ] in
+      write root "spec.json" (Yojson.Safe.pretty_to_string garbage);
+      let refused = run root "map" in
+      check "an empty environment of a claim is refused"
+        (refused.code = 3 && contains refused.stderr "claim.environment");
+      print_endline "claim-environment: PASS")
+
+(* The journal receives every observation as soon as it is made. The second
+   claim reads the journal of the first one while the run is still working. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the journal grows while the run works\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let first = { claim with id = "first";
+                    requirements = [ Verifier "grep -q expected subject.txt" ];
+                    control = Some "printf broken > subject.txt" } in
+      let second = { claim with id = "second";
+                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v5/evidence.jsonl && grep -q expected subject.txt" ];
+                     control = Some "printf broken > subject.txt" } in
+      let goal = Some { text = "the journal grows while the run works";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ first; second ]; environment = None }));
+      expect root "run" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "the first claim is proven" (state_of_map map "first" = "holds");
+      check "the second claim sees the journal of the first one" (state_of_map map "second" = "holds");
+      check "the journal holds one record per claim"
+        (List.length (trail_records root) = 2);
+      print_endline "journal-grows: PASS")
+
+(* A repeated run does not make the journal ambiguous: the last observation of
+   a claim and requirement is the one that counts. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the last observation counts\" subject.txt owner" 0;
+      write root "subject.txt" "broken\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 1;
+      check "the first observation refutes the claim"
+        (state_of_map (Yojson.Safe.from_string (run root "map --json").stdout) "sample" = "refuted");
+      write root "subject.txt" "expected\n";
+      expect root "run" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "the last observation decides the state" (state_of_map map "sample" = "holds");
+      check "the journal keeps both observations and no duplicates"
+        (List.length (trail_records root) = 2);
+      print_endline "journal-last-observation: PASS")
+
+(* An interrupted run keeps everything it has already proven. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"an interrupted run keeps its evidence\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      let first = { claim with id = "first";
+                    requirements = [ Verifier "grep -q expected subject.txt" ];
+                    control = Some "printf broken > subject.txt" } in
+      let second = { claim with id = "second";
+                     requirements = [ Verifier "sleep 30" ]; control = None } in
+      let goal = Some { text = "an interrupted run keeps its evidence";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ first; second ]; environment = None }));
+      let silent = Unix.openfile "/dev/null" [ Unix.O_WRONLY ] 0o666 in
+      let pid = Unix.create_process (binary ()) [| binary (); "--root"; root; "run" |]
+          Unix.stdin silent silent in
+      Unix.close silent;
+      let recorded line = List.exists (fun record -> contains record line) (trail_records root) in
+      let deadline = Unix.gettimeofday () +. 60.0 in
+      while not (recorded "\"claim_id\":\"first\"") && Unix.gettimeofday () < deadline do
+        Unix.sleepf 0.1
+      done;
+      check "the finished claim is in the journal before the run ends" (recorded "\"claim_id\":\"first\"");
+      Unix.kill pid Sys.sigterm;
+      ignore (Unix.waitpid [] pid);
+      check "the interrupted run keeps the observation of the finished claim"
+        (recorded "\"claim_id\":\"first\"");
+      check "the interrupted run leaves no record of the unfinished claim"
+        (not (recorded "\"claim_id\":\"second\""));
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "the map shows the finished claim as holds" (state_of_map map "first" = "holds");
+      check "the map shows the unfinished claim as never checked"
+        (state_of_map map "second" = "never-checked");
+      print_endline "interrupted-run: PASS")

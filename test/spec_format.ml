@@ -106,4 +106,54 @@ let () =
   (match Spec.parse_string (Yojson.Safe.pretty_to_string (Spec.to_json spec)) with
    | Ok parsed -> check "a specification without an environment keeps it absent" (parsed.environment = None)
    | Error error -> failwith error);
+  (* A claim may declare its own environment. The rule is the rule of the
+     specification: a non-empty single line of at most 512 characters. *)
+  let claim_with_environment value =
+    `Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+             "requirements", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ];
+             "falsifier", `String "x"; "register", `String "fact"; "environment", value ]
+  in
+  (match Spec.claim_of_json (claim_with_environment (`String "nix develop -c")) with
+   | Ok parsed -> check "a claim may declare its own environment" (parsed.environment = Some "nix develop -c")
+   | Error error -> failwith error);
+  (match Spec.claim_of_json (claim_with_environment (`Null)) with
+   | Ok parsed -> check "a claim without a declared environment keeps it absent" (parsed.environment = None)
+   | Error error -> failwith error);
+  (match Spec.claim_of_json
+     (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+               "requirements", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ];
+               "falsifier", `String "x"; "register", `String "fact" ]) with
+   | Ok parsed -> check "a claim without the field is still accepted" (parsed.environment = None)
+   | Error error -> failwith error);
+  expect_error "an empty claim environment is rejected" (Spec.claim_of_json (claim_with_environment (`String "")));
+  expect_error "a line break in the claim environment is rejected"
+    (Spec.claim_of_json (claim_with_environment (`String "nix develop\nc")));
+  expect_error "a carriage return in the claim environment is rejected"
+    (Spec.claim_of_json (claim_with_environment (`String "nix develop\rc")));
+  expect_error "a claim environment that is not a string is rejected"
+    (Spec.claim_of_json (claim_with_environment (`Int 5)));
+  expect_error "a claim environment that is a list is rejected"
+    (Spec.claim_of_json (claim_with_environment (`List [])));
+  expect_error "an overlong claim environment is rejected"
+    (Spec.claim_of_json (claim_with_environment (`String (String.make 513 'x'))));
+  (match Spec.claim_of_json (claim_with_environment (`String (String.make 512 'x'))) with
+   | Ok parsed -> check "a claim environment of the allowed length is accepted" (parsed.environment <> None)
+   | Error error -> failwith error);
+  (* A claim without the field stays absent in the written specification, so an
+     existing specification is not broken by the new field. *)
+  check "a claim without an environment does not add the field"
+    (match Spec.claim_to_json claim with
+     | `Assoc fields -> not (List.mem_assoc "environment" fields)
+     | _ -> false);
+  let own = { claim with environment = Some "nix develop -c" } in
+  (match Spec.parse_string (Yojson.Safe.pretty_to_string (Spec.to_json { spec with claims = [ own ] })) with
+   | Ok parsed ->
+       check "the environment of a claim survives the codec"
+         (List.length parsed.claims = 1 && (List.hd parsed.claims).environment = Some "nix develop -c")
+   | Error error -> failwith error);
+  (match Spec.parse_string (Yojson.Safe.pretty_to_string (Spec.to_json { spec with claims = [ claim ] })) with
+   | Ok parsed ->
+       check "a claim without an environment keeps it absent after the codec"
+         (List.length parsed.claims = 1 && (List.hd parsed.claims).environment = None)
+   | Error error -> failwith error);
   print_endline "spec-format: PASS"

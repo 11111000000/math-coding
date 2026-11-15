@@ -128,9 +128,36 @@ let waiver_of_json json =
   Ok { gap; scope; issuer; issued_at; expires_at; reason;
        compensating_controls; recovery; review_on }
 
+(* The declared environment is a prefix for the whole command: the command runs
+   as <environment> sh -c <command>. It is optional and additive - without it
+   the checks run exactly as they are declared. The claim and the specification
+   share the rule: a non-empty single line of at most 512 characters. *)
+let max_environment_length = 512
+
+let environment_to_json environment =
+  match environment with None -> [] | Some value -> [ "environment", `String value ]
+
+let environment_value label = function
+  | `String value ->
+      if value = "" then Error (label ^ " must not be empty")
+      else if String.contains value '\n' || String.contains value '\r' then
+        Error (label ^ " must not contain a line break")
+      else if String.length value > max_environment_length then
+        Error (Printf.sprintf "%s must be at most %d characters" label max_environment_length)
+      else Ok value
+  | _ -> Error (label ^ " must be a string")
+
+let environment_of_json label pairs =
+  match List.assoc_opt "environment" pairs with
+  | None | Some `Null -> Ok None
+  | Some value -> (
+      match environment_value label value with
+      | Ok text -> Ok (Some text)
+      | Error error -> Error error)
+
 let claim_to_json claim =
   `Assoc
-    [ "id", json_string claim.id;
+    ([ "id", json_string claim.id;
       "text", json_string claim.text;
       "scope", json_strings claim.scope;
       "source", (match claim.source with None -> `Null | Some source -> source_to_json source);
@@ -143,10 +170,12 @@ let claim_to_json claim =
       "register", json_string (register_to_string claim.register);
       "control", json_string_opt claim.control;
       "waiver", (match claim.waiver with None -> `Null | Some waiver -> waiver_to_json waiver) ]
+     @ environment_to_json claim.environment)
 
 let claim_of_json json =
   let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "kind"; "phase"; "owner";
-                                 "review_on"; "requirements"; "falsifier"; "register"; "control"; "waiver" ] json in
+                                 "review_on"; "requirements"; "falsifier"; "register"; "control";
+                                 "waiver"; "environment" ] json in
   let* id = string "id" pairs in
   let* text = string "text" pairs in
   let* scope = string_list "scope" pairs in
@@ -200,8 +229,9 @@ let claim_of_json json =
   in
   let* owner = string_opt "owner" pairs in
   let* control = string_opt "control" pairs in
+  let* environment = environment_of_json "claim.environment" pairs in
   Ok { id; text; scope; source; kind; phase; owner;
-       review_on; requirements; falsifier; register; control; waiver }
+       review_on; requirements; falsifier; register; control; waiver; environment }
 
 let goal_to_json goal =
   `Assoc [ "text", json_string goal.text;
@@ -209,26 +239,6 @@ let goal_to_json goal =
           "by", json_string goal.by;
           "at", `Int goal.at;
           "reason", json_string_opt goal.reason ]
-
-(* The declared environment is a prefix for the whole command: the command runs
-   as <environment> sh -c <command>. It is optional and additive - without it
-   the checks run exactly as they are declared. *)
-let max_environment_length = 512
-
-let environment_to_json environment =
-  match environment with None -> [] | Some value -> [ "environment", `String value ]
-
-let environment_of_json pairs =
-  match List.assoc_opt "environment" pairs with
-  | None | Some `Null -> Ok None
-  | Some (`String value) ->
-      if value = "" then Error "environment must not be empty"
-      else if String.contains value '\n' || String.contains value '\r' then
-        Error "environment must not contain a line break"
-      else if String.length value > max_environment_length then
-        Error (Printf.sprintf "environment must be at most %d characters" max_environment_length)
-      else Ok (Some value)
-  | Some _ -> Error "environment must be a string"
 
 let goal_of_json json =
   let* pairs = object_ "goal" [ "text"; "scope"; "by"; "at"; "reason" ] json in
@@ -264,7 +274,7 @@ let parse_string text =
         | Some `Null | None -> Ok None
         | Some json -> (match goal_of_json json with Ok goal -> Ok (Some goal) | Error error -> Error error)
       in
-      let* environment = environment_of_json pairs in
+      let* environment = environment_of_json "environment" pairs in
       let* claims =
         match List.assoc_opt "claims" pairs with
         | Some (`List items) -> collect claim_of_json items
