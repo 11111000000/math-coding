@@ -27,6 +27,11 @@
  (deps %{exe:../bin/mathc.exe}))
 
 (test
+ (name process)
+ (modules process)
+ (libraries mathc_test_helpers mathcoding_adapter))
+
+(test
  (name mcp)
  (modules mcp)
  (libraries mathc_test_helpers mathcoding_adapter)

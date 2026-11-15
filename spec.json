@@ -341,28 +341,47 @@
       "control": "printf \"\\nimport { Icon } from \\\"@getpaseo/plugin/client/ui\\\";\\n\" >> plugin/math-coding-console/client/parts.tsx",
       "waiver": null
     },
-{
+    {
       "id": "shell-output",
       "text": "the development shell keeps stdout free of prose, so the machine interface stays machine readable",
-      "scope": [
-            "test/shell_output.ml",
-            "flake.nix"
-      ],
+      "scope": [ "test/shell_output.ml", "flake.nix" ],
+      "source": null,
       "kind": "acceptance",
       "phase": "pre-merge",
       "owner": "owner",
       "review_on": [],
       "requirements": [
-            {
-                  "kind": "verifier",
-                  "spec": "dune runtest --root . --force test/shell_output.exe"
-            }
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/shell_output.exe"
+        }
       ],
       "falsifier": "the notice of the development shell reaches stdout, or the map stops being the only thing on stdout",
       "register": "fact",
       "control": "sed -i 's/ >&2//' flake.nix",
       "waiver": null,
       "environment": "nix develop -c"
-}
+    },
+    {
+      "id": "process-latency",
+      "text": "the runner notices a finished child at once and never adds a delay of its own",
+      "scope": [ "adapter/process.ml", "test/process.ml" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/process.exe"
+        }
+      ],
+      "falsifier": "a child that ends at once is noticed late, or a child that runs long is not waited for",
+      "register": "fact",
+      "control": "sed -i 's/let pause = ref 0.002/let pause = ref 0.05/' adapter/process.ml",
+      "waiver": null,
+      "environment": "nix develop -c"
+    }
   ]
 }

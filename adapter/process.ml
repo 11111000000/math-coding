@@ -49,6 +49,10 @@ let run ?(timeout = 30.0) ~root command =
       Unix.close stdout_fd;
       Unix.close stderr_fd;
       let started = Unix.gettimeofday () in
+      (* The wait starts short and grows to the old pace: a child that is done
+         at once is noticed at once, and a child that runs long is still polled
+         rarely. The timeout is unchanged. *)
+      let pause = ref 0.002 in
       let rec wait () =
         match Unix.waitpid [ Unix.WNOHANG ] pid with
         | 0, _ ->
@@ -56,7 +60,8 @@ let run ?(timeout = 30.0) ~root command =
               Unix.kill (-pid) 9;
               snd (Unix.waitpid [] pid))
             else (
-              Unix.sleepf 0.05;
+              Unix.sleepf !pause;
+              pause := min 0.05 (!pause *. 2.0);
               wait ())
         | _, status -> status
       in
