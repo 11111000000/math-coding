@@ -16,7 +16,7 @@ run_control() {
   target=$4
   cp "$TMP/$file" "$TMP/$file.original"
   sed -i "$expression" "$TMP/$file"
-  if (cd "$TMP" && npx tsx --test "$target" >/dev/null 2>&1); then
+  if (cd "$TMP" && ./node_modules/.bin/tsx --test "$target" >/dev/null 2>&1); then
     echo "negative-control: FAIL $name (the broken copy still passed)" >&2
     mv "$TMP/$file.original" "$TMP/$file"
     exit 1
