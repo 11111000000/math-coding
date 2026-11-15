@@ -1,12 +1,12 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import { Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
+import type { SnapshotReady } from "../shared/schemas";
 import type { AttentionModel } from "./attention";
 import { Badge, Body, Button, Card, Mono } from "./parts";
 import { verdictColor } from "./vocabulary";
 
 export function InstrumentFrame({ theme, compact, snapshot, attention, onRefresh, refreshing, onRun, running, runEnabled }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   attention: AttentionModel;

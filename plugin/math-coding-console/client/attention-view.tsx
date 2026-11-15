@@ -1,28 +1,33 @@
-import type { PluginTheme } from "@getpaseo/plugin";
-import { copyText, useToast } from "@getpaseo/plugin/client/ui";
 import { Text, View } from "react-native";
+import type { ConsoleTheme } from "../shared/theme";
 import {
   attentionBrief,
   type AgentAttentionItem,
+  type AttentionBriefContext,
   type AttentionModel,
   type HumanAttentionItem,
 } from "./attention";
 import type { GraphSelection } from "./graph";
+import { useHost } from "./host/context";
 import { Badge, Body, Button, Card, Empty, Mono } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
 
-export function AttentionView({ theme, compact, model, onSelect, onRun, runEnabled }: {
-  theme: PluginTheme;
+export interface AttentionViewProps {
+  theme: ConsoleTheme;
   compact: boolean;
   model: AttentionModel;
+  context: AttentionBriefContext;
   onSelect: (selection: GraphSelection) => void;
   onRun: () => void;
   runEnabled: boolean;
-}) {
-  const toast = useToast();
+}
+
+export function AttentionView({ theme, compact, model, context, onSelect, onRun, runEnabled }: AttentionViewProps) {
+  const host = useHost();
+  const toast = host.useToast();
   const copy = async (item: HumanAttentionItem | AgentAttentionItem, label: string) => {
     try {
-      await copyText(attentionBrief(item));
+      await host.copyText(attentionBrief(item, context));
       toast.show(`${label} copied for an agent`);
     } catch {
       toast.error("The brief could not be copied");
@@ -94,7 +99,7 @@ export function AttentionView({ theme, compact, model, onSelect, onRun, runEnabl
 }
 
 function HumanCard({ theme, compact, item, onSelect, onCopy }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   item: HumanAttentionItem;
   onSelect: (selection: GraphSelection) => void;
@@ -121,7 +126,7 @@ function HumanCard({ theme, compact, item, onSelect, onCopy }: {
 }
 
 function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   item: AgentAttentionItem;
   onCopy: () => void;
@@ -150,7 +155,7 @@ function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
 }
 
 function DecisionText({ theme, label, emphasis = false, children }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   emphasis?: boolean;
   children: string;

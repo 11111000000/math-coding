@@ -1,9 +1,9 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import type { ClaimState, EvidenceOutcome, Verdict } from "../shared/domain";
 
 export type Tone = "neutral" | "good" | "warn" | "bad" | "info";
 
-export function toneColor(theme: PluginTheme, tone: Tone): string {
+export function toneColor(theme: ConsoleTheme, tone: Tone): string {
   switch (tone) {
     case "good": return theme.colors.statusSuccess;
     case "warn": return theme.colors.statusWarning;
@@ -13,14 +13,14 @@ export function toneColor(theme: PluginTheme, tone: Tone): string {
   }
 }
 
-export function verdictColor(theme: PluginTheme, verdict: Verdict): string {
+export function verdictColor(theme: ConsoleTheme, verdict: Verdict): string {
   if (verdict === "green") return theme.colors.statusSuccess;
   if (verdict === "red") return theme.colors.statusDanger;
   if (verdict === "unknown") return theme.colors.statusWarning;
   return theme.colors.foregroundMuted;
 }
 
-export function claimStateColor(theme: PluginTheme, state: ClaimState): string {
+export function claimStateColor(theme: ConsoleTheme, state: ClaimState): string {
   switch (state) {
     case "holds": return theme.colors.statusSuccess;
     case "refuted": return theme.colors.statusDanger;
@@ -32,7 +32,7 @@ export function claimStateColor(theme: PluginTheme, state: ClaimState): string {
   }
 }
 
-export function outcomeColor(theme: PluginTheme, outcome: EvidenceOutcome): string {
+export function outcomeColor(theme: ConsoleTheme, outcome: EvidenceOutcome): string {
   switch (outcome) {
     case "pass": return theme.colors.statusSuccess;
     case "fail": return theme.colors.statusDanger;

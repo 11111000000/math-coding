@@ -1,39 +1,69 @@
 import assert from "node:assert/strict";
-import { createElement, type ComponentType, type ReactNode } from "react";
+import { createElement, type ReactNode } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import mock from "mock-require";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { buildAttentionModel } from "../client/attention";
+import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
+import type {
+  HostContextValue,
+  HostIconProps,
+  HostModalProps,
+  HostSettingsActionProps,
+  HostSettingsCardProps,
+  HostSettingsInputProps,
+  HostSettingsSectionProps,
+  HostSettingsSelectProps,
+  HostSettingsSwitchProps,
+  HostTextInputProps,
+} from "../client/host/contract";
+import { HostProvider } from "../client/host/context";
 import { theme, snapshot, claim } from "../test/fixtures";
 
 const React = createElement;
-const Icon = ({ name }: { name: string }) => React("span", { "data-icon": name });
-const Modal = ({ children, open }: { children: ReactNode; open: boolean }) => open ? children : null;
-Modal.Content = ({ children }: { children: ReactNode }) => children;
-const TextInput = ({ accessibilityLabel, placeholderTextColor: _color, ...props }: Record<string, unknown>) => React("input", { ...props, readOnly: true, "aria-label": accessibilityLabel });
-const PassThrough = ({ children }: { children?: ReactNode }) => React("div", null, children);
-const SettingsInput = ({ accessibilityLabel, initialValue }: { accessibilityLabel?: string; initialValue?: string }) => React("input", { readOnly: true, defaultValue: initialValue, "aria-label": accessibilityLabel });
-const SettingsSelect = ({ accessibilityLabel }: { accessibilityLabel?: string }) => React("select", { readOnly: true, "aria-label": accessibilityLabel });
-const SettingsAction = ({ actionLabel }: { actionLabel: string }) => React("button", { type: "button" }, actionLabel);
-const SettingsSwitch = ({ label, accessibilityLabel }: { label?: string; accessibilityLabel?: string }) => React("div", null, label, React("input", { type: "checkbox", readOnly: true, "aria-label": accessibilityLabel ?? label }));
 
-mock("react-native", "react-native-web");
-mock("@getpaseo/plugin/client/ui", {
+/**
+ * The host stub.
+ *
+ * The shared interface reaches the host through the contract only, so the
+ * check builds a stub implementation of that contract instead of replacing
+ * host modules.
+ */
+const Icon = ({ name }: HostIconProps) => React("span", { "data-icon": name });
+const Modal = Object.assign(
+  // The stub always renders the body, so the confirmation text is part of the checked markup.
+  ({ children }: HostModalProps) => children,
+  { Content: ({ children }: { children?: ReactNode }) => children },
+);
+const TextInput = (props: HostTextInputProps) => React("input", {
+  readOnly: true,
+  defaultValue: props.value,
+  "aria-label": props.accessibilityLabel ?? props.placeholder,
+});
+const SettingsSection = ({ children }: HostSettingsSectionProps) => React("div", null, children);
+const SettingsCard = ({ children }: HostSettingsCardProps) => React("div", null, children);
+const SettingsInput = ({ label, initialValue }: HostSettingsInputProps) => React("input", {
+  readOnly: true,
+  defaultValue: initialValue,
+  "aria-label": label,
+});
+const SettingsSelect = ({ label }: HostSettingsSelectProps) => React("select", { readOnly: true, "aria-label": label });
+const SettingsAction = ({ actionLabel }: HostSettingsActionProps) => React("button", { type: "button" }, actionLabel);
+const SettingsSwitch = ({ label, value }: HostSettingsSwitchProps) => React("div", null, label, React("input", { type: "checkbox", readOnly: true, checked: value }));
+
+const host: HostContextValue = {
   Icon,
   Modal,
   TextInput,
-  copyText: async () => undefined,
-  useToast: () => ({ show: () => undefined, error: () => undefined }),
-  SettingsSection: PassThrough,
-  SettingsCard: PassThrough,
+  SettingsSection,
+  SettingsCard,
   SettingsInput,
   SettingsSelect,
   SettingsAction,
   SettingsSwitch,
-});
-mock("@getpaseo/plugin/client", {
-  useRpc: () => async () => snapshot(),
-  useSettings: () => ({
+  copyText: async () => undefined,
+  useToast: () => ({ show: () => undefined, error: () => undefined }),
+  useRpc: ((contract: never) => async () => snapshot()) as unknown as HostContextValue["useRpc"],
+  useSettings: ((definition: never) => ({
     status: "ready",
     values: { binaryPath: "", allowRunChecks: false, autoRefreshSeconds: 30 },
     revision: "revision",
@@ -42,8 +72,10 @@ mock("@getpaseo/plugin/client", {
     save: async () => true,
     reset: async () => true,
     reload: async () => undefined,
-  }),
-});
+  })) as unknown as HostContextValue["useSettings"],
+};
+
+mock("react-native", "react-native-web");
 
 async function main() {
   const [
@@ -98,16 +130,18 @@ async function main() {
   humanData.map.verdict = "red";
   humanData.map.exit = 1;
   humanData.map.next = "next: review the changed source for changed";
+  humanData.map.uncovered = ["src/uncovered.ts"];
   humanData.map.states = [
     { id: changed.id, state: "outdated", source_changed: true },
     { id: refuted.id, state: "refuted", source_changed: false },
     { id: waived.id, state: "waived", source_changed: false },
   ];
   const humanAttention = buildAttentionModel(humanData, 1_000);
+  const humanContext = attentionContext(humanData, humanAttention);
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   queryClient.setQueryData(["mathcoding-snapshot", "workspace-1"], attentionData);
   const render = (element: ReactNode) => renderToStaticMarkup(
-    React(QueryClientProvider, { client: queryClient }, element),
+    React(QueryClientProvider, { client: queryClient }, React(HostProvider, { value: host, children: element })),
   );
   const frameProps = {
     theme,
@@ -122,15 +156,15 @@ async function main() {
   };
   const views: [string, ReactNode][] = [
     ["instrument frame", React(InstrumentFrame, frameProps)],
-    ["attention human branch", React(AttentionView, { theme, compact: false, model: humanAttention, onSelect: () => undefined, onRun: () => undefined, runEnabled: true })],
+    ["attention human branch", React(AttentionView, { theme, compact: false, model: humanAttention, context: humanContext, onSelect: () => undefined, onRun: () => undefined, runEnabled: true })],
     ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["scope graph", React(GraphView, { theme, compact: true, snapshot: data, mode: "scope", expanded: new Set<string>(), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["claims", React(ClaimsView, { theme, compact: false, snapshot: data, onSelect: () => undefined })],
     ["coverage", React(CoverageView, { theme, compact: true, snapshot: data, onSelect: () => undefined, onOpenScope: () => undefined })],
     ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined })],
     ["evidence", React(EvidenceView, { theme, compact: false, snapshot: data })],
-    ["console panel", React(ConsolePanel as unknown as ComponentType<Record<string, unknown>>, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
-    ["settings screen", React(SettingsScreen as unknown as ComponentType<Record<string, unknown>>, { theme })],
+    ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
+    ["settings screen", React(SettingsScreen, { theme })],
   ];
   for (const [name, element] of views) {
     const markup = render(element);
@@ -148,9 +182,19 @@ async function main() {
       assert.ok(markup.includes("Nothing needs your decision now"));
       assert.ok(markup.includes("Refresh evidence for 15 claims"));
       assert.ok(markup.includes("Run checks are disabled"));
+      assert.ok(markup.includes("Scale: 15 claim(s) and 30 check command(s) will run"));
     }
     process.stdout.write(`ok: ${name} rendered ${markup.length} bytes\n`);
   }
+  const brief = attentionBrief(humanAttention.needsHuman[0]!, humanContext);
+  assert.ok(brief.includes("Goal: test the plugin"), "the brief carries the goal");
+  assert.ok(brief.includes("Canonical verdict: red"), "the brief carries the verdict");
+  assert.ok(brief.includes("Goal scope uncovered: 1 path(s)"), "the brief carries the uncovered count");
+  assert.ok(brief.includes("src/uncovered.ts"), "the brief carries the uncovered paths");
+  assert.ok(brief.includes("Accepted risks: 1"), "the brief carries the accepted risks");
+  assert.ok(brief.includes("Canonical next action: next: review the changed source for changed"), "the brief carries the canonical next action");
+  assert.ok(brief.includes("Human decision (the agent must not make it)"), "the brief keeps the human boundary");
+  process.stdout.write(`ok: attention brief carries goal, verdict, coverage, risks and next action (${brief.length} bytes)\n`);
   const light = { ...theme, colors: { ...theme.colors, surface0: "#ffffff", surface1: "#f7f7f7", surface2: "#eeeeee", border: "#cccccc", foreground: "#111111", foregroundMuted: "#555555" } };
   const lightMarkup = render(React(InstrumentFrame, { ...frameProps, theme: light, compact: true }));
   assert.ok(lightMarkup.includes("test the plugin"));

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <title>Math Coding console</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      html,
+      body,
+      #root {
+        height: 100%;
+      }
+
+      body {
+        margin: 0;
+        font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--mc-surface0, #ffffff);
+        color: var(--mc-foreground, #14181f);
+      }
+
+      #root {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+      }
+
+      .mc-modal-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 50;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(0, 0, 0, 0.45);
+      }
+
+      .mc-modal {
+        width: 100%;
+        max-width: 640px;
+        max-height: 80vh;
+        overflow: auto;
+        padding: 20px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 12px;
+        background: var(--mc-surface1, #f5f6f8);
+        color: var(--mc-foreground, #14181f);
+      }
+
+      .mc-modal-title {
+        margin-bottom: 12px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .mc-toasts {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 60;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        max-width: 360px;
+      }
+
+      .mc-toast {
+        padding: 10px 14px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 10px;
+        background: var(--mc-surface1, #f5f6f8);
+        font-size: 13px;
+      }
+
+      .mc-toast-success {
+        border-color: var(--mc-status-success, #1f7a45);
+        color: var(--mc-status-success, #1f7a45);
+      }
+
+      .mc-toast-error {
+        border-color: var(--mc-status-danger, #b3261e);
+        color: var(--mc-status-danger, #b3261e);
+      }
+
+      .mc-toast-warning {
+        border-color: var(--mc-status-warning, #9a6400);
+        color: var(--mc-status-warning, #9a6400);
+      }
+
+      .mc-settings-section {
+        margin: 16px 0;
+      }
+
+      .mc-settings-section-title {
+        margin: 0 0 8px;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--mc-foreground-muted, #5b6472);
+      }
+
+      .mc-settings-card {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 12px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 12px;
+        background: var(--mc-surface1, #f5f6f8);
+      }
+
+      .mc-settings-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .mc-settings-label {
+        font-size: 13px;
+        font-weight: 600;
+      }
+
+      .mc-settings-hint {
+        font-size: 12px;
+        color: var(--mc-foreground-muted, #5b6472);
+      }
+
+      .mc-settings-input,
+      .mc-settings-select {
+        padding: 7px 9px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 8px;
+        background: var(--mc-surface0, #ffffff);
+        color: var(--mc-foreground, #14181f);
+        font: inherit;
+      }
+
+      .mc-settings-action {
+        align-self: flex-start;
+        padding: 7px 12px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 8px;
+        background: var(--mc-surface2, #e9ecf1);
+        color: var(--mc-foreground, #14181f);
+        font: inherit;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

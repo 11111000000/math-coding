@@ -1,41 +1,45 @@
 import { isAbsolute, join } from "node:path";
-import type { PluginHandlerContext, PluginSettings } from "@getpaseo/plugin/server";
-import type { ClaimDetail, EvidencePage, Preferences, Snapshot, SnapshotReady } from "../shared/contracts";
-import { evidencePage, newestFirst } from "./evidence";
-import { pathExists } from "./files";
-import { loadProject, type ProjectSnapshot } from "./project";
+import type { ClaimDetail, EvidencePage, Preferences, Snapshot, SnapshotReady } from "../../shared/schemas";
+import { evidencePage, newestFirst } from "../evidence";
+import { pathExists } from "../files";
+import { loadProject, type ProjectSnapshot } from "../project";
 
-type Paseo = PluginHandlerContext["paseo"];
-type Settings = PluginSettings<typeof import("../shared/contracts").preferences.schema>;
-
-interface Workspace {
+export interface WorkspaceInfo {
   id: string;
   name: string | null;
   directory: string;
 }
 
-async function resolveWorkspace(paseo: Paseo, workspaceId: string): Promise<Workspace> {
-  const workspace = await paseo.workspaces.ref(workspaceId).refresh();
-  if (!workspace || !workspace.workspaceDirectory || !isAbsolute(workspace.workspaceDirectory)) {
-    throw new Error("The workspace is unavailable or has no absolute project directory");
-  }
-  return { id: workspace.id, name: workspace.name, directory: workspace.workspaceDirectory };
+export interface RuntimeSettings {
+  binary: string;
+  allowRunChecks: boolean;
 }
 
-async function preferenceValues(settings: Settings): Promise<Preferences> {
-  const state = await settings.read();
-  if (state.status !== "ready") throw new Error(`Math Coding settings are invalid: ${state.error}`);
-  return state.values;
+/**
+ * A host resolves a request to a concrete project on disk.
+ *
+ * Resolution is split in two on purpose. The workspace is resolved first, so
+ * an uninitialised project is reported as such without reading settings; the
+ * runtime settings are resolved afterwards, inside the operation, so an
+ * invalid binary override never hides the project state.
+ *
+ * The Paseo host resolves the workspace through the SDK, the browser host
+ * resolves the project it was started for. The operations below are identical
+ * for both.
+ */
+export interface OperationsHost {
+  resolveWorkspace(workspaceId: string): Promise<WorkspaceInfo>;
+  resolveRuntime(workspace: WorkspaceInfo): Promise<RuntimeSettings>;
 }
 
-function binaryFromPreferences(values: Preferences): string {
+export function binaryFromPreferences(values: Preferences): string {
   const configured = values.binaryPath.trim();
   if (configured === "") return "mathc";
   if (!isAbsolute(configured)) throw new Error("The mathc binary override must be an absolute path");
   return configured;
 }
 
-function readySnapshot(workspace: Workspace, project: ProjectSnapshot): SnapshotReady {
+function readySnapshot(workspace: WorkspaceInfo, project: ProjectSnapshot): SnapshotReady {
   return {
     status: "ready",
     workspace,
@@ -47,15 +51,13 @@ function readySnapshot(workspace: Workspace, project: ProjectSnapshot): Snapshot
   };
 }
 
-function page(records: import("../shared/domain").EvidenceRecord[], cursor: number | undefined, limit: number) {
+function page(records: import("../../shared/domain").EvidenceRecord[], cursor: number | undefined, limit: number) {
   return evidencePage(newestFirst(records), cursor, limit);
 }
 
-export class ProjectService {
+export class ConsoleOperations {
   private readonly tails = new Map<string, Promise<void>>();
   private readonly depths = new Map<string, number>();
-
-  constructor(private readonly settings: Settings) {}
 
   private async exclusive<T>(key: string, operation: () => Promise<T>): Promise<T> {
     const depth = this.depths.get(key) ?? 0;
@@ -75,26 +77,26 @@ export class ProjectService {
     }
   }
 
-  async snapshot(paseo: Paseo, workspaceId: string): Promise<Snapshot> {
-    const workspace = await resolveWorkspace(paseo, workspaceId);
+  async snapshot(host: OperationsHost, workspaceId: string): Promise<Snapshot> {
+    const workspace = await host.resolveWorkspace(workspaceId);
     return this.exclusive(workspace.directory, async () => {
       if (!(await pathExists(join(workspace.directory, "spec.json")))) {
         return { status: "not-initialized", workspace, generatedAt: new Date().toISOString() };
       }
-      const values = await preferenceValues(this.settings);
-      const project = await loadProject(workspace.directory, binaryFromPreferences(values));
+      const runtime = await host.resolveRuntime(workspace);
+      const project = await loadProject(workspace.directory, runtime.binary);
       return readySnapshot(workspace, project);
     });
   }
 
   async claimDetail(
-    paseo: Paseo,
+    host: OperationsHost,
     input: { workspaceId: string; claimId: string; cursor?: number; limit: number },
   ): Promise<ClaimDetail> {
-    const workspace = await resolveWorkspace(paseo, input.workspaceId);
+    const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
-      const values = await preferenceValues(this.settings);
-      const project = await loadProject(workspace.directory, binaryFromPreferences(values), "map", true);
+      const runtime = await host.resolveRuntime(workspace);
+      const project = await loadProject(workspace.directory, runtime.binary, "map", true);
       const claim = project.claims.find((item) => item.id === input.claimId);
       if (!claim) throw new Error(`Unknown claim: ${input.claimId}`);
       const records = (project.records ?? []).filter((record) => record.claim_id === input.claimId);
@@ -112,13 +114,13 @@ export class ProjectService {
   }
 
   async evidence(
-    paseo: Paseo,
+    host: OperationsHost,
     input: { workspaceId: string; cursor?: number; limit: number },
   ): Promise<EvidencePage> {
-    const workspace = await resolveWorkspace(paseo, input.workspaceId);
+    const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
-      const values = await preferenceValues(this.settings);
-      const project = await loadProject(workspace.directory, binaryFromPreferences(values), "map", true);
+      const runtime = await host.resolveRuntime(workspace);
+      const project = await loadProject(workspace.directory, runtime.binary, "map", true);
       const selected = page(project.records ?? [], input.cursor, input.limit);
       return {
         revision: project.revision,
@@ -132,17 +134,17 @@ export class ProjectService {
   }
 
   async run(
-    paseo: Paseo,
+    host: OperationsHost,
     input: { workspaceId: string; confirmation: "RUN_CHECKS" },
   ): Promise<{ snapshot: SnapshotReady; durationMs: number }> {
     if (input.confirmation !== "RUN_CHECKS") throw new Error("Run checks requires explicit confirmation");
-    const workspace = await resolveWorkspace(paseo, input.workspaceId);
+    const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
-      const values = await preferenceValues(this.settings);
-      if (!values.allowRunChecks) {
-        throw new Error("Run checks are disabled; enable them in the Math Coding plugin settings");
+      const runtime = await host.resolveRuntime(workspace);
+      if (!runtime.allowRunChecks) {
+        throw new Error("Run checks are disabled; enable them in Math Coding settings");
       }
-      const project = await loadProject(workspace.directory, binaryFromPreferences(values), "run");
+      const project = await loadProject(workspace.directory, runtime.binary, "run");
       return { snapshot: readySnapshot(workspace, project), durationMs: project.durationMs };
     });
   }

@@ -1,12 +1,12 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
+import type { SnapshotReady } from "../shared/schemas";
 import { Badge, Body, Button, Card, Empty, Mono, Note, SearchBox } from "./parts";
 import type { GraphSelection } from "./graph";
 
 export function CoverageView({ theme, compact, snapshot, onSelect, onOpenScope }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   onSelect: (selection: GraphSelection) => void;

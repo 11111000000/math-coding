@@ -1,19 +1,25 @@
-import type { PluginSurfaceProps } from "@getpaseo/plugin/client";
-import { useSettings } from "@getpaseo/plugin/client";
-import {
-  SettingsAction,
-  SettingsCard,
-  SettingsInput,
-  SettingsSection,
-  SettingsSelect,
-  SettingsSwitch,
-} from "@getpaseo/plugin/client/ui";
 import { useState } from "react";
 import { Text, View } from "react-native";
-import { preferences } from "../shared/contracts";
+import { preferencesDefinition, type Preferences } from "../shared/schemas";
+import type { ConsoleTheme } from "../shared/theme";
+import { useHost } from "./host/context";
+import type { HostSettingsState } from "./host/contract";
 
-export function SettingsScreen({ theme }: PluginSurfaceProps) {
-  const settings = useSettings(preferences);
+export interface SettingsScreenProps {
+  theme: ConsoleTheme;
+}
+
+export function SettingsScreen({ theme }: SettingsScreenProps) {
+  const {
+    SettingsAction,
+    SettingsCard,
+    SettingsInput,
+    SettingsSection,
+    SettingsSelect,
+    SettingsSwitch,
+    useSettings,
+  } = useHost();
+  const settings = useSettings(preferencesDefinition);
   return (
     <View style={{ gap: 14 }}>
       <SettingsSection title="Math Coding v5">
@@ -26,7 +32,7 @@ export function SettingsScreen({ theme }: PluginSurfaceProps) {
               <SettingsAction label="Invalid settings" actionLabel="Reset to defaults" onPress={() => void settings.reset()} />
             </>
           )}
-          {settings.status === "ready" && <ReadySettings theme={theme} settings={settings} />}
+          {isReady(settings) && <ReadySettings theme={theme} settings={settings} />}
         </SettingsCard>
       </SettingsSection>
       <Text style={{ color: theme.colors.foregroundMuted, fontSize: 12, lineHeight: 18, paddingHorizontal: 4 }}>
@@ -36,9 +42,28 @@ export function SettingsScreen({ theme }: PluginSurfaceProps) {
   );
 }
 
-type Ready = ReturnType<typeof useSettings<typeof preferences.schema>> & { status: "ready" };
+type Ready = {
+  status: "ready";
+  values: Preferences;
+  revision: string;
+  saving: boolean;
+  saveError: string | null;
+  save(values: Preferences, revision: string): Promise<boolean>;
+  reset(): Promise<boolean>;
+};
 
-function ReadySettings({ theme, settings }: { theme: PluginSurfaceProps["theme"]; settings: Ready }) {
+/**
+ * The ready branch of the host settings.
+ *
+ * The host contract marks the values and the revision as optional, so the
+ * screen only offers to save when the host actually delivered both.
+ */
+function isReady(settings: HostSettingsState<Preferences>): settings is HostSettingsState<Preferences> & Ready {
+  return settings.status === "ready" && settings.values !== undefined && settings.revision !== undefined;
+}
+
+function ReadySettings({ theme, settings }: { theme: ConsoleTheme; settings: Ready }) {
+  const { SettingsAction, SettingsInput, SettingsSelect, SettingsSwitch } = useHost();
   const [binaryPath, setBinaryPath] = useState(settings.values.binaryPath);
   const saveBinary = () => void settings.save({ ...settings.values, binaryPath: binaryPath.trim() }, settings.revision);
   const reset = () => void settings.reset().then((saved) => { if (saved) setBinaryPath(""); });

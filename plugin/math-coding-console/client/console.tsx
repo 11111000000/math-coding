@@ -1,11 +1,9 @@
-import type { PluginWorkspacePanelProps } from "@getpaseo/plugin/client";
-import { useRpc, useSettings } from "@getpaseo/plugin/client";
-import { Modal, useToast } from "@getpaseo/plugin/client/ui";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
-import { preferences, runChecksRpc, snapshotRpc, type SnapshotReady } from "../shared/contracts";
-import { buildAttentionModel } from "./attention";
+import { preferencesDefinition, rpcSchemas } from "../shared/schemas";
+import type { ConsoleTheme } from "../shared/theme";
+import { attentionContext, buildAttentionModel, snapshotSeconds } from "./attention";
 import { AttentionView } from "./attention-view";
 import { ClaimsView } from "./claims";
 import { CoverageView } from "./coverage";
@@ -13,7 +11,9 @@ import { ClaimDetailView } from "./detail";
 import { EvidenceView } from "./evidence";
 import { InstrumentFrame } from "./frame";
 import { GraphView, type GraphSelection } from "./graph";
+import { useHost } from "./host/context";
 import { Body, Button, Card, Empty, Mono, Note, Segmented } from "./parts";
+import { runScale } from "./run-scale";
 
 const VIEWS = [
   { value: "attention", label: "Attention", icon: "UserRoundCheck" },
@@ -27,24 +27,27 @@ const EXPLORE_VIEWS = [
   { value: "scope", label: "Scope", icon: "FolderTree" },
 ] as const;
 
-export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePanelProps) {
+export interface ConsolePanelProps {
+  theme: ConsoleTheme;
+  layout: { compact: boolean };
+  workspaceId: string;
+}
+
+export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) {
   const compact = layout.compact;
+  const { Modal, useRpc, useSettings, useToast } = useHost();
   const queryClient = useQueryClient();
   const toast = useToast();
-  const fetchSnapshot = useRpc(snapshotRpc);
-  const runChecks = useRpc(runChecksRpc);
-  const settings = useSettings(preferences);
+  const fetchSnapshot = useRpc(rpcSchemas.snapshot);
+  const runChecks = useRpc(rpcSchemas.run);
+  const settings = useSettings(preferencesDefinition);
   const [view, setView] = useState("attention");
   const [exploreView, setExploreView] = useState("claims");
   const [showScopeGraph, setShowScopeGraph] = useState(false);
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [selected, setSelected] = useState<GraphSelection | null>(null);
   const [confirmRun, setConfirmRun] = useState(false);
-  const [nowSeconds, setNowSeconds] = useState(() => Math.floor(Date.now() / 1000));
-  useEffect(() => {
-    const timer = setInterval(() => setNowSeconds(Math.floor(Date.now() / 1000)), 60_000);
-    return () => clearInterval(timer);
-  }, []);
+  const autoRefreshSeconds = settings.status === "ready" ? settings.values?.autoRefreshSeconds ?? 0 : 0;
   const run = useMutation({
     mutationFn: () => runChecks({ workspaceId, confirmation: "RUN_CHECKS" }),
     onSuccess: ({ snapshot }) => {
@@ -64,9 +67,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
     queryFn: () => fetchSnapshot({ workspaceId }),
     retry: false,
     refetchOnWindowFocus: true,
-    refetchInterval: !run.isPending && settings.status === "ready" && settings.values.autoRefreshSeconds > 0
-      ? settings.values.autoRefreshSeconds * 1000
-      : false,
+    refetchInterval: !run.isPending && autoRefreshSeconds > 0 ? autoRefreshSeconds * 1000 : false,
   });
   const refresh = () => {
     void queryClient.invalidateQueries({ queryKey: ["mathcoding-snapshot", workspaceId] });
@@ -82,8 +83,11 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
     });
   };
   const snapshot = snapshotQuery.data?.status === "ready" ? snapshotQuery.data : undefined;
-  const attention = useMemo(() => snapshot ? buildAttentionModel(snapshot, nowSeconds) : undefined, [snapshot, nowSeconds]);
-  const runEnabled = settings.status === "ready" ? settings.values.allowRunChecks : null;
+  const canonicalNow = snapshot ? snapshotSeconds(snapshot) : 0;
+  const attention = useMemo(() => snapshot ? buildAttentionModel(snapshot, canonicalNow) : undefined, [snapshot, canonicalNow]);
+  const briefContext = useMemo(() => snapshot && attention ? attentionContext(snapshot, attention) : undefined, [snapshot, attention]);
+  const scale = useMemo(() => snapshot ? runScale(snapshot) : undefined, [snapshot]);
+  const runEnabled = settings.status === "ready" ? settings.values?.allowRunChecks ?? null : null;
   const snapshotError = snapshotQuery.error ? String(snapshotQuery.error) : null;
   const workspaceBusy = snapshotError?.includes("busy") ?? false;
   return (
@@ -104,7 +108,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
             <Mono theme={theme}>mathc init</Mono>
           </Card>
         </View>
-      ) : snapshot && attention ? (
+      ) : snapshot && attention && briefContext ? (
         <View style={{ flex: 1, flexDirection: compact ? "column" : "row" }}>
           <View style={{ flex: 1 }}>
             <ScrollView nestedScrollEnabled contentContainerStyle={{ padding: compact ? 10 : 16, gap: 10 }}>
@@ -114,7 +118,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
               <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
               <Segmented theme={theme} options={VIEWS} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
               {view === "attention" && (
-                <AttentionView theme={theme} compact={compact} model={attention} onSelect={setSelected} onRun={() => setConfirmRun(true)} runEnabled={runEnabled === true} />
+                <AttentionView theme={theme} compact={compact} model={attention} context={briefContext} onSelect={setSelected} onRun={() => setConfirmRun(true)} runEnabled={runEnabled === true} />
               )}
               {view === "explore" && (
                 <>
@@ -145,6 +149,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: PluginWorkspacePane
         <Modal.Content>
           <View style={{ gap: 14 }}>
             <Body theme={theme}>This executes the verifier and negative-control commands declared by the project and appends evidence to .math/v5/. Controls use isolated copies; verifiers still execute project code.</Body>
+            <Body theme={theme} muted>Scale: {scale?.claimCount ?? 0} claim(s) and {scale?.commandCount ?? 0} check command(s) will run for this workspace.</Body>
             <Body theme={theme} muted>Refresh, graph navigation and automatic polling never perform this action. The server also requires Run checks to be enabled in plugin settings.</Body>
             {run.isError && <Note theme={theme} tone="bad">Run failed: {String(run.error)}</Note>}
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>

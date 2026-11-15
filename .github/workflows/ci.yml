@@ -42,6 +42,15 @@ jobs:
             npm run test:negative
             npm run audit:client
           '
+      - name: Verify the local Math Coding console page
+        run: |
+          nix develop -c bash -c '
+            cd console
+            npm ci --ignore-scripts
+            npm run typecheck
+            npm test
+            npm run build
+          '
       - name: Exercise installed project onboarding
         run: >-
           nix build .#default .#stand --no-link &&

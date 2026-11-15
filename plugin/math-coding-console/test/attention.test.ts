@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { attentionBrief, buildAttentionModel } from "../client/attention";
+import { attentionBrief, attentionContext, buildAttentionModel, snapshotSeconds } from "../client/attention";
 import type { Claim, ClaimState } from "../shared/domain";
 import { claim, snapshot } from "./fixtures";
 
@@ -255,8 +255,9 @@ test("a mixed machine and human claim exposes both halves without conflating the
 
 test("an agent brief preserves the human boundary and includes claim context", () => {
   const current = claim({ id: "changed", source: { kind: "madr", path: "docs/adr.md", section: null, digest: "a".repeat(64), review: null } });
-  const model = buildAttentionModel(stateSnapshot([current], [{ state: "outdated", sourceChanged: true }]), 1_000);
-  const brief = attentionBrief(model.needsHuman[0]!);
+  const data = stateSnapshot([current], [{ state: "outdated", sourceChanged: true }]);
+  const model = buildAttentionModel(data, 1_000);
+  const brief = attentionBrief(model.needsHuman[0]!, attentionContext(data, model));
   assert.match(brief, /Human decision \(the agent must not make it\)/);
   assert.match(brief, /Do not rewrite the source/);
   assert.match(brief, /Next safe step:\nPrepare the source diff/);
@@ -264,4 +265,54 @@ test("an agent brief preserves the human boundary and includes claim context", (
   assert.match(brief, /Claim context:/);
   assert.match(brief, /scope: scripts\/, test\//);
   assert.match(brief, /falsifier:/);
+});
+
+test("an agent brief carries the goal, the verdict, the coverage gap, the accepted risks and the canonical next action", () => {
+  const stale = claim({ id: "stale" });
+  const waived = claim({
+    id: "waived",
+    waiver: {
+      gap: "temporary platform limitation",
+      scope: ["src/"],
+      issuer: "owner",
+      issued_at: 900,
+      expires_at: 1_100,
+      reason: "migration is scheduled",
+      compensating_controls: [],
+      recovery: "finish the migration",
+      review_on: [],
+    },
+  });
+  const data = stateSnapshot([stale, waived], [{ state: "outdated" }, { state: "waived" }], ["src/uncovered.ts"]);
+  data.map.next = "next: refresh the outdated claim stale";
+  const model = buildAttentionModel(data, 1_000);
+  const brief = attentionBrief(model.agentCanAct[0]!, attentionContext(data, model));
+  assert.match(brief, /Goal: test the plugin/);
+  assert.match(brief, /Canonical verdict: unknown/);
+  assert.match(brief, /Goal scope uncovered: 1 path\(s\)/);
+  assert.match(brief, /src\/uncovered\.ts/);
+  assert.match(brief, /Accepted risks: 1/);
+  assert.match(brief, /Accepted risk for waived/);
+  assert.match(brief, /Canonical next action: next: refresh the outdated claim stale/);
+});
+
+test("the canonical time of the snapshot decides whether a waiver is still accepted", () => {
+  const data = snapshot([claim({ id: "waived" })]);
+  const issued = snapshotSeconds(data) - 60;
+  const expires = snapshotSeconds(data) + 60;
+  data.claims[0]!.waiver = {
+    gap: "temporary platform limitation",
+    scope: ["src/"],
+    issuer: "owner",
+    issued_at: issued,
+    expires_at: expires,
+    reason: "migration is scheduled",
+    compensating_controls: [],
+    recovery: "finish the migration",
+    review_on: [],
+  };
+  data.map.states = [{ id: "waived", state: "waived", source_changed: false }];
+  const model = buildAttentionModel(data);
+  assert.equal(model.acceptedRisks.length, 1);
+  assert.equal(model.needsHuman.length, 0);
 });

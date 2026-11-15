@@ -1,11 +1,11 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import { Text, View } from "react-native";
 import type { Claim, ClaimState } from "../shared/domain";
 import { flattenRequirements } from "../shared/requirements";
 import { Badge, Body, Card, Mono } from "./parts";
 
 export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   claim: Claim;
   state?: ClaimState;
@@ -61,7 +61,7 @@ export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }
 }
 
 function BoundaryRow({ theme, label, children }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   children: React.ReactNode;
 }) {

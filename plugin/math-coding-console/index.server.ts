@@ -6,13 +6,19 @@ import {
   runChecksRpc,
   snapshotRpc,
 } from "./shared/contracts";
-import { ProjectService } from "./server/service";
+import { ConsoleOperations } from "./server/core/operations";
+import { PaseoOperationsHost } from "./server/paseo/service";
 
 export default function contribute(server: PluginServerContext) {
-  const service = new ProjectService(server.registerSettings(preferences));
-  server.handle(snapshotRpc, ({ workspaceId }, { paseo }) => service.snapshot(paseo, workspaceId));
-  server.handle(claimDetailRpc, (input, { paseo }) => service.claimDetail(paseo, input));
-  server.handle(evidencePageRpc, (input, { paseo }) => service.evidence(paseo, input));
-  server.handle(runChecksRpc, (input, { paseo }) => service.run(paseo, input));
+  const settings = server.registerSettings(preferences);
+  const operations = new ConsoleOperations();
+  server.handle(snapshotRpc, async ({ workspaceId }, { paseo }) =>
+    operations.snapshot(new PaseoOperationsHost(paseo, settings), workspaceId));
+  server.handle(claimDetailRpc, async (input, { paseo }) =>
+    operations.claimDetail(new PaseoOperationsHost(paseo, settings), input));
+  server.handle(evidencePageRpc, async (input, { paseo }) =>
+    operations.evidence(new PaseoOperationsHost(paseo, settings), input));
+  server.handle(runChecksRpc, async (input, { paseo }) =>
+    operations.run(new PaseoOperationsHost(paseo, settings), input));
   return () => {};
 }

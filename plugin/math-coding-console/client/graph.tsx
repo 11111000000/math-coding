@@ -1,9 +1,8 @@
-import type { PluginTheme } from "@getpaseo/plugin";
-import { Icon } from "@getpaseo/plugin/client/ui";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
 import type { ClaimState } from "../shared/domain";
+import type { SnapshotReady } from "../shared/schemas";
+import type { ConsoleTheme } from "../shared/theme";
 import {
   buildProofGraph,
   buildScopeGraph,
@@ -11,6 +10,7 @@ import {
   type GraphNode,
   type PositionedNode,
 } from "./graph-layout";
+import { useHost } from "./host/context";
 import { Badge, Button, Card, Empty, Note, SearchBox } from "./parts";
 import { claimStateColor, claimStateIcon } from "./vocabulary";
 
@@ -19,7 +19,7 @@ export interface GraphSelection {
   requirementPath?: string;
 }
 
-function nodeColor(theme: PluginTheme, node: GraphNode): string {
+function nodeColor(theme: ConsoleTheme, node: GraphNode): string {
   if (node.state) return claimStateColor(theme, node.state);
   if (node.kind === "goal" || node.kind === "source") return theme.colors.accent;
   if (node.kind === "uncovered") return theme.colors.statusWarning;
@@ -39,12 +39,13 @@ function nodeIcon(node: GraphNode): string {
 }
 
 function NodeView({ theme, node, selected, faded, onSelect }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   node: PositionedNode;
   selected: boolean;
   faded: boolean;
   onSelect: () => void;
 }) {
+  const { Icon } = useHost();
   const color = nodeColor(theme, node);
   const state: ClaimState | undefined = node.state;
   return (
@@ -83,7 +84,7 @@ function NodeView({ theme, node, selected, faded, onSelect }: {
 }
 
 export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleClaim, selected, onSelect, onClose }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   mode: "proof" | "scope";

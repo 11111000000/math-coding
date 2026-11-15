@@ -1,4 +1,4 @@
-import type { SnapshotReady } from "../shared/contracts";
+import type { SnapshotReady } from "../shared/schemas";
 import type { ClaimState } from "../shared/domain";
 import { flattenRequirements, shortRequirement } from "../shared/requirements";
 

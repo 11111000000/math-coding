@@ -18,7 +18,11 @@ Selecting a claim opens its falsifier, negative control, requirement tree, waive
 
 ## Agent briefs
 
-A card can copy a structured brief to the local clipboard for an agent. The brief separates the human decision from the agent's permitted investigation and explicitly forbids weakening verifiers, impersonating a reviewer, or recording human decisions. It is not sent to a model provider and does not create an agent.
+A card can copy a structured brief to the local clipboard for an agent. The brief carries the project goal, the canonical verdict, the coverage gap, the accepted risks and the canonical next action, and it separates the human decision from the agent's permitted investigation. It explicitly forbids weakening verifiers, impersonating a reviewer, or recording human decisions. It is not sent to a model provider and does not create an agent.
+
+## The same console without Paseo
+
+The console is written once and hosted twice. The plugin and the local browser page share the interface, the data contracts and the project operations; only the host surface differs. The local page runs a loopback-only server for one fixed project directory, keeps its settings outside the project, and applies the same read-only boundary and the same confirmation before running checks.
 
 ## Setup and permissions
 

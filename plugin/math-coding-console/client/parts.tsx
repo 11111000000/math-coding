@@ -1,11 +1,11 @@
-import type { PluginTheme } from "@getpaseo/plugin";
-import { Icon, Modal, TextInput } from "@getpaseo/plugin/client/ui";
 import { useState, type ReactNode } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import type { ConsoleTheme } from "../shared/theme";
+import { useHost } from "./host/context";
 import { toneColor, type Tone } from "./vocabulary";
 
 export function Card({ theme, title, subtitle, right, children, compact = false }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   title?: string;
   subtitle?: string;
   right?: ReactNode;
@@ -36,12 +36,13 @@ export function Card({ theme, title, subtitle, right, children, compact = false 
 }
 
 export function Badge({ theme, label, tone = "neutral", icon, color }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   tone?: Tone;
   icon?: string;
   color?: string;
 }) {
+  const { Icon } = useHost();
   const value = color ?? toneColor(theme, tone);
   return (
     <View style={{
@@ -62,7 +63,7 @@ export function Badge({ theme, label, tone = "neutral", icon, color }: {
 }
 
 export function Button({ theme, label, onPress, icon, variant = "secondary", disabled = false, compact = false }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   onPress: () => void;
   icon?: string;
@@ -70,6 +71,7 @@ export function Button({ theme, label, onPress, icon, variant = "secondary", dis
   disabled?: boolean;
   compact?: boolean;
 }) {
+  const { Icon } = useHost();
   const background = variant === "primary" ? theme.colors.accent
     : variant === "danger" ? theme.colors.statusDanger : theme.colors.surface2;
   const foreground = variant === "secondary" ? theme.colors.foreground : theme.colors.accentForeground;
@@ -101,7 +103,7 @@ export function Button({ theme, label, onPress, icon, variant = "secondary", dis
 }
 
 export function Body({ theme, children, muted = false, lines }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   children: ReactNode;
   muted?: boolean;
   lines?: number;
@@ -113,7 +115,7 @@ export function Body({ theme, children, muted = false, lines }: {
   }}>{children}</Text>;
 }
 
-export function Mono({ theme, children, lines }: { theme: PluginTheme; children: ReactNode; lines?: number }) {
+export function Mono({ theme, children, lines }: { theme: ConsoleTheme; children: ReactNode; lines?: number }) {
   return <Text selectable numberOfLines={lines} style={{
     color: theme.colors.foregroundMuted,
     fontSize: 11,
@@ -123,7 +125,7 @@ export function Mono({ theme, children, lines }: { theme: PluginTheme; children:
 }
 
 export function KeyValue({ theme, label, value, color }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   value: string;
   color?: string;
@@ -137,7 +139,7 @@ export function KeyValue({ theme, label, value, color }: {
 }
 
 export function Note({ theme, children, tone = "neutral" }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   children: ReactNode;
   tone?: Tone;
 }) {
@@ -149,11 +151,12 @@ export function Note({ theme, children, tone = "neutral" }: {
 }
 
 export function Empty({ theme, title, detail, icon = "Inbox" }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   title: string;
   detail?: string;
   icon?: string;
 }) {
+  const { Icon } = useHost();
   return (
     <View style={{ alignItems: "center", justifyContent: "center", padding: 28, gap: 8 }}>
       <Icon name={icon} size={28} color={theme.colors.foregroundMuted} />
@@ -164,11 +167,12 @@ export function Empty({ theme, title, detail, icon = "Inbox" }: {
 }
 
 export function Segmented({ theme, options, value, onChange }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   options: readonly { value: string; label: string; icon?: string }[];
   value: string;
   onChange: (value: string) => void;
 }) {
+  const { Icon } = useHost();
   return (
     <View style={{
       flexDirection: "row",
@@ -210,11 +214,12 @@ export function Segmented({ theme, options, value, onChange }: {
 }
 
 export function SearchBox({ theme, value, onChange, placeholder = "Search claims" }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
 }) {
+  const { TextInput } = useHost();
   return (
     <TextInput
       accessibilityLabel={placeholder}
@@ -238,12 +243,13 @@ export function SearchBox({ theme, value, onChange, placeholder = "Search claims
 }
 
 export function Select({ theme, label, value, options, onChange }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   label: string;
   value: string;
   options: readonly string[];
   onChange: (value: string) => void;
 }) {
+  const { Icon, Modal } = useHost();
   const [open, setOpen] = useState(false);
   return (
     <>

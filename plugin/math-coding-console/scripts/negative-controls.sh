@@ -5,8 +5,8 @@ ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
-cp -R "$ROOT/shared" "$ROOT/server" "$ROOT/client" "$ROOT/test" "$TMP/"
-cp "$ROOT/package.json" "$ROOT/tsconfig.json" "$TMP/"
+cp -R "$ROOT/shared" "$ROOT/server" "$ROOT/client" "$ROOT/test" "$ROOT/scripts" "$TMP/"
+cp "$ROOT/package.json" "$ROOT/tsconfig.json" "$ROOT/index.client.tsx" "$TMP/"
 ln -s "$ROOT/node_modules" "$TMP/node_modules"
 
 run_control() {
@@ -57,14 +57,14 @@ run_control \
 
 run_control \
   "snapshot cannot execute project checks" \
-  "server/service.ts" \
-  's/loadProject(workspace.directory, binaryFromPreferences(values))/loadProject(workspace.directory, binaryFromPreferences(values), "run")/' \
+  "server/core/operations.ts" \
+  's|loadProject(workspace.directory, runtime.binary);|loadProject(workspace.directory, runtime.binary, "run");|' \
   "test/service.test.ts"
 
 run_control \
   "run checks cannot bypass the disabled setting" \
-  "server/service.ts" \
-  's/if (!values.allowRunChecks)/if (false)/' \
+  "server/core/operations.ts" \
+  's/if (!runtime.allowRunChecks)/if (false)/' \
   "test/service.test.ts"
 
 run_control \
@@ -102,5 +102,33 @@ run_control \
   "client/attention.ts" \
   's/machineRequirements(claim).length === 0/true/' \
   "test/attention.test.ts"
+
+# The client audit is a rule of the build, so it has to fail when the shared
+# interface names the host package directly.
+run_audit_control() {
+  name=$1
+  file=$2
+  expression=$3
+  cp "$TMP/$file" "$TMP/$file.original"
+  sed -i "$expression" "$TMP/$file"
+  if (cd "$TMP" && sh scripts/audit-client.sh >"$TMP/audit.out" 2>&1); then
+    echo "negative-control: FAIL $name (the client audit still passed)" >&2
+    mv "$TMP/$file.original" "$TMP/$file"
+    exit 1
+  fi
+  if ! grep -q "forbidden host import" "$TMP/audit.out"; then
+    echo "negative-control: FAIL $name (the client audit failed for another reason)" >&2
+    cat "$TMP/audit.out" >&2
+    mv "$TMP/$file.original" "$TMP/$file"
+    exit 1
+  fi
+  mv "$TMP/$file.original" "$TMP/$file"
+  echo "negative-control: ok $name"
+}
+
+run_audit_control \
+  "the shared interface cannot import the host package" \
+  "client/parts.tsx" \
+  's|^import { useState, type ReactNode } from "react";|import { Icon as HostIcon } from "@getpaseo/plugin/client/ui";\nimport { useState, type ReactNode } from "react";|'
 
 echo "negative-control: PASS"

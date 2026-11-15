@@ -1,6 +1,6 @@
-import type { SnapshotReady } from "../shared/contracts";
-import type { Claim, ClaimState, Requirement } from "../shared/domain";
+import type { Claim, ClaimState, Requirement, Verdict } from "../shared/domain";
 import { flattenRequirements, requirementLabel } from "../shared/requirements";
+import type { SnapshotReady } from "../shared/schemas";
 
 export type HumanAttentionKind =
   | "source-review"
@@ -71,6 +71,21 @@ export interface AttentionModel {
   agentClaimCount: number;
   agentOnlyClaimCount: number;
   agentTaskCount: number;
+}
+
+/**
+ * The canonical context an agent needs next to the local task.
+ *
+ * The brief is not only about one claim: it must carry the goal, the current
+ * verdict, the coverage gap, the accepted risks and the canonical next action,
+ * so the helper can act without reading the map again.
+ */
+export interface AttentionBriefContext {
+  goal: string | null;
+  verdict: Verdict;
+  uncovered: string[];
+  acceptedRisks: AcceptedRiskItem[];
+  next: string;
 }
 
 function reviewRequirements(claim: Claim): Array<Extract<Requirement, { kind: "review" }>> {
@@ -288,7 +303,17 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
   return result;
 }
 
-export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = Math.floor(Date.now() / 1000)): AttentionModel {
+/**
+ * The canonical time of a snapshot.
+ *
+ * The server stamps the snapshot; the client clock is not a source of truth.
+ * Waivers and their expiry are therefore compared against the snapshot time.
+ */
+export function snapshotSeconds(snapshot: SnapshotReady): number {
+  return Math.floor(new Date(snapshot.generatedAt).getTime() / 1000);
+}
+
+export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = snapshotSeconds(snapshot)): AttentionModel {
   const states = new Map(snapshot.map.states.map((state) => [state.id, state]));
   const needsHuman: HumanAttentionItem[] = [];
   const acceptedRisks: AcceptedRiskItem[] = [];
@@ -338,24 +363,49 @@ export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = Math.f
   };
 }
 
-export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem): string {
+/**
+ * The canonical context of a snapshot, ready to be pasted into a brief.
+ */
+export function attentionContext(snapshot: SnapshotReady, model: AttentionModel): AttentionBriefContext {
+  return {
+    goal: snapshot.map.goal?.text ?? null,
+    verdict: snapshot.map.verdict,
+    uncovered: snapshot.map.uncovered,
+    acceptedRisks: model.acceptedRisks,
+    next: snapshot.map.next,
+  };
+}
+
+export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, context: AttentionBriefContext): string {
   const human = "humanQuestion" in item;
   const lines = [
     "Math Coding attention brief",
     "",
+    `Goal: ${context.goal ?? "no goal declared"}`,
+    `Canonical verdict: ${context.verdict}`,
+    `Goal scope uncovered: ${context.uncovered.length} path(s)`,
+  ];
+  for (const path of context.uncovered) lines.push(`  - ${path}`);
+  lines.push(`Accepted risks: ${context.acceptedRisks.length}`);
+  for (const risk of context.acceptedRisks) {
+    lines.push(`  - ${risk.title}: ${risk.gap} (issuer ${risk.issuer}, expires ${new Date(risk.expiresAt * 1000).toISOString()})`);
+  }
+  lines.push(`Canonical next action: ${context.next}`);
+  lines.push(
+    "",
     `Title: ${item.title}`,
     `Claims: ${item.claimIds.length > 0 ? item.claimIds.join(", ") : "goal coverage"}`,
     `Canonical states: ${item.states.length > 0 ? item.states.join(", ") : "not claim-specific"}`,
-  ];
+  );
   if (item.sourcePaths.length > 0) lines.push(`Sources: ${item.sourcePaths.join(", ")}`);
-  if ("uncoveredPaths" in item && item.uncoveredPaths.length > 0) lines.push(`Uncovered paths: ${item.uncoveredPaths.join(", ")}`);
+  if ("uncoveredPaths" in item && item.uncoveredPaths.length > 0) lines.push(`Task uncovered paths: ${item.uncoveredPaths.join(", ")}`);
   if (item.claimContext.length > 0) {
     lines.push("", "Claim context:");
-    for (const context of item.claimContext) {
-      lines.push(`- ${context.id}: ${context.text}`);
-      lines.push(`  scope: ${context.scope.join(", ") || "none"}`);
-      lines.push(`  falsifier: ${context.falsifier || "not declared"}`);
-      lines.push(`  requirements: ${context.requirements.join(" | ") || "none"}`);
+    for (const entry of item.claimContext) {
+      lines.push(`- ${entry.id}: ${entry.text}`);
+      lines.push(`  scope: ${entry.scope.join(", ") || "none"}`);
+      lines.push(`  falsifier: ${entry.falsifier || "not declared"}`);
+      lines.push(`  requirements: ${entry.requirements.join(" | ") || "none"}`);
     }
   }
   lines.push("", "Why:", item.why);

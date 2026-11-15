@@ -11,4 +11,13 @@ if grep -R -n -E 'from "(react-native-svg|lucide-react-native)"|from '\''(react-
   exit 1
 fi
 
+# The shared interface reaches the host through the host contract only. The
+# Paseo adapter is the single module that may name the host packages.
+host_imports=$(grep -R -n -E '@getpaseo/plugin' client/ 2>/dev/null | grep -v '^client/host/paseo\.tsx:' || true)
+if [ -n "$host_imports" ]; then
+  echo "audit-client: forbidden host import in the shared interface" >&2
+  echo "$host_imports" >&2
+  exit 1
+fi
+
 echo "audit-client: PASS"

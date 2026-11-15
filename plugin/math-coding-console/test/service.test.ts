@@ -4,7 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
-import { ProjectService } from "../server/service";
+import { ConsoleOperations } from "../server/core/operations";
+import { PaseoOperationsHost } from "../server/paseo/service";
 import { claim, map } from "./fixtures";
 import type { MathMap } from "../shared/domain";
 
@@ -41,9 +42,25 @@ async function temp(t: TestContext): Promise<string> {
   return root;
 }
 
+/**
+ * The Paseo adapter resolves the project, the shared operations do the work.
+ * The browser host resolves the project the same way and calls the same
+ * operations, so these tests cover the shared behaviour.
+ */
+function consoleService(settingsValue: ReturnType<typeof settings>) {
+  const operations = new ConsoleOperations();
+  const host = (paseo: Paseo) => new PaseoOperationsHost(paseo, settingsValue as never);
+  return {
+    snapshot: async (paseo: Paseo, workspaceId: string) =>
+      operations.snapshot(host(paseo), workspaceId),
+    run: async (paseo: Paseo, input: { workspaceId: string; confirmation: "RUN_CHECKS" }) =>
+      operations.run(host(paseo), input),
+  };
+}
+
 test("an uninitialized workspace is not presented as a verdict", async (t) => {
   const root = await temp(t);
-  const service = new ProjectService(settings("relative/mathc") as never);
+  const service = consoleService(settings("relative/mathc") as never);
   const result = await service.snapshot(paseoFor(root), "workspace-1");
   assert.equal(result.status, "not-initialized");
   if (result.status === "not-initialized") assert.equal(result.workspace.directory, root);
@@ -51,20 +68,20 @@ test("an uninitialized workspace is not presented as a verdict", async (t) => {
 
 test("a missing workspace is an explicit error", async (t) => {
   const root = await temp(t);
-  const service = new ProjectService(settings() as never);
+  const service = consoleService(settings() as never);
   await assert.rejects(service.snapshot(paseoFor(null), "workspace-1"), /workspace is unavailable/);
 });
 
 test("a relative binary override is rejected before execution", async (t) => {
   const root = await temp(t);
   await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
-  const service = new ProjectService(settings("relative/mathc") as never);
+  const service = consoleService(settings("relative/mathc") as never);
   await assert.rejects(service.snapshot(paseoFor(root), "workspace-1"), /absolute path/);
 });
 
 test("run requires explicit confirmation", async (t) => {
   const root = await temp(t);
-  const service = new ProjectService(settings() as never);
+  const service = consoleService(settings() as never);
   await assert.rejects(
     service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "NOPE" as "RUN_CHECKS" }),
     /explicit confirmation/,
@@ -74,7 +91,7 @@ test("run requires explicit confirmation", async (t) => {
 test("run remains disabled until the host setting is enabled", async (t) => {
   const root = await temp(t);
   await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
-  const service = new ProjectService(settings("", false) as never);
+  const service = consoleService(settings("", false) as never);
   await assert.rejects(
     service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "RUN_CHECKS" }),
     /disabled/,
@@ -106,7 +123,7 @@ else {
   process.exit(1);
 }
 `, { mode: 0o755 });
-  const service = new ProjectService(settings(binary) as never);
+  const service = consoleService(settings(binary) as never);
   const snapshotPromise = service.snapshot(paseoFor(root), "workspace-1");
   await Promise.resolve();
   const runPromise = service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "RUN_CHECKS" });

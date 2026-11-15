@@ -1,21 +1,19 @@
-import type { PluginTheme } from "@getpaseo/plugin";
-import { useRpc } from "@getpaseo/plugin/client";
-import { Modal } from "@getpaseo/plugin/client/ui";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Pressable, ScrollView, Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
-import { claimDetailRpc } from "../shared/contracts";
 import type { Claim, ClaimState, EvidenceRecord } from "../shared/domain";
 import { flattenRequirements, requirementKey, requirementLabel } from "../shared/requirements";
+import { rpcSchemas, type SnapshotReady } from "../shared/schemas";
+import type { ConsoleTheme } from "../shared/theme";
 import { DecisionBoundary } from "./decision-boundary";
 import { EvidenceRecordCard } from "./evidence-record";
 import type { GraphSelection } from "./graph";
+import { useHost } from "./host/context";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
 
 export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   selection: GraphSelection;
@@ -23,6 +21,7 @@ export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, 
   onSelect: (selection: GraphSelection) => void;
   onRefresh: () => void;
 }) {
+  const { Modal } = useHost();
   const body = <DetailBody theme={theme} compact={compact} snapshot={snapshot} selection={selection} onClose={onClose} onSelect={onSelect} onRefresh={onRefresh} />;
   if (compact) {
     return (
@@ -39,7 +38,7 @@ export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, 
 }
 
 function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   selection: GraphSelection;
@@ -47,7 +46,8 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
   onSelect: (selection: GraphSelection) => void;
   onRefresh: () => void;
 }) {
-  const fetchDetail = useRpc(claimDetailRpc);
+  const { useRpc } = useHost();
+  const fetchDetail = useRpc(rpcSchemas.claim);
   const [expandedEvidence, setExpandedEvidence] = useState<number | null>(null);
   const query = useQuery({
     queryKey: ["mathcoding-claim", snapshot.workspace.id, snapshot.revision, snapshot.generatedAt, selection.claimId],
@@ -150,7 +150,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
 }
 
 function ProofChain({ theme, compact, claim, state, requirementPath, evidenceCount }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   claim: Claim;
   state?: ClaimState;
@@ -180,7 +180,7 @@ function ProofChain({ theme, compact, claim, state, requirementPath, evidenceCou
   );
 }
 
-function ClaimFacts({ theme, compact, claim }: { theme: PluginTheme; compact: boolean; claim: Claim }) {
+function ClaimFacts({ theme, compact, claim }: { theme: ConsoleTheme; compact: boolean; claim: Claim }) {
   return (
     <Card theme={theme} compact={compact} title="Claim definition">
       <KeyValue theme={theme} label="scope" value={claim.scope.length ? claim.scope.join(", ") : "empty"} />

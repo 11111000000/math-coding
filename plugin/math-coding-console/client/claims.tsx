@@ -1,7 +1,7 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import { useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
+import type { SnapshotReady } from "../shared/schemas";
 import { CLAIM_STATES, type Claim, type ClaimState } from "../shared/domain";
 import { Badge, Body, Card, Empty, FilterRow, Mono, SearchBox, Select } from "./parts";
 import type { GraphSelection } from "./graph";
@@ -12,7 +12,7 @@ function unique(values: string[]): string[] {
 }
 
 export function ClaimsView({ theme, compact, snapshot, onSelect }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
   onSelect: (selection: GraphSelection) => void;
@@ -95,7 +95,7 @@ export function ClaimsView({ theme, compact, snapshot, onSelect }: {
 }
 
 function ClaimCard({ theme, compact, claim, state, sourceChanged, onSelect }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   claim: Claim;
   state?: ClaimState;

@@ -1,21 +1,21 @@
-import type { PluginTheme } from "@getpaseo/plugin";
-import { useRpc } from "@getpaseo/plugin/client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import type { SnapshotReady } from "../shared/contracts";
 import { EVIDENCE_OUTCOMES, INDEPENDENCE_LEVELS, type EvidenceRecord } from "../shared/domain";
-import { evidencePageRpc } from "../shared/contracts";
+import { rpcSchemas, type SnapshotReady } from "../shared/schemas";
+import type { ConsoleTheme } from "../shared/theme";
 import { EvidenceRecordCard } from "./evidence-record";
+import { useHost } from "./host/context";
 import { Badge, Body, Button, Card, Empty, FilterRow, Note, Select } from "./parts";
 import { outcomeColor } from "./vocabulary";
 
 export function EvidenceView({ theme, compact, snapshot }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   compact: boolean;
   snapshot: SnapshotReady;
 }) {
-  const fetchPage = useRpc(evidencePageRpc);
+  const { useRpc } = useHost();
+  const fetchPage = useRpc(rpcSchemas.evidence);
   const [cursor, setCursor] = useState(0);
   const [outcome, setOutcome] = useState("all");
   const [claim, setClaim] = useState("all");

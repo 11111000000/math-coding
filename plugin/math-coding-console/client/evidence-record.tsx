@@ -1,4 +1,4 @@
-import type { PluginTheme } from "@getpaseo/plugin";
+import type { ConsoleTheme } from "../shared/theme";
 import { Pressable, Text, View } from "react-native";
 import type { ClaimState, EvidenceRecord } from "../shared/domain";
 import { requirementLabel } from "../shared/requirements";
@@ -6,7 +6,7 @@ import { Badge, KeyValue, Mono } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime, outcomeColor, outcomeIcon } from "./vocabulary";
 
 export function EvidenceRecordCard({ theme, record, claimState, latest = false, expanded, onToggle }: {
-  theme: PluginTheme;
+  theme: ConsoleTheme;
   record: EvidenceRecord;
   claimState?: ClaimState;
   latest?: boolean;

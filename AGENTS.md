@@ -36,6 +36,13 @@ dune runtest --root . --force
   `mathc map --json`. Команды проверки: `npm run typecheck`, `npm test`,
   `npm run test:render`, `npm run test:negative`, `npm run audit:client`.
   Подробности: `plugin/math-coding-console/README.md`.
+- `console/` — та же консоль локальной страницей в браузере, без Paseo.
+  Общий слой лежит в пакете плагина: `shared/` (контракты и тема),
+  `client/` (интерфейс и контракт хоста), `server/core/` (операции над
+  проектом). Хосты различаются только реализацией контракта хоста:
+  `client/host/paseo.tsx` и `console/src/browser-host.tsx`.
+  Команды проверки: `npm run typecheck`, `npm test`, `npm run build`.
+  Подробности: `console/README.md`.
 
 Перед изменением прочти
 `skills/math-coding/references/METHODOLOGY.md`, `AXIOMS.md`,

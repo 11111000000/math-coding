@@ -1,8 +1,11 @@
 import type { PluginClientContext } from "@getpaseo/plugin/client";
 import { ConsolePanel } from "./client/console";
+import { HostProvider } from "./client/host/context";
+import { createPaseoHost } from "./client/host/paseo";
 import { SettingsScreen } from "./client/settings";
 
 const PANEL_ID = "math-coding-console";
+const paseoHost = createPaseoHost();
 
 export default function contribute(client: PluginClientContext) {
   client.addWorkspacePanel({
@@ -10,7 +13,11 @@ export default function contribute(client: PluginClientContext) {
     title: "Math Coding",
     icon: "UserRoundCheck",
     locations: ["workspace", "explorer"],
-    Component: ConsolePanel,
+    Component: (props) => (
+      <HostProvider value={paseoHost}>
+        <ConsolePanel {...props} />
+      </HostProvider>
+    ),
   });
   client.addCommandCenterItem({
     id: "open-math-coding-map",
@@ -35,7 +42,11 @@ export default function contribute(client: PluginClientContext) {
     id: "math-coding",
     title: "Attention and runtime",
     icon: "UserRoundCheck",
-    Component: SettingsScreen,
+    Component: (props) => (
+      <HostProvider value={paseoHost}>
+        <SettingsScreen {...props} />
+      </HostProvider>
+    ),
   });
   return () => {};
 }
