@@ -1,5 +1,6 @@
 {
   "schema_version": 5,
+  "environment": "nix develop -c",
   "goal": {
     "text": "v5 keeps evidence linked, fresh, and independent",
     "scope": [
