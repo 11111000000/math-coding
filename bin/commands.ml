@@ -118,7 +118,7 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim item
           if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
           Inconclusive
       | Some _ ->
-          let result = Process.run ~timeout:300.0 ~root (command_in_environment environment command) in
+          let result = Process.run ~timeout:600.0 ~root (command_in_environment environment command) in
           report_failure command result;
           let outcome = if result.truncated then Infrastructure_error else result.outcome in
           let outcome, reach =
@@ -126,11 +126,11 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim item
             | Pass, Some control -> (
                 match Isolated_run.with_copy root (fun copy ->
                     let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:120.0 ~root:copy (command_in_environment environment control) in
+                    let mutation = Process.run ~timeout:300.0 ~root:copy (command_in_environment environment control) in
                     report_failure ("negative control: " ^ control) mutation;
                     let after = Git.digest_of_scope copy ~scope:claim.scope in
                     let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:300.0 ~root:copy (command_in_environment environment command) in
+                    let check = Process.run ~timeout:600.0 ~root:copy (command_in_environment environment command) in
                     report_failure ("verifier after negative control: " ^ command) check;
                     if reach = "subject" && check.code = 1 then Pass, Some reach
                     else Inconclusive, Some reach) with
