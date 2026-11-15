@@ -26,6 +26,31 @@ test("rejects unknown fields and unsupported schema versions", () => {
   assert.throws(() => mapSchema.parse({ ...map([claim()]), extra: "laundering" }));
 });
 
+test("carries the declared environment of the specification", () => {
+  const declared = specSchema.parse({
+    schema_version: 5,
+    environment: "nix develop -c",
+    goal: null,
+    claims: [],
+  });
+  assert.equal(declared.environment, "nix develop -c");
+  const absent = specSchema.parse({ schema_version: 5, goal: null, claims: [] });
+  assert.equal(absent.environment, undefined);
+  assert.equal(
+    specSchema.safeParse({ schema_version: 5, environment: 42, goal: null, claims: [] }).success,
+    false,
+  );
+  assert.equal(
+    specSchema.safeParse({
+      schema_version: 5,
+      environment: "x".repeat(513),
+      goal: null,
+      claims: [],
+    }).success,
+    false,
+  );
+});
+
 test("version one settings migrate with Run checks disabled", () => {
   const migrated = preferences.migrate?.({ binaryPath: "", autoRefreshSeconds: 30 }, 1);
   assert.deepEqual(migrated, { binaryPath: "", autoRefreshSeconds: 30, allowRunChecks: false });

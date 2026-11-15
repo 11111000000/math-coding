@@ -135,6 +135,9 @@ export const claimSchema = z.strictObject({
 
 export const specSchema = z.strictObject({
   schema_version: z.literal(5),
+  // The declared environment is a prefix for every declared command. It is
+  // optional, and the core owns its rules; the host only has to carry it.
+  environment: z.string().max(512).optional(),
   goal: goalSchema.nullable().default(null),
   claims: z.array(claimSchema),
   uncertainty_budget: z.unknown().optional(),
