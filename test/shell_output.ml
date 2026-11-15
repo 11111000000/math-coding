@@ -18,7 +18,11 @@ let () =
   in
   let command = Printf.sprintf "nix develop -c sh -c %s" (Filename.quote inner) in
   let result = Process.run ~timeout:300.0 ~root command in
-  check "the map through the development shell runs" (result.code = 0 || result.code = 3);
+  (* The claim is about the shape of the output, not about the colour of the
+     map. Green, red and unknown are all maps that ran, so all three are
+     accepted; anything else means the command did not run at all. *)
+  check "the map through the development shell runs"
+    (result.code = 0 || result.code = 1 || result.code = 3);
   check "the development shell keeps stdout free of prose"
     (not (contains result.stdout "math-coding 5 dev shell"));
   check "the development shell keeps stdout free of any prose"
