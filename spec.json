@@ -321,7 +321,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "( cd plugin/math-coding-console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null ) & a=$!; ( cd console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null ) & b=$!; wait $a; i=$?; wait $b; j=$?; [ \"$i\" -eq 0 ] && [ \"$j\" -eq 0 ] || exit 1; ( cd plugin/math-coding-console && npm run audit:client && npm run typecheck && npm test && npm run test:render ) & c=$!; ( cd plugin/math-coding-console && npm run test:negative ) & e=$!; ( cd console && npm run typecheck && npm test && npm run build ) & d=$!; wait $c; k=$?; wait $e; m=$?; wait $d; l=$?; [ \"$k\" -eq 0 ] && [ \"$m\" -eq 0 ] && [ \"$l\" -eq 0 ]"
+          "spec": "cd plugin/math-coding-console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null && npm run audit:client && npm run typecheck && npm test && npm run test:render && npm run test:negative && cd ../../console && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null && npm run typecheck && npm test && npm run build"
         }
       ],
       "falsifier": "the console computes a verdict or a claim state on its own, or the shared interface imports the host package directly",
