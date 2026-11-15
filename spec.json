@@ -1,6 +1,5 @@
 {
   "schema_version": 5,
-  "environment": "nix develop -c",
   "goal": {
     "text": "v5 keeps evidence linked, fresh, and independent",
     "scope": [
@@ -32,7 +31,8 @@
       "falsifier": "a broken verdict or freshness rule passes",
       "register": "fact",
       "control": "sed -i 's/| Red, _ | _, Red -> Red/| Red, _ | _, Red -> Green/' lib/verdict.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "strict-codecs",
@@ -52,7 +52,8 @@
       "falsifier": "an unknown, duplicate, or legacy-invalid field is accepted",
       "register": "fact",
       "control": "sed -i 's/| key :: _, _ -> Error (what ^ \": unknown field \" ^ key)/| key :: _, _ -> Ok pairs/' format/json_helpers.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "cli-evidence",
@@ -72,7 +73,8 @@
       "falsifier": "a claim holds without current independent evidence",
       "register": "fact",
       "control": "sed -i 's/check.code = 1/check.code = 0/' bin/commands.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "adr-junit",
@@ -92,7 +94,8 @@
       "falsifier": "an import writes the source or loses nested evidence",
       "register": "fact",
       "control": "sed -i 's/Omd.of_string (Io.read_file full_path)/Omd.of_string \"\"/' adapter/adr.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "mcp-contract",
@@ -112,7 +115,8 @@
       "falsifier": "a result is prose instead of structured JSON or an invalid protocol is accepted",
       "register": "fact",
       "control": "sed -i 's/let protocol_version = \"2026-07-28\"/let protocol_version = \"broken\"/' bin/mcp.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "protected-stand",
@@ -135,7 +139,8 @@
       "falsifier": "an unauthorized transition passes or the stand cannot find mathc",
       "register": "fact",
       "control": "sed -i 's/match Sys.getenv_opt \"MATHC\" with/match Some \"\\/definitely-missing-mathc\" with/' bin/stand.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "flake-binary",
@@ -193,7 +198,8 @@
       "falsifier": "a core or interface exceeds its bound or loses required files",
       "register": "fact",
       "control": "printf 'let broken = 0\\n' > lib/without_interface.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "agent-installer",
@@ -213,7 +219,8 @@
       "falsifier": "the installer succeeds but a binary, skill, or canonical methodology is missing or unusable",
       "register": "fact",
       "control": "sed -i 's|\"$skill_dir/references/METHODOLOGY.md\" 0644|\"$skill_dir/references/MISSING.md\" 0644|' install.sh",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "external-onboarding",
@@ -233,7 +240,8 @@
       "falsifier": "the onboarding path passes without exercising the actual workflow",
       "register": "fact",
       "control": "sed -i 's/source_changed_marker=\"source changed\"/source_changed_marker=\"not found\"/' test/agent_onboarding.sh",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "ci-contract",
@@ -253,7 +261,8 @@
       "falsifier": "an invalid workflow passes validation",
       "register": "fact",
       "control": "sed -i 's/^on:/onn:/' .github/workflows/ci.yml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "site-render",
@@ -268,7 +277,8 @@
       "falsifier": "a claim is missing from the rendered map or shows a state that mathc map does not report",
       "register": "fact",
       "control": "sed -i 's/(escape claim.id)/(escape \"tampered\")/' site/render.ml",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "site-interface",
@@ -285,7 +295,8 @@
       "falsifier": "a navigation item or a button is cut off on a phone screen, or the English and the Russian pages are drawn by different typefaces",
       "register": "fact",
       "control": "printf '\\nnav.site-nav .nav-inner { overflow: hidden; max-height: 26px; }\\n' >> site/src/assets/style.css",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "field-measurement",
@@ -307,7 +318,8 @@
       "falsifier": "an inconsistent task record is accepted or a valid dry run is rejected",
       "register": "fact",
       "control": "sed -i 's/accepted_by is None/accepted_by is not None/' docs/measurements/task-ledger.py",
-      "waiver": null
+      "waiver": null,
+      "environment": "nix develop -c"
     },
     {
       "id": "console-trust-boundary",
@@ -328,6 +340,29 @@
       "register": "fact",
       "control": "printf \"\\nimport { Icon } from \\\"@getpaseo/plugin/client/ui\\\";\\n\" >> plugin/math-coding-console/client/parts.tsx",
       "waiver": null
-    }
+    },
+{
+      "id": "shell-output",
+      "text": "the development shell keeps stdout free of prose, so the machine interface stays machine readable",
+      "scope": [
+            "test/shell_output.ml",
+            "flake.nix"
+      ],
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+            {
+                  "kind": "verifier",
+                  "spec": "dune runtest --root . --force test/shell_output.exe"
+            }
+      ],
+      "falsifier": "the notice of the development shell reaches stdout, or the map stops being the only thing on stdout",
+      "register": "fact",
+      "control": "sed -i 's/ >&2//' flake.nix",
+      "waiver": null,
+      "environment": "nix develop -c"
+}
   ]
 }
