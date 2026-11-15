@@ -380,6 +380,10 @@ th, td {
   border-bottom: 0.5px solid var(--rule);
   text-align: left;
   vertical-align: top;
+  /* A value the method itself uses, such as "infrastructure-error", is one
+     long word. Without this the table cannot shrink under it and the page
+     scrolls sideways on a phone. */
+  overflow-wrap: anywhere;
 }
 th {
   font-family: var(--mono-stack);
