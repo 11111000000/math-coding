@@ -131,6 +131,9 @@ export const claimSchema = z.strictObject({
   register: z.enum(["fact", "hypothesis", "judgment", "unknown"]),
   control: nullableString,
   waiver: waiverSchema.nullable().default(null),
+  // A claim may declare its own environment. The core owns its rules; the
+  // host only carries it, and a claim without one stays without one.
+  environment: z.string().max(512).optional(),
 });
 
 export const specSchema = z.strictObject({

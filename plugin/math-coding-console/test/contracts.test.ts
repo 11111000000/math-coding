@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { mapSchema, specSchema } from "../shared/domain";
+import { claimSchema, mapSchema, specSchema } from "../shared/domain";
 import { preferences, snapshotRpc } from "../shared/contracts";
 import { linkEvidence, parseTrail } from "../server/evidence";
 import { claim, evidence, map, nestedClaim, rawEvidence } from "./fixtures";
@@ -54,6 +54,24 @@ test("carries the declared environment of the specification", () => {
 test("version one settings migrate with Run checks disabled", () => {
   const migrated = preferences.migrate?.({ binaryPath: "", autoRefreshSeconds: 30 }, 1);
   assert.deepEqual(migrated, { binaryPath: "", autoRefreshSeconds: 30, allowRunChecks: false });
+});
+
+test("carries the environment a claim declares for itself", () => {
+  const withEnvironment = claimSchema.parse({
+    ...claim(),
+    environment: "nix develop -c",
+  });
+  assert.equal(withEnvironment.environment, "nix develop -c");
+  const without = claimSchema.parse(claim());
+  assert.equal(without.environment, undefined);
+  assert.equal(
+    claimSchema.safeParse({ ...claim(), environment: 42 }).success,
+    false,
+  );
+  assert.equal(
+    claimSchema.safeParse({ ...claim(), environment: "x".repeat(513) }).success,
+    false,
+  );
 });
 
 test("RPC inputs reject a client-supplied project root", () => {
