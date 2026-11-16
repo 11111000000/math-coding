@@ -78,4 +78,19 @@ let () =
       let undeclared = invoke root ("validate " ^ Filename.quote (Filename.concat root "undeclared-exclusion.jsonl")) in
       check "an undeclared exclusion reason is rejected"
         (undeclared.code = 2 && contains undeclared.stderr "exclusion_reason");
+      write_json root "unmeasured-time.jsonl" (replace "human_seconds" `Null protocol);
+      let unmeasured = invoke root ("summary " ^ Filename.quote (Filename.concat root "unmeasured-time.jsonl")) in
+      check "an unmeasured time is reported beside the total, not as a zero"
+        (unmeasured.code = 0 && contains unmeasured.stdout "\"human_seconds_total\": 0"
+        && contains unmeasured.stdout "\"human_seconds_unmeasured\": 1"
+        && contains unmeasured.stdout "\"agent_seconds_unmeasured\": 0");
+      write_json root "measured-zero.jsonl" (replace "human_seconds" (`Int 0) protocol);
+      let measured_zero = invoke root ("summary " ^ Filename.quote (Filename.concat root "measured-zero.jsonl")) in
+      check "a measured zero stays a measurement"
+        (measured_zero.code = 0 && contains measured_zero.stdout "\"human_seconds_total\": 0"
+        && contains measured_zero.stdout "\"human_seconds_unmeasured\": 0");
+      write_json root "unmeasured-count.jsonl" (replace "agent_tokens" `Null protocol);
+      let unmeasured_count = invoke root ("validate " ^ Filename.quote (Filename.concat root "unmeasured-count.jsonl")) in
+      check "a count cannot be unmeasured"
+        (unmeasured_count.code = 2 && contains unmeasured_count.stderr "agent_tokens");
       print_endline "measurement-ledger: PASS")
