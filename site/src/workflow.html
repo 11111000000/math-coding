@@ -17,6 +17,7 @@
 <a class="nav-link" href="index.html">home</a>
 <a class="nav-link" href="methodology.html">methodology</a>
 <a class="nav-link active" href="workflow.html">workflow</a>
+<a class="nav-link" href="interfaces.html">interfaces</a>
 <a class="nav-link" href="measurements.html">measurements</a>
 <a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
 </div>
@@ -115,6 +116,33 @@ a <code>policy.json</code>; it is a permission log, not authentication.</li>
 <code>AGENTS.md</code>; <code>mathc doctor</code> checks the setup and fixes
 nothing.</li>
 </ul>
+
+<h2>The rest of the verbs</h2>
+<p>The loop above is the daily work. The remaining verbs serve the edges of a
+project, and none of them changes the working tree unless it says so.</p>
+<table>
+<thead><tr><th>verb</th><th>what it does</th></tr></thead>
+<tbody>
+<tr><td><code>context</code></td><td>print the bounded task context as JSON &mdash; the capsule an agent receives</td></tr>
+<tr><td><code>adopt</code></td><td>detect the ADR and the specification source directories, read-only</td></tr>
+<tr><td><code>import-adr PATH</code></td><td>read a MADR or adr-tools document and print a draft claim; neither the source nor <code>spec.json</code> is changed</td></tr>
+<tr><td><code>import-junit PATH</code></td><td>parse a JUnit XML report and print the exact counts of tests and failures</td></tr>
+<tr><td><code>re-evaluate</code></td><td>list the claims whose source, definition or evidence requires a review</td></tr>
+<tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>bind a changed source after a human review; it records the previous digest, clears the waiver and still requires a fresh <code>run</code></td></tr>
+<tr><td><code>authorize --by WHO --reason WHY</code></td><td>record an authorization for the current protected changes when <code>policy.json</code> exists; it is a journal, not authentication</td></tr>
+<tr><td><code>doctor</code></td><td>check git, the specification, the aim, the protected policy and the agent page without changing them</td></tr>
+<tr><td><code>install</code></td><td>update only the math-coding block in the <code>AGENTS.md</code> of the project; it installs no binaries</td></tr>
+<tr><td><code>mcp</code></td><td>serve the JSON-RPC tool surface over stdio</td></tr>
+</tbody>
+</table>
+<p>A claim with the register <code>judgment</code> is established only by an
+external human review: <code>add</code> requires <code>review:WHO</code> for it
+and refuses machine verifiers.</p>
+
+<h2>Reading the map without the terminal</h2>
+<p>The map can also be read in a browser. The console shows the same map, the
+queue of the human and the journal of observations, and it never computes a
+state of its own. <a href="interfaces.html">The interfaces, piece by piece</a>.</p>
 
 <h2>Exit codes</h2>
 <table>

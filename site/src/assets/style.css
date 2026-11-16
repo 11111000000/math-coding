@@ -574,6 +574,47 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
   color: var(--fg-muted);
 }
 
+/* --- screenshots of the console ---
+ *
+ * The pictures are of the interface itself, so they carry the same frame
+ * as the rest of the page: a card, a hairline rule and a caption. The
+ * image is scaled to the width of the text column, never wider.
+ */
+
+.shot {
+  margin: 2.4em 0;
+  padding: 1.25em 1.5em;
+  background: var(--bg-card);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+.shot img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--rule);
+  border-radius: 2px;
+  background: #ffffff;
+}
+/* The picture opens in its own size: the text of the interface must be
+   readable, and the page shows it scaled down. */
+.shot a { display: block; }
+.shot a:hover img { border-color: var(--rule-strong); }
+.shot figcaption {
+  margin-top: 0.9em;
+  font-size: 0.88em;
+  color: var(--fg-muted);
+}
+.shot figcaption strong { color: var(--fg); }
+.shot-title {
+  font-family: var(--mono-stack);
+  font-size: 0.76em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin: 0 0 0.7em;
+}
+
 /* --- the generated claim map --- */
 
 .map-summary {

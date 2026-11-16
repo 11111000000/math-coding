@@ -146,7 +146,7 @@ fi
 
 set +e
 python3 "$ROOT/site/ui-probe.py" --dist "$DIST" \
-  --pages index.html,index.ru.html,claims/core-laws.html \
+  --pages index.html,index.ru.html,interfaces.html,interfaces.ru.html,claims/core-laws.html \
   --width 360 --verify
 measured=$?
 set -e

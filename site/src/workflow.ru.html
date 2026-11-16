@@ -17,6 +17,7 @@
 <a class="nav-link" href="index.ru.html">главная</a>
 <a class="nav-link" href="methodology.ru.html">методология</a>
 <a class="nav-link active" href="workflow.ru.html">цикл</a>
+<a class="nav-link" href="interfaces.ru.html">интерфейсы</a>
 <a class="nav-link" href="measurements.ru.html">измерения</a>
 <a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
 </div>
@@ -116,6 +117,34 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <code>AGENTS.md</code>; <code>mathc doctor</code> проверяет настройку и
 ничего не исправляет.</li>
 </ul>
+
+<h2>Остальные глаголы</h2>
+<p>Цикл выше &mdash; это ежедневная работа. Остальные глаголы обслуживают края
+проекта, и ни один из них не меняет рабочее дерево, если не говорит об этом
+прямо.</p>
+<table>
+<thead><tr><th>глагол</th><th>что делает</th></tr></thead>
+<tbody>
+<tr><td><code>context</code></td><td>печатает ограниченный контекст задачи в JSON &mdash; капсулу, которую получает агент</td></tr>
+<tr><td><code>adopt</code></td><td>находит каталоги ADR и источников спецификации, только на чтение</td></tr>
+<tr><td><code>import-adr PATH</code></td><td>читает документ MADR или adr-tools и печатает черновик утверждения; ни источник, ни <code>spec.json</code> не меняются</td></tr>
+<tr><td><code>import-junit PATH</code></td><td>разбирает JUnit XML и печатает точные числа тестов и падений</td></tr>
+<tr><td><code>re-evaluate</code></td><td>перечисляет утверждения, чей источник, определение или доказательства требуют ревью</td></tr>
+<tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>связывает изменённый источник после человеческого ревью; сохраняет прежний digest, очищает waiver и всё равно требует свежего <code>run</code></td></tr>
+<tr><td><code>authorize --by WHO --reason WHY</code></td><td>записывает разрешение на текущие защищённые изменения при наличии <code>policy.json</code>; это журнал, а не аутентификация</td></tr>
+<tr><td><code>doctor</code></td><td>проверяет git, спецификацию, цель, защищённую политику и страницу агента, ничего не меняя</td></tr>
+<tr><td><code>install</code></td><td>обновляет только блок math-coding в <code>AGENTS.md</code> проекта; бинари он не ставит</td></tr>
+<tr><td><code>mcp</code></td><td>отдаёт поверхность инструментов JSON-RPC через stdio</td></tr>
+</tbody>
+</table>
+<p>Утверждение с регистром <code>judgment</code> устанавливается только внешним
+человеческим ревью: для него <code>add</code> требует <code>review:WHO</code> и
+не принимает машинные verifier'ы.</p>
+
+<h2>Читать карту без терминала</h2>
+<p>Карту можно читать и в браузере. Консоль показывает ту же карту, очередь
+человека и журнал наблюдений и никогда не вычисляет состояние сама.
+<a href="interfaces.ru.html">Интерфейсы по частям</a>.</p>
 
 <h2>Коды выхода</h2>
 <table>

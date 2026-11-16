@@ -15,7 +15,9 @@ export default defineConfig({
     // The shared interface lives in the plugin package and resolves React
     // from its own node_modules. Without deduplication the browser bundle
     // would contain two React copies and the shared hooks would break.
-    dedupe: ["react", "react-dom", "react-native-web"],
+    // The data layer belongs to the same list: two copies of it mean two
+    // query contexts, and the page asks for a provider it cannot see.
+    dedupe: ["react", "react-dom", "react-native-web", "@tanstack/react-query"],
   },
   server: {
     host: "127.0.0.1",

@@ -151,6 +151,51 @@
         font: inherit;
         cursor: pointer;
       }
+
+      .mc-local {
+        display: flex;
+        flex-direction: column;
+        min-height: 100%;
+      }
+
+      .mc-local-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--mc-border, #d5dae1);
+        background: var(--mc-surface1, #f5f6f8);
+      }
+
+      .mc-local-title {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--mc-foreground-muted, #5b6472);
+      }
+
+      .mc-local-button {
+        padding: 6px 12px;
+        border: 1px solid var(--mc-border, #d5dae1);
+        border-radius: 8px;
+        background: var(--mc-surface0, #ffffff);
+        color: var(--mc-foreground, #14181f);
+        font: inherit;
+        font-size: 13px;
+        cursor: pointer;
+      }
+
+      .mc-local-button:hover {
+        border-color: var(--mc-foreground-muted, #5b6472);
+      }
+
+      .mc-local-settings {
+        padding: 8px 16px 16px;
+        border-bottom: 1px solid var(--mc-border, #d5dae1);
+        background: var(--mc-surface0, #ffffff);
+      }
     </style>
   </head>
   <body>

@@ -7,8 +7,9 @@ let index_of_sub_from needle text from =
   in
   if from > limit then None else scan from
 
-let hrefs page =
-  let marker = "href=\"" in
+(* Every value of an attribute in the page. The marker carries the opening
+   quote, so the value ends at the next quote. *)
+let attributes page marker =
   let length = String.length page in
   let rec scan acc index =
     if index >= length then List.rev acc
@@ -23,6 +24,9 @@ let hrefs page =
               scan (String.sub page start (stop - start) :: acc) (stop + 1))
   in
   scan [] 0
+
+let hrefs page = attributes page "href=\""
+let sources page = attributes page "src=\""
 
 let local_target href =
   let href =

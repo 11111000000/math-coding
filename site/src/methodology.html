@@ -17,6 +17,7 @@
 <a class="nav-link" href="index.html">home</a>
 <a class="nav-link active" href="methodology.html">methodology</a>
 <a class="nav-link" href="workflow.html">workflow</a>
+<a class="nav-link" href="interfaces.html">interfaces</a>
 <a class="nav-link" href="measurements.html">measurements</a>
 <a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
 </div>
@@ -117,6 +118,18 @@ author, a reason and the previous digest.</p>
 schema also carries compensating controls and review triggers; the standard CLI
 leaves those two lists empty. Reviews, waivers, source reviews and authorizations
 are decision journals, not authentication.</p>
+
+<h2>How the state reaches the reader</h2>
+<p>The kernel computes the states; the interfaces only show them. The plugin for
+Paseo and the local browser page are two hosts over one interface, and the
+only source of the verdict and of a state is the output of
+<code>mathc map --json</code>. Freshness, independence and the reach of the
+control are never recomputed outside the kernel: an observation
+<code>pass</code> does not become <code>holds</code>, a waiver does not become
+green and <code>not-run</code> does not become <code>refuted</code>.</p>
+<p>On this site the same rule holds: the grid on the home page is rendered from
+the live map, and it shows a red or an unknown map exactly as honestly as a
+green one. <a href="interfaces.html">The console, piece by piece</a>.</p>
 
 </main>
 <footer class="site-footer">

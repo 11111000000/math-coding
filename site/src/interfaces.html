@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Interfaces — math-coding v5</title>
+<meta name="description" content="The Math Coding v5 console: the Paseo plugin and the local browser page are two hosts over one interface. The screens of the queue, the claims, the proof graph and the evidence, piece by piece.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.html"><img class="brand-logo" src="assets/logo.svg" alt="" aria-hidden="true"><span class="brand-text">math-coding</span></a>
+<div class="nav-inner">
+<a class="nav-link" href="index.html">home</a>
+<a class="nav-link" href="methodology.html">methodology</a>
+<a class="nav-link" href="workflow.html">workflow</a>
+<a class="nav-link active" href="interfaces.html">interfaces</a>
+<a class="nav-link" href="measurements.html">measurements</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="interfaces.ru.html">ru</a>
+</nav>
+<main>
+
+<h1>Interfaces</h1>
+<p class="lede">The map of the tool has one source of truth: the output of
+<code>mathc map --json</code>. The console does not compute a state, a verdict
+or a coverage &mdash; it reads them. What the console adds is a way to look at
+that output: the plugin for Paseo and the local browser page are two hosts
+over one interface, and the interface is the same in both.</p>
+
+<section>
+<h2>Two hosts, one interface</h2>
+<table>
+<thead><tr><th>layer</th><th>what it is</th></tr></thead>
+<tbody>
+<tr><td><code>shared/</code></td><td>the contracts without a host: the schemas of the snapshot, of a claim, of the journal, of a run, of a file and of the settings</td></tr>
+<tr><td><code>client/</code></td><td>the interface itself: the queue of the human, the claims, the proof graph, the scope, the evidence journal, the claim card, the settings screen</td></tr>
+<tr><td><code>client/host/paseo.tsx</code></td><td>the Paseo host: the primitives the interface may use (modal, input fields, settings elements, calls, clipboard, notifications)</td></tr>
+<tr><td><code>console/src/browser-host.tsx</code></td><td>the browser host: the same primitives, in the browser</td></tr>
+<tr><td><code>server/core/operations.ts</code></td><td>five operations over the project &mdash; snapshot, claim, evidence, run, file &mdash; and a queue that serializes them</td></tr>
+</tbody>
+</table>
+<p>The plugin is a view over <code>mathc</code>, not a second implementation of
+the method. The client audit (<code>npm run audit:client</code>) checks that
+the common layer never imports a host package: only
+<code>client/host/paseo.tsx</code> is allowed to do that, and the local page
+imports the common layer inward and never outward.</p>
+</section>
+
+<section>
+<h2>What the plugin adds to Paseo</h2>
+<ul>
+<li>A workspace panel <strong>Math Coding</strong>, open in the workspace and in
+the explorer.</li>
+<li>An item of the Command Center: <em>Open Math Coding attention desk</em>.</li>
+<li>The slash command <code>/mc</code>.</li>
+<li>A settings screen <strong>Attention and runtime</strong>: the binary, the
+read-only refresh and the switch that allows running the checks.</li>
+</ul>
+<p>The first screen of the panel answers three questions and only three:
+what the human must decide now, what an agent may do by itself, and which risk
+has already been accepted. It does not answer with a count of rows.</p>
+</section>
+
+<section>
+<h2>The local browser page</h2>
+<p>The same console without Paseo: a page in the browser over the same client
+layer and the same server core.</p>
+<div class="terminal"><span class="t-dim">$</span> cd console
+<span class="t-dim">$</span> npm install
+<span class="t-dim">$</span> npm run build
+<span class="t-dim">$</span> npm run serve -- <span class="t-amber">--root /path/to/project</span>
+<span class="t-dim">$</span> <span class="t-amber">http://127.0.0.1:5173/</span></div>
+<ul>
+<li>The server listens on the loopback address only and takes one fixed project
+root; the paths of the project never come from the browser.</li>
+<li>The settings live outside the project, in
+<code>~/.config/math-coding-console/settings.json</code>, so reading the page
+never changes the live tree.</li>
+<li>The file preview stays inside the root: a relative path without
+<code>..</code>, a symlink out of the tree is refused, the size is bounded and
+only a regular file is opened. The server reads the file and changes nothing in
+it.</li>
+<li>Running the checks is off by default and needs both a permission in the
+settings and a second confirmation in the interface. Together they protect
+against an accidental run; they are not authentication of the plugin code.</li>
+</ul>
+<p>By default the binary is <code>mathc</code> from the <code>PATH</code>. An
+explicit override must be an absolute path and must report <code>mathc 5</code>:
+a different binary changes the environment fingerprint and can make previous
+evidence outdated.</p>
+</section>
+
+<section>
+<h2>The boundary of trust</h2>
+<p>The only source of the verdict and of the state of a claim is</p>
+<div class="terminal"><span class="t-dim">$</span> mathc --root ROOT map --json</div>
+<p>Neither host recomputes freshness, independence, the reach of the control or
+the composition of <code>all</code> and <code>any</code>. An observation
+<code>pass</code> does not become <code>holds</code>, a waiver does not become
+green and <code>not-run</code> does not become <code>refuted</code>. An unknown
+schema, a damaged journal, a project that changed while it was read or a
+verdict that disagrees with the exit code produce an explicit error &mdash;
+never a fallback to the previous success.</p>
+</section>
+
+<section>
+<h2>The screens</h2>
+<p class="lede">Every picture below comes from one demonstration project: a
+payment service in which one claim holds, one is refuted, one has a changed
+source, one is an accepted risk and one has never been checked. The pictures
+show the shared interface layer as it is drawn in the local browser page; the
+plugin draws the same components in the panel of Paseo, with the shell of
+Paseo around them. The interface speaks English, and every picture opens in
+its own size.</p>
+
+<figure class="shot">
+<p class="shot-title">the head of the console</p>
+<a href="assets/shots/frame.png"><img src="assets/shots/frame.png" alt="The head of the console: the verdict, the number of claims, the counts of the decisions and of the accepted risks, the goal with its owner, the uncovered paths and the canonical next action."></a>
+<figcaption><strong>The head of the console.</strong> The verdict, the counts,
+the goal with its owner, the uncovered paths and the canonical next action.
+Every number here is a field of the map of the tool.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the queue of the human &mdash; a changed source</p>
+<a href="assets/shots/queue-source.png"><img src="assets/shots/queue-source.png" alt="A card of the queue of the human: the changed source of the claim retry-policy, the reason of the attention, the decision that stays with the human, what the agent may do and the file of the subject."></a>
+<figcaption><strong>A changed source.</strong> The decision behind it is no
+longer fresh, so a human has to look at it again. An agent may collect the diff
+and prepare the context; it may not record the review or confirm the decision
+of the owner.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the queue of the human &mdash; a refuted claim</p>
+<a href="assets/shots/queue-refuted.png"><img src="assets/shots/queue-refuted.png" alt="A card of the queue of the human: the refuted claim refund-ceiling, the recorded observation, the decision that stays with the human and the correction the agent may make."></a>
+<figcaption><strong>A refuted claim.</strong> The agent may reproduce the failure
+and fix the implementation, but the human decides whether the claim, its
+falsifier and its control are still the right contract.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the queue of the human &mdash; an open review</p>
+<a href="assets/shots/queue-review.png"><img src="assets/shots/queue-review.png" alt="A card of the queue of the human: the open human review of the claim payout-review, the authority that may close it and the machine part that stays available to the agent."></a>
+<figcaption><strong>An open human review.</strong> Only a person with the
+declared authority and independence may close it. When a claim carries both a
+machine and a human part, the machine part stays available to the agent.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the standing obligations</p>
+<a href="assets/shots/obligations.png"><img src="assets/shots/obligations.png" alt="The standing obligations of the goal: every claim with its canonical state, the conditions of its acceptance and the files of its subject."></a>
+<figcaption><strong>The standing obligations.</strong> Every claim of the goal
+with its canonical state, the conditions and the files. The panel never prints a
+state taken from the journal of observations instead of the map.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">accepting a result</p>
+<a href="assets/shots/accept-result.png"><img src="assets/shots/accept-result.png" alt="The block for accepting a result: the claims are confirmed, the declared scope is closed or not, and who owns it."></a>
+<figcaption><strong>Accepting a result.</strong> The third outcome of the
+method: the claims are confirmed, the declared scope is covered or not, and who
+owns it. The tool does not store the acceptance, so the panel names the step
+instead of marking it done.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">what the agent may do</p>
+<a href="assets/shots/agent-can-act.png"><img src="assets/shots/agent-can-act.png" alt="The block of the work an agent may do by itself: outdated without a changed source, never checked, inconclusive and uncovered."></a>
+<figcaption><strong>What the agent may do by itself.</strong> Outdated without a
+changed source, never checked, inconclusive and uncovered. Equal items are
+grouped: fifteen outdated claims are one task, not fifteen cards.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">explore &mdash; the claims</p>
+<a href="assets/shots/explore-claims.png"><img src="assets/shots/explore-claims.png" alt="The view Explore with the tab Claims: the distribution of all claim states and the list of the claims of the project."></a>
+<figcaption><strong>Explore &rarr; Claims.</strong> The distribution of all
+states and the claims themselves. The full proof graph is a tool for research,
+and it does not take the place of the first screen.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">explore &mdash; the proof graph</p>
+<a href="assets/shots/explore-proof.png"><img src="assets/shots/explore-proof.png" alt="The view Explore with the tab Proof graph: the source, the claim, the requirement and the evidence of a claim drawn as one chain with arrows."></a>
+<figcaption><strong>Explore &rarr; Proof graph.</strong> Source, claim,
+requirement and evidence as one chain: what was declared, what was checked and
+what the observation says.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">explore &mdash; the scope</p>
+<a href="assets/shots/explore-scope.png"><img src="assets/shots/explore-scope.png" alt="The view Explore with the tab Scope: the paths of the goal scope and the claim that covers each of them."></a>
+<figcaption><strong>Explore &rarr; Scope.</strong> Which paths of the goal are
+covered by which claim, and where the coverage still has a hole.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the card of a claim</p>
+<a href="assets/shots/claim-detail.png"><img src="assets/shots/claim-detail.png" alt="The card of the claim retry-policy: its state, the reason of the state, the chain of the proof and the decision boundary between the machine checks and the human review."></a>
+<figcaption><strong>The card of a claim.</strong> The state, the reason of that
+state, the proof chain and the <em>decision boundary</em>: what the machine
+checks, where a human is required, which waiver is in force and what the agent
+may do without the decision of the owner.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the file of the subject</p>
+<a href="assets/shots/file-preview.png"><img src="assets/shots/file-preview.png" alt="The preview of the file docs/adr/0001-retry-policy.md, the decision record that changed after the evidence was recorded."></a>
+<figcaption><strong>The file of the subject.</strong> The decision record that
+changed after the evidence was recorded &mdash; opened in the panel from the
+declared scope or the linked source, so the human reads exactly what the
+specification names.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the journal of observations</p>
+<a href="assets/shots/evidence.png"><img src="assets/shots/evidence.png" alt="The view Evidence: the history of the observations with their producer, the time and the outcome."></a>
+<figcaption><strong>The journal of observations.</strong> The history with its
+provenance: what was observed, by which producer, when and with which
+outcome. The states of the claims are not read from here.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the settings of the host</p>
+<a href="assets/shots/settings.png"><img src="assets/shots/settings.png" alt="The settings of the host: the binary of mathc, the read-only refresh and the switch Allow Run checks, which is off."></a>
+<figcaption><strong>The settings of the host.</strong> The binary, the
+read-only refresh and the switch that allows running the checks. The switch is
+off by default; the automatic refresh only reads the map and never runs
+anything.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">the confirmation before a run</p>
+<a href="assets/shots/run-confirmation.png"><img src="assets/shots/run-confirmation.png" alt="The confirmation before the run: it names the scale of the run, five claims and eight check commands, and warns that the verifiers execute project code."></a>
+<figcaption><strong>The confirmation before a run.</strong> The scale is named
+before anything is executed: five claims and eight check commands. The controls
+run in isolated copies; the verifiers still execute the code of the project.</figcaption>
+</figure>
+
+<p class="callout">The console is a view over the tool, never a second copy of
+it. If a state is wrong on the screen, the map of <code>mathc</code> is wrong
+&mdash; and the map is the thing that is checked.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.html">home</a> &middot;
+<a href="workflow.html">workflow</a> &middot;
+<a href="interfaces.html">interfaces</a> &middot;
+<a href="interfaces.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>

@@ -34,6 +34,7 @@ mock("react-native", "react-native-web");
 const { QueryClient, QueryClientProvider } = require("@tanstack/react-query") as typeof import("@tanstack/react-query");
 const { ConsolePanel } = await import("../../plugin/math-coding-console/client/console");
 const { HostProvider } = await import("../../plugin/math-coding-console/client/host/context");
+const { SettingsScreen } = await import("../../plugin/math-coding-console/client/settings");
 const { rpcSchemas } = await import("../../plugin/math-coding-console/shared/schemas");
 const { preferencesDefinition } = await import("../../plugin/math-coding-console/shared/schemas");
 const { createBrowserHost } = await import("../src/browser-host");
@@ -88,6 +89,16 @@ test("the console panel renders without a snapshot", () => {
     queryClient,
   );
   assert.ok(markup.includes("Reading the canonical map"), "the loading state is missing");
+});
+
+test("the settings screen of the local page waits for the settings of the host", () => {
+  const markup = render(createElement(SettingsScreen, { theme: lightTheme }), client());
+  assert.ok(markup.includes("Math Coding v5"), "the settings screen does not name the method");
+  assert.ok(markup.includes("Loading settings"), "the settings screen does not wait for the host");
+  assert.ok(
+    markup.includes("The default binary is mathc on the daemon PATH"),
+    "the settings screen does not explain the binary",
+  );
 });
 
 test("the reason of a snapshot passes through the api and is rendered", async () => {

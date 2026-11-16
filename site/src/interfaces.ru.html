@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Интерфейсы — math-coding v5</title>
+<meta name="description" content="Консоль Math Coding v5: плагин для Paseo и локальная страница в браузере — два хоста над одним интерфейсом. Экраны очереди, утверждений, графа доказательств и наблюдений по частям.">
+<link rel="stylesheet" href="assets/style.css">
+<link rel="preload" href="assets/fonts/source-serif-4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/jetbrains-mono-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+</head>
+<body>
+<nav class="site-nav">
+<a class="brand" href="index.ru.html"><img class="brand-logo" src="assets/logo.svg" alt="" aria-hidden="true"><span class="brand-text">math-coding</span></a>
+<div class="nav-inner">
+<a class="nav-link" href="index.ru.html">главная</a>
+<a class="nav-link" href="methodology.ru.html">методология</a>
+<a class="nav-link" href="workflow.ru.html">цикл</a>
+<a class="nav-link active" href="interfaces.ru.html">интерфейсы</a>
+<a class="nav-link" href="measurements.ru.html">измерения</a>
+<a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
+</div>
+<a class="lang-toggle" href="interfaces.html">en</a>
+</nav>
+<main>
+
+<h1>Интерфейсы</h1>
+<p class="lede">У карты инструмента один источник истины &mdash; вывод
+<code>mathc map --json</code>. Консоль не вычисляет состояние, вердикт или
+покрытие: она их читает. Консоль добавляет способ посмотреть на этот вывод.
+Плагин для Paseo и локальная страница в браузере &mdash; два хоста над одним
+интерфейсом, и интерфейс в обоих один и тот же.</p>
+
+<section>
+<h2>Два хоста, один интерфейс</h2>
+<table>
+<thead><tr><th>слой</th><th>что это</th></tr></thead>
+<tbody>
+<tr><td><code>shared/</code></td><td>контракты без хоста: схемы снимка, карточки утверждения, журнала, запуска, файла и настроек</td></tr>
+<tr><td><code>client/</code></td><td>сам интерфейс: очередь человека, утверждения, граф доказательств, область, журнал наблюдений, карточка утверждения, экран настроек</td></tr>
+<tr><td><code>client/host/paseo.tsx</code></td><td>хост Paseo: примитивы, которыми может пользоваться общий интерфейс (модальное окно, поля ввода, элементы настроек, вызовы, буфер обмена, уведомления)</td></tr>
+<tr><td><code>console/src/browser-host.tsx</code></td><td>браузерный хост: те же примитивы в браузере</td></tr>
+<tr><td><code>server/core/operations.ts</code></td><td>пять операций над проектом &mdash; снимок, утверждение, наблюдения, запуск, файл &mdash; и очередь, которая их сериализует</td></tr>
+</tbody>
+</table>
+<p>Плагин &mdash; это представление над <code>mathc</code>, а не вторая
+реализация метода. Аудит клиента (<code>npm run audit:client</code>) проверяет,
+что общий слой не импортирует пакеты хоста: это разрешено только
+<code>client/host/paseo.tsx</code>, а локальная страница импортирует общий слой
+внутрь и никогда наружу.</p>
+</section>
+
+<section>
+<h2>Что плагин добавляет в Paseo</h2>
+<ul>
+<li>Панель рабочей области <strong>Math Coding</strong> &mdash; в рабочей
+области и в проводнике.</li>
+<li>Пункт в Command Center: <em>Open Math Coding attention desk</em>.</li>
+<li>Слэш-команда <code>/mc</code>.</li>
+<li>Экран настроек <strong>Attention and runtime</strong>: бинарь, только
+чтение при обновлении и переключатель, разрешающий запуск проверок.</li>
+</ul>
+<p>Первый экран панели отвечает на три вопроса и только на три: что человек
+должен решить сейчас, что агент может сделать сам и какой риск уже принят.
+Он не отвечает числом строк.</p>
+</section>
+
+<section>
+<h2>Локальная страница в браузере</h2>
+<p>Та же консоль без Paseo: страница в браузере над тем же слоем интерфейса и
+тем же серверным ядром.</p>
+<div class="terminal"><span class="t-dim">$</span> cd console
+<span class="t-dim">$</span> npm install
+<span class="t-dim">$</span> npm run build
+<span class="t-dim">$</span> npm run serve -- <span class="t-amber">--root /path/to/project</span>
+<span class="t-dim">$</span> <span class="t-amber">http://127.0.0.1:5173/</span></div>
+<ul>
+<li>Сервер слушает только адрес обратной петли и принимает один фиксированный
+корень проекта; пути проекта никогда не приходят из браузера.</li>
+<li>Настройки лежат вне проекта, в
+<code>~/.config/math-coding-console/settings.json</code>, поэтому чтение
+страницы никогда не меняет живое дерево.</li>
+<li>Превью файла остаётся внутри корня: путь относительный, без
+<code>..</code>, symlink наружу отклоняется, размер ограничен, открывается
+только обычный файл. Сервер читает файл и ничего в нём не меняет.</li>
+<li>Запуск проверок выключен по умолчанию и требует и разрешения в настройках,
+и второго подтверждения в интерфейсе. Вместе они защищают от случайного
+запуска, но не являются аутентификацией кода плагина.</li>
+</ul>
+<p>По умолчанию берётся <code>mathc</code> из <code>PATH</code>. Явный
+override обязан быть абсолютным путём и сообщать <code>mathc 5</code>: другой
+бинарь меняет fingerprint среды и может сделать прежнее доказательство
+устаревшим.</p>
+</section>
+
+<section>
+<h2>Граница доверия</h2>
+<p>Единственный источник вердикта и состояния утверждения &mdash; это</p>
+<div class="terminal"><span class="t-dim">$</span> mathc --root ROOT map --json</div>
+<p>Ни один хост не пересчитывает свежесть, независимость, достижимость
+контроля и композицию <code>all</code> и <code>any</code>. Наблюдение
+<code>pass</code> не становится <code>holds</code>, waiver не становится green,
+<code>not-run</code> не становится <code>refuted</code>. Неизвестная схема,
+повреждённый журнал, изменившийся во время чтения проект или вердикт,
+не совпадающий с кодом выхода, дают явную ошибку &mdash; никогда откат к
+прежнему успеху.</p>
+</section>
+
+<section>
+<h2>Экраны</h2>
+<p class="lede">Все снимки ниже сняты в одном демонстрационном проекте: платёжный
+сервис, в котором одно утверждение подтверждено, одно опровергнуто, одно имеет
+изменённый источник, одно является принятым риском, а одно никогда не
+проверялось. Снимки показывают общий слой интерфейса в том виде, в каком он
+рисуется на локальной странице; плагин рисует те же компоненты в панели
+Paseo &mdash; вместе с оболочкой Paseo. Сам интерфейс говорит по-английски,
+подписи здесь переведены, а каждый снимок открывается в своём размере.</p>
+
+<figure class="shot">
+<p class="shot-title">начало страницы консоли</p>
+<a href="assets/shots/frame.png"><img src="assets/shots/frame.png" alt="Начало страницы консоли: вердикт, число утверждений, счётчики решений и принятых рисков, цель с владельцем, непокрытые пути и каноническое следующее действие."></a>
+<figcaption><strong>Начало страницы консоли.</strong> Вердикт, счётчики, цель
+с владельцем, непокрытые пути и каноническое следующее действие. Каждое число
+здесь &mdash; поле карты инструмента.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">очередь человека &mdash; изменённый источник</p>
+<a href="assets/shots/queue-source.png"><img src="assets/shots/queue-source.png" alt="Карточка очереди человека: изменённый источник утверждения retry-policy, причина внимания, решение, остающееся за человеком, что может сделать агент, и файл предмета."></a>
+<figcaption><strong>Изменённый источник.</strong> Прежнее решение больше не
+свежее, поэтому человек должен посмотреть на него снова. Агент может собрать
+diff и подготовить контекст, но не может записать review или подтвердить
+решение владельца.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">очередь человека &mdash; опровержение</p>
+<a href="assets/shots/queue-refuted.png"><img src="assets/shots/queue-refuted.png" alt="Карточка очереди человека: опровергнутое утверждение refund-ceiling, записанное наблюдение, решение, остающееся за человеком, и исправление, которое может сделать агент."></a>
+<figcaption><strong>Опровержение.</strong> Агент может воспроизвести
+сбой и починить реализацию, но человек решает, остаются ли утверждение, его
+опровержитель и его контроль правильным контрактом.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">очередь человека &mdash; открытое ревью</p>
+<a href="assets/shots/queue-review.png"><img src="assets/shots/queue-review.png" alt="Карточка очереди человека: открытое человеческое ревью утверждения payout-review, authority, который может его закрыть, и машинная часть, остающаяся доступной агенту."></a>
+<figcaption><strong>Открытое ревью.</strong> Закрыть его может только человек с
+указанной authority и independence. Если в утверждении есть и машинная, и
+человеческая часть, машинная остаётся доступной агенту.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">постоянные обязанности</p>
+<a href="assets/shots/obligations.png"><img src="assets/shots/obligations.png" alt="Постоянные обязанности цели: каждое утверждение с каноническим состоянием, условиями приёмки и файлами предмета."></a>
+<figcaption><strong>Постоянные обязанности.</strong> Каждое утверждение цели с
+его каноническим состоянием, условиями и файлами. Панель никогда не печатает
+состояние, взятое из журнала наблюдений вместо карты.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">принятие результата</p>
+<a href="assets/shots/accept-result.png"><img src="assets/shots/accept-result.png" alt="Блок принятия результата: утверждения подтверждены, объявленная область закрыта или нет, и кто владелец."></a>
+<figcaption><strong>Принятие результата.</strong> Третий исход метода:
+утверждения подтверждены, объявленная область покрыта или нет, и кто
+владелец. Инструмент не хранит принятие результата, поэтому панель называет
+этот шаг, а не отмечает его выполненным.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">что может сделать агент</p>
+<a href="assets/shots/agent-can-act.png"><img src="assets/shots/agent-can-act.png" alt="Блок работы, доступной агенту: устаревшее без изменения источника, никогда не проверенное, неопределённое и непокрытое."></a>
+<figcaption><strong>Что агент может сделать сам.</strong> Устаревшее без
+изменения источника, никогда не проверенное, неопределённое и непокрытое.
+Одинаковые пункты группируются: пятнадцать устаревших утверждений &mdash; это
+одна задача, а не пятнадцать карточек.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">исследование &mdash; утверждения</p>
+<a href="assets/shots/explore-claims.png"><img src="assets/shots/explore-claims.png" alt="Представление Explore на вкладке Claims: распределение всех состояний утверждений и список утверждений проекта."></a>
+<figcaption><strong>Исследование &rarr; Утверждения.</strong> Распределение всех
+состояний и сами утверждения. Полный граф доказательств остаётся мощным инструментом исследования, но не занимает место первого экрана.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">исследование &mdash; граф доказательств</p>
+<a href="assets/shots/explore-proof.png"><img src="assets/shots/explore-proof.png" alt="Представление Explore на вкладке Proof graph: источник, утверждение, требование и доказательство нарисованы одной цепочкой со стрелками."></a>
+<figcaption><strong>Исследование &rarr; Граф доказательств.</strong> Источник,
+утверждение, требование и доказательство одной цепочкой: что объявлено, что
+проверено и что говорит наблюдение.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">исследование &mdash; область</p>
+<a href="assets/shots/explore-scope.png"><img src="assets/shots/explore-scope.png" alt="Представление Explore на вкладке Scope: пути области цели и утверждение, покрывающее каждый из них."></a>
+<figcaption><strong>Исследование &rarr; Область.</strong> Какие пути цели
+покрыты каким утверждением и где в покрытии ещё дыра.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">карточка утверждения</p>
+<a href="assets/shots/claim-detail.png"><img src="assets/shots/claim-detail.png" alt="Карточка утверждения retry-policy: состояние, причина состояния, цепочка доказательств и граница решения между машинными проверками и человеческим ревью."></a>
+<figcaption><strong>Карточка утверждения.</strong> Состояние, причина этого
+состояния, цепочка доказательств и <em>граница решения</em>: что проверяет
+машина, где нужен человек, какой waiver действует и что агент может сделать
+без решения владельца.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">файл предмета</p>
+<a href="assets/shots/file-preview.png"><img src="assets/shots/file-preview.png" alt="Превью файла docs/adr/0001-retry-policy.md &mdash; записи решения, изменившейся после того, как было записано доказательство."></a>
+<figcaption><strong>Файл предмета.</strong> Запись решения, изменившаяся после
+того, как было записано доказательство: открывается из объявленной области или
+связанного источника, поэтому человек читает ровно то, что названо в
+спецификации.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">журнал наблюдений</p>
+<a href="assets/shots/evidence.png"><img src="assets/shots/evidence.png" alt="Представление Evidence: история наблюдений с их производителем, временем и исходом."></a>
+<figcaption><strong>Журнал наблюдений.</strong> История вместе с
+происхождением: что наблюдали, кто произвёл, когда и с каким исходом.
+Состояния утверждений отсюда не читаются.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">настройки хоста</p>
+<a href="assets/shots/settings.png"><img src="assets/shots/settings.png" alt="Настройки хоста: бинарь mathc, только чтение при обновлении и выключенный переключатель Allow Run checks."></a>
+<figcaption><strong>Настройки хоста.</strong> Бинарь, обновление только на
+чтение и переключатель, разрешающий запуск проверок. Переключатель выключен по
+умолчанию; автоматическое обновление только читает карту и никогда ничего не
+запускает.</figcaption>
+</figure>
+
+<figure class="shot">
+<p class="shot-title">подтверждение перед запуском</p>
+<a href="assets/shots/run-confirmation.png"><img src="assets/shots/run-confirmation.png" alt="Подтверждение перед запуском: названа величина запуска &mdash; пять утверждений и восемь команд проверки &mdash; и предупреждено, что verifier'ы исполняют код проекта."></a>
+<figcaption><strong>Подтверждение перед запуском.</strong> Величина запуска
+названа до того, как что-либо исполнится: пять утверждений и восемь команд
+проверки. Контроли работают в изолированных копиях; verifier'ы всё же
+исполняют код проекта.</figcaption>
+</figure>
+
+<p class="callout">Консоль &mdash; это представление над инструментом, а не
+вторая его копия. Если на экране состояние неверно, то неверна карта
+<code>mathc</code> &mdash; и проверяется именно карта.</p>
+
+</main>
+<footer class="site-footer">
+<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+&middot; <a href="index.ru.html">главная</a> &middot;
+<a href="workflow.ru.html">цикл</a> &middot;
+<a href="interfaces.ru.html">интерфейсы</a> &middot;
+<a href="interfaces.html">english</a></p>
+<p class="meta"><!-- @META@ --></p>
+</footer>
+</body>
+</html>

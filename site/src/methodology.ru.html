@@ -17,6 +17,7 @@
 <a class="nav-link" href="index.ru.html">главная</a>
 <a class="nav-link active" href="methodology.ru.html">методология</a>
 <a class="nav-link" href="workflow.ru.html">цикл</a>
+<a class="nav-link" href="interfaces.ru.html">интерфейсы</a>
 <a class="nav-link" href="measurements.ru.html">измерения</a>
 <a class="nav-link" href="https://github.com/11111000000/math-coding">github</a>
 </div>
@@ -119,6 +120,18 @@ review. Запись ревью содержит автора и исход; п�
 восстановления. Схема также хранит компенсирующие меры и триггеры пересмотра;
 стандартный CLI оставляет эти два списка пустыми. Ревью, waiver, пересмотр и
 авторизация — журналы решений, а не аутентификация.</p>
+
+<h2>Как состояние доходит до читателя</h2>
+<p>Состояния вычисляет ядро; интерфейсы только показывают их. Плагин для Paseo
+и локальная страница в браузере &mdash; два хоста над одним интерфейсом, а
+единственный источник вердикта и состояния &mdash; вывод
+<code>mathc map --json</code>. Свежесть, независимость и достижимость
+контроля не пересчитываются вне ядра: наблюдение <code>pass</code> не
+становится <code>holds</code>, waiver не становится green, а
+<code>not-run</code> не становится <code>refuted</code>.</p>
+<p>На этом сайте правило то же: сетка на главной рендерится из живой карты и
+показывает красную или неизвестную карту ровно так же честно, как зелёную.
+<a href="interfaces.ru.html">Консоль по частям</a>.</p>
 
 </main>
 <footer class="site-footer">

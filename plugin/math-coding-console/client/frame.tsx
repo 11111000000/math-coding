@@ -44,7 +44,7 @@ export function InstrumentFrame({ theme, compact, snapshot, attention, onRefresh
           <Button theme={theme} compact label={running ? "Running" : "Run checks"} icon="Play" variant="primary" onPress={onRun} disabled={running || refreshing || runEnabled !== true} />
         </View>
       </View>
-      {runEnabled === false && <Body theme={theme} muted>Run checks are disabled. Enable them in Settings → Math Coding before executing project-declared checks.</Body>}
+      {runEnabled === false && <Body theme={theme} muted>Run checks are disabled. Enable them in the settings of the host before executing project-declared checks.</Body>}
       {runEnabled === null && <Body theme={theme} muted>Run checks availability will be known after the host settings finish loading.</Body>}
       <View style={{ backgroundColor: theme.colors.surface2, borderRadius: 8, padding: 10, gap: 3 }}>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>Canonical next action</Text>

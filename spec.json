@@ -441,6 +441,23 @@
       "register": "fact",
       "control": "sed -i '/getOutput \"npm\"/d' flake.nix",
       "waiver": null
+    },
+    {
+      "id": "local-page",
+      "text": "the local browser page is one interface: the bundle holds one copy of the shared interface and one copy of the data layer, and the page renders the queue of the human",
+      "scope": [ "console/", "plugin/math-coding-console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        { "kind": "verifier", "spec": "sh console/scripts/check-page.sh" }
+      ],
+      "falsifier": "the page carries a second copy of the interface or of the data layer, or the page does not render the queue of the human",
+      "register": "fact",
+      "control": "sed -i 's/, \"@tanstack\\/react-query\"//' console/vite.config.ts",
+      "waiver": null
     }
   ]
 }

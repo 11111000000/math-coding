@@ -546,6 +546,21 @@ let check root dist map_path =
                 fail (Printf.sprintf "broken local link in %s: %s" name href))
           (Links.hrefs page)))
     (Sys.readdir dist |> Array.to_list);
+  (* A picture that the page names must exist in the published site: a
+     broken image is a broken claim about the interface. *)
+  List.iter
+    (fun name ->
+      if Filename.check_suffix name ".html" then (
+        let page = Io.read_file (Filename.concat dist name) in
+        List.iter
+          (fun src ->
+            match Links.local_target src with
+            | None -> ()
+            | Some target ->
+              if not (Sys.file_exists (Filename.concat dist target)) then
+                fail (Printf.sprintf "missing local file in %s: %s" name src))
+          (Links.sources page)))
+    (Sys.readdir dist |> Array.to_list);
   List.iter
     (fun name ->
       let path = Filename.concat dist name in
@@ -556,8 +571,9 @@ let check root dist map_path =
         if contains "@CLAIMS" page || contains "@META@" page then
           fail (Printf.sprintf "the page %s still carries a placeholder" name))
     [ "index.html"; "index.ru.html"; "methodology.html"; "methodology.ru.html";
-      "workflow.html"; "workflow.ru.html"; "measurements.html";
-      "measurements.ru.html"; "404.html" ];
+      "workflow.html"; "workflow.ru.html"; "interfaces.html";
+      "interfaces.ru.html"; "measurements.html"; "measurements.ru.html";
+      "404.html" ];
   List.iter
     (fun (claim : claim) ->
       List.iter
