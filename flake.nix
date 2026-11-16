@@ -13,6 +13,16 @@
         ocamlPackages = pkgs.ocamlPackages;
         minimalOcamlDeps = packageSet: with packageSet; [ yojson digestif eqaf omd xmlm uutf uchar ];
         ocamlDeps = (with ocamlPackages; [ ocaml dune_3 ]) ++ minimalOcamlDeps ocamlPackages;
+        # The node of the development shell comes from a package the binary
+        # cache can provide. The full `nodejs` forbids substitutes, so a fresh
+        # machine compiles it from the sources for twenty minutes. The slim
+        # package carries the same node and the same npm, only the build of
+        # the rest of the distribution is left out.
+        nodePackages = [
+          pkgs.nodejs-slim_22
+          (pkgs.lib.getOutput "npm" pkgs.nodejs-slim_22)
+          (pkgs.lib.getOutput "corepack" pkgs.nodejs-slim_22)
+        ];
         staticOcamlPackages = pkgs.pkgsStatic.ocamlPackages.overrideScope (_: super: {
           yojson = super.yojson.overrideAttrs (_: { doCheck = false; });
           digestif = super.digestif.overrideAttrs (_: { doCheck = false; });
@@ -44,7 +54,7 @@
       {
         devShells.default = pkgs.mkShell {
           name = "math-coding-5-dev";
-          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused nodejs_22 ]);
+          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused ]) ++ nodePackages;
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
             export OCAMLPATH="${ocamlPath}"
@@ -58,6 +68,13 @@
             echo "  build:  dune build --root ." >&2
             echo "  test:   dune runtest --root . --force" >&2
             echo "  method: dune exec --root . ./bin/mathc.exe -- map" >&2
+            # The development shell stays in the store. `nix develop` roots it
+            # only while the shell is open, and without a root of its own the
+            # collector of garbage takes the whole toolchain away. The script
+            # writes the root in the cache of the user, so no administrator is
+            # needed for it.
+            sh "${self}/scripts/keep-dev-shell.sh" \
+              || echo "math-coding: the dev shell was not kept in the store" >&2
           '';
         };
 

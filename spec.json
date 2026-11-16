@@ -6,11 +6,11 @@
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
       "AGENTS.md", "docs/", "dune-project", "install.sh", "skills/",
-      ".github/", "site/", "plugin/", "console/"
+      ".github/", "site/", "plugin/", "console/", "scripts/"
     ],
     "by": "owner",
-    "at": 1794736450,
-    "reason": "the console and its local browser page are part of the method, not exempt from it"
+    "at": 1794829339,
+    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it"
   },
   "claims": [
     {
@@ -421,6 +421,25 @@
       "falsifier": "the panel reads a file outside the workspace, or it follows a symbolic link out of the repository",
       "register": "fact",
       "control": "sed -i 's/^  refuseOutside(rootReal, targetReal);$/  void targetReal;/' plugin/math-coding-console/server/workspace-file.ts",
+      "waiver": null
+    },
+    {
+      "id": "dev-shell-ready",
+      "text": "the development shell is ready for work: its tools come from the store, the node of the shell is taken from the binary cache, and the shell stays in the store",
+      "scope": [
+        "flake.nix", "scripts/keep-dev-shell.sh", "test/dev_shell_smoke.sh"
+      ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        { "kind": "verifier", "spec": "sh test/dev_shell_smoke.sh" }
+      ],
+      "falsifier": "the node of the development shell is compiled from the sources, or the collector of garbage takes the shell away",
+      "register": "fact",
+      "control": "sed -i '/getOutput \"npm\"/d' flake.nix",
       "waiver": null
     }
   ]

@@ -130,6 +130,13 @@ sh test/package_smoke.sh portable
 sh test/agent_onboarding.sh
 ```
 
+Dev shell приходит из бинарного кэша: полный `nodejs` запрещает подмену и
+собирается из исходников двадцать минут, поэтому в оболочке стоит
+`nodejs-slim_22` с `npm` и `corepack`. При входе в оболочку
+`scripts/keep-dev-shell.sh` оставляет корень окружения в
+`~/.cache/nix/roots/math-coding-dev` — без прав администратора, — и сборщик
+мусора больше не забирает toolchain. Проверка: `sh test/dev_shell_smoke.sh`.
+
 Для `agent_onboarding.sh` используются `MATHC` и `MATHC_STAND`; точную команду
 показывает self-run claim `external-onboarding` в `spec.json`.
 

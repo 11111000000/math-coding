@@ -20,6 +20,12 @@ dune runtest --root . --force
 ./_build/default/bin/mathc.exe --root . next
 ```
 
+Dev shell не собирает node из исходников: `nodejs-slim_22` приходит из
+бинарного кэша вместе с `npm` и `corepack`. При входе в оболочку
+`scripts/keep-dev-shell.sh` оставляет корень окружения в
+`~/.cache/nix/roots/math-coding-dev` — без прав администратора, — чтобы
+сборщик мусора не забрал toolchain. Проверка: `sh test/dev_shell_smoke.sh`.
+
 ## Архитектура
 
 - `lib/` — чистые типы и вычисления, без I/O.
@@ -100,7 +106,7 @@ commit, push и merge.
 
 v5 keeps evidence linked, fresh, and independent
 
-20 claim(s).
+21 claim(s).
 
 ```sh
 mathc run
