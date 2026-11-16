@@ -51,7 +51,44 @@ for reference in $(nix-store --query --references "$drv"); do
 done
 
 # The root of the shell outlives the shell itself.
-nix-store --gc --print-roots 2>/dev/null | grep -F "$root -> " >/dev/null \
-  || fail "the development shell is not kept in the store: $root"
+#
+# The collector names a root the way the user named it in a single-user
+# install and under a name of its own in a multi-user install. The check
+# therefore asks the collector which roots point at the shell instead of
+# looking for one name, and it leaves out the root of the running shell: that
+# one dies with the shell, and the claim is about what stays after it.
+shell_path="${NIX_GCROOT:-}"
+[ -n "$shell_path" ] || fail "the development shell does not name its own path"
+
+[ "$(readlink "$root" 2>/dev/null || true)" = "$shell_path" ] \
+  || fail "the root of the development shell does not point at the shell: $root"
+
+stays=no
+protecting=""
+roots="$(nix-store --query --roots "$shell_path" 2>/dev/null || true)"
+while IFS= read -r line; do
+  [ -n "$line" ] || continue
+  case "$line" in
+    *" -> "*) gcroot="${line%% -> *}"; target="${line#* -> }" ;;
+    *) gcroot="$line"; target="$shell_path" ;;
+  esac
+  [ "$target" = "$shell_path" ] || continue
+  case "$gcroot" in
+    "$shell_path" | '{censored}') continue ;;
+  esac
+  protecting="$protecting $gcroot"
+  link="$(readlink "$gcroot" 2>/dev/null || true)"
+  case "$gcroot" in
+    "$root") stays=yes; break ;;
+  esac
+  case "$link" in
+    "$root" | "$shell_path") stays=yes; break ;;
+  esac
+done <<ROOTS
+$roots
+ROOTS
+
+printf 'dev shell: the collector keeps the shell through:%s\n' "${protecting:- nothing}"
+[ "$stays" = yes ] || fail "the development shell is not kept in the store: $root"
 
 printf 'dev shell: PASS\n'
