@@ -46,6 +46,7 @@ export class PaseoOperationsHost implements OperationsHost {
     return {
       binary: binaryFromPreferences(values),
       allowRunChecks: values.allowRunChecks,
+      allowHumanDecisions: values.allowHumanDecisions,
     };
   }
 }

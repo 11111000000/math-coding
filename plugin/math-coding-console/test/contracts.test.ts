@@ -53,7 +53,28 @@ test("carries the declared environment of the specification", () => {
 
 test("version one settings migrate with Run checks disabled", () => {
   const migrated = preferences.migrate?.({ binaryPath: "", autoRefreshSeconds: 30 }, 1);
-  assert.deepEqual(migrated, { binaryPath: "", autoRefreshSeconds: 30, allowRunChecks: false });
+  assert.deepEqual(migrated, {
+    binaryPath: "",
+    autoRefreshSeconds: 30,
+    allowRunChecks: false,
+    allowHumanDecisions: false,
+  });
+});
+
+test("version two settings keep the permission to run checks and close the decisions", () => {
+  const migrated = preferences.migrate?.({ binaryPath: "", allowRunChecks: true, autoRefreshSeconds: 30 }, 2);
+  assert.deepEqual(migrated, {
+    binaryPath: "",
+    allowRunChecks: true,
+    allowHumanDecisions: false,
+    autoRefreshSeconds: 30,
+  });
+});
+
+test("the permission to record a human decision is closed by default", () => {
+  const values = preferences.schema.parse({});
+  assert.equal(values.allowHumanDecisions, false);
+  assert.equal(values.allowRunChecks, false);
 });
 
 test("carries the environment a claim declares for itself", () => {

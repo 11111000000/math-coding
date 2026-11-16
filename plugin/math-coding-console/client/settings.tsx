@@ -95,6 +95,13 @@ function ReadySettings({ theme, settings }: { theme: ConsoleTheme; settings: Rea
         onValueChange={(value) => void settings.save({ ...settings.values, allowRunChecks: value }, settings.revision)}
         disabled={settings.saving}
       />
+      <SettingsSwitch
+        label="Allow human decisions"
+        hint="Off by default. When enabled, the console may ask mathc to record a decision of the human: a review of a source, a human review, an accepted risk or an authorization."
+        value={settings.values.allowHumanDecisions}
+        onValueChange={(value) => void settings.save({ ...settings.values, allowHumanDecisions: value }, settings.revision)}
+        disabled={settings.saving}
+      />
       <SettingsAction label="Binary path" actionLabel={settings.saving ? "Saving" : "Save"} onPress={saveBinary} disabled={settings.saving || binaryPath.trim() === settings.values.binaryPath} />
       <SettingsAction label="All preferences" actionLabel="Reset" onPress={reset} disabled={settings.saving} />
       {settings.saveError && <Text style={{ color: theme.colors.statusDanger, padding: 12 }}>{settings.saveError}</Text>}

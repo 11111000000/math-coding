@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createElement, type ReactNode } from "react";
 import { QueryClient } from "@tanstack/react-query";
 import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
+import { emptyHumanActionValues, humanActions } from "../shared/human-actions";
 import { buildHumanQueue } from "../client/human-queue";
 import { renderWithHost } from "../test/host-stub";
 import { runScale } from "../client/run-scale";
@@ -23,6 +24,7 @@ async function main() {
     { QueueView },
     { RunConfirmation },
     { FilePreview },
+    { HumanActionForm },
   ] = await Promise.all([
     import("../client/frame"),
     import("../client/attention-view"),
@@ -36,6 +38,7 @@ async function main() {
     import("../client/queue-view"),
     import("../client/run-confirmation"),
     import("../client/file-preview"),
+    import("../client/human-action"),
   ]);
   const data = snapshot();
   data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
@@ -94,10 +97,14 @@ async function main() {
     running: false,
     runEnabled: true,
   };
+  const humanActionsForFixture = humanActions(
+    { claims: humanData.claims, states: humanData.map.states, policyConfigured: false },
+    1_000,
+  );
   const views: [string, ReactNode][] = [
     ["instrument frame", React(InstrumentFrame, frameProps)],
     ["attention agent branch", React(AttentionView, { theme, compact: false, model: humanAttention, context: humanContext, onSelect: () => undefined, onRun: () => undefined, runEnabled: true })],
-    ["human queue", React(QueueView, { theme, compact: false, queue: humanQueue, context: humanContext, onOpenFile: () => undefined, onSelect: () => undefined })],
+    ["human queue", React(QueueView, { theme, compact: false, queue: humanQueue, context: humanContext, actions: humanActionsForFixture, decisionsEnabled: true, onTakeAction: () => undefined, onOpenFile: () => undefined, onSelect: () => undefined })],
     ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["scope graph", React(GraphView, { theme, compact: true, snapshot: data, mode: "scope", expanded: new Set<string>(), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined })],
     ["claims", React(ClaimsView, { theme, compact: false, snapshot: data, onSelect: () => undefined })],
@@ -106,6 +113,16 @@ async function main() {
     ["evidence", React(EvidenceView, { theme, compact: false, snapshot: data })],
     ["run confirmation", React(RunConfirmation, { theme, scale: runScale(attentionData), running: false, error: null, onCancel: () => undefined, onRun: () => undefined })],
     ["file preview", React(FilePreview, { theme, compact: false, workspaceId: "workspace-1", path: "docs/adr.md", onClose: () => undefined })],
+    ["human action form", React(HumanActionForm, {
+      theme,
+      action: humanActionsForFixture[0] ?? { id: "none", kind: "authorize", claimId: null, authority: null, title: "none", detail: "none", expectation: "", owner: "", fields: [] },
+      values: { ...emptyHumanActionValues(), by: "owner" },
+      onChange: () => undefined,
+      running: false,
+      error: null,
+      onCancel: () => undefined,
+      onConfirm: () => undefined,
+    })],
     ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
     ["settings screen", React(SettingsScreen, { theme })],
   ];

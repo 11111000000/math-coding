@@ -9,6 +9,11 @@ ROOT=$(CDPATH= cd -- "$(dirname "$0")/.." && pwd)
 WORK=$(mktemp -d)
 trap 'rm -rf "$WORK"' EXIT
 
+# A filter names the check whose controls are wanted. Without it every control
+# of the plugin runs. The filter keeps a focused verifier to its own controls,
+# so the controls of one subject do not stand in for the controls of another.
+FILTER=${1:-}
+
 # The bound keeps the controls from crowding the machine they run on.
 MAX_JOBS=${MATHC_NEGATIVE_JOBS:-3}
 case "$MAX_JOBS" in
@@ -91,6 +96,15 @@ start() {
 }
 
 start_control() {
+  # The last argument names the check the control must break. A filter keeps
+  # only the controls of that check.
+  target=""
+  for argument in "$@"; do
+    target=$argument
+  done
+  if [ -n "$FILTER" ] && [ "$target" != "$FILTER" ]; then
+    return 0
+  fi
   TOTAL=$((TOTAL + 1))
   dir="$WORK/control-$TOTAL"
   prepare "$dir"
@@ -195,6 +209,48 @@ start_control \
   's|^import { useState, type ReactNode } from "react";|import { Icon as HostIcon } from "@getpaseo/plugin/client/ui";\nimport { useState, type ReactNode } from "react";|' \
   "-"
 
+start_control \
+  control_check \
+  "a human decision cannot bypass the disabled setting" \
+  "server/core/operations.ts" \
+  's/if (!runtime.allowHumanDecisions)/if (false)/' \
+  "test/human-decision.test.ts"
+
+start_control \
+  control_check \
+  "a human decision cannot skip the confirmation of the human" \
+  "server/core/operations.ts" \
+  's/if (input.confirmation !== "APPLY_HUMAN_DECISION")/if (false)/' \
+  "test/human-decision.test.ts"
+
+start_control \
+  control_check \
+  "a step the map does not offer cannot reach the program" \
+  "server/core/human-decision.ts" \
+  's/if (!action) {/if (false) {/' \
+  "test/human-decision.test.ts"
+
+start_control \
+  control_check \
+  "a refuted claim cannot be offered a waiver" \
+  "shared/human-actions.ts" \
+  's/if (state.state !== "refuted")/if (true)/' \
+  "test/human-decision.test.ts"
+
+start_control \
+  control_check \
+  "a settled claim must not ask for a decision" \
+  "shared/human-actions.ts" \
+  's/if (state.state !== "holds" && state.state !== "waived")/if (true)/' \
+  "test/human-decision.test.ts"
+
+start_control \
+  control_check \
+  "the command of a step cannot drift from the command of the program" \
+  "shared/human-actions.ts" \
+  's/"record", action.claimId, action.authority, "--by", by/"record", action.claimId, action.authority, "--who", by/' \
+  "test/human-decision.test.ts"
+
 set -- $PIDS
 for pid in "$@"; do
   if ! wait "$pid"; then
@@ -209,6 +265,11 @@ while [ "$index" -le "$TOTAL" ]; do
   fi
   index=$((index + 1))
 done
+
+if [ "$TOTAL" -eq 0 ]; then
+  echo "negative-control: FAIL (no control covers '$FILTER')" >&2
+  exit 1
+fi
 
 if [ "$FAILURES" -gt 0 ]; then
   echo "negative-control: FAIL ($FAILURES of $TOTAL controls did not catch their break)" >&2
