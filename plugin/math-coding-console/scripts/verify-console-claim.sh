@@ -3,6 +3,11 @@
 # the browser page. Neither project reads the packages of the other, so their
 # checks run side by side. The steps that need the installed packages wait for
 # the install, and the audit runs first because it needs no packages at all.
+#
+# The heavy steps run two at a time and never more. Three node processes at
+# once do not fit on a small machine, and a killed step is indistinguishable
+# from a broken subject: the check would refute a claim that is whole. The
+# bound of scripts/negative-controls.sh keeps the same rule for the controls.
 set -eu
 
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
@@ -19,55 +24,59 @@ if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
-# The packages of both projects are installed side by side.
-(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) &
-install_plugin=$!
-(cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) &
-install_page=$!
-
+# The packages of both projects are installed one after another, the way
+# console/scripts/check-page.sh installs them. Two installs at the same time
+# need twice the memory, and on a small machine the installer is killed.
 status=0
-wait "$install_plugin" || status=1
-wait "$install_page" || status=1
+(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
+(cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
 if [ "$status" -ne 0 ]; then
   echo "verify-console: the packages are not installed" >&2
   exit 1
 fi
 
-# The type checks and the negative controls do not read each other's results,
-# so they run side by side.
+# The type checks do not read each other's results, so they run side by side.
+status=0
 (cd "$PLUGIN" && npm run typecheck) &
 plugin_typecheck=$!
 (cd "$PAGE" && npm run typecheck) &
 page_typecheck=$!
-(cd "$PLUGIN" && npm run test:negative) &
-plugin_negative=$!
-
-status=0
 wait "$plugin_typecheck" || status=1
 wait "$page_typecheck" || status=1
-wait "$plugin_negative" || status=1
 if [ "$status" -ne 0 ]; then
-  echo "verify-console: a type check or a negative control failed" >&2
+  echo "verify-console: a type check failed" >&2
   exit 1
 fi
 
-# The tests and the build are the last steps.
+# The negative controls need the machine to themselves: each of them runs a
+# copy of the subject, and they are bounded by their own script.
+(cd "$PLUGIN" && npm run test:negative) || {
+  echo "verify-console: a negative control failed" >&2
+  exit 1
+}
+
+# The tests of the plugin and the check of the page follow, two at a time.
+status=0
 (cd "$PLUGIN" && npm test) &
 plugin_test=$!
 (cd "$PLUGIN" && npm run test:render) &
 plugin_render=$!
+wait "$plugin_test" || status=1
+wait "$plugin_render" || status=1
+if [ "$status" -ne 0 ]; then
+  echo "verify-console: a test of the plugin failed" >&2
+  exit 1
+fi
+
+status=0
 (cd "$PAGE" && npm test) &
 page_test=$!
 (cd "$PAGE" && npm run build) &
 page_build=$!
-
-status=0
-wait "$plugin_test" || status=1
-wait "$plugin_render" || status=1
 wait "$page_test" || status=1
 wait "$page_build" || status=1
 if [ "$status" -ne 0 ]; then
-  echo "verify-console: a test or the build failed" >&2
+  echo "verify-console: a test or the build of the page failed" >&2
   exit 1
 fi
 
