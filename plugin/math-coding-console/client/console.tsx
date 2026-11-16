@@ -3,6 +3,13 @@ import { useMemo, useState } from "react";
 import { ScrollView, Text, View } from "react-native";
 import { preferencesDefinition, rpcSchemas } from "../shared/schemas";
 import type { ConsoleTheme } from "../shared/theme";
+import {
+  emptyHumanActionValues,
+  humanActionArgv,
+  humanActions,
+  type HumanAction,
+  type HumanActionValues,
+} from "../shared/human-actions";
 import { attentionContext, buildAttentionModel, snapshotSeconds } from "./attention";
 import { AttentionView } from "./attention-view";
 import { ClaimsView } from "./claims";
@@ -13,6 +20,7 @@ import { FilePreview } from "./file-preview";
 import { InstrumentFrame } from "./frame";
 import { GraphView, type GraphSelection } from "./graph";
 import { useHost } from "./host/context";
+import { HumanActionForm } from "./human-action";
 import { buildHumanQueue, queueEvidenceComplete } from "./human-queue";
 import { Body, Button, Card, Empty, Mono, Note, Segmented } from "./parts";
 import { previewIsOpen } from "./preview-target";
@@ -46,6 +54,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const fetchSnapshot = useRpc(rpcSchemas.snapshot);
   const fetchEvidence = useRpc(rpcSchemas.evidence);
   const runChecks = useRpc(rpcSchemas.run);
+  const applyDecision = useRpc(rpcSchemas.humanDecision);
   const settings = useSettings(preferencesDefinition);
   const [view, setView] = useState("attention");
   const [exploreView, setExploreView] = useState("claims");
@@ -53,8 +62,10 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const [expanded, setExpanded] = useState<ReadonlySet<string>>(new Set());
   const [selected, setSelected] = useState<GraphSelection | null>(null);
   const [confirmRun, setConfirmRun] = useState(false);
+  const [decision, setDecision] = useState<{ action: HumanAction; values: HumanActionValues } | null>(null);
   const [previewPath, setPreviewPath] = useState<string | null>(null);
   const autoRefreshSeconds = settings.status === "ready" ? settings.values?.autoRefreshSeconds ?? 0 : 0;
+  const decisionsEnabled = settings.status === "ready" ? settings.values?.allowHumanDecisions ?? false : false;
   const run = useMutation({
     mutationFn: () => runChecks({ workspaceId, confirmation: "RUN_CHECKS" }),
     onSuccess: ({ snapshot }) => {
@@ -65,6 +76,17 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
       toast.show(`Checks finished: ${snapshot.map.verdict} · ${holds} holds`, {
         variant: snapshot.map.verdict === "green" ? "success" : snapshot.map.verdict === "red" ? "error" : "warning",
       });
+      void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["mathcoding-evidence", workspaceId] });
+      void queryClient.invalidateQueries({ queryKey: ["mathcoding-queue-evidence", workspaceId] });
+    },
+  });
+  const decisionMutation = useMutation({
+    mutationFn: (input: Parameters<typeof applyDecision>[0]) => applyDecision(input),
+    onSuccess: ({ snapshot, message }) => {
+      queryClient.setQueryData(["mathcoding-snapshot", workspaceId], snapshot);
+      setDecision(null);
+      toast.show(message.length > 0 ? message : "The decision is recorded", { variant: "success" });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-evidence", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-queue-evidence", workspaceId] });
@@ -131,6 +153,53 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     () => snapshot && attention ? buildHumanQueue(snapshot, attention, evidenceQuery.data?.records ?? []) : undefined,
     [snapshot, attention, evidenceQuery.data],
   );
+  /**
+   * The manual steps of the method for the current map.
+   *
+   * The steps come from the canonical map and from the declared
+   * specification. The console offers them; the program performs them.
+   */
+  const actions = useMemo(
+    () => snapshot
+      ? humanActions(
+        {
+          claims: snapshot.claims,
+          states: snapshot.map.states,
+          policyConfigured: snapshot.policyConfigured,
+        },
+        canonicalNow,
+      )
+      : [],
+    [snapshot, canonicalNow],
+  );
+  const openDecision = (action: HumanAction) => {
+    const by = action.owner !== "" ? action.owner : snapshot?.map.goal?.by ?? "";
+    setDecision({ action, values: { ...emptyHumanActionValues(), by } });
+  };
+  const confirmDecision = () => {
+    if (!decision) return;
+    const action = decision.action;
+    const values = decision.values;
+    try {
+      humanActionArgv(action, values);
+    } catch (problem) {
+      toast.error(problem instanceof Error ? problem.message : String(problem));
+      return;
+    }
+    const days = values.validForDays.trim();
+    decisionMutation.mutate({
+      workspaceId,
+      confirmation: "APPLY_HUMAN_DECISION",
+      kind: action.kind,
+      claimId: action.claimId ?? undefined,
+      authority: action.authority ?? undefined,
+      by: values.by.trim(),
+      reason: values.reason.trim() === "" ? undefined : values.reason.trim(),
+      outcome: values.outcome === "" ? undefined : values.outcome,
+      validForDays: days === "" ? undefined : Number(days),
+      recovery: values.recovery.trim() === "" ? undefined : values.recovery.trim(),
+    });
+  };
   const runEnabled = settings.status === "ready" ? settings.values?.allowRunChecks ?? null : null;
   const snapshotError = snapshotQuery.error ? String(snapshotQuery.error) : null;
   const workspaceBusy = snapshotError?.includes("busy") ?? false;
@@ -168,6 +237,9 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
                     compact={compact}
                     queue={queue}
                     context={briefContext}
+                    actions={actions}
+                    decisionsEnabled={decisionsEnabled}
+                    onTakeAction={openDecision}
                     onOpenFile={setPreviewPath}
                     onSelect={setSelected}
                     trailComplete={evidenceQuery.data?.complete ?? true}
@@ -214,6 +286,20 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
           onRun={() => run.mutate()}
         />
       </Modal>
+      {decision && (
+        <Modal title="Record a decision of the method" open onOpenChange={(open) => { if (!open && !decisionMutation.isPending) setDecision(null); }}>
+          <HumanActionForm
+            theme={theme}
+            action={decision.action}
+            values={decision.values}
+            onChange={(values) => setDecision({ action: decision.action, values })}
+            running={decisionMutation.isPending}
+            error={decisionMutation.isError ? decisionMutation.error : null}
+            onCancel={() => setDecision(null)}
+            onConfirm={confirmDecision}
+          />
+        </Modal>
+      )}
     </View>
   );
 }

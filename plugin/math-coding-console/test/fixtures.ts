@@ -60,6 +60,7 @@ export function snapshot(claims: Claim[] = [claim()], state: ClaimState = "holds
     revision: "a".repeat(64),
     map: map(claims, state),
     claims,
+    policyConfigured: false,
   };
 }
 

@@ -82,7 +82,11 @@ class LocalOperationsHost implements OperationsHost {
 
   async resolveRuntime(): Promise<RuntimeSettings> {
     const values = await this.settings.values();
-    return { binary: binaryFromPreferences(values), allowRunChecks: values.allowRunChecks };
+    return {
+      binary: binaryFromPreferences(values),
+      allowRunChecks: values.allowRunChecks,
+      allowHumanDecisions: values.allowHumanDecisions,
+    };
   }
 }
 
@@ -305,6 +309,21 @@ async function handleRpc(
       const output = rpcSchemas.file.output.safeParse(result);
       if (!output.success) {
         sendError(response, 500, `The file preview does not match its contract: ${issueText(output.error)}`);
+        return;
+      }
+      sendJson(response, 200, output.data);
+      return;
+    }
+    if (name === "mathcoding.human-decision") {
+      const input = rpcSchemas.humanDecision.input.safeParse(body);
+      if (!input.success) {
+        sendError(response, 400, issueText(input.error));
+        return;
+      }
+      const result = await context.operations.humanDecision(context.host, input.data);
+      const output = rpcSchemas.humanDecision.output.safeParse(result);
+      if (!output.success) {
+        sendError(response, 500, `The decision does not match its contract: ${issueText(output.error)}`);
         return;
       }
       sendJson(response, 200, output.data);

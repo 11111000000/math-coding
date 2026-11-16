@@ -1,7 +1,17 @@
 import { isAbsolute, join } from "node:path";
-import type { ClaimDetail, EvidencePage, FilePreview, Preferences, Snapshot, SnapshotReady } from "../../shared/schemas";
+import type {
+  ClaimDetail,
+  EvidencePage,
+  FilePreview,
+  HumanDecisionInput,
+  HumanDecisionOutput,
+  Preferences,
+  Snapshot,
+  SnapshotReady,
+} from "../../shared/schemas";
 import { evidencePage, newestFirst } from "../evidence";
 import { pathExists } from "../files";
+import { applyHumanDecision } from "./human-decision";
 import { loadProject, type ProjectSnapshot } from "../project";
 import { readWorkspaceEntry } from "../workspace-file";
 
@@ -14,6 +24,13 @@ export interface WorkspaceInfo {
 export interface RuntimeSettings {
   binary: string;
   allowRunChecks: boolean;
+  /**
+   * Whether the console may record a decision of the human.
+   *
+   * A decision of the human writes into the project. The permission is closed
+   * by default and opened by the human in the settings of the host.
+   */
+  allowHumanDecisions: boolean;
 }
 
 /**
@@ -49,6 +66,7 @@ function readySnapshot(workspace: WorkspaceInfo, project: ProjectSnapshot): Snap
     revision: project.revision,
     map: project.map,
     claims: project.claims,
+    policyConfigured: project.policyConfigured,
   };
 }
 
@@ -163,6 +181,30 @@ export class ConsoleOperations {
     const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
       return readWorkspaceEntry(workspace.directory, input.path, input.maxBytes);
+    });
+  }
+
+  /**
+   * Record one decision of the human.
+   *
+   * The decision is performed by the program, never by the console. The
+   * console checks three things before it runs anything: the explicit
+   * agreement of the human, the permission of the host, and the presence of
+   * the step in the current canonical map. The state after the decision is the
+   * one the program reports.
+   */
+  async humanDecision(host: OperationsHost, input: HumanDecisionInput): Promise<HumanDecisionOutput> {
+    if (input.confirmation !== "APPLY_HUMAN_DECISION") {
+      throw new Error("A human decision requires explicit confirmation");
+    }
+    const workspace = await host.resolveWorkspace(input.workspaceId);
+    return this.exclusive(workspace.directory, async () => {
+      const runtime = await host.resolveRuntime(workspace);
+      if (!runtime.allowHumanDecisions) {
+        throw new Error("Human decisions are disabled; enable them in Math Coding settings");
+      }
+      const result = await applyHumanDecision(workspace.directory, runtime.binary, input);
+      return { snapshot: readySnapshot(workspace, result.snapshot), message: result.message };
     });
   }
 }

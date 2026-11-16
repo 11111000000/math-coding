@@ -3,6 +3,11 @@ import { Text, View } from "react-native";
 import type { AttentionBriefContext } from "./attention";
 import { attentionBrief, attentionReasonCodes, attentionReasonText } from "./attention";
 import type { ConsoleTheme } from "../shared/theme";
+import {
+  humanActionKindLabel,
+  primaryActionForClaim,
+  type HumanAction,
+} from "../shared/human-actions";
 import type { ConditionEvidence, HumanQueue, HumanQueueItem, StandingObligation } from "./human-queue";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
@@ -17,6 +22,17 @@ export interface QueueViewProps {
   onOpenFile: (path: string) => void;
   onSelect: (selection: GraphSelection) => void;
   /**
+   * The manual steps the method allows for the current map.
+   *
+   * The steps come from the canonical map and from the declared
+   * specification. The console performs them by asking the program, never on
+   * its own.
+   */
+  actions: HumanAction[];
+  /** Whether the host allows the console to record a decision at all. */
+  decisionsEnabled: boolean;
+  onTakeAction: (action: HumanAction) => void;
+  /**
    * Whether every condition of the queue has a record in the trail, and
    * whether the trail was read to its end. When it was not, the panel says so
    * instead of letting an unread page look like a condition without evidence.
@@ -29,11 +45,12 @@ export interface QueueViewProps {
  * The first screen of the console.
  *
  * It answers what the human has to do in this repository: the decisions that
- * cannot be delegated, the obligations the owner keeps true, and the result
- * the owner still has to accept. Every line comes from the canonical map, the
- * declared specification and the evidence trail.
+ * cannot be delegated, the manual steps the method allows, the obligations
+ * the owner keeps true, and the result the owner still has to accept. Every
+ * line comes from the canonical map, the declared specification and the
+ * evidence trail.
  */
-export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect, trailComplete = true, trailExhausted = true }: QueueViewProps) {
+export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect, actions, decisionsEnabled, onTakeAction, trailComplete = true, trailExhausted = true }: QueueViewProps) {
   const { copyText, useToast } = useHost();
   const toast = useToast();
   const [showAll, setShowAll] = useState(false);
@@ -79,14 +96,24 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
                 theme={theme}
                 compact={compact}
                 item={item}
+                action={primaryActionForClaim(actions, item.claimIds[0] ?? "")}
+                decisionsEnabled={decisionsEnabled}
                 onOpenFile={onOpenFile}
                 onSelect={onSelect}
+                onTakeAction={onTakeAction}
                 onCopyBrief={() => void copyBrief(item)}
               />
             ))}
           </View>
         )}
       </Card>
+      <ManualStepsCard
+        theme={theme}
+        compact={compact}
+        actions={actions}
+        decisionsEnabled={decisionsEnabled}
+        onTakeAction={onTakeAction}
+      />
       <Card
         theme={theme}
         compact={compact}
@@ -157,12 +184,15 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
   );
 }
 
-function QueueItemCard({ theme, compact, item, onOpenFile, onSelect, onCopyBrief }: {
+function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenFile, onSelect, onTakeAction, onCopyBrief }: {
   theme: ConsoleTheme;
   compact: boolean;
   item: HumanQueueItem;
+  action: HumanAction | undefined;
+  decisionsEnabled: boolean;
   onOpenFile: (path: string) => void;
   onSelect: (selection: GraphSelection) => void;
+  onTakeAction: (action: HumanAction) => void;
   onCopyBrief: (item: HumanQueueItem) => void;
 }) {
   return (
@@ -186,12 +216,99 @@ function QueueItemCard({ theme, compact, item, onOpenFile, onSelect, onCopyBrief
       {item.attention.agentMay.length > 0 && <QueueLine theme={theme} label="Agent may">{item.attention.agentMay}</QueueLine>}
       {item.attention.agentMustNot.length > 0 && <QueueLine theme={theme} label="Agent must not">{item.attention.agentMustNot}</QueueLine>}
       {item.attention.suggestedAction.length > 0 && <QueueLine theme={theme} label="Next safe step">{item.attention.suggestedAction}</QueueLine>}
+      {action ? (
+        <Button
+          theme={theme}
+          compact
+          label={`Take this step: ${humanActionKindLabel(action.kind)}`}
+          icon="Stamp"
+          onPress={() => onTakeAction(action)}
+          disabled={!decisionsEnabled}
+        />
+      ) : (
+        <Note theme={theme} tone="neutral">{manualNote(item)}</Note>
+      )}
       <FileButtons theme={theme} paths={item.files} onOpenFile={onOpenFile} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
         {item.claimIds[0] && <Button theme={theme} compact label="Inspect" icon="Search" onPress={() => onSelect({ claimId: item.claimIds[0]! })} />}
         <Button theme={theme} compact label="Copy brief for agent" icon="Clipboard" onPress={() => onCopyBrief(item)} />
       </View>
     </View>
+  );
+}
+
+/**
+ * The decision the method has no verb for.
+ *
+ * Some decisions belong to the owner and are not recorded by the program: the
+ * direction of a refuted claim and the acceptance criterion of a claim
+ * without a checkable condition. The console names them instead of leaving
+ * the human without an answer.
+ */
+function manualNote(item: HumanQueueItem): string {
+  if (item.kind === "refutation") {
+    return "The method has no verb for this decision: a refuted claim cannot be waived, and the direction of the claim is yours. Repair the implementation or change the claim.";
+  }
+  if (item.kind === "acceptance-criterion") {
+    return "The method has no verb for this decision: the acceptance criterion has to be declared in the specification before it can be checked.";
+  }
+  return "The method has no manual step for this decision in the current map.";
+}
+
+/**
+ * Every manual step the method allows for the current map.
+ *
+ * The list is complete: it holds the steps of every claim and the step of the
+ * project itself. Each of them is performed by the program, with the
+ * confirmation of the human.
+ */
+function ManualStepsCard({ theme, compact, actions, decisionsEnabled, onTakeAction }: {
+  theme: ConsoleTheme;
+  compact: boolean;
+  actions: HumanAction[];
+  decisionsEnabled: boolean;
+  onTakeAction: (action: HumanAction) => void;
+}) {
+  return (
+    <Card
+      theme={theme}
+      compact={compact}
+      title="Manual steps you can take now"
+      subtitle={actions.length === 0
+        ? "The method has no manual step for the current map"
+        : `${actions.length} step(s) the program can record for you`}
+    >
+      {actions.length === 0 ? (
+        <Body theme={theme} muted>Every claim of the current map is settled, and the project declares no protected transition.</Body>
+      ) : (
+        <View style={{ gap: 8 }}>
+          {!decisionsEnabled && (
+            <Note theme={theme} tone="warn">
+              The console may not record a decision yet. Open the Math Coding settings and allow human decisions.
+            </Note>
+          )}
+          {actions.map((action) => (
+            <View key={action.id} style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 9, padding: compact ? 9 : 11, gap: 6 }}>
+              <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
+                <Badge theme={theme} label={humanActionKindLabel(action.kind)} icon="Stamp" />
+                {action.claimId && <Badge theme={theme} label={action.claimId} icon="Target" />}
+                {action.authority && <Badge theme={theme} label={`review: ${action.authority}`} />}
+              </View>
+              <Text style={{ color: theme.colors.foreground, fontSize: 13, fontWeight: "700" }}>{action.title}</Text>
+              <Body theme={theme} muted lines={4}>{action.detail}</Body>
+              <Button
+                theme={theme}
+                compact
+                label="Take this step"
+                icon="Stamp"
+                onPress={() => onTakeAction(action)}
+                disabled={!decisionsEnabled}
+              />
+            </View>
+          ))}
+        </View>
+      )}
+    </Card>
   );
 }
 

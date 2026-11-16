@@ -1,5 +1,6 @@
 import { z } from "zod";
-import { claimSchema, evidenceRecordSchema, mapSchema } from "./domain";
+import { claimSchema, evidenceRecordSchema, mapSchema, EVIDENCE_OUTCOMES } from "./domain";
+import { HUMAN_ACTION_KINDS } from "./human-actions";
 
 /**
  * The canonical reason of a map state.
@@ -40,6 +41,14 @@ export const snapshotReadySchema = z.strictObject({
   revision: z.string().min(1),
   map: mapSchema,
   claims: z.array(claimSchema),
+  /**
+   * Whether the project declares protected transitions.
+   *
+   * The console offers the authorization step only when the project carries a
+   * policy. The program decides who may authorize; the console only knows
+   * that the step exists.
+   */
+  policyConfigured: z.boolean(),
 });
 
 export const notInitializedSchema = z.strictObject({
@@ -86,6 +95,31 @@ export const runOutputSchema = z.strictObject({
 export const runInputSchema = z.strictObject({
   workspaceId: z.string().min(1),
   confirmation: z.literal("RUN_CHECKS"),
+});
+
+/**
+ * One manual step of the method.
+ *
+ * The console never performs a step of its own: it asks the program to do it.
+ * The confirmation is a literal, so a request without the explicit agreement
+ * of the human never reaches the project.
+ */
+export const humanDecisionInputSchema = z.strictObject({
+  workspaceId: z.string().min(1),
+  confirmation: z.literal("APPLY_HUMAN_DECISION"),
+  kind: z.enum(HUMAN_ACTION_KINDS),
+  claimId: z.string().min(1).optional(),
+  authority: z.string().min(1).optional(),
+  by: z.string().min(1).max(200),
+  reason: z.string().max(4000).optional(),
+  outcome: z.enum(EVIDENCE_OUTCOMES).optional(),
+  validForDays: z.number().int().positive().max(3650).optional(),
+  recovery: z.string().max(4000).optional(),
+});
+
+export const humanDecisionOutputSchema = z.strictObject({
+  snapshot: snapshotReadySchema,
+  message: z.string(),
 });
 
 /**
@@ -151,6 +185,11 @@ export const rpcSchemas = {
     input: filePreviewInputSchema,
     output: filePreviewOutputSchema,
   },
+  humanDecision: {
+    name: "mathcoding.human-decision",
+    input: humanDecisionInputSchema,
+    output: humanDecisionOutputSchema,
+  },
 } as const;
 
 export type RpcName = (typeof rpcSchemas)[keyof typeof rpcSchemas]["name"];
@@ -158,16 +197,33 @@ export type RpcName = (typeof rpcSchemas)[keyof typeof rpcSchemas]["name"];
 export const preferencesDefinition = {
   id: "general",
   scope: "host" as const,
-  version: 2,
+  version: 3,
   migrate(values: unknown, fromVersion: number): unknown {
-    if (fromVersion !== 1 || typeof values !== "object" || values === null || Array.isArray(values)) {
+    if (typeof values !== "object" || values === null || Array.isArray(values)) {
       return values;
     }
-    return { ...values, allowRunChecks: false };
+    const record = values as Record<string, unknown>;
+    if (fromVersion === 1) {
+      // The first version had no explicit permission to run checks either.
+      return { ...record, allowRunChecks: false, allowHumanDecisions: false };
+    }
+    if (fromVersion === 2) {
+      // The permission to run checks is kept; the permission to record a human
+      // decision is a new one and therefore starts closed.
+      return { ...record, allowHumanDecisions: false };
+    }
+    return values;
   },
   schema: z.strictObject({
     binaryPath: z.string().max(4096).default(""),
     allowRunChecks: z.boolean().default(false),
+    /**
+     * Whether the console may record a decision of the human.
+     *
+     * A decision of the human is a journal entry in the project. It is closed
+     * by default: the human opens it in the settings of the host.
+     */
+    allowHumanDecisions: z.boolean().default(false),
     autoRefreshSeconds: z.union([
       z.literal(0),
       z.literal(15),
@@ -185,3 +241,5 @@ export type ClaimDetail = z.output<typeof claimDetailOutputSchema>;
 export type EvidencePage = z.output<typeof evidencePageOutputSchema>;
 export type FilePreview = z.output<typeof filePreviewOutputSchema>;
 export type Preferences = z.output<typeof preferencesDefinition.schema>;
+export type HumanDecisionInput = z.output<typeof humanDecisionInputSchema>;
+export type HumanDecisionOutput = z.output<typeof humanDecisionOutputSchema>;

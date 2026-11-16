@@ -13,6 +13,8 @@ export {
   fileContentSchema,
   filePreviewInputSchema,
   filePreviewOutputSchema,
+  humanDecisionInputSchema,
+  humanDecisionOutputSchema,
   notInitializedSchema,
   pageInput,
   pageOutput,
@@ -28,6 +30,8 @@ export type {
   ClaimDetail,
   EvidencePage,
   FilePreview,
+  HumanDecisionInput,
+  HumanDecisionOutput,
   Preferences,
   Snapshot,
   SnapshotReady,
@@ -45,5 +49,6 @@ export const claimDetailRpc = defineRpc(rpcSchemas.claim);
 export const evidencePageRpc = defineRpc(rpcSchemas.evidence);
 export const runChecksRpc = defineRpc(rpcSchemas.run);
 export const filePreviewRpc = defineRpc(rpcSchemas.file);
+export const humanDecisionRpc = defineRpc(rpcSchemas.humanDecision);
 
 export const preferences = defineSettings(preferencesDefinition);

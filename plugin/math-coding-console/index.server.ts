@@ -3,6 +3,7 @@ import {
   claimDetailRpc,
   evidencePageRpc,
   filePreviewRpc,
+  humanDecisionRpc,
   preferences,
   runChecksRpc,
   snapshotRpc,
@@ -23,5 +24,7 @@ export default function contribute(server: PluginServerContext) {
     operations.run(new PaseoOperationsHost(paseo, settings), input));
   server.handle(filePreviewRpc, async (input, { paseo }) =>
     operations.filePreview(new PaseoOperationsHost(paseo, settings), input));
+  server.handle(humanDecisionRpc, async (input, { paseo }) =>
+    operations.humanDecision(new PaseoOperationsHost(paseo, settings), input));
   return () => {};
 }

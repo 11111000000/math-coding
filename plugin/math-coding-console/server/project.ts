@@ -9,7 +9,7 @@ import {
 } from "../shared/domain";
 import { canonicalJson } from "../shared/requirements";
 import { linkEvidence, parseTrail, revisionInput } from "./evidence";
-import { parseJson, parseWith, readBounded, readOptionalBounded } from "./files";
+import { parseJson, parseWith, pathExists, readBounded, readOptionalBounded } from "./files";
 import { runProcess, type ProcessResult } from "./process";
 
 const MAP_TIMEOUT_MS = 120_000;
@@ -25,6 +25,8 @@ export interface ProjectSnapshot {
   map: MathMap;
   claims: Claim[];
   records?: EvidenceRecord[];
+  /** Whether the project declares protected transitions. */
+  policyConfigured: boolean;
   durationMs: number;
 }
 
@@ -114,6 +116,7 @@ async function attempt(
     map,
     claims: spec.claims,
     records: includeTrail ? linkEvidence(parseTrail(afterTrail ?? ""), spec.claims) : undefined,
+    policyConfigured: await pathExists(join(root, "policy.json")),
     durationMs: result.durationMs,
   };
 }

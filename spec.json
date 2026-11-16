@@ -458,6 +458,26 @@
       "register": "fact",
       "control": "sed -i 's/, \"@tanstack\\/react-query\"//' console/vite.config.ts",
       "waiver": null
+    },
+    {
+      "id": "human-decisions",
+      "text": "the console shows the manual steps of the method and performs them through the program itself: the human decides, the program records",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-human-decision.sh"
+        }
+      ],
+      "falsifier": "the console performs a step the canonical map does not offer, or it performs a decision without the explicit confirmation of the human",
+      "register": "fact",
+      "control": "sed -i 's/if (input.confirmation !== \"APPLY_HUMAN_DECISION\")/if (false)/' plugin/math-coding-console/server/core/operations.ts",
+      "waiver": null
     }
   ]
 }
