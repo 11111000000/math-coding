@@ -63,4 +63,19 @@ let () =
       let duplicate = invoke root ("validate " ^ Filename.quote (Filename.concat root "duplicate-arm.jsonl")) in
       check "duplicate experimental arms are rejected"
         (duplicate.code = 2 && contains duplicate.stderr "duplicate");
+      let excluded = replace "outcome" (`String "excluded") protocol
+        |> replace "accepted_by" `Null
+        |> replace "observation_complete" (`Bool false)
+        |> replace "post_acceptance_defects" `Null
+        |> replace "reopened" `Null
+        |> replace "exclusion_reason" (`String "outside-sample") in
+      write_json root "outside-sample.jsonl" excluded;
+      let outside = invoke root ("validate " ^ Filename.quote (Filename.concat root "outside-sample.jsonl")) in
+      check "a task outside the declared sample is a published exclusion"
+        (outside.code = 0 && contains outside.stdout "valid: 1 run(s)");
+      write_json root "undeclared-exclusion.jsonl"
+        (excluded |> replace "exclusion_reason" (`String "because-i-said-so"));
+      let undeclared = invoke root ("validate " ^ Filename.quote (Filename.concat root "undeclared-exclusion.jsonl")) in
+      check "an undeclared exclusion reason is rejected"
+        (undeclared.code = 2 && contains undeclared.stderr "exclusion_reason");
       print_endline "measurement-ledger: PASS")

@@ -22,7 +22,12 @@ FRICTION = (
     "false-green",
     "onboarding",
 )
-EXCLUSIONS = ("duplicate", "not-a-task", "owner-cancelled", "setup-unavailable")
+# Коды исключений объявляются здесь, в методе: лаборатория их не копирует.
+# outside-sample — задача, которая честно попала в поле, но не в объявленную
+# выборку (например, началась до правила включения): она публикуется вместе
+# с причиной, а не исчезает.
+EXCLUSIONS = ("duplicate", "not-a-task", "owner-cancelled", "setup-unavailable",
+              "outside-sample")
 FIELDS = {
     "schema_version", "comparison_id", "task_id", "run_id", "project", "arm",
     "task_kind", "model", "mathc_build", "base_revision", "started_at", "finished_at",
