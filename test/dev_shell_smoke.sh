@@ -7,6 +7,11 @@
 # compiled from the sources, which took twenty minutes on a fresh machine.
 # And the shell stays in the store after the shell is closed, so the next
 # start of the shell does not download the whole toolchain again.
+#
+# The check speaks about the shell of this project and not about the
+# environment around it. A caller often runs the check from a shell that has
+# its own node and npm, and a check that looked at the path around it would
+# praise a shell that has neither.
 set -eu
 
 fail() {
@@ -26,12 +31,32 @@ fi
 
 root="${MATHC_DEV_ROOT:-${XDG_CACHE_HOME:-$HOME/.cache}/nix/roots/math-coding-dev}"
 
+# The tools of the shell are the packages of the shell. The shell keeps them
+# as references of its own path, and the tools of a package live in the bin
+# directory of that package. The check therefore looks into the store and
+# asks the shell for its own tools, and it does not ask the path around it.
+shell_path="${NIX_GCROOT:-}"
+[ -n "$shell_path" ] || fail "the development shell does not name its own path"
+
+references="$(nix-store --query --references "$shell_path" 2>/dev/null || true)"
+[ -n "$references" ] || fail "the development shell names no packages: $shell_path"
+
+package_of() {
+  for reference in $references; do
+    if [ -x "$reference/bin/$1" ]; then
+      printf '%s\n' "$reference"
+      return 0
+    fi
+  done
+  return 1
+}
+
 for tool in node npm npx; do
-  found="$(command -v "$tool" 2>/dev/null || true)"
-  [ -n "$found" ] || fail "$tool is missing in the development shell"
-  case "$found" in
+  package="$(package_of "$tool" || true)"
+  [ -n "$package" ] || fail "the development shell does not provide $tool from the store"
+  case "$package" in
     /nix/store/*) ;;
-    *) fail "$tool comes from the system and not from the store: $found" ;;
+    *) fail "$tool of the development shell comes from the system and not from the store: $package" ;;
   esac
 done
 
@@ -57,9 +82,6 @@ done
 # therefore asks the collector which roots point at the shell instead of
 # looking for one name, and it leaves out the root of the running shell: that
 # one dies with the shell, and the claim is about what stays after it.
-shell_path="${NIX_GCROOT:-}"
-[ -n "$shell_path" ] || fail "the development shell does not name its own path"
-
 [ "$(readlink "$root" 2>/dev/null || true)" = "$shell_path" ] \
   || fail "the root of the development shell does not point at the shell: $root"
 
