@@ -173,6 +173,18 @@ def load(path):
     return records
 
 
+def total(records, field):
+    """Сумма измеренных значений и число записей без измерения.
+
+    `null` — это «измерение не проводилось», а не ноль. Считать его нулём
+    нельзя: итог занижает труд и выглядит полным. Выбрасывать молча тоже
+    нельзя: неполный итог выдаёт себя за полный. Поэтому измеренное всегда
+    идёт парой — сколько насчитано и сколько записей осталось неизмеренными.
+    """
+    measured = [record[field] for record in records if record[field] is not None]
+    return sum(measured), len(records) - len(measured)
+
+
 def summarize(records):
     result = {"schema_version": 1, "runs": len(records), "arms": {}}
     for arm in ARMS:
@@ -181,6 +193,8 @@ def summarize(records):
         for record in selected:
             outcomes[record["outcome"]] += 1
         handoffs = [record["handoff_seconds"] for record in selected if record["handoff_seconds"] is not None]
+        agent_seconds, agent_seconds_unmeasured = total(selected, "agent_seconds")
+        human_seconds, human_seconds_unmeasured = total(selected, "human_seconds")
         result["arms"][arm] = {
             "runs": len(selected),
             "outcomes": outcomes,
@@ -189,8 +203,10 @@ def summarize(records):
             "post_acceptance_defects": sum(record["post_acceptance_defects"] or 0 for record in selected),
             "false_green": sum(record["false_green"] for record in selected),
             "handoff_seconds_median": statistics.median(handoffs) if handoffs else None,
-            "agent_seconds_total": sum(record["agent_seconds"] for record in selected),
-            "human_seconds_total": sum(record["human_seconds"] for record in selected),
+            "agent_seconds_total": agent_seconds,
+            "agent_seconds_unmeasured": agent_seconds_unmeasured,
+            "human_seconds_total": human_seconds,
+            "human_seconds_unmeasured": human_seconds_unmeasured,
             "agent_tokens_total": sum(record["agent_tokens"] for record in selected),
             "mathc_calls_total": sum(record["mathc_calls"] for record in selected),
             "repeated_investigations_total": sum(record["repeated_investigations"] for record in selected),
