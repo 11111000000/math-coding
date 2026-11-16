@@ -84,9 +84,9 @@ export const host: HostContextValue = {
 mock("react-native", "react-native-web");
 
 /** Draws an element with the stub host around it. */
-export function renderWithHost(element: ReactNode, queryClient?: QueryClient): string {
+export function renderWithHost(element: ReactNode, queryClient?: QueryClient, hostValue: HostContextValue = host): string {
   const client = queryClient ?? new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   return renderToStaticMarkup(
-    React(QueryClientProvider, { client }, React(HostProvider, { value: host, children: element })),
+    React(QueryClientProvider, { client }, React(HostProvider, { value: hostValue, children: element })),
   );
 }

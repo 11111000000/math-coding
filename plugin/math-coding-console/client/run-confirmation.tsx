@@ -1,7 +1,7 @@
 import { View } from "react-native";
 import type { ConsoleTheme } from "../shared/theme";
 import type { RunScale } from "./run-scale";
-import { useHost } from "./host/context";
+import { HostModalContent } from "./host/sheet";
 import { Body, Button, Note } from "./parts";
 
 /**
@@ -18,9 +18,8 @@ export function RunConfirmation({ theme, scale, running, error, onCancel, onRun 
   onCancel: () => void;
   onRun: () => void;
 }) {
-  const { Modal } = useHost();
   return (
-    <Modal.Content>
+    <HostModalContent>
       <View style={{ gap: 14 }}>
         <Body theme={theme}>This executes the verifier and negative-control commands declared by the project and appends evidence to .math/v5/. Controls use isolated copies; verifiers still execute project code.</Body>
         <Body theme={theme} muted>Scale: {scale?.claimCount ?? 0} claim(s) and {scale?.commandCount ?? 0} check command(s) will run for this workspace.</Body>
@@ -31,6 +30,6 @@ export function RunConfirmation({ theme, scale, running, error, onCancel, onRun 
           <Button theme={theme} label={running ? "Running checks" : "Run checks"} icon="Play" variant="danger" onPress={onRun} disabled={running} />
         </View>
       </View>
-    </Modal.Content>
+    </HostModalContent>
   );
 }

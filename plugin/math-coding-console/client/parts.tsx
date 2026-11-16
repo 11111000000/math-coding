@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import type { StateReason } from "../shared/domain";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
+import { HostModalContent } from "./host/sheet";
 import { stateReasonText, toneColor, type Tone } from "./vocabulary";
 
 export function Card({ theme, title, subtitle, right, children, compact = false }: {
@@ -293,7 +294,7 @@ export function Select({ theme, label, value, options, onChange }: {
         <Icon name="ChevronDown" size={12} color={theme.colors.foregroundMuted} />
       </Pressable>
       <Modal title={label} open={open} onOpenChange={setOpen}>
-        <Modal.Content>
+        <HostModalContent>
           <View style={{ gap: 5 }}>
             {options.map((option) => (
               <Pressable
@@ -315,7 +316,7 @@ export function Select({ theme, label, value, options, onChange }: {
               </Pressable>
             ))}
           </View>
-        </Modal.Content>
+        </HostModalContent>
       </Modal>
     </>
   );

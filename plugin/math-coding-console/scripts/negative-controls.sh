@@ -211,6 +211,13 @@ start_control \
 
 start_control \
   control_check \
+  "the sheet of the host keeps the surface of the host" \
+  "client/host/sheet.tsx" \
+  's|<HostProvider value={host}>||; s|</HostProvider>||' \
+  "test/host-sheet.test.ts"
+
+start_control \
+  control_check \
   "a human decision cannot bypass the disabled setting" \
   "server/core/operations.ts" \
   's/if (!runtime.allowHumanDecisions)/if (false)/' \

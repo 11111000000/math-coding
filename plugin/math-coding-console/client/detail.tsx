@@ -9,6 +9,7 @@ import { DecisionBoundary } from "./decision-boundary";
 import { EvidenceRecordCard } from "./evidence-record";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
+import { HostModalContent } from "./host/sheet";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note, ReasonBlock } from "./parts";
 import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
 
@@ -27,7 +28,7 @@ export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, 
   if (compact) {
     return (
       <Modal title={selection.claimId} open onOpenChange={(open) => { if (!open) onClose(); }}>
-        <Modal.Content>{body}</Modal.Content>
+        <HostModalContent>{body}</HostModalContent>
       </Modal>
     );
   }

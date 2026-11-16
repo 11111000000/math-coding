@@ -478,6 +478,26 @@
       "register": "fact",
       "control": "sed -i 's/if (input.confirmation !== \"APPLY_HUMAN_DECISION\")/if (false)/' plugin/math-coding-console/server/core/operations.ts",
       "waiver": null
+    },
+    {
+      "id": "host-sheet",
+      "text": "the console opens the sheet of the host with the surface of the host inside it: the claim detail of the queue, the confirmation of a run, the decision of the method and the preview of a file stay readable in the host",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-host-sheet.sh"
+        }
+      ],
+      "falsifier": "the sheet of the host draws a view that the host cannot draw, or the surface of the host is missing inside the sheet",
+      "register": "fact",
+      "control": "sed -i 's|<HostProvider value={host}>||; s|</HostProvider>||' plugin/math-coding-console/client/host/sheet.tsx",
+      "waiver": null
     }
   ]
 }

@@ -110,6 +110,7 @@ async function main() {
     ["claims", React(ClaimsView, { theme, compact: false, snapshot: data, onSelect: () => undefined })],
     ["coverage", React(CoverageView, { theme, compact: true, snapshot: data, onSelect: () => undefined, onOpenScope: () => undefined })],
     ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined })],
+    ["claim detail in the sheet of the host", React(ClaimDetailView, { theme, compact: true, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined })],
     ["evidence", React(EvidenceView, { theme, compact: false, snapshot: data })],
     ["run confirmation", React(RunConfirmation, { theme, scale: runScale(attentionData), running: false, error: null, onCancel: () => undefined, onRun: () => undefined })],
     ["file preview", React(FilePreview, { theme, compact: false, workspaceId: "workspace-1", path: "docs/adr.md", onClose: () => undefined })],
@@ -148,6 +149,10 @@ async function main() {
     }
     if (name === "claim detail") {
       assert.ok(markup.includes("The environment changed after the evidence was recorded"), "the claim card does not explain the reason");
+    }
+    if (name === "claim detail in the sheet of the host") {
+      assert.ok(markup.includes("hello"), "the claim card of the sheet does not show the claim");
+      assert.ok(markup.includes("the command prints hello"), "the claim card of the sheet does not show the text of the claim");
     }
     if (name === "console panel") {
       assert.ok(markup.includes("test the plugin"));

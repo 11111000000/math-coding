@@ -9,6 +9,7 @@ import {
 } from "../shared/human-actions";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
+import { HostModalContent } from "./host/sheet";
 import { Body, Button, Mono, Note } from "./parts";
 
 export interface HumanActionFormProps {
@@ -30,7 +31,6 @@ export interface HumanActionFormProps {
  * the server uses, and the two cannot drift apart.
  */
 export function HumanActionForm({ theme, action, values, onChange, running, error, onCancel, onConfirm }: HumanActionFormProps) {
-  const { Modal } = useHost();
   const command = useMemo(() => {
     try {
       return { text: humanActionCommand(humanActionArgv(action, values)), missing: null as string | null };
@@ -40,7 +40,7 @@ export function HumanActionForm({ theme, action, values, onChange, running, erro
   }, [action, values]);
   const set = (name: keyof HumanActionValues) => (value: string) => onChange({ ...values, [name]: value });
   return (
-    <Modal.Content>
+    <HostModalContent>
       <View style={{ gap: 12 }}>
         <Body theme={theme}>{action.detail}</Body>
         {action.expectation.length > 0 && (
@@ -87,7 +87,7 @@ export function HumanActionForm({ theme, action, values, onChange, running, erro
           />
         </View>
       </View>
-    </Modal.Content>
+    </HostModalContent>
   );
 }
 

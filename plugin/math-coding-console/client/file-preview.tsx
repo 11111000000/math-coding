@@ -4,6 +4,7 @@ import { Pressable, ScrollView, Text, View } from "react-native";
 import { rpcSchemas } from "../shared/schemas";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
+import { HostModalContent } from "./host/sheet";
 import { Badge, Body, Button, Empty, Mono, Note } from "./parts";
 import { previewChild, previewIsOpen, previewParent, previewTarget } from "./preview-target";
 
@@ -48,7 +49,7 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
   const parent = previewParent(current);
   return (
     <Modal title={current ?? "File"} open={previewIsOpen(path)} onOpenChange={(openState) => { if (!openState) { setNavigated(null); onClose(); } }}>
-      <Modal.Content>
+      <HostModalContent>
         <View style={{ gap: 10 }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
             {parent !== null && <Button theme={theme} compact label="Up" icon="CornerLeftUp" onPress={() => open(parent)} />}
@@ -103,7 +104,7 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
             </View>
           ) : null}
         </View>
-      </Modal.Content>
+      </HostModalContent>
     </Modal>
   );
 }
