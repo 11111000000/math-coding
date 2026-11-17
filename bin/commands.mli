@@ -18,3 +18,15 @@ val version : unit -> int
    compares the full protocol with the same commands, so it has to run them in
    the same environment. *)
 val command_in_environment : string option -> string -> string
+
+(* The time a check is allowed to take. The protocol and the price arm of the
+   measurer share one limit, so the measurer cannot cut short a check that the
+   protocol lets finish. *)
+val verifier_timeout : float
+
+(* The time a negative control is allowed to take. *)
+val control_timeout : float
+
+(* The time the whole protocol run of a specification may take. It is derived
+   from the limits above, so the measurer never cuts a legitimate run short. *)
+val protocol_timeout : int -> float

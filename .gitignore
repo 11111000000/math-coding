@@ -38,3 +38,8 @@ console/dist/
 # Local JavaScript dependencies and logs from the Paseo plugin toolchain.
 node_modules/
 npm-debug.log*
+
+# Bytecode caches of the Python helpers of the measurement ledger. They are
+# artefacts of a run, never content.
+__pycache__/
+*.pyc

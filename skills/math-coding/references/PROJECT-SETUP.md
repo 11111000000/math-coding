@@ -103,7 +103,8 @@ mathc run
 `mathc help add`, `mathc help run`, `mathc help review-source`. Общий
 `mathc --help` перечисляет коды выхода и основной цикл.
 
-`mathc-stand --help` описывает колонки измерения и все стоимостные параметры.
+`mathc-stand --help` описывает колонки измерения, все стоимостные параметры и
+предел измерения `--timeout`.
 Короткий пример:
 
 ```sh

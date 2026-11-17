@@ -107,6 +107,22 @@ let command_in_environment environment command =
   | None -> command
   | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
 
+(* The time a check is allowed to take. The protocol and the price arm of the
+   measurer run the same check, so they share one limit: a check that the
+   protocol lets finish must not be cut short by the measurer, or the measured
+   price is not the price of the work. *)
+let verifier_timeout = 600.0
+
+(* The time a negative control is allowed to take. *)
+let control_timeout = 300.0
+
+(* The time the whole protocol run of a specification may take: for every claim
+   it runs the check, the control and the check once more, and no check may
+   outlast its own limit. The measurer uses this as its limit, so it never cuts
+   a legitimate run short and reports a limit as if it were a measurement. *)
+let protocol_timeout claims =
+  60.0 +. float_of_int claims *. (2.0 *. verifier_timeout +. control_timeout)
+
 (* An observation enters the journal the moment it is made, so an interrupted
    run keeps everything it has already proven. The journal stays append-only
    and the last observation of a claim and requirement is the one that counts. *)
@@ -121,7 +137,7 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim emit
           if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
           Inconclusive
       | Some _ ->
-          let result = Process.run ~timeout:600.0 ~root (command_in_environment environment command) in
+          let result = Process.run ~timeout:verifier_timeout ~root (command_in_environment environment command) in
           report_failure command result;
           let outcome = if result.truncated then Infrastructure_error else result.outcome in
           let outcome, reach =
@@ -129,11 +145,11 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim emit
             | Pass, Some control -> (
                 match Isolated_run.with_copy root (fun copy ->
                     let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:300.0 ~root:copy (command_in_environment environment control) in
+                    let mutation = Process.run ~timeout:control_timeout ~root:copy (command_in_environment environment control) in
                     report_failure ("negative control: " ^ control) mutation;
                     let after = Git.digest_of_scope copy ~scope:claim.scope in
                     let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:600.0 ~root:copy (command_in_environment environment command) in
+                    let check = Process.run ~timeout:verifier_timeout ~root:copy (command_in_environment environment command) in
                     report_failure ("verifier after negative control: " ^ command) check;
                     if reach = "subject" && check.code = 1 then Pass, Some reach
                     else Inconclusive, Some reach) with
