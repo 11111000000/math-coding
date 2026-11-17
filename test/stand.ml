@@ -107,3 +107,70 @@ let () =
       check "a non numeric timeout is rejected"
         (text.code = 2 && contains text.stderr "--timeout must be a positive number of seconds");
       print_endline "stand-cut-off: PASS")
+
+(* The price arm has to do the same work the protocol does. A claim with
+   alternatives stops at the first confirmed one: a price arm that measures all
+   of them is charged for work the protocol never did, and the difference
+   between the arms is then not the overhead of the method. *)
+let alternatives id first second =
+  { id; text = "the subject is expected"; scope = [ "subject.txt" ];
+    source = None; kind = Acceptance; phase = Pre_merge; owner = None; review_on = [];
+    requirements = [ Any [ Verifier first; Verifier second ] ];
+    falsifier = "the subject is not expected"; register = Fact;
+    control = Some "printf broken > subject.txt"; waiver = None; environment = None }
+
+let measure_with_costs root =
+  let stand = Filename.concat (Filename.dirname Sys.executable_name) "../bin/stand.exe" in
+  Process.run ~root
+    (Printf.sprintf
+       "%s %s --human-minutes 1 --agent-tokens 100 --person-minute-cost 1 --machine-second-cost 0.1 --token-cost 0.01 --defect-cost 100"
+       (Filename.quote stand) (Filename.quote root))
+
+let () =
+  with_repo (fun root ->
+      ignore (run root "init");
+      write root "subject.txt" "expected\n";
+      let spec =
+        { goal = Some { text = "the arms have to do the same work";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None };
+          claims = [ alternatives "one"
+                       "echo first >> marker-first; grep -q expected subject.txt"
+                       "echo second >> marker-second; grep -q expected subject.txt" ];
+          environment = None }
+      in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      let result = measure_with_costs root in
+      check "the arms did the same work" (result.code = 0 && not (contains result.stdout "did different work"));
+      (* The protocol confirms the first alternative and stops; the price arm
+         stops there as well, so the second alternative is run by neither. *)
+      check "the second alternative is not measured"
+        (written_lines (Filename.concat root "marker-second") = 0);
+      check "the first alternative is measured by both arms"
+        (written_lines (Filename.concat root "marker-first") = 2);
+      check "the ratio is computed over the same work"
+        (contains result.stdout "cost:");
+      print_endline "stand-same-work: PASS")
+
+(* The two arms can still drift apart: a check that does not give the same
+   answer twice is measured differently by the protocol and by the price arm.
+   The measurement then says so instead of reporting a difference that is not
+   the overhead of the method. *)
+let () =
+  with_repo (fun root ->
+      ignore (run root "init");
+      write root "subject.txt" "expected\n";
+      let spec =
+        { goal = Some { text = "the arms have to do the same work";
+                        scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None };
+          claims = [ alternatives "one"
+                       "test ! -f marker-flaky && touch marker-flaky"
+                       "echo second >> marker-second; grep -q expected subject.txt" ];
+          environment = None }
+      in
+      write root "spec.json" (Yojson.Safe.pretty_to_string (Spec.to_json spec));
+      let result = measure_with_costs root in
+      check "the measurement is declared not a measurement"
+        (contains result.stdout "the protocol and the price arm did different work");
+      check "the ratio is not computed over different work"
+        (contains result.stdout "ratio: not computed. The protocol and the price arm did different work.");
+      print_endline "stand-different-work: PASS")

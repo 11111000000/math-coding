@@ -273,7 +273,7 @@ let outcome_color = function
 
 let read_trail root =
   match Trail.read root with
-  | Ok evidence -> evidence
+  | Ok journal -> journal.Trail.records
   | Error message -> failwith message
 
 let evidence_of id trail =

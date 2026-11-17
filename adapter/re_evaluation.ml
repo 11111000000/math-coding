@@ -3,13 +3,13 @@ open Domain
 let pending root spec =
   match Trail.read root with
   | Error error -> Error error
-  | Ok evidence ->
+  | Ok journal ->
       let now = int_of_float (Unix.time ()) in
       Ok
         (List.filter_map
            (fun (claim : claim) ->
              let state = Verdict.state_of_claim ~now
-               ?materials:(Git.digest_of_scope root ~scope:claim.scope) claim evidence in
+               ?materials:(Git.digest_of_scope root ~scope:claim.scope) claim journal.records in
              let changed =
                match claim.source with
                | None -> false

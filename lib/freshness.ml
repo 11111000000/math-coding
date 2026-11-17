@@ -16,7 +16,17 @@ type defect =
   | Environment_changed
   | Not_applicable
 
-let defect ?materials ?environment claim evidence =
+(* The environment binds the execution of a check, not the decision of a human.
+   A review requirement is bound to the subject and its materials, to the
+   definition of the claim and to the independence of the reviewer; a change of
+   the machine does not make that decision stale. A claim that asks for a
+   machine check is bound to the environment as well. *)
+let rec binds_environment = function
+  | Verifier _ -> true
+  | Review _ -> false
+  | All requirements | Any requirements -> List.exists binds_environment requirements
+
+let defect ?materials ?environment ?(binds_environment = true) claim evidence =
   if evidence.issued_at <= 0 || evidence.producer.identity = "" then Not_applicable
   else if evidence.candidate_tree = "" || evidence.materials_digest = "" then Materials_changed
   else if (match materials with Some digest -> evidence.materials_digest <> digest | None -> false) then
@@ -24,14 +34,15 @@ let defect ?materials ?environment claim evidence =
   else if evidence.definition_digest <> definition_digest claim then Definition_changed
   else if evidence.verifier_digest <> verifier_digest claim then Verifier_changed
   else if
-    (match environment with
-     | Some expected -> evidence.environment <> expected
-     | None -> evidence.environment.fingerprint = "")
+    binds_environment
+    && (match environment with
+        | Some expected -> evidence.environment <> expected
+        | None -> evidence.environment.fingerprint = "")
   then Environment_changed
   else Fresh
 
 let rec requirement_fresh ?materials ?environment claim requirement evidence =
-  defect ?materials ?environment claim evidence = Fresh
+  defect ?materials ?environment ~binds_environment:(binds_environment requirement) claim evidence = Fresh
   && (match requirement with
       | Verifier _ ->
           evidence.control_reach = Some "subject"

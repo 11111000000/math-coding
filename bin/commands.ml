@@ -126,7 +126,7 @@ let protocol_timeout claims =
 (* An observation enters the journal the moment it is made, so an interrupted
    run keeps everything it has already proven. The journal stays append-only
    and the last observation of a claim and requirement is the one that counts. *)
-let rec execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
+let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
   match requirement with
   | Review { authority; _ } ->
       if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
@@ -167,34 +167,48 @@ let rec execute_requirement ?files ?(quiet = false) ~environment root claim emit
             if outcome = Pass && reach = Some "subject" then
               Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
           outcome)
-  | All requirements ->
-      let rec run_all (requirements : requirement list) : outcome =
-        match requirements with
-        | [] -> Pass
-        | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet ~environment root claim emit requirement in
-            (match outcome with
-            | Pass -> run_all rest
-            | Fail -> Fail
-            | Inconclusive | Infrastructure_error | Not_run -> (
-                match run_all rest with
-                | Fail -> Fail
-                | Pass | Inconclusive | Infrastructure_error | Not_run -> outcome))
-      in
-      (run_all requirements : Domain.outcome)
-  | Any requirements ->
-      let rec run_any (requirements : requirement list) : outcome =
-        match requirements with
-        | [] -> Inconclusive
-        | requirement :: rest ->
-            let outcome = execute_requirement ?files ~quiet ~environment root claim emit requirement in
-            if outcome = Pass then Pass else run_any rest
-      in
-      (run_any requirements : Domain.outcome)
+  | All requirements | Any requirements ->
+      (* The order of the work and the point at which the run stops belong to
+         the method, not to this arm: the price arm of the measurer shares
+         them, so the two arms cannot disagree about the work the protocol
+         does. *)
+      Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
+
+(* The requirements of a claim ask for work in an order, and the protocol stops
+   at a certain point: the alternatives of a claim stop at the first confirmed
+   one, the conjunction stops at the first rejected one and goes on after an
+   inconclusive or a failed start, so that a later rejection is not lost. *)
+let execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
+  Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
+
+(* A journal with a damaged record is not whole. The records that can be read
+   still stand, so the run rewrites the journal with them and keeps the damaged
+   original beside it: nothing that can be read is lost, and the fact of the
+   damage stays visible. *)
+let repair_trail root =
+  match Trail.read root with
+  | Error error -> Error error
+  | Ok journal -> (
+      match Trail.rewrite root journal (now ()) with
+      | Error error -> Error error
+      | Ok None -> Ok None
+      | Ok (Some backup) -> Ok (Some (List.length journal.damaged, backup)))
 
 let run root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
+  (* The journal is repaired before the run: a record that cannot be read
+     cannot be kept either, and the records that can be read still stand. *)
+  (match repair_trail root with
+   | Error error -> fail 3 error
+   | Ok None -> ()
+   | Ok (Some (count, backup)) ->
+       let message =
+         Printf.sprintf
+           "the evidence trail had %d record(s) that could not be read; the journal was rewritten with the records that can be read and the damaged original is kept at %s"
+           count backup
+       in
+       if json then prerr_endline ("mathc: " ^ message) else print_endline ("mathc: " ^ message));
   let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
   let emit = Trail.append root in
   List.iter
@@ -284,49 +298,11 @@ let record root id authority by outcome valid_for run_ref =
             print_endline "recorded";
             0
 
-let block_begin = "<!-- math-coding:begin -->"
-let block_end = "<!-- math-coding:end -->"
-
-let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "re-evaluate"; "review-source"; "mcp" ]
-
-let entry_page root =
-  let spec = load root in
-  let claims = List.length spec.claims in
-  let goal = match spec.goal with Some goal -> goal.text | None -> "No aim is stated yet." in
-  Printf.sprintf
-    "## math-coding in this project\n\n%s\n\n%d claim(s).\n\n```sh\nmathc run\n```\n\nEvery verb: %s\n"
-    goal claims (String.concat " " (List.map (fun verb -> "mathc " ^ verb) usage_verbs))
-
-let index_of haystack needle =
-  let n = String.length haystack and m = String.length needle in
-  let found = ref None and index = ref 0 in
-  while !found = None && !index + m <= n do
-    if String.sub haystack !index m = needle then found := Some !index;
-    incr index
-  done;
-  !found
-
-let contains haystack needle = index_of haystack needle <> None
-
-let with_block existing block =
-  match index_of existing block_begin with
-  | None -> (if existing = "" then block else existing ^ "\n" ^ block)
-  | Some first -> (
-      match index_of (String.sub existing (first + String.length block_begin)
-                         (String.length existing - first - String.length block_begin)) block_end with
-      | None -> existing ^ "\n" ^ block
-      | Some last ->
-          let last = first + String.length block_begin + last in
-          let tail = String.sub existing (last + String.length block_end)
-              (String.length existing - last - String.length block_end) in
-          let tail = if String.length tail > 0 && tail.[0] = '\n' then String.sub tail 1 (String.length tail - 1) else tail in
-          String.sub existing 0 first ^ block ^ tail)
-
 let install root =
   let path = Filename.concat root "AGENTS.md" in
   let existing = if Sys.file_exists path then Io.read_file path else "" in
-  let block = block_begin ^ "\n" ^ entry_page root ^ block_end ^ "\n" in
-  Io.write_atomic path (with_block existing block);
+  let block = Agent_page.block_begin ^ "\n" ^ Agent_page.entry_page (load root) ^ Agent_page.block_end ^ "\n" in
+  Io.write_atomic path (Agent_page.with_block existing block);
   print_endline "the page for agents is written";
   0
 
@@ -370,21 +346,3 @@ let review_source root id by reason =
                 Project.save_spec root { spec with claims };
                 Printf.printf "claim %s source review recorded; next: mathc run\n" id;
                 0)
-
-let doctor root =
-  let broken = ref 0 in
-  let report ok message = if not ok then incr broken; Printf.printf "  %s %s\n" (if ok then "ok" else "wrong") message in
-  report (Git.is_repository root) "this is a git repository";
-  report (Sys.file_exists (Filename.concat root "spec.json")) "the standing specification is there";
-  let spec = load root in
-  report (spec.goal <> None) "the aim is stated";
-  (match Policy.check root with Ok () -> report true "protected transitions are authorized" | Error _ -> report false "protected transitions are authorized");
-  let page = Filename.concat root "AGENTS.md" in
-  if not (Sys.file_exists page) then report false "there is no page for agents: mathc install"
-  else (
-    let text = Io.read_file page in
-    report (contains text block_begin && contains text block_end) "the page has a math-coding block";
-    let expected = with_block text (block_begin ^ "\n" ^ entry_page root ^ block_end ^ "\n") in
-    report (expected = text) "the page is current";
-    List.iter (fun verb -> report (contains text verb) ("the page names " ^ verb)) usage_verbs);
-  if !broken = 0 then 0 else 1

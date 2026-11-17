@@ -78,6 +78,19 @@ let () =
     (Verdict.state_of_claim ~now:10 judged [ evidence ] = NeverChecked);
   check "external human review can establish judgment"
     (Verdict.state_of_claim ~now:10 judged [ attestation ] = Holds);
+  (* A decision of a human is bound to the subject and its materials, to the
+     definition of the claim and to the independence of the reviewer. It is not
+     bound to the machine that carried it: a change of the tool does not make
+     that decision stale. A machine check is bound to the environment it ran in,
+     and a review that is not independent does not hold. *)
+  check "a human decision survives a change of the tool"
+    (Verdict.state_of_claim ~now:10 ~environment:{ class_ = "local"; fingerprint = "other" }
+       judged [ attestation ] = Holds);
+  check "a human decision that is not independent does not hold"
+    (Verdict.state_of_claim ~now:10 judged [ { attestation with independence = Self_attested } ] <> Holds);
+  check "a machine check does not survive a change of the tool"
+    (Verdict.state_of_claim ~now:10 ~environment:{ class_ = "local"; fingerprint = "other" }
+       claim [ evidence ] = Outdated);
   print_endline "laws: PASS"
 
 (* The reason is a closed vocabulary: it names the cause of a state and never
