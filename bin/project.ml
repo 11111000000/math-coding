@@ -38,30 +38,42 @@ type map_output = {
   exit_code : int;
 }
 
-let evaluated_states root spec =
+(* The states of the claims together with what the journal could not say. A
+   journal that is not whole cannot carry a green verdict: the record that
+   cannot be read may have been the one that refuted the claim. *)
+type evaluation = { states : evaluated_state list; damaged : Trail.damage list }
+
+let evaluate root spec =
   match Trail.read root with
   | Error error -> Error error
-  | Ok evidence ->
-      let* files = Git.repository_files root in
-      let now = int_of_float (Unix.time ()) in
-      let current_environment = environment root in
-      Ok (List.map (fun (claim : claim) ->
-        let state, reason = Verdict.explain_claim ~now ~environment:current_environment
-          ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim evidence in
-        let changed = source_changed root claim in
-        (* A changed source outranks every other reason for staleness. *)
-        if changed then
-          { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed }
-        else { id = claim.id; state; changed = false; reason }) spec.claims)
-
-let states root spec =
-  match evaluated_states root spec with
-  | Error error -> Error error
-  | Ok states -> Ok (List.map (fun item -> item.id, item.state) states)
+  | Ok journal -> (
+      match Git.repository_files root with
+      | Error error -> Error error
+      | Ok files ->
+          let now = int_of_float (Unix.time ()) in
+          let current_environment = environment root in
+          let states =
+            List.map
+              (fun (claim : claim) ->
+                let state, reason = Verdict.explain_claim ~now ~environment:current_environment
+                  ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim journal.records in
+                let changed = source_changed root claim in
+                (* A changed source outranks every other reason for staleness. *)
+                if changed then
+                  { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed }
+                else { id = claim.id; state; changed = false; reason })
+              spec.claims
+          in
+          Ok { states; damaged = journal.damaged })
 
 let uncovered root spec =
   let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
   Git.uncovered root spec.claims ~goal_scope
+
+let states root spec =
+  match evaluate root spec with
+  | Error error -> Error error
+  | Ok evaluation -> Ok (List.map (fun item -> item.id, item.state) evaluation.states)
 
 let next_of_reason item =
   match item.reason with
@@ -78,7 +90,18 @@ let next_of_reason item =
   | Why_current | Why_never_checked | Why_inconclusive | Why_refuted
   | Why_waived | Why_not_checkable -> "next: check the claim " ^ item.id
 
-let next_of_states states uncovered =
+(* What the journal could not say, in words a human can act on. *)
+let damage_words (damages : Trail.damage list) =
+  match damages with
+  | [] -> ""
+  | _ ->
+      let names =
+        List.map (fun damage -> Printf.sprintf "line %d (%s)" damage.Trail.line damage.Trail.reason) damages
+      in
+      Printf.sprintf "%d record(s) of the evidence trail cannot be read: %s"
+        (List.length damages) (String.concat "; " names)
+
+let next_of_states states uncovered damaged =
   let sources = List.filter_map (fun item -> if item.changed then Some item.id else None) states in
   let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item.id else None) states in
   let pending =
@@ -89,22 +112,25 @@ let next_of_states states uncovered =
         | Holds | Refuted -> None)
       states
   in
-  match sources, refuted, pending, uncovered with
-  | id :: _, _, _, _ ->
+  match damaged, sources, refuted, pending, uncovered with
+  | damage :: _, _, _, _, _ ->
+      "next: the evidence trail is not whole (" ^ damage_words damaged
+      ^ "); mathc run rewrites the journal with the records that can be read and keeps the damaged original"
+  | [], id :: _, _, _, _ ->
       "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
-  | [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
-  | [], [], item :: _, _ -> next_of_reason item
-  | [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
-  | [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
+  | [], [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
+  | [], [], [], item :: _, _ -> next_of_reason item
+  | [], [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
+  | [], [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
 
 let next_text root spec =
-  match evaluated_states root spec with
+  match evaluate root spec with
   | Error error -> Error error
-  | Ok states ->
+  | Ok evaluation ->
       let* uncovered = uncovered root spec in
-      Ok (next_of_states states uncovered)
+      Ok (next_of_states evaluation.states uncovered evaluation.damaged)
 
-let text_of verdict states uncovered next =
+let text_of verdict states uncovered next damaged =
   String.concat ""
     ([ Printf.sprintf "verdict: %s\n" (verdict_to_string verdict) ]
     @ List.map
@@ -114,15 +140,24 @@ let text_of verdict states uncovered next =
         states
     @ [ Printf.sprintf "uncovered: %d file(s)\n" (List.length uncovered) ]
     @ List.map (fun file -> Printf.sprintf "  %s\n" file) uncovered
+    @ (match damaged with
+      | [] -> []
+      | _ -> [ Printf.sprintf "damaged records: %s\n" (damage_words damaged) ])
     @ [ next ^ "\n" ])
 
 let map_output root spec =
-  match evaluated_states root spec with
+  match evaluate root spec with
   | Error error -> Error error
-  | Ok states ->
+  | Ok evaluation ->
       let* uncovered = uncovered root spec in
-      let next = next_of_states states uncovered in
-      let verdict = Verdict.verdict_of_states (List.map (fun item -> item.state) states) in
+      let next = next_of_states evaluation.states uncovered evaluation.damaged in
+      let verdict = Verdict.verdict_of_states (List.map (fun item -> item.state) evaluation.states) in
+      (* A journal that is not whole cannot carry a green verdict. *)
+      let verdict =
+        match evaluation.damaged with
+        | [] -> verdict
+        | _ -> (match verdict with Green -> Unknown | other -> other)
+      in
       let states_json =
         List.map
           (fun item ->
@@ -131,7 +166,7 @@ let map_output root spec =
                 "state", `String (state_to_string item.state);
                 "source_changed", `Bool item.changed;
                 "reason", `String (Verdict.reason_to_string item.reason) ])
-          states
+          evaluation.states
       in
       let json =
         `Assoc
@@ -146,7 +181,8 @@ let map_output root spec =
             "uncovered", `List (List.map (fun file -> `String file) uncovered);
             "next", `String next ]
       in
-      Ok { json; text = text_of verdict states uncovered next; exit_code = verdict_to_exit verdict }
+      Ok { json; text = text_of verdict evaluation.states uncovered next evaluation.damaged;
+           exit_code = verdict_to_exit verdict }
 
 let map_json root spec =
   match map_output root spec with

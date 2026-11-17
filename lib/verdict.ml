@@ -106,7 +106,9 @@ let explain_record ~requirement_first ~unmet ~now ?materials ?environment claim 
   | Some evidence ->
       if evidence.issued_at > now then (Outdated, Why_expired)
       else
-        match reason_of_defect (Freshness.defect ?materials ?environment claim evidence) with
+        match reason_of_defect
+                (Freshness.defect ?materials ?environment
+                   ~binds_environment:(Freshness.binds_environment requirement) claim evidence) with
         | Some reason -> (Outdated, reason)
         | None ->
             if Freshness.expired ~now evidence.valid_until then (Outdated, Why_expired)

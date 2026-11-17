@@ -89,6 +89,12 @@ let () =
       check "generated agent page is outside uncovered subject scope"
         (contains (run root "map").stdout "uncovered: 0 file(s)");
       expect root "doctor" 0;
+      let doctor = run root "doctor" in
+      check "the doctor tells the tool apart from the state of the evidence"
+        (doctor.code = 0
+        && contains doctor.stdout "the evidence trail is whole"
+        && contains doctor.stdout "the evidence is fresh for"
+        && contains doctor.stdout "every negative control of the last run reaches the subject");
       print_endline "cli: PASS")
 
 let () =
@@ -104,17 +110,41 @@ let () =
       expect root "record reviewed owner --by owner --outcome invented" 2;
       expect root "record reviewed owner --by owner --outcome pass --valid-for -1" 2;
       write root ".math/v5/evidence.jsonl" "not-json\n";
-      let corrupted = run root "map" in
-      check "a malformed evidence trail is a readable error"
-        (corrupted.code = 3 && contains corrupted.stderr "evidence trail");
-      let corrupted_run = run root "run" in
-      check "run does not print a summary over a malformed evidence trail"
-        (corrupted_run.code = 3 && contains corrupted_run.stderr "evidence trail"
-        && not (contains corrupted_run.stdout "verdict:"));
+      (* A damaged record does not take the project with it: the records that
+         can be read still stand, the damage is named, and the run repairs the
+         journal and keeps the damaged original beside it. *)
+      let damaged = run root "map" in
+      check "a damaged evidence trail does not kill the project"
+        (damaged.code = 3 && contains damaged.stdout "damaged records"
+        && contains damaged.stdout "the evidence trail is not whole"
+        && not (contains damaged.stderr "evidence trail"));
+      let damaged_doctor = run root "doctor" in
+      check "the doctor names a trail that is not whole"
+        (contains damaged_doctor.stdout "the evidence trail is not whole");
+      let repaired = run root "run" in
+      check "run repairs the journal and says what it did"
+        (contains repaired.stdout "the evidence trail had 1 record(s) that could not be read"
+        && contains repaired.stdout "the damaged original is kept at");
+      let kept =
+        Sys.readdir (Filename.concat root ".math/v5")
+        |> Array.to_list
+        |> List.filter (fun name -> String.starts_with ~prefix:"evidence.damaged." name)
+      in
+      check "the damaged original is kept beside the journal"
+        (kept <> []
+        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v5") (List.hd kept))) "not-json");
+      let healed = run root "map" in
+      check "the repaired journal is whole"
+        (not (contains healed.stdout "damaged records")
+        && contains healed.stdout "never-checked");
+      write root ".math/v5/evidence.jsonl" "not-json\n";
       let corrupted_json = run root "run --json" in
-      check "structured run stays empty over a malformed evidence trail"
-        (corrupted_json.code = 3 && contains corrupted_json.stderr "evidence trail"
-        && corrupted_json.stdout = "");
+      check "structured run keeps the repair notice out of the json"
+        (corrupted_json.code = 3
+        && contains corrupted_json.stderr "the evidence trail had"
+        && (match Yojson.Safe.from_string corrupted_json.stdout with
+            | exception Yojson.Json_error _ -> false
+            | _ -> true));
       print_endline "cli-boundary: PASS")
 
 let () =
