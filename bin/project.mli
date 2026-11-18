@@ -7,7 +7,15 @@ type map_output = {
 }
 
 (* The state of every claim together with what the journal could not say. *)
-type evaluated_state = { id : string; state : state; changed : bool; reason : Verdict.reason }
+type evaluated_state = {
+  id : string;
+  state : state;
+  changed : bool;
+  reason : Verdict.reason;
+  (* The branches that no evidence settles yet: what still has to close for
+     the claim to hold. *)
+  open_branches : requirement list;
+}
 
 type evaluation = { states : evaluated_state list; damaged : Trail.damage list }
 

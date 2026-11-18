@@ -30,7 +30,16 @@ let environment root =
   let binary = match Git.digest_of_file Sys.executable_name with Some digest -> digest | None -> "unknown" in
   { class_ = "local"; fingerprint = Domain.digest_string (binary ^ Sys.os_type ^ toolchain) }
 
-type evaluated_state = { id : string; state : state; changed : bool; reason : Verdict.reason }
+type evaluated_state = {
+  id : string;
+  state : state;
+  changed : bool;
+  reason : Verdict.reason;
+  (* The branches that no evidence settles yet: what still has to close for
+     the claim to hold. The next action names them, because an action that
+     cannot close the claim is a dead end and not a next step. *)
+  open_branches : requirement list;
+}
 
 type map_output = {
   json : Yojson.Safe.t;
@@ -42,6 +51,27 @@ type map_output = {
    journal that is not whole cannot carry a green verdict: the record that
    cannot be read may have been the one that refuted the claim. *)
 type evaluation = { states : evaluated_state list; damaged : Trail.damage list }
+
+(* The requirements of a claim that the method evaluates. A judgment takes
+   only its review branches: a machine check cannot settle a human decision. *)
+let requirements_of_claim (claim : claim) =
+  match claim.register with
+  | Judgment -> List.filter_map Verdict.judgment_requirements claim.requirements
+  | Fact | Hypothesis | Undeclared -> claim.requirements
+
+(* The branches of a claim that no evidence settles yet: what still has to
+   close for the claim to hold. Every branch is asked on its own, so a branch
+   that no evidence settles is left out and a settled one is not. *)
+let open_branches_of ~now ~environment ?materials (claim : claim) evidence =
+  List.filter_map
+    (fun requirement ->
+      (* The branch is judged against the definition of the whole claim: that
+         is the definition its evidence was recorded against. *)
+      let state, _ =
+        Verdict.explain_claim ~now ~environment ?materials ~requirements:[ requirement ] claim evidence
+      in
+      if state = Holds then None else Some requirement)
+    (requirements_of_claim claim)
 
 let evaluate root spec =
   match Trail.read root with
@@ -55,13 +85,18 @@ let evaluate root spec =
           let states =
             List.map
               (fun (claim : claim) ->
+                let materials = Git.digest_of_scope ~files root ~scope:claim.scope in
                 let state, reason = Verdict.explain_claim ~now ~environment:current_environment
-                  ?materials:(Git.digest_of_scope ~files root ~scope:claim.scope) claim journal.records in
+                  ?materials claim journal.records in
+                let open_branches =
+                  open_branches_of ~now ~environment:current_environment ?materials claim journal.records
+                in
                 let changed = source_changed root claim in
                 (* A changed source outranks every other reason for staleness. *)
                 if changed then
-                  { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed }
-                else { id = claim.id; state; changed = false; reason })
+                  { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed;
+                    open_branches }
+                else { id = claim.id; state; changed = false; reason; open_branches })
               spec.claims
           in
           Ok { states; damaged = journal.damaged })
@@ -75,20 +110,65 @@ let states root spec =
   | Error error -> Error error
   | Ok evaluation -> Ok (List.map (fun item -> item.id, item.state) evaluation.states)
 
+(* The command that records a human review of a claim. The run refuses a
+   review by definition, so a claim that only a review can close is closed by
+   this command and by nothing else. *)
+let record_command id authority =
+  "mathc record " ^ id ^ " " ^ authority ^ " --by WHO --outcome OUTCOME"
+
+(* Whether a branch of a claim is settled by a machine check. A check that has
+   not run yet can still close the claim, so the claim is not waiting for a
+   human while a check is open. *)
+let rec needs_a_check = function
+  | Verifier _ -> true
+  | Review _ -> false
+  | All requirements | Any requirements -> List.exists needs_a_check requirements
+
+(* The reviews of a branch that no evidence settles yet. *)
+let rec review_authorities = function
+  | Verifier _ -> []
+  | Review { authority; _ } -> [ authority ]
+  | All requirements | Any requirements -> List.concat_map review_authorities requirements
+
+(* The human action that can close the claim: the reviews that no evidence
+   settles yet. A claim with an open machine check is not among them: the
+   checks can still close it, and the run takes the machine branch first. *)
+let human_action item =
+  if List.exists needs_a_check item.open_branches then None
+  else
+    let reviews = List.sort_uniq String.compare (List.concat_map review_authorities item.open_branches) in
+    if reviews = [] then None
+    else Some (String.concat "; " (List.map (record_command item.id) reviews))
+
 let next_of_reason item =
+  let human = human_action item in
   match item.reason with
   | Why_materials_changed | Why_definition_changed | Why_verifier_changed
   | Why_environment_changed | Why_expired ->
       "next: the evidence of " ^ item.id ^ " is stale (" ^ Verdict.reason_to_string item.reason
-      ^ "), re-run the checks"
-  | Why_not_run -> "next: the check for " ^ item.id ^ " could not start"
+      ^ ")"
+      ^ (match human with
+         | Some action -> "; a human review settles it: " ^ action
+         | None -> ", re-run the checks")
+  | Why_not_run ->
+      (match human with
+       | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
+       | None -> "next: the check for " ^ item.id ^ " could not start")
   | Why_infrastructure_error ->
-      "next: the check for " ^ item.id ^ " hit an infrastructure error, re-run the checks"
+      (match human with
+       | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
+       | None -> "next: the check for " ^ item.id ^ " hit an infrastructure error, re-run the checks")
   | Why_source_changed ->
       "next: review the changed source of " ^ item.id ^ " (mathc review-source " ^ item.id
       ^ " --by WHO --reason WHY)"
+      ^ (match human with
+         | Some action -> "; then record the human review: " ^ action
+         | None -> "")
   | Why_current | Why_never_checked | Why_inconclusive | Why_refuted
-  | Why_waived | Why_not_checkable -> "next: check the claim " ^ item.id
+  | Why_waived | Why_not_checkable ->
+      (match human with
+       | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
+       | None -> "next: check the claim " ^ item.id)
 
 (* What the journal could not say, in words a human can act on. *)
 let damage_words (damages : Trail.damage list) =
@@ -102,7 +182,7 @@ let damage_words (damages : Trail.damage list) =
         (List.length damages) (String.concat "; " names)
 
 let next_of_states states uncovered damaged =
-  let sources = List.filter_map (fun item -> if item.changed then Some item.id else None) states in
+  let sources = List.filter_map (fun item -> if item.changed then Some item else None) states in
   let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item.id else None) states in
   let pending =
     List.filter_map
@@ -116,8 +196,12 @@ let next_of_states states uncovered damaged =
   | damage :: _, _, _, _, _ ->
       "next: the evidence trail is not whole (" ^ damage_words damaged
       ^ "); mathc run rewrites the journal with the records that can be read and keeps the damaged original"
-  | [], id :: _, _, _, _ ->
-      "next: review the changed source of " ^ id ^ " (mathc review-source " ^ id ^ " --by WHO --reason WHY)"
+  | [], item :: _, _, _, _ ->
+      "next: review the changed source of " ^ item.id ^ " (mathc review-source " ^ item.id
+      ^ " --by WHO --reason WHY)"
+      ^ (match human_action item with
+         | Some action -> "; then record the human review: " ^ action
+         | None -> "")
   | [], [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
   | [], [], [], item :: _, _ -> next_of_reason item
   | [], [], [], [], file :: _ -> "next: inspect uncovered file " ^ file

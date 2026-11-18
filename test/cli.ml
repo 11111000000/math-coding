@@ -315,6 +315,83 @@ let () =
       expect root "map" 0;
       print_endline "judgment-register: PASS")
 
+(* The next action has to be an action that can close the claim. The run
+   refuses a human review by definition, so a claim that waits for a review is
+   not closed by re-running the checks: the hint names the record. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"a human decision settles the claim\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add judged \"the subject is expected\" subject.txt \"not expected\" judgment --requirement \"review:owner\"" 0;
+      let waiting = run root "next" in
+      check "a claim that waits for a human names the record command"
+        (contains waiting.stdout "mathc record judged owner --by WHO --outcome OUTCOME"
+        && not (contains waiting.stdout "re-run the checks"));
+      expect root "record judged owner --by owner --outcome pass" 0;
+      check "a recorded review settles the claim"
+        (contains (run root "map").stdout "holds"
+        && contains (run root "next").stdout "nothing to do");
+      write root "subject.txt" "changed\n";
+      let stale = run root "next" in
+      check "a stale human claim names the record command and not the checks"
+        (contains stale.stdout "the evidence of judged is stale (materials-changed)"
+        && contains stale.stdout "mathc record judged owner --by WHO --outcome OUTCOME"
+        && not (contains stale.stdout "re-run the checks"));
+      print_endline "next-names-the-human-review: PASS")
+
+(* A claim that asks for both a machine check and a human review waits for the
+   check first: the run takes the machine branch, and the review is what the
+   map names when the check already holds. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      write root "subject.txt" "expected\n";
+      let goal = Some { text = "a check and a human settle the claim"; scope = [ "subject.txt" ];
+                        by = "owner"; at = 1; reason = None } in
+      let both = { claim with id = "both";
+                   requirements = [ Verifier "grep -q expected subject.txt";
+                                    Review { authority = "owner"; minimum_independence = External } ];
+                   control = Some "printf broken > subject.txt" } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ both ]; environment = None }));
+      (* The run settles the machine branch. The review stays open, so the
+         verdict is unknown and the map names the record. *)
+      expect root "run" 3;
+      let waiting = run root "next" in
+      check "an open review is named when the machine check already holds"
+        (contains waiting.stdout "mathc record both owner --by WHO --outcome OUTCOME"
+        && not (contains waiting.stdout "re-run the checks"));
+      expect root "record both owner --by owner --outcome pass" 0;
+      check "the recorded review settles the claim"
+        (contains (run root "map").stdout "holds");
+      print_endline "next-names-the-open-review: PASS")
+
+(* A record is an external attestation. It answers the requirement as the
+   claim declares it, so a claim that asks for a weaker independence is closed
+   by the same command; a claim without a review requirement refuses it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      write root "subject.txt" "expected\n";
+      let goal = Some { text = "a human decision settles the claim"; scope = [ "subject.txt" ];
+                        by = "owner"; at = 1; reason = None } in
+      let judged = { claim with id = "judged"; register = Judgment; control = None;
+                     requirements = [ Review { authority = "owner"; minimum_independence = Self_attested } ] } in
+      let nested = { claim with id = "nested"; register = Judgment; control = None;
+                     requirements = [ All [ Review { authority = "owner"; minimum_independence = External } ] ] } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ judged; nested ]; environment = None }));
+      expect root "record absent owner --by owner --outcome pass" 2;
+      expect root "record judged owner --by owner --outcome pass" 0;
+      expect root "record nested owner --by owner --outcome pass" 0;
+      let map = Yojson.Safe.from_string (run root "map --json").stdout in
+      check "a record answers the requirement as the claim declares it"
+        (state_of_map map "judged" = "holds");
+      check "a record answers a review inside the tree of the requirements"
+        (state_of_map map "nested" = "holds");
+      print_endline "record-answers-the-declared-requirement: PASS")
+
 let () =
   with_repo (fun root ->
       expect root "init" 0;
@@ -433,6 +510,8 @@ let () =
       check "the next action names the stale reason"
         (contains (run root "next").stdout
            "the evidence of sample is stale (materials-changed), re-run the checks");
+      check "a machine check is never sent to a human record"
+        (not (contains (run root "next").stdout "mathc record"));
       print_endline "map-reason: PASS")
 
 let () =
