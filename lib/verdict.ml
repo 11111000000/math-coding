@@ -138,7 +138,11 @@ let rec judgment_requirements = function
   | All requirements -> Some (All (List.filter_map judgment_requirements requirements))
   | Any requirements -> Some (Any (List.filter_map judgment_requirements requirements))
 
-let explain_claim ~now ?materials ?environment claim evidence =
+(* The state and the reason of a claim. The requirements that are evaluated
+   are the ones of the claim, unless a subset is named: a branch is judged
+   against the definition of the whole claim, because that is the definition
+   the evidence was recorded against. *)
+let explain_claim ~now ?materials ?environment ?requirements claim evidence =
   let latest requirement =
     List.filter (fun e -> e.claim_id = claim.id && e.requirement = requirement) evidence
     |> List.fold_left (fun latest evidence ->
@@ -173,9 +177,12 @@ let explain_claim ~now ?materials ?environment claim evidence =
         in
         (state, compose_reason state (List.map snd explained))
   in
-  let requirements = match claim.register with
-    | Judgment -> List.filter_map judgment_requirements claim.requirements
-    | Fact | Hypothesis | Undeclared -> claim.requirements
+  let requirements = match requirements with
+    | Some requirements -> requirements
+    | None -> (
+        match claim.register with
+        | Judgment -> List.filter_map judgment_requirements claim.requirements
+        | Fact | Hypothesis | Undeclared -> claim.requirements)
   in
   let explained = List.map evaluate requirements in
   let computed = fold_states (List.map fst explained) in
