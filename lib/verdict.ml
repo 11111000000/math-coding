@@ -108,7 +108,7 @@ let explain_record ~requirement_first ~unmet ~now ?materials ?environment claim 
       else
         match reason_of_defect
                 (Freshness.defect ?materials ?environment
-                   ~binds_environment:(Freshness.binds_environment requirement) claim evidence) with
+                   ~binds_machine:(Freshness.binds_machine requirement) claim evidence) with
         | Some reason -> (Outdated, reason)
         | None ->
             if Freshness.expired ~now evidence.valid_until then (Outdated, Why_expired)
@@ -138,18 +138,19 @@ let rec judgment_requirements = function
   | All requirements -> Some (All (List.filter_map judgment_requirements requirements))
   | Any requirements -> Some (Any (List.filter_map judgment_requirements requirements))
 
+(* The last record for a requirement: by time of issue, and then by position. *)
+let latest (claim : claim) requirement records =
+  List.filter (fun e -> e.claim_id = claim.id && e.requirement = requirement) records
+  |> List.fold_left (fun found record ->
+       match found with
+       | Some current when current.issued_at > record.issued_at -> found
+       | _ -> Some record) None
+
 (* The state and the reason of a claim. The requirements that are evaluated
    are the ones of the claim, unless a subset is named: a branch is judged
-   against the definition of the whole claim, because that is the definition
-   the evidence was recorded against. *)
+   against the definition of the whole claim. *)
 let explain_claim ~now ?materials ?environment ?requirements claim evidence =
-  let latest requirement =
-    List.filter (fun e -> e.claim_id = claim.id && e.requirement = requirement) evidence
-    |> List.fold_left (fun latest evidence ->
-      match latest with
-      | Some current when current.issued_at > evidence.issued_at -> latest
-      | _ -> Some evidence) None
-  in
+  let last requirement = latest claim requirement evidence in
   let rec fold_states states =
     if states = [] then NeverChecked
     else if List.exists (fun s -> s = Refuted) states then Refuted
@@ -161,8 +162,8 @@ let explain_claim ~now ?materials ?environment ?requirements claim evidence =
   in
   let rec evaluate requirement =
     match requirement with
-    | Verifier _ -> explain_evidence ~now ?materials ?environment claim requirement (latest requirement)
-    | Review _ -> explain_attestation ~now ?materials ?environment claim requirement (latest requirement)
+    | Verifier _ -> explain_evidence ~now ?materials ?environment claim requirement (last requirement)
+    | Review _ -> explain_attestation ~now ?materials ?environment claim requirement (last requirement)
     | All requirements ->
         let explained = List.map evaluate requirements in
         let state = fold_states (List.map fst explained) in

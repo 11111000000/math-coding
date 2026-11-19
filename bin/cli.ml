@@ -109,6 +109,7 @@ let main () =
     | [ "context" ] -> Commands.context o.root
     | "waive" :: id :: _ -> Commands.waive o.root id o.by o.reason (Option.value ~default:0 o.valid_for) o.recovery
     | "record" :: id :: authority :: _ -> Commands.record o.root id authority o.by o.outcome o.valid_for None
+    | "review-decision" :: id :: _ -> Commands.review_decision o.root id o.by o.reason o.outcome o.valid_for
     | [ "install" ] -> Commands.install o.root
     | [ "doctor" ] -> Doctor.doctor o.root
     | [ "adopt" ] -> Adopt.run o.root

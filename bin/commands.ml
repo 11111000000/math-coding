@@ -313,20 +313,37 @@ let record root id authority by outcome valid_for run_ref =
              match outcome_of_string outcome with
              | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
              | Some outcome ->
-                 let evidence = {
-                   claim_id = id; requirement;
-                   candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-                   materials_digest = Git.binding_of_scope root ~scope:claim.scope;
-                   definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
-                   environment = Project.environment root;
-                   producer = { class_ = "human"; identity = by; run = run_ref };
-                   independence = External; outcome; issued_at = Execution.now ();
-                   valid_until = Option.map (fun days -> Execution.now () + (days * 86400)) valid_for;
-                   evidence_ref = run_ref; control_reach = None;
-                 } in
+                 let evidence =
+                   Decision.human_evidence ~root ~claim ~requirement ~by ~outcome ~valid_for
+                     ~run:run_ref ~evidence_ref:run_ref
+                 in
                  Trail.append root evidence;
                  print_endline "recorded";
                  0)
+
+(* The revision of a human decision. The decision is bound to the decision, not
+   to the bytes of the document that carries it, so a growing document does not
+   make it stale; the revision is how the person says that the decision
+   changed. It carries the form of §12: the author, the reason and the time,
+   and the previous decision stays in the journal. *)
+let review_decision root id by reason outcome valid_for =
+  let spec = load root in
+  match List.find_opt (fun claim -> claim.id = id) spec.claims with
+  | None -> fail 2 ("there is no claim " ^ id)
+  | Some claim ->
+      if by = "" || reason = "" then fail 2 "review-decision needs --by and --reason"
+      else if Option.exists (fun days -> days <= 0) valid_for then
+        fail 2 "review-decision --valid-for must be a positive number of days"
+      else
+        match outcome_of_string outcome with
+        | None -> fail 2 "review-decision --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+        | Some outcome ->
+            match Trail.read root with
+            | Error error -> fail 3 error
+            | Ok journal ->
+                (match Decision.revise ~root ~claim ~records:journal.records ~by ~reason ~outcome ~valid_for with
+                 | Ok () -> Printf.printf "claim %s: decision revised by %s\n" id by; 0
+                 | Error error -> fail 2 error)
 
 let install root =
   let path = Filename.concat root "AGENTS.md" in
@@ -355,24 +372,6 @@ let re_evaluate root =
 
 let review_source root id by reason =
   let spec = load root in
-  match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
-  | Some claim -> (
-      match claim.source with
-      | None -> fail 2 "the claim has no source to review"
-      | Some source ->
-          if by = "" || reason = "" then fail 2 "review-source needs --by and --reason"
-          else if claim.owner <> Some by then fail 2 "only the claim owner can review its source"
-          else
-            match Git.digest_of_repo_file root source.path with
-            | None -> fail 2 ("source file not found: " ^ source.path)
-            | Some digest when digest = source.digest -> fail 2 "the source has not changed"
-            | Some digest ->
-                let previous_digest = source.digest in
-                let review = Some { by; reason; at = Execution.now (); previous_digest } in
-                let source = { source with digest; review } in
-                let claims = List.map (fun current ->
-                  if current.id = id then { current with source = Some source; waiver = None } else current) spec.claims in
-                Project.save_spec root { spec with claims };
-                Printf.printf "claim %s source review recorded; next: mathc run\n" id;
-                0)
+  match Decision.review_source ~root ~spec ~id ~by ~reason with
+  | Ok () -> 0
+  | Error error -> fail 2 error

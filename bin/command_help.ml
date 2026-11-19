@@ -8,6 +8,7 @@ let command_help = function
   | "context" -> "context: print the bounded task context as JSON. Exit 0 on success, 3 when unknown."
   | "waive" -> "waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION; DAYS is a positive number of days. A waiver is never a pass and cannot cover a refuted claim."
   | "record" -> "record ID AUTHORITY --by WHO --outcome OUTCOME [--valid-for DAYS]; OUTCOME is pass, fail, inconclusive, infrastructure-error or not-run. The claim must declare review:AUTHORITY."
+  | "review-decision" -> "review-decision ID --by WHO --reason WHY [--outcome OUTCOME] [--valid-for DAYS]: revise the human decision about a claim. The decision is bound to the decision, not to the bytes of the document that carries it, so a growing document does not make it stale; the revision records the author, the reason and the time, and the previous decision stays in the journal. Only the owner of the claim or the author of the decision may revise it."
   | "install" -> "install: update only the math-coding block in this project's AGENTS.md; it does not install binaries."
   | "doctor" -> "doctor: check git, specification, aim, protected policy and the agent page without changing them."
   | "adopt" -> "adopt: detect ADR and specification source directories read-only."
@@ -42,6 +43,7 @@ Sources and evidence:
 
 Human decisions (record only what a person actually decided):
   mathc record ID AUTHORITY --by WHO --outcome OUTCOME
+  mathc review-decision ID --by WHO --reason WHY
   mathc waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION
   mathc authorize --by WHO --reason WHY
 
