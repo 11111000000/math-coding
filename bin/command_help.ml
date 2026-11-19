@@ -2,7 +2,7 @@ let command_help = function
   | "init" -> "init: create an empty spec.json; refuses to overwrite an existing specification."
   | "goal" -> "goal AIM SCOPE OWNER [--reason WHY]; SCOPE is comma-separated. Replacing an existing goal requires --reason."
   | "add" -> "add ID TEXT SCOPE FALSIFIER REGISTER --requirement verifier:CMD|review:WHO [--control CMD] [--source PATH]; REGISTER is fact, hypothesis, judgment or unknown; SCOPE is comma-separated. Judgment requires review:WHO and cannot use machine verifiers."
-  | "run" -> "run [--changed] [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. --changed executes only the claims whose evidence is no longer current and leaves the rest as they are; the claims it cannot see are executed anyway. Exit 0 green, 1 refuted/protected, 3 unknown."
+  | "run" -> "run [--changed] [--limit SECONDS] [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. --changed executes only the claims whose evidence is no longer current and leaves the rest as they are; the claims it cannot see are executed anyway. --limit is the time the run may take (3600 s by default); a run that reaches it or is stopped by a signal says that it was stopped and hands over the map over what was observed. Exit 0 green, 1 refuted/protected, 3 unknown, 4 stopped."
   | "map" -> "map [--json]: show the verdict, claim states, uncovered files and next action. Exit 0 green, 1 red, 3 unknown/vacant."
   | "next" -> "next: print exactly one next action. Exit 0 when an action can be printed."
   | "context" -> "context: print the bounded task context as JSON. Exit 0 on success, 3 when unknown."
@@ -32,6 +32,7 @@ Start a project:
     --requirement "verifier:CMD" --control "BREAK_SUBJECT" [--source ADR]
   mathc run
   mathc run --changed
+  mathc run --limit 3600
   mathc map | mathc next | mathc context
 
 Sources and evidence:
@@ -59,6 +60,7 @@ Exit codes:
   run/map verdict red or protected     1
   usage error                          2
   unknown/vacant/uncomputable          3
+  run stopped before it finished       4
 |};
   match topic with
   | None -> 0

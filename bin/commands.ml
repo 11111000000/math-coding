@@ -116,7 +116,28 @@ let cost_words (durations : Run_log.priced_claim list) =
   in
   String.concat "\n" (header :: lines @ rest)
 
-let run ?(changed = false) root json =
+(* The run has a limit of its own: the consumer does not have to impose one,
+   and a run that is stopped says so instead of falling silent. *)
+let default_limit = 3600.0
+
+(* The name of a signal, for the report of a stopped run. *)
+let signal_name signal =
+  if signal = Sys.sigterm then "SIGTERM"
+  else if signal = Sys.sigint then "SIGINT"
+  else Printf.sprintf "signal %d" signal
+
+(* A signal from outside is a request to stop, not a reason to vanish. The run
+   keeps what it has proven, says that it was stopped and hands over the map
+   over what was observed. *)
+let install_stop_handler stop reason =
+  let handler signal =
+    stop := true;
+    reason := Some (Printf.sprintf "a signal (%s) asked the run to stop" (signal_name signal))
+  in
+  (Sys.signal Sys.sigterm (Sys.Signal_handle handler),
+   Sys.signal Sys.sigint (Sys.Signal_handle handler))
+
+let run ?(changed = false) ?(limit = default_limit) root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
   (* The journal is repaired before the run: a record that cannot be read
@@ -149,32 +170,52 @@ let run ?(changed = false) root json =
   let started_at = Execution.now () in
   let started = Unix.gettimeofday () in
   let durations = ref [] in
-  List.iter
-    (fun claim ->
-      (* The environment of the claim is its own when it declares one, and the
-         environment of the specification otherwise. It covers the check and
-         its negative control alike. *)
-      let environment = effective_environment spec claim in
-      let claim_started = Unix.gettimeofday () in
-      List.iter
-        (fun requirement -> ignore (Execution.execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
-        claim.requirements;
-      (* The price of the claim is measured around all of its work: the check,
-         its negative control and the check once more. *)
-      let seconds = Unix.gettimeofday () -. claim_started in
-      let cost = { scale = Wall_clock_seconds; value = seconds;
-                    observed_at = Execution.now (); observed_by = "mathc" } in
-      durations := { claim_id = claim.id; cost } :: !durations)
-    claims;
+  let stop = ref false in
+  let stop_reason = ref None in
+  let previous_term, previous_int = install_stop_handler stop stop_reason in
+  (* The work of the run goes claim by claim. The run stops between the claims
+     when it is asked to or when its own limit is reached; the claim in flight
+     is stopped with it. *)
+  let rec work remaining =
+    match remaining with
+    | [] -> ()
+    | claim :: rest ->
+        if !stop then ()
+        else if Unix.gettimeofday () -. started > limit then (
+          stop := true;
+          stop_reason :=
+            Some (Printf.sprintf "the limit of the run (%d s) was reached" (int_of_float limit)))
+        else (
+          (* The environment of the claim is its own when it declares one, and the
+             environment of the specification otherwise. It covers the check and
+             its negative control alike. *)
+          let environment = effective_environment spec claim in
+          let claim_started = Unix.gettimeofday () in
+          List.iter
+            (fun requirement ->
+              ignore (Execution.execute_requirement ~files ~quiet:json ~environment ~cancel:stop root claim emit requirement))
+            claim.requirements;
+          (* The price of the claim is measured around all of its work: the check,
+             its negative control and the check once more. *)
+          let seconds = Unix.gettimeofday () -. claim_started in
+          let cost = { scale = Wall_clock_seconds; value = seconds;
+                        observed_at = Execution.now (); observed_by = "mathc" } in
+          durations := { claim_id = claim.id; cost } :: !durations;
+          work rest)
+  in
+  work claims;
+  ignore (Sys.signal Sys.sigterm previous_term);
+  ignore (Sys.signal Sys.sigint previous_int);
   let durations = List.rev !durations in
   let machine_seconds =
     List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
   in
+  let stopped = !stop in
   let record : run_record =
     { started_at; finished_at = Execution.now ();
       wall_seconds = Unix.gettimeofday () -. started; machine_seconds;
       claims = List.length spec.claims; executed = List.length durations;
-      stopped = false; durations }
+      stopped; stop_reason = !stop_reason; durations }
   in
   Run_log.append root record;
   (match selection with
@@ -188,11 +229,21 @@ let run ?(changed = false) root json =
        if json then prerr_endline ("mathc: " ^ report) else print_endline report);
   let cost = cost_words durations in
   if json then prerr_endline ("mathc: " ^ cost) else print_endline cost;
+  (* A stopped run says so. The map below is over what was observed, and the
+     code of the exit says that the run did not finish. *)
+  if stopped then (
+    let reason = match !stop_reason with Some reason -> reason | None -> "the run was asked to stop" in
+    let words =
+      Printf.sprintf
+        "the run was stopped after %d of %d claim(s): %s; the map below is over what was observed"
+        (List.length durations) (List.length claims) reason
+    in
+    if json then prerr_endline ("mathc: " ^ words) else print_endline words);
   match Project.map_output root spec with
   | Error error -> fail 3 error
   | Ok output ->
       if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
-      output.exit_code
+      if stopped then 4 else output.exit_code
 
 let map root json =
   let spec = load root in

@@ -686,7 +686,9 @@ let () =
       done;
       check "the finished claim is in the journal before the run ends" (recorded "\"claim_id\":\"first\"");
       Unix.kill pid Sys.sigterm;
-      ignore (Unix.waitpid [] pid);
+      let _, status = Unix.waitpid [] pid in
+      check "the interrupted run hands over the map instead of vanishing"
+        (status = Unix.WEXITED 4);
       check "the interrupted run keeps the observation of the finished claim"
         (recorded "\"claim_id\":\"first\"");
       check "the interrupted run leaves no record of the unfinished claim"
@@ -794,3 +796,36 @@ let () =
       check "the doctor still names the price of the last run"
         (contains doctor.stdout "of machine time in 1 claim(s)");
       print_endline "run-price: PASS")
+
+(* A run that is stopped says so and hands over the map over what was
+   observed. An empty report after a stopped run is a lie: the reader cannot
+   tell a run that proved nothing from a run that was never finished. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let stopped = run root "run --limit 0" in
+      check "a stopped run says that it was stopped"
+        (contains stopped.stdout "the run was stopped after 0 of 1 claim(s)");
+      check "a stopped run hands over the map over what was observed"
+        (contains stopped.stdout "never-checked");
+      check "a stopped run does not pass the gate" (stopped.code = 4);
+      let journal = Filename.concat root ".math/v5/runs.jsonl" in
+      let lines =
+        String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
+      in
+      let record = Yojson.Safe.from_string (List.hd lines) in
+      check "the journal of runs keeps the stop"
+        (match field "stopped" record with Some (`Bool true) -> true | _ -> false);
+      check "the journal of runs keeps the reason of the stop"
+        (match field "stop_reason" record with
+         | Some (`String reason) -> contains reason "the limit of the run"
+         | _ -> false);
+      (* A run that finishes is not a stopped run. *)
+      let finished = run root "run" in
+      check "a run that finishes does not say that it was stopped"
+        (not (contains finished.stdout "the run was stopped"));
+      check "a run that finished gives the verdict of the map" (finished.code = 0);
+      print_endline "stopped-run: PASS")

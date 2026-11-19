@@ -15,12 +15,14 @@ type options = {
   mutable help : bool;
   mutable source : string;
   mutable changed : bool;
+  mutable limit : float;
 }
 
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; write = false;
-    version = false; help = false; source = ""; changed = false }
+    version = false; help = false; source = ""; changed = false;
+    limit = Commands.default_limit }
 
 let parse_requirement text =
   match String.index_opt text ':' with
@@ -51,6 +53,11 @@ let parse_flags o arguments =
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
     | "--changed" :: rest -> o.changed <- true; loop acc rest
+    | "--limit" :: value :: rest -> (
+        match float_of_string_opt value with
+        | Some seconds when seconds >= 0.0 -> o.limit <- seconds; loop acc rest
+        | Some _ -> failwith "--limit expects a number of seconds that is not negative"
+        | None -> failwith "--limit expects a number of seconds")
     | "--version" :: rest -> o.version <- true; loop acc rest
     | ("--help" | "-h") :: rest -> o.help <- true; loop acc rest
     | option :: _ when String.length option > 0 && option.[0] = '-' -> failwith ("unknown option: " ^ option)
@@ -96,7 +103,7 @@ let main () =
         match parse_all o.requirements with
         | Error error -> fail 2 error
         | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
-    | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed
+    | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed ~limit:o.limit
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root
     | [ "context" ] -> Commands.context o.root

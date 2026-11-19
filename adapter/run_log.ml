@@ -29,6 +29,8 @@ type run_record = {
   claims : int;
   executed : int;
   stopped : bool;
+  (* Why the run stopped, when it stopped. *)
+  stop_reason : string option;
   durations : priced_claim list;
 }
 
@@ -70,6 +72,7 @@ let to_json (run : run_record) =
       "claims", `Int run.claims;
       "executed", `Int run.executed;
       "stopped", `Bool run.stopped;
+      "stop_reason", json_string_opt run.stop_reason;
       "durations", `List (List.map priced_to_json run.durations) ]
 
 let priced_of_json json =
@@ -89,7 +92,7 @@ let priced_of_json json =
 let of_json json =
   match object_ "run"
           [ "schema_version"; "started_at"; "finished_at"; "wall_seconds"; "machine_seconds";
-            "claims"; "executed"; "stopped"; "durations" ] json with
+            "claims"; "executed"; "stopped"; "stop_reason"; "durations" ] json with
   | Error error -> Error error
   | Ok pairs -> (
       match int "schema_version" pairs with
@@ -100,9 +103,9 @@ let of_json json =
             match
               int "started_at" pairs, int "finished_at" pairs, float_of_json "wall_seconds" pairs,
               float_of_json "machine_seconds" pairs, int "claims" pairs, int "executed" pairs,
-              bool "stopped" pairs
+              bool "stopped" pairs, string_opt "stop_reason" pairs
             with
-            | Ok started_at, Ok finished_at, Ok wall_seconds, Ok machine_seconds, Ok claims, Ok executed, Ok stopped ->
+            | Ok started_at, Ok finished_at, Ok wall_seconds, Ok machine_seconds, Ok claims, Ok executed, Ok stopped, Ok stop_reason ->
                 (match List.assoc_opt "durations" pairs with
                  | Some (`List items) ->
                      let rec convert acc = function
@@ -116,13 +119,13 @@ let of_json json =
                       | Error error -> Error error
                       | Ok durations ->
                           Ok { started_at; finished_at; wall_seconds; machine_seconds; claims; executed;
-                               stopped; durations })
+                               stopped; stop_reason; durations })
                  | Some _ -> Error "durations must be a list"
                  | None -> Error "durations is required")
-            | Error error, _, _, _, _, _, _ | _, Error error, _, _, _, _, _
-            | _, _, Error error, _, _, _, _ | _, _, _, Error error, _, _, _
-            | _, _, _, _, Error error, _, _ | _, _, _, _, _, Error error, _
-            | _, _, _, _, _, _, Error error -> Error error)
+            | Error error, _, _, _, _, _, _, _ | _, Error error, _, _, _, _, _, _
+            | _, _, Error error, _, _, _, _, _ | _, _, _, Error error, _, _, _, _
+            | _, _, _, _, Error error, _, _, _ | _, _, _, _, _, Error error, _, _
+            | _, _, _, _, _, _, Error error, _ | _, _, _, _, _, _, _, Error error -> Error error)
 
 let append root (run : run_record) =
   let file = path root in

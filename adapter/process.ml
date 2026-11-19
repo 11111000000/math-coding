@@ -6,6 +6,9 @@ type result = {
   stdout : string;
   stderr : string;
   truncated : bool;
+  (* The process was asked to stop, not that it failed on its own. An
+     interrupted check is not an observation of the claim. *)
+  interrupted : bool;
 }
 
 let classify = function
@@ -30,7 +33,10 @@ let limited_read path =
   close_in input;
   Buffer.contents output, (Unix.stat path).Unix.st_size > 1024 * 1024
 
-let run ?(timeout = 30.0) ~root command =
+(* The command runs. The flag tells the process that it may be asked to stop:
+   the run that started it can change its mind, and the child has to hear it
+   rather than be left behind. *)
+let run ?(timeout = 30.0) ?cancel ~root command =
   let directory = Io.temp_dir "mathc-process" in
   Fun.protect ~finally:(fun () -> Io.remove_tree directory) (fun () ->
       let stdout_path = Filename.concat directory "stdout" in
@@ -53,19 +59,25 @@ let run ?(timeout = 30.0) ~root command =
          at once is noticed at once, and a child that runs long is still polled
          rarely. The timeout is unchanged. *)
       let pause = ref 0.002 in
+      let asked_to_stop () = match cancel with Some flag -> !flag | None -> false in
       let rec wait () =
         match Unix.waitpid [ Unix.WNOHANG ] pid with
         | 0, _ ->
             if Unix.gettimeofday () -. started > timeout then (
               Unix.kill (-pid) 9;
-              snd (Unix.waitpid [] pid))
+              snd (Unix.waitpid [] pid), false)
+            else if asked_to_stop () then (
+              (* The run was asked to stop: the child is killed with its group,
+                 so that nothing is left behind. *)
+              Unix.kill (-pid) 9;
+              snd (Unix.waitpid [] pid), true)
             else (
               Unix.sleepf !pause;
               pause := min 0.05 (!pause *. 2.0);
               wait ())
-        | _, status -> status
+        | _, status -> status, false
       in
-      let status = wait () in
+      let status, interrupted = wait () in
       let code =
         match status with
         | Unix.WEXITED code -> code
@@ -74,4 +86,4 @@ let run ?(timeout = 30.0) ~root command =
       let stdout, stdout_truncated = limited_read stdout_path in
       let stderr, stderr_truncated = limited_read stderr_path in
       { code; outcome = classify code; stdout; stderr;
-        truncated = stdout_truncated || stderr_truncated })
+        truncated = stdout_truncated || stderr_truncated; interrupted })
