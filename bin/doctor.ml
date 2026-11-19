@@ -23,7 +23,7 @@ let doctor root =
   let report ok message = if not ok then incr broken; Printf.printf "  %s %s\n" (if ok then "ok" else "wrong") message in
   let note message = Printf.printf "  note %s\n" message in
   report (Git.is_repository root) "this is a git repository";
-  report (Sys.file_exists (Filename.concat root "spec.json")) "the standing specification is there";
+  report (Sys.file_exists (Project.spec_path root)) "the standing specification is there";
   let spec =
     match Project.load_spec root with
     | Ok spec -> spec

@@ -31,6 +31,9 @@ type selection = {
   blind : claim list;
 }
 
+(* The path of the standing specification of the project. *)
+val spec_path : string -> string
+
 val load_spec : string -> (spec, string) result
 val save_spec : string -> spec -> unit
 val states : string -> spec -> ((string * state) list, string) result

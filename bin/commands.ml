@@ -2,13 +2,22 @@ open Domain
 open Run_log
 
 let fail code message = Printf.eprintf "mathc: %s\n" message; exit code
+
+(* The specification of the project. Two failures look alike and are not the
+   same: an absent specification is a vacant project - the tool answered that
+   there is nothing here, and that is an answer - while a specification that
+   cannot be read is an internal failure: the tool cannot answer the question
+   it was asked. The vocabulary of the codes lives in Exit_code. *)
 let load root =
   match Project.load_spec root with
   | Ok spec -> spec
-  | Error error -> Printf.eprintf "mathc: %s\n" error; exit 3
+  | Error error ->
+      Printf.eprintf "mathc: %s\n" error;
+      if Sys.file_exists (Project.spec_path root) then exit Exit_code.internal_failure
+      else exit Exit_code.vacant
 
 let init root =
-  if Sys.file_exists (Filename.concat root "spec.json") then fail 2 "there is already a standing specification"
+  if Sys.file_exists (Project.spec_path root) then fail Exit_code.usage "there is already a standing specification"
   else (
     Project.save_spec root { goal = None; claims = []; environment = None };
     print_endline "the standing specification is created\nnext: state the aim (mathc goal TEXT SCOPE BY)";
@@ -16,8 +25,8 @@ let init root =
 
 let goal root text scope by reason =
   let spec = load root in
-  if text = "" || scope = [] || by = "" then fail 2 "goal needs TEXT SCOPE BY"
-  else if spec.goal <> None && reason = "" then fail 2 "replacing the aim needs --reason"
+  if text = "" || scope = [] || by = "" then fail Exit_code.usage "goal needs TEXT SCOPE BY"
+  else if spec.goal <> None && reason = "" then fail Exit_code.usage "replacing the aim needs --reason"
   else (
     Project.save_spec root { spec with goal = Some { text; scope; by; at = Execution.now (); reason = (if reason = "" then None else Some reason) } };
     print_endline "the aim is set";
@@ -51,24 +60,24 @@ let add root id text scope falsifier register requirements control source_path =
         else None
   in
   match problem with
-  | Some error -> fail 2 error
+  | Some error -> fail Exit_code.usage error
   | None ->
       let register =
         match register_of_string register with
         | Some value -> value
-        | None -> fail 2 "register must be fact, hypothesis, judgment or unknown"
+        | None -> fail Exit_code.usage "register must be fact, hypothesis, judgment or unknown"
       in
       (if register = Judgment && List.exists has_verifier requirements then
-         fail 2 "a judgment cannot be established by a machine verifier"
+         fail Exit_code.usage "a judgment cannot be established by a machine verifier"
        else if register = Judgment && not (List.exists has_review requirements) then
-         fail 2 "a judgment needs a human review requirement");
+         fail Exit_code.usage "a judgment needs a human review requirement");
       let source =
         if source_path = "" then None
-        else if not (Spec.valid_path source_path) then fail 2 "source path must stay inside the project"
+        else if not (Spec.valid_path source_path) then fail Exit_code.usage "source path must stay inside the project"
         else
           match Git.digest_of_repo_file root source_path with
           | Some digest -> Some { kind = Madr; path = source_path; section = None; digest; review = None }
-          | None -> fail 2 ("source file not found or not a regular project file: " ^ source_path)
+          | None -> fail Exit_code.usage ("source file not found or not a regular project file: " ^ source_path)
       in
       let claim = {
         id; text; scope; source; kind = Acceptance; phase = Pre_merge;
@@ -138,12 +147,12 @@ let install_stop_handler stop reason =
    Sys.signal Sys.sigint (Sys.Signal_handle handler))
 
 let run ?(changed = false) ?(limit = default_limit) root json =
-  (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
+  (match Policy.check root with Ok () -> () | Error error -> fail Exit_code.red_or_protected error);
   let spec = load root in
   (* The journal is repaired before the run: a record that cannot be read
      cannot be kept either, and the records that can be read still stand. *)
   (match repair_trail root with
-   | Error error -> fail 3 error
+   | Error error -> fail Exit_code.internal_failure error
    | Ok None -> ()
    | Ok (Some (count, backup)) ->
        let message =
@@ -152,14 +161,14 @@ let run ?(changed = false) ?(limit = default_limit) root json =
            count backup
        in
        if json then prerr_endline ("mathc: " ^ message) else print_endline ("mathc: " ^ message));
-  let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
+  let files = match Git.repository_files root with Error error -> fail Exit_code.internal_failure error | Ok files -> files in
   (* A partial run takes the claims whose evidence no longer holds. The
      selection is made before the run: the state of a claim is the state of
      the evidence that is in the journal now. *)
   let selection =
     if changed then
       match Project.selection root spec with
-      | Error error -> fail 3 error
+      | Error error -> fail Exit_code.internal_failure error
       | Ok selection -> Some selection
     else None
   in
@@ -240,15 +249,15 @@ let run ?(changed = false) ?(limit = default_limit) root json =
     in
     if json then prerr_endline ("mathc: " ^ words) else print_endline words);
   match Project.map_output root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok output ->
       if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
-      if stopped then 4 else output.exit_code
+      if stopped then Exit_code.stopped else output.exit_code
 
 let map root json =
   let spec = load root in
   match Project.map_output root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok output ->
       if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
       output.exit_code
@@ -256,26 +265,26 @@ let map root json =
 let next root =
   let spec = load root in
   match Project.next_text root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok text -> print_endline text; 0
 
 let context root =
   let spec = load root in
   match Project.map_json root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok value -> print_endline (Yojson.Safe.pretty_to_string value); 0
 
 let waive root id by reason valid_for recovery =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim -> (
       match Project.states root spec with
-      | Error error -> fail 3 error
+      | Error error -> fail Exit_code.internal_failure error
       | Ok states ->
           if by = "" || reason = "" || recovery = "" || valid_for <= 0 then
-            fail 2 "waive needs --by, --reason, --valid-for DAYS and --recovery"
-          else if List.assoc_opt id states = Some Refuted then fail 2 "a refuted claim cannot be waived"
+            fail Exit_code.usage "waive needs --by, --reason, --valid-for DAYS and --recovery"
+          else if List.assoc_opt id states = Some Refuted then fail Exit_code.usage "a refuted claim cannot be waived"
           else
             let waiver = {
               gap = id; scope = claim.scope; issuer = by; issued_at = Execution.now ();
@@ -297,21 +306,21 @@ let rec review_of_authority authority = function
 let record root id authority by outcome valid_for run_ref =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim ->
       (* The record answers the requirement as the claim declares it: the
          journal finds the evidence by the requirement it belongs to. A record
          is an external attestation, so it satisfies any independence the
          claim asks for. *)
       (match List.find_map (review_of_authority authority) claim.requirements with
-       | None -> fail 2 "the claim has no such review requirement"
+       | None -> fail Exit_code.usage "the claim has no such review requirement"
        | Some requirement ->
-           if by = "" then fail 2 "record needs --by"
+           if by = "" then fail Exit_code.usage "record needs --by"
            else if Option.exists (fun days -> days <= 0) valid_for then
-             fail 2 "record --valid-for must be a positive number of days"
+             fail Exit_code.usage "record --valid-for must be a positive number of days"
            else
              match outcome_of_string outcome with
-             | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+             | None -> fail Exit_code.usage "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
              | Some outcome ->
                  let evidence =
                    Decision.human_evidence ~root ~claim ~requirement ~by ~outcome ~valid_for
@@ -329,21 +338,21 @@ let record root id authority by outcome valid_for run_ref =
 let review_decision root id by reason outcome valid_for =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim ->
-      if by = "" || reason = "" then fail 2 "review-decision needs --by and --reason"
+      if by = "" || reason = "" then fail Exit_code.usage "review-decision needs --by and --reason"
       else if Option.exists (fun days -> days <= 0) valid_for then
-        fail 2 "review-decision --valid-for must be a positive number of days"
+        fail Exit_code.usage "review-decision --valid-for must be a positive number of days"
       else
         match outcome_of_string outcome with
-        | None -> fail 2 "review-decision --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+        | None -> fail Exit_code.usage "review-decision --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
         | Some outcome ->
             match Trail.read root with
-            | Error error -> fail 3 error
+            | Error error -> fail Exit_code.internal_failure error
             | Ok journal ->
                 (match Decision.revise ~root ~claim ~records:journal.records ~by ~reason ~outcome ~valid_for with
                  | Ok () -> Printf.printf "claim %s: decision revised by %s\n" id by; 0
-                 | Error error -> fail 2 error)
+                 | Error error -> fail Exit_code.usage error)
 
 let install root =
   let path = Filename.concat root "AGENTS.md" in
@@ -360,8 +369,8 @@ let version () =
 
 let authorize root by reason =
   match Policy.load root with
-  | Error error -> fail 2 error
-  | Ok None -> fail 2 "there is no policy.json; protected transitions are not configured"
+  | Error error -> fail Exit_code.usage error
+  | Ok None -> fail Exit_code.usage "there is no policy.json; protected transitions are not configured"
   | Ok (Some policy) -> Policy.authorize root policy by reason
 
 (* The approval of the human: the commands that the agent surface may execute
@@ -372,16 +381,16 @@ let approve root by reason commands =
   let commands = if commands <> [] then commands else Approval.commands_of_spec (load root) in
   match Approval.approve root ~by ~reason ~commands with
   | Ok count -> Printf.printf "approved %d command(s)\n" count; 0
-  | Error error -> fail 2 error
+  | Error error -> fail Exit_code.usage error
 
 let re_evaluate root =
   let spec = load root in
   match Re_evaluation.pending root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok pending -> print_endline (Yojson.Safe.pretty_to_string (`Assoc [ "needs_re_evaluation", `List (List.map (fun id -> `String id) pending) ])); 0
 
 let review_source root id by reason =
   let spec = load root in
   match Decision.review_source ~root ~spec ~id ~by ~reason with
   | Ok () -> 0
-  | Error error -> fail 2 error
+  | Error error -> fail Exit_code.usage error
