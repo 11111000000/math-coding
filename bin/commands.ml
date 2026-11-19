@@ -81,7 +81,7 @@ let add root id text scope falsifier register requirements control source_path =
       0
 
 let evidence_for ?files root (claim : claim) requirement command outcome control_reach =
-  let binding = Option.value ~default:"" (Git.digest_of_scope ?files root ~scope:claim.scope) in
+  let binding = Git.binding_of_scope ?files root ~scope:claim.scope in
   { claim_id = claim.id; requirement;
     candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
     materials_digest = binding;
@@ -135,6 +135,12 @@ let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requir
       match Git.digest_of_scope ?files root ~scope:claim.scope with
       | None ->
           if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
+          (* The check could not start, and the record of that is written. The
+             old observation cannot stand for a subject that is not there any
+             more: a map that keeps it would be green for a claim nobody can
+             check. *)
+          let evidence = evidence_for ?files root claim requirement command Not_run None in
+          emit evidence;
           Inconclusive
       | Some _ ->
           let result = Process.run ~timeout:verifier_timeout ~root (command_in_environment environment command) in
@@ -194,7 +200,7 @@ let repair_trail root =
       | Ok None -> Ok None
       | Ok (Some backup) -> Ok (Some (List.length journal.damaged, backup)))
 
-let run root json =
+let run ?(changed = false) root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
   let spec = load root in
   (* The journal is repaired before the run: a record that cannot be read
@@ -210,6 +216,19 @@ let run root json =
        in
        if json then prerr_endline ("mathc: " ^ message) else print_endline ("mathc: " ^ message));
   let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
+  (* A partial run takes the claims whose evidence no longer holds. The
+     selection is made before the run: the state of a claim is the state of
+     the evidence that is in the journal now. *)
+  let selection =
+    if changed then
+      match Project.selection root spec with
+      | Error error -> fail 3 error
+      | Ok selection -> Some selection
+    else None
+  in
+  let claims =
+    match selection with None -> spec.claims | Some selection -> selection.to_execute
+  in
   let emit = Trail.append root in
   List.iter
     (fun claim ->
@@ -220,7 +239,16 @@ let run root json =
       List.iter
         (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
         claim.requirements)
-    spec.claims;
+    claims;
+  (match selection with
+   | None -> ()
+   | Some selection ->
+       let words = Project.selection_words selection in
+       let blind = match Project.blind_words selection with Some words -> words | None -> "" in
+       let report =
+         if blind = "" then words else words ^ "; " ^ blind
+       in
+       if json then prerr_endline ("mathc: " ^ report) else print_endline report);
   match Project.map_output root spec with
   | Error error -> fail 3 error
   | Ok output ->
@@ -298,7 +326,7 @@ let record root id authority by outcome valid_for run_ref =
                  let evidence = {
                    claim_id = id; requirement;
                    candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-                   materials_digest = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope);
+                   materials_digest = Git.binding_of_scope root ~scope:claim.scope;
                    definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
                    environment = Project.environment root;
                    producer = { class_ = "human"; identity = by; run = run_ref };

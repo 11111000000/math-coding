@@ -14,12 +14,13 @@ type options = {
   mutable version : bool;
   mutable help : bool;
   mutable source : string;
+  mutable changed : bool;
 }
 
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; write = false;
-    version = false; help = false; source = "" }
+    version = false; help = false; source = ""; changed = false }
 
 let parse_requirement text =
   match String.index_opt text ':' with
@@ -49,6 +50,7 @@ let parse_flags o arguments =
     | "--source" :: value :: rest -> o.source <- value; loop acc rest
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
+    | "--changed" :: rest -> o.changed <- true; loop acc rest
     | "--version" :: rest -> o.version <- true; loop acc rest
     | ("--help" | "-h") :: rest -> o.help <- true; loop acc rest
     | option :: _ when String.length option > 0 && option.[0] = '-' -> failwith ("unknown option: " ^ option)
@@ -94,7 +96,7 @@ let main () =
         match parse_all o.requirements with
         | Error error -> fail 2 error
         | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
-    | [ "run" ] -> Commands.run o.root o.json
+    | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root
     | [ "context" ] -> Commands.context o.root
