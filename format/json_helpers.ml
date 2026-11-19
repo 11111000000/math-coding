@@ -44,6 +44,12 @@ let int name pairs =
   | Some _ -> Error (name ^ " must be an integer")
   | None -> Error (name ^ " is required")
 
+let bool name pairs =
+  match List.assoc_opt name pairs with
+  | Some (`Bool value) -> Ok value
+  | Some _ -> Error (name ^ " must be a boolean")
+  | None -> Error (name ^ " is required")
+
 let int_opt name pairs =
   match List.assoc_opt name pairs with
   | None | Some `Null -> Ok None

@@ -748,3 +748,49 @@ let () =
       check "a claim without a subject is not green"
         (map.code = 3 && contains map.stdout "inconclusive");
       print_endline "partial-run-blind: PASS")
+
+(* The price of a run: the machine time is named in the report of the run and
+   kept in the journal of runs. A record of the journal that cannot be read
+   does not take the price of the other runs with it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let report = run root "run" in
+      check "the report names the price of the run"
+        (contains report.stdout "machine time:");
+      check "the report names the claim that was slow"
+        (contains report.stdout "sample");
+      let journal = Filename.concat root ".math/v5/runs.jsonl" in
+      check "the journal of runs exists" (Sys.file_exists journal);
+      let lines =
+        String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
+      in
+      check "the journal of runs keeps one record of the run"
+        (List.length lines = 1);
+      let record = Yojson.Safe.from_string (List.hd lines) in
+      check "the record names the machine time of the run"
+        (match field "machine_seconds" record with
+         | Some (`Float seconds) -> seconds >= 0.0
+         | Some (`Int seconds) -> seconds >= 0
+         | _ -> false);
+      check "the record names the claim it measured"
+        (match field "durations" record with
+         | Some (`List [ item ]) -> (
+             match item with
+             | `Assoc pairs -> (
+                 match List.assoc_opt "claim_id" pairs with
+                 | Some (`String id) -> id = "sample"
+                 | _ -> false)
+             | _ -> false)
+         | _ -> false);
+      (* A record that cannot be read does not take the price of the other runs
+         with it. *)
+      write root ".math/v5/runs.jsonl"
+        ("{\"schema_version\": 4, \"started_at\": 0}\n" ^ String.concat "\n" lines ^ "\n");
+      let doctor = run root "doctor" in
+      check "the doctor still names the price of the last run"
+        (contains doctor.stdout "of machine time in 1 claim(s)");
+      print_endline "run-price: PASS")

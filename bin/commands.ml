@@ -1,7 +1,7 @@
 open Domain
+open Run_log
 
 let fail code message = Printf.eprintf "mathc: %s\n" message; exit code
-let now () = int_of_float (Unix.time ())
 let load root =
   match Project.load_spec root with
   | Ok spec -> spec
@@ -19,7 +19,7 @@ let goal root text scope by reason =
   if text = "" || scope = [] || by = "" then fail 2 "goal needs TEXT SCOPE BY"
   else if spec.goal <> None && reason = "" then fail 2 "replacing the aim needs --reason"
   else (
-    Project.save_spec root { spec with goal = Some { text; scope; by; at = now (); reason = (if reason = "" then None else Some reason) } };
+    Project.save_spec root { spec with goal = Some { text; scope; by; at = Execution.now (); reason = (if reason = "" then None else Some reason) } };
     print_endline "the aim is set";
     0)
 
@@ -80,113 +80,6 @@ let add root id text scope falsifier register requirements control source_path =
       Printf.printf "claim %s declared\n" id;
       0
 
-let evidence_for ?files root (claim : claim) requirement command outcome control_reach =
-  let binding = Git.binding_of_scope ?files root ~scope:claim.scope in
-  { claim_id = claim.id; requirement;
-    candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-    materials_digest = binding;
-    definition_digest = definition_digest claim;
-    verifier_digest = verifier_digest claim;
-    environment = Project.environment root;
-    producer = { class_ = "mathc"; identity = Sys.executable_name; run = Some command };
-    independence = Fresh_context; outcome; issued_at = now (); valid_until = None;
-    evidence_ref = None; control_reach }
-
-let report_failure label (result : Process.result) =
-  if result.code <> 0 || result.truncated then (
-    Printf.eprintf "mathc: %s exited %d%s\n%s%s" label result.code
-      (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
-    if result.stdout = "" && result.stderr = "" then prerr_newline ())
-
-(* A declared environment is a prefix for the whole command: the command runs as
-   <environment> sh -c <command>, so every part of it is inside the
-   environment and not only its first word. Without a declared environment the
-   command runs exactly as it is declared. *)
-let command_in_environment environment command =
-  match environment with
-  | None -> command
-  | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
-
-(* The time a check is allowed to take. The protocol and the price arm of the
-   measurer run the same check, so they share one limit: a check that the
-   protocol lets finish must not be cut short by the measurer, or the measured
-   price is not the price of the work. *)
-let verifier_timeout = 600.0
-
-(* The time a negative control is allowed to take. *)
-let control_timeout = 300.0
-
-(* The time the whole protocol run of a specification may take: for every claim
-   it runs the check, the control and the check once more, and no check may
-   outlast its own limit. The measurer uses this as its limit, so it never cuts
-   a legitimate run short and reports a limit as if it were a measurement. *)
-let protocol_timeout claims =
-  60.0 +. float_of_int claims *. (2.0 *. verifier_timeout +. control_timeout)
-
-(* An observation enters the journal the moment it is made, so an interrupted
-   run keeps everything it has already proven. The journal stays append-only
-   and the last observation of a claim and requirement is the one that counts. *)
-let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
-  match requirement with
-  | Review { authority; _ } ->
-      if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
-      Inconclusive
-  | Verifier command -> (
-      match Git.digest_of_scope ?files root ~scope:claim.scope with
-      | None ->
-          if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
-          (* The check could not start, and the record of that is written. The
-             old observation cannot stand for a subject that is not there any
-             more: a map that keeps it would be green for a claim nobody can
-             check. *)
-          let evidence = evidence_for ?files root claim requirement command Not_run None in
-          emit evidence;
-          Inconclusive
-      | Some _ ->
-          let result = Process.run ~timeout:verifier_timeout ~root (command_in_environment environment command) in
-          report_failure command result;
-          let outcome = if result.truncated then Infrastructure_error else result.outcome in
-          let outcome, reach =
-            match outcome, claim.control with
-            | Pass, Some control -> (
-                match Isolated_run.with_copy root (fun copy ->
-                    let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:control_timeout ~root:copy (command_in_environment environment control) in
-                    report_failure ("negative control: " ^ control) mutation;
-                    let after = Git.digest_of_scope copy ~scope:claim.scope in
-                    let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:verifier_timeout ~root:copy (command_in_environment environment command) in
-                    report_failure ("verifier after negative control: " ^ command) check;
-                    if reach = "subject" && check.code = 1 then Pass, Some reach
-                    else Inconclusive, Some reach) with
-                | Error error ->
-                    Printf.eprintf "mathc: control setup failed: %s\n" error;
-                    Infrastructure_error, None
-                | Ok (outcome, reach) -> outcome, reach)
-            | Pass, None -> Not_run, None
-            | outcome, _ -> outcome, None
-          in
-          let evidence = evidence_for ?files root claim requirement command outcome reach in
-          emit evidence;
-          if not quiet then (
-            Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
-            if outcome = Pass && reach = Some "subject" then
-              Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
-          outcome)
-  | All requirements | Any requirements ->
-      (* The order of the work and the point at which the run stops belong to
-         the method, not to this arm: the price arm of the measurer shares
-         them, so the two arms cannot disagree about the work the protocol
-         does. *)
-      Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
-
-(* The requirements of a claim ask for work in an order, and the protocol stops
-   at a certain point: the alternatives of a claim stop at the first confirmed
-   one, the conjunction stops at the first rejected one and goes on after an
-   inconclusive or a failed start, so that a later rejection is not lost. *)
-let execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
-  Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
-
 (* A journal with a damaged record is not whole. The records that can be read
    still stand, so the run rewrites the journal with them and keeps the damaged
    original beside it: nothing that can be read is lost, and the fact of the
@@ -195,10 +88,33 @@ let repair_trail root =
   match Trail.read root with
   | Error error -> Error error
   | Ok journal -> (
-      match Trail.rewrite root journal (now ()) with
+      match Trail.rewrite root journal (Execution.now ()) with
       | Error error -> Error error
       | Ok None -> Ok None
       | Ok (Some backup) -> Ok (Some (List.length journal.damaged, backup)))
+
+(* The price of the run, in words: what the machine spent and where. The
+   slowest claims come first, because that is what a consumer has to see to
+   know which check to look at. *)
+let cost_words (durations : Run_log.priced_claim list) =
+  let total =
+    List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
+  in
+  let sorted = List.sort (fun a b -> compare b.cost.value a.cost.value) durations in
+  let shown = List.take 10 sorted in
+  let header =
+    Printf.sprintf "machine time: %.1f s in %d claim(s); the slowest first:" total (List.length durations)
+  in
+  let lines =
+    List.map (fun (priced : Run_log.priced_claim) ->
+        Printf.sprintf "  %.1f s  %s" priced.cost.value priced.claim_id) shown
+  in
+  let rest =
+    match List.length sorted - List.length shown with
+    | 0 -> []
+    | count -> [ Printf.sprintf "  (%d more claim(s) not shown)" count ]
+  in
+  String.concat "\n" (header :: lines @ rest)
 
 let run ?(changed = false) root json =
   (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
@@ -230,16 +146,37 @@ let run ?(changed = false) root json =
     match selection with None -> spec.claims | Some selection -> selection.to_execute
   in
   let emit = Trail.append root in
+  let started_at = Execution.now () in
+  let started = Unix.gettimeofday () in
+  let durations = ref [] in
   List.iter
     (fun claim ->
       (* The environment of the claim is its own when it declares one, and the
          environment of the specification otherwise. It covers the check and
          its negative control alike. *)
       let environment = effective_environment spec claim in
+      let claim_started = Unix.gettimeofday () in
       List.iter
-        (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
-        claim.requirements)
+        (fun requirement -> ignore (Execution.execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
+        claim.requirements;
+      (* The price of the claim is measured around all of its work: the check,
+         its negative control and the check once more. *)
+      let seconds = Unix.gettimeofday () -. claim_started in
+      let cost = { scale = Wall_clock_seconds; value = seconds;
+                    observed_at = Execution.now (); observed_by = "mathc" } in
+      durations := { claim_id = claim.id; cost } :: !durations)
     claims;
+  let durations = List.rev !durations in
+  let machine_seconds =
+    List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
+  in
+  let record : run_record =
+    { started_at; finished_at = Execution.now ();
+      wall_seconds = Unix.gettimeofday () -. started; machine_seconds;
+      claims = List.length spec.claims; executed = List.length durations;
+      stopped = false; durations }
+  in
+  Run_log.append root record;
   (match selection with
    | None -> ()
    | Some selection ->
@@ -249,6 +186,8 @@ let run ?(changed = false) root json =
          if blind = "" then words else words ^ "; " ^ blind
        in
        if json then prerr_endline ("mathc: " ^ report) else print_endline report);
+  let cost = cost_words durations in
+  if json then prerr_endline ("mathc: " ^ cost) else print_endline cost;
   match Project.map_output root spec with
   | Error error -> fail 3 error
   | Ok output ->
@@ -288,8 +227,8 @@ let waive root id by reason valid_for recovery =
           else if List.assoc_opt id states = Some Refuted then fail 2 "a refuted claim cannot be waived"
           else
             let waiver = {
-              gap = id; scope = claim.scope; issuer = by; issued_at = now ();
-              expires_at = now () + (valid_for * 86400); reason;
+              gap = id; scope = claim.scope; issuer = by; issued_at = Execution.now ();
+              expires_at = Execution.now () + (valid_for * 86400); reason;
               compensating_controls = []; recovery; review_on = [];
             } in
             let claims = List.map (fun current -> if current.id = id then { current with waiver = Some waiver } else current) spec.claims in
@@ -330,8 +269,8 @@ let record root id authority by outcome valid_for run_ref =
                    definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
                    environment = Project.environment root;
                    producer = { class_ = "human"; identity = by; run = run_ref };
-                   independence = External; outcome; issued_at = now ();
-                   valid_until = Option.map (fun days -> now () + (days * 86400)) valid_for;
+                   independence = External; outcome; issued_at = Execution.now ();
+                   valid_until = Option.map (fun days -> Execution.now () + (days * 86400)) valid_for;
                    evidence_ref = run_ref; control_reach = None;
                  } in
                  Trail.append root evidence;
@@ -379,7 +318,7 @@ let review_source root id by reason =
             | Some digest when digest = source.digest -> fail 2 "the source has not changed"
             | Some digest ->
                 let previous_digest = source.digest in
-                let review = Some { by; reason; at = now (); previous_digest } in
+                let review = Some { by; reason; at = Execution.now (); previous_digest } in
                 let source = { source with digest; review } in
                 let claims = List.map (fun current ->
                   if current.id = id then { current with source = Some source; waiver = None } else current) spec.claims in

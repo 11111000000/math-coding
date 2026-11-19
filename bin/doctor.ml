@@ -70,5 +70,17 @@ let doctor root =
               List.length (List.filter (fun (_, (record : evidence)) -> record.control_reach = Some "nothing") latest)
             in
             if nothing = 0 then note "every negative control of the last run reaches the subject"
-            else report false (Printf.sprintf "%d negative control(s) of the last run reach nothing" nothing)));
+            else report false (Printf.sprintf "%d negative control(s) of the last run reach nothing" nothing));
+       (* The price of the last run. It is not evidence and it does not change
+          the verdict; it is the number that tells an owner which check to look
+          at first. *)
+       (match Run_log.read root with
+        | Error error -> note ("the price of the last run can be read: " ^ error)
+        | Ok runs -> (
+            match List.rev runs with
+            | [] -> note "no run of this project has been priced yet"
+            | (last : Run_log.run_record) :: _ ->
+                note
+                  (Printf.sprintf "the last run spent %.1f s of machine time in %d claim(s)"
+                     last.machine_seconds last.executed))));
   if !broken = 0 then 0 else 1
