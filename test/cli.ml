@@ -696,3 +696,55 @@ let () =
       check "the map shows the unfinished claim as never checked"
         (state_of_map map "second" = "never-checked");
       print_endline "interrupted-run: PASS")
+
+(* A partial run executes the claims whose evidence no longer holds and leaves
+   the rest alone. The rule is the rule of freshness the map uses. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt,other.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      write root "other.txt" "other\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "add other \"the other is expected\" other.txt \"not expected\" fact --requirement \"verifier:grep -q other other.txt\" --control \"printf broken > other.txt\"" 0;
+      expect root "run" 0;
+      let records_of id =
+        trail_records root |> List.filter (fun record -> contains record ("\"claim_id\":\"" ^ id ^ "\""))
+      in
+      let sample_before = List.length (records_of "sample") in
+      write root "other.txt" "changed\n";
+      let partial = run root "run --changed" in
+      check "a partial run says how much it executed"
+        (contains partial.stdout "partial run: 1 of 2 claim(s) executed");
+      check "a partial run leaves the current claim alone"
+        (contains partial.stdout "sample                       holds (current)");
+      check "a partial run does not rewrite the evidence of the current claim"
+        (List.length (records_of "sample") = sample_before);
+      check "a partial run executes the claim whose materials changed"
+        (List.length (records_of "other") = 2);
+      let json = run root "run --changed --json" in
+      check "a partial run keeps the json clean"
+        (contains json.stderr "partial run:"
+        && (match Yojson.Safe.from_string json.stdout with
+            | exception Yojson.Json_error _ -> false
+            | _ -> true));
+      print_endline "partial-run: PASS")
+
+(* A claim the run cannot see is executed anyway: the method does not skip a
+   claim it cannot see, and the map does not stay green for it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 0;
+      Sys.rename (Filename.concat root "subject.txt") (Filename.concat root "gone.txt");
+      let partial = run root "run --changed" in
+      check "a partial run executes the claim it cannot see"
+        (contains partial.stdout "the subject of 1 claim(s) cannot be seen"
+        && contains partial.stdout "the subject is not whole or does not exist");
+      let map = run root "map" in
+      check "a claim without a subject is not green"
+        (map.code = 3 && contains map.stdout "inconclusive");
+      print_endline "partial-run-blind: PASS")

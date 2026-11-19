@@ -35,6 +35,10 @@ type evaluated_state = {
   state : state;
   changed : bool;
   reason : Verdict.reason;
+  (* The digest of the subject as it is now. It is missing when the subject
+     cannot be digested: the run cannot see such a claim, and a claim it
+     cannot see is not one it may leave alone. *)
+  materials : string option;
   (* The branches that no evidence settles yet: what still has to close for
      the claim to hold. The next action names them, because an action that
      cannot close the claim is a dead end and not a next step. *)
@@ -95,8 +99,8 @@ let evaluate root spec =
                 (* A changed source outranks every other reason for staleness. *)
                 if changed then
                   { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed;
-                    open_branches }
-                else { id = claim.id; state; changed = false; reason; open_branches })
+                    materials; open_branches }
+                else { id = claim.id; state; changed = false; reason; materials; open_branches })
               spec.claims
           in
           Ok { states; damaged = journal.damaged })
@@ -109,6 +113,78 @@ let states root spec =
   match evaluate root spec with
   | Error error -> Error error
   | Ok evaluation -> Ok (List.map (fun item -> item.id, item.state) evaluation.states)
+
+(* Whether a branch holds a machine check. A claim with no machine check is
+   closed by a human, and the run has no work for it. *)
+let rec has_machine_check = function
+  | Verifier _ -> true
+  | Review _ -> false
+  | All requirements | Any requirements -> List.exists has_machine_check requirements
+
+(* The claims a partial run has work for. The rule is the rule of freshness
+   the map already uses: a claim whose evidence still holds is left alone,
+   because its evidence speaks for itself and a check that holds is not worth
+   paying for again. A refuted claim is left alone as well: a refutation is a
+   finding for a human, and its evidence is fresh by definition, so running
+   it again would pay for nothing. A claim the human accepted a risk for is
+   left alone too. A claim whose subject cannot be digested is executed
+   anyway: the method does not skip a claim it cannot see. *)
+type selection = {
+  to_execute : claim list;
+  current : claim list;
+  settled : claim list;
+  human : claim list;
+  blind : claim list;
+}
+
+let selection root spec =
+  match evaluate root spec with
+  | Error error -> Error error
+  | Ok evaluation ->
+      let to_execute = ref [] and current = ref [] and settled = ref [] in
+      let human = ref [] and blind = ref [] in
+      List.iter
+        (fun (claim : claim) ->
+          match List.find_opt (fun item -> item.id = claim.id) evaluation.states with
+          | None -> ()
+          | Some item ->
+              let checkable = List.exists has_machine_check (requirements_of_claim claim) in
+              if item.state = Holds then
+                if checkable && item.materials = None then (
+                  to_execute := claim :: !to_execute;
+                  blind := claim :: !blind)
+                else current := claim :: !current
+              else if not checkable then human := claim :: !human
+              else
+                match item.state with
+                | Refuted | Waived -> settled := claim :: !settled
+                | Holds -> ()
+                | Outdated | Inconclusive | NeverChecked | NotCheckable ->
+                    to_execute := claim :: !to_execute)
+        spec.claims;
+      Ok { to_execute = List.rev !to_execute; current = List.rev !current;
+           settled = List.rev !settled; human = List.rev !human; blind = List.rev !blind }
+
+(* What a partial run did, in words a reader can act on: how many claims it
+   executed and how many it left alone, and why. *)
+let selection_words (selection : selection) =
+  let executed = List.length selection.to_execute in
+  let total =
+    executed + List.length selection.current + List.length selection.settled
+    + List.length selection.human
+  in
+  Printf.sprintf "partial run: %d of %d claim(s) executed; %d left current; %d left refuted or waived; %d waiting for a human"
+    executed total (List.length selection.current) (List.length selection.settled)
+    (List.length selection.human)
+
+(* The claims the run cannot see. They are executed anyway, and the run says
+   so: a map that cannot see a change is not a reason to skip the claim. *)
+let blind_words (selection : selection) =
+  match selection.blind with
+  | [] -> None
+  | blind ->
+      Some (Printf.sprintf "the subject of %d claim(s) cannot be seen; they are executed anyway"
+              (List.length blind))
 
 (* The command that records a human review of a claim. The run refuses a
    review by definition, so a claim that only a review can close is closed by
