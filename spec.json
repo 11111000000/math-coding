@@ -72,7 +72,7 @@
       ],
       "falsifier": "a claim holds without current independent evidence",
       "register": "fact",
-      "control": "sed -i 's/check.code = 1/check.code = 0/' bin/commands.ml",
+      "control": "grep -rl 'check.code = 1' bin/ | xargs -r sed -i 's/check.code = 1/check.code = 0/'",
       "waiver": null,
       "environment": "nix develop -c"
     },
