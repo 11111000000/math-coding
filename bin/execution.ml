@@ -46,10 +46,18 @@ let report_failure label (result : Process.result) =
       (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
     if result.stdout = "" && result.stderr = "" then prerr_newline ())
 
+(* The result of a check that was stopped: no observation, no reach. The
+   constructor is named with its type, because the domain has a state of the
+   same name and the reader of the code must not guess. *)
+let interrupted_result : outcome * string option = (Inconclusive, None)
+
 (* An observation enters the journal the moment it is made, so an interrupted
    run keeps everything it has already proven. The journal stays append-only
-   and the last observation of a claim and requirement is the one that counts. *)
-let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
+   and the last observation of a claim and requirement is the one that counts.
+
+   A check that was stopped is not an observation: the claim keeps the
+   observation it had, and the run says that it was stopped. *)
+let rec execute_leaf ?files ?(quiet = false) ~environment ~cancel root claim emit requirement : Domain.outcome =
   match requirement with
   | Review { authority; _ } ->
       if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
@@ -66,46 +74,54 @@ let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requir
           emit evidence;
           Inconclusive
       | Some _ ->
-          let result = Process.run ~timeout:verifier_timeout ~root (command_in_environment environment command) in
-          report_failure command result;
-          let outcome = if result.truncated then Infrastructure_error else result.outcome in
-          let outcome, reach =
-            match outcome, claim.control with
-            | Pass, Some control -> (
-                match Isolated_run.with_copy root (fun copy ->
-                    let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:control_timeout ~root:copy (command_in_environment environment control) in
-                    report_failure ("negative control: " ^ control) mutation;
-                    let after = Git.digest_of_scope copy ~scope:claim.scope in
-                    let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:verifier_timeout ~root:copy (command_in_environment environment command) in
-                    report_failure ("verifier after negative control: " ^ command) check;
-                    if reach = "subject" && check.code = 1 then Pass, Some reach
-                    else Inconclusive, Some reach) with
-                | Error error ->
-                    Printf.eprintf "mathc: control setup failed: %s\n" error;
-                    Infrastructure_error, None
-                | Ok (outcome, reach) -> outcome, reach)
-            | Pass, None -> Not_run, None
-            | outcome, _ -> outcome, None
-          in
-          let evidence = evidence_for ?files root claim requirement command outcome reach in
-          emit evidence;
-          if not quiet then (
-            Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
-            if outcome = Pass && reach = Some "subject" then
-              Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
-          outcome)
+          let result = Process.run ~timeout:verifier_timeout ~cancel ~root (command_in_environment environment command) in
+          if result.interrupted then (
+            if not quiet then Printf.printf "%s: the check was stopped\n" claim.id;
+            Inconclusive)
+          else (
+            report_failure command result;
+            let outcome = if result.truncated then Infrastructure_error else result.outcome in
+            let outcome, reach =
+              match outcome, claim.control with
+              | Pass, Some control -> (
+                  match Isolated_run.with_copy root (fun copy ->
+                      let before = Git.digest_of_scope copy ~scope:claim.scope in
+                      let mutation = Process.run ~timeout:control_timeout ~cancel ~root:copy (command_in_environment environment control) in
+                      let after = Git.digest_of_scope copy ~scope:claim.scope in
+                      if mutation.interrupted then interrupted_result
+                      else (
+                        report_failure ("negative control: " ^ control) mutation;
+                        let reach = if before = after then "nothing" else "subject" in
+                        let check = Process.run ~timeout:verifier_timeout ~cancel ~root:copy (command_in_environment environment command) in
+                        if check.interrupted then interrupted_result
+                        else (
+                          report_failure ("verifier after negative control: " ^ command) check;
+                          if reach = "subject" && check.code = 1 then (Pass, Some reach)
+                          else (Inconclusive, Some reach)))) with
+                  | Error error ->
+                      Printf.eprintf "mathc: control setup failed: %s\n" error;
+                      Infrastructure_error, None
+                  | Ok (outcome, reach) -> outcome, reach)
+              | Pass, None -> Not_run, None
+              | outcome, _ -> outcome, None
+            in
+            let evidence = evidence_for ?files root claim requirement command outcome reach in
+            emit evidence;
+            if not quiet then (
+              Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
+              if outcome = Pass && reach = Some "subject" then
+                Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
+            outcome))
   | All requirements | Any requirements ->
       (* The order of the work and the point at which the run stops belong to
          the method, not to this arm: the price arm of the measurer shares
          them, so the two arms cannot disagree about the work the protocol
          does. *)
-      Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
+      Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment ~cancel root claim emit) requirement
 
 (* The requirements of a claim ask for work in an order, and the protocol stops
    at a certain point: the alternatives of a claim stop at the first confirmed
    one, the conjunction stops at the first rejected one and goes on after an
    inconclusive or a failed start, so that a later rejection is not lost. *)
-let execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
-  Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
+let execute_requirement ?files ?(quiet = false) ~environment ~cancel root claim emit requirement : Domain.outcome =
+  Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment ~cancel root claim emit) requirement

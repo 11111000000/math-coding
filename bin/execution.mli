@@ -24,7 +24,8 @@ val command_in_environment : string option -> string -> string
 val evidence_for :
   ?files:string list -> string -> claim -> requirement -> string -> outcome -> string option -> evidence
 
-(* The execution of one branch of a claim. *)
+(* The execution of one branch of a claim. The flag tells the execution that
+   the run may be asked to stop: the check in flight is stopped with it. *)
 val execute_requirement :
-  ?files:string list -> ?quiet:bool -> environment:string option ->
+  ?files:string list -> ?quiet:bool -> environment:string option -> cancel:bool ref ->
   string -> claim -> (evidence -> unit) -> requirement -> outcome

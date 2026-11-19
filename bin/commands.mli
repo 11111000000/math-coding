@@ -1,7 +1,7 @@
 val init : string -> int
 val goal : string -> string -> string list -> string -> string -> int
 val add : string -> string -> string -> string list -> string -> string -> Domain.requirement list -> string -> string -> int
-val run : ?changed:bool -> string -> bool -> int
+val run : ?changed:bool -> ?limit:float -> string -> bool -> int
 val map : string -> bool -> int
 val next : string -> int
 val context : string -> int
@@ -12,3 +12,6 @@ val authorize : string -> string -> string -> int
 val re_evaluate : string -> int
 val review_source : string -> string -> string -> string -> int
 val version : unit -> int
+
+(* The limit of a run in seconds: the run stops itself and says so. *)
+val default_limit : float

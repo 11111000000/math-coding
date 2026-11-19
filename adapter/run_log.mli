@@ -15,6 +15,8 @@ type run_record = {
   claims : int;
   executed : int;
   stopped : bool;
+  (* Why the run stopped, when it stopped. *)
+  stop_reason : string option;
   durations : priced_claim list;
 }
 
