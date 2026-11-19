@@ -269,34 +269,46 @@ let waive root id by reason valid_for recovery =
             Printf.printf "claim %s: waived until %d\n" id waiver.expires_at;
             0)
 
+(* The review requirement that the authority answers, anywhere in the tree of
+   the requirements of a claim. *)
+let rec review_of_authority authority = function
+  | (Review { authority = named; _ } as requirement) when named = authority -> Some requirement
+  | All requirements | Any requirements -> List.find_map (review_of_authority authority) requirements
+  | _ -> None
+
 let record root id authority by outcome valid_for run_ref =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
   | None -> fail 2 ("there is no claim " ^ id)
   | Some claim ->
-      let requirement = Review { authority; minimum_independence = External } in
-      if not (List.mem requirement claim.requirements) then fail 2 "the claim has no such review requirement"
-      else if by = "" then fail 2 "record needs --by"
-      else if Option.exists (fun days -> days <= 0) valid_for then
-        fail 2 "record --valid-for must be a positive number of days"
-      else
-        match outcome_of_string outcome with
-        | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
-        | Some outcome ->
-            let evidence = {
-              claim_id = id; requirement;
-              candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-              materials_digest = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope);
-              definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
-              environment = Project.environment root;
-              producer = { class_ = "human"; identity = by; run = run_ref };
-              independence = External; outcome; issued_at = now ();
-              valid_until = Option.map (fun days -> now () + (days * 86400)) valid_for;
-              evidence_ref = run_ref; control_reach = None;
-            } in
-            Trail.append root evidence;
-            print_endline "recorded";
-            0
+      (* The record answers the requirement as the claim declares it: the
+         journal finds the evidence by the requirement it belongs to. A record
+         is an external attestation, so it satisfies any independence the
+         claim asks for. *)
+      (match List.find_map (review_of_authority authority) claim.requirements with
+       | None -> fail 2 "the claim has no such review requirement"
+       | Some requirement ->
+           if by = "" then fail 2 "record needs --by"
+           else if Option.exists (fun days -> days <= 0) valid_for then
+             fail 2 "record --valid-for must be a positive number of days"
+           else
+             match outcome_of_string outcome with
+             | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+             | Some outcome ->
+                 let evidence = {
+                   claim_id = id; requirement;
+                   candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
+                   materials_digest = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope);
+                   definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
+                   environment = Project.environment root;
+                   producer = { class_ = "human"; identity = by; run = run_ref };
+                   independence = External; outcome; issued_at = now ();
+                   valid_until = Option.map (fun days -> now () + (days * 86400)) valid_for;
+                   evidence_ref = run_ref; control_reach = None;
+                 } in
+                 Trail.append root evidence;
+                 print_endline "recorded";
+                 0)
 
 let install root =
   let path = Filename.concat root "AGENTS.md" in

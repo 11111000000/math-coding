@@ -25,7 +25,12 @@ val explain_evidence :
 val explain_attestation :
   now:int -> ?materials:string -> ?environment:environment -> claim -> requirement -> evidence option -> state * reason
 val explain_claim :
-  now:int -> ?materials:string -> ?environment:environment -> claim -> evidence list -> state * reason
+  now:int -> ?materials:string -> ?environment:environment -> ?requirements:requirement list ->
+  claim -> evidence list -> state * reason
+
+(* The review branches of a requirement. A judgment takes only its review
+   branches: a machine check cannot settle a human decision. *)
+val judgment_requirements : requirement -> requirement option
 
 val state_of_evidence : now:int -> ?materials:string -> ?environment:environment -> claim -> requirement -> evidence option -> state
 val state_of_attestation : now:int -> ?materials:string -> ?environment:environment -> claim -> requirement -> evidence option -> state
