@@ -1,14 +1,17 @@
 import type { SnapshotReady } from "../shared/schemas";
 import type { ClaimState } from "../shared/domain";
 import { flattenRequirements, shortRequirement } from "../shared/requirements";
+import type { MessageRef } from "../shared/message";
 
 export type GraphNodeKind = "goal" | "source" | "claim" | "requirement" | "scope" | "uncovered";
 
 export interface GraphNode {
   id: string;
   kind: GraphNodeKind;
-  title: string;
-  subtitle: string;
+  /** The subject of the node: data of the project, or a name of the interface. */
+  title: string | MessageRef;
+  /** What the node says about its subject. */
+  subtitle: string | MessageRef;
   depth: number;
   claimId?: string;
   requirementPath?: string;
@@ -51,8 +54,10 @@ export function buildProofGraph(
   const nodes: GraphNode[] = [{
     id: "goal",
     kind: "goal",
-    title: snapshot.map.goal?.text ?? "Claims without a declared goal",
-    subtitle: snapshot.map.goal ? `Goal · ${snapshot.map.goal.by}` : "No goal in map",
+    title: snapshot.map.goal?.text ?? { key: "graph.claims_without_goal" },
+    subtitle: snapshot.map.goal
+      ? { key: "graph.goal_title", args: { by: snapshot.map.goal.by } }
+      : { key: "graph.no_goal_in_map" },
     depth: 0,
   }];
   const edges: GraphEdge[] = [];
@@ -104,7 +109,7 @@ export function buildProofGraph(
           id,
           kind: "requirement",
           title: shortRequirement(item.requirement),
-          subtitle: `${kind} · requirement ${item.path}`,
+          subtitle: { key: "graph.requirement_node", args: { kind, path: item.path } },
           depth: depth + item.depth + 1,
           claimId: claim.id,
           requirementPath: item.path,
@@ -125,8 +130,8 @@ export function buildScopeGraph(snapshot: SnapshotReady, query = ""): GraphModel
   const nodes: GraphNode[] = [{
     id: "goal",
     kind: "goal",
-    title: snapshot.map.goal?.text ?? "Declared scope",
-    subtitle: `${snapshot.map.uncovered.length} uncovered path(s)`,
+    title: snapshot.map.goal?.text ?? { key: "graph.declared_scope" },
+    subtitle: { key: "graph.uncovered_count", args: { count: snapshot.map.uncovered.length } },
     depth: 0,
   }];
   const edges: GraphEdge[] = [];
@@ -156,7 +161,9 @@ export function buildScopeGraph(snapshot: SnapshotReady, query = ""): GraphModel
       id,
       kind: "scope",
       title: scope,
-      subtitle: owners.length > 1 ? `shared declared scope · ${owners.length} claims` : "declared scope",
+      subtitle: owners.length > 1
+        ? { key: "graph.shared_scope", args: { count: owners.length } }
+        : { key: "graph.declared_scope_lower" },
       depth: 2,
     });
     for (const claimId of owners) {
@@ -171,7 +178,7 @@ export function buildScopeGraph(snapshot: SnapshotReady, query = ""): GraphModel
   }
   for (const path of snapshot.map.uncovered.slice(0, Math.max(0, MAX_NODES - nodes.length))) {
     const id = `uncovered:${path}`;
-    nodes.push({ id, kind: "uncovered", title: path, subtitle: "uncovered in goal scope", depth: 1 });
+    nodes.push({ id, kind: "uncovered", title: path, subtitle: { key: "graph.uncovered_in_goal_scope" }, depth: 1 });
     edges.push({ id: `goal→${id}`, from: "goal", to: id, kind: "uncovered" });
   }
   const represented = new Set(nodes.map((node) => node.id));

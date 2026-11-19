@@ -454,6 +454,25 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
 /* The host                                                                    */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The language of the browser.
+ *
+ * The page has no application around it, so the language of the browser is the
+ * language of the host. A change of it reaches the interface without a reload.
+ */
+function useAppLocale(): string {
+  const [locale, setLocale] = useState(() =>
+    typeof navigator === "undefined" ? "en" : navigator.language,
+  );
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const onChange = () => setLocale(navigator.language);
+    window.addEventListener("languagechange", onChange);
+    return () => window.removeEventListener("languagechange", onChange);
+  }, []);
+  return locale;
+}
+
 export function createBrowserHost(): HostContextValue {
   return {
     Icon: BrowserIcon,
@@ -465,6 +484,7 @@ export function createBrowserHost(): HostContextValue {
     SettingsSelect,
     SettingsAction,
     SettingsSwitch,
+    useAppLocale,
     copyText,
     useToast,
     useRpc: useBrowserRpc,

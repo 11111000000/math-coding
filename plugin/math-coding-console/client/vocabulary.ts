@@ -1,5 +1,7 @@
 import type { ConsoleTheme } from "../shared/theme";
 import type { ClaimState, EvidenceOutcome, StateReason, Verdict } from "../shared/domain";
+import type { MessageKey } from "../shared/message";
+import { translate } from "./i18n/translate";
 
 export type Tone = "neutral" | "good" | "warn" | "bad" | "info";
 
@@ -82,27 +84,39 @@ export function stateOrder(state: ClaimState): number {
  * The text says what the map reports. It never guesses a cause the map did
  * not give, and it never promises that a check will repair anything.
  */
-export const UNKNOWN_STATE_REASON = "This version does not report a reason for this state.";
-
-const REASON_TEXT: Record<StateReason, string> = {
-  current: "The recorded evidence is fresh and still applies to this claim.",
-  "never-checked": "No check has produced evidence for this claim yet.",
-  "source-changed": "The linked source changed after the evidence was recorded.",
-  "materials-changed": "The materials covered by this claim changed after the evidence was recorded.",
-  "definition-changed": "The definition of this claim changed after the evidence was recorded.",
-  "verifier-changed": "The verifier changed after the evidence was recorded.",
-  "environment-changed": "The environment changed after the evidence was recorded, for example because the built program is now a different one.",
-  expired: "The recorded evidence passed its validity period and no current result replaced it.",
-  "not-run": "The declared check did not run, so the claim has no current observation.",
-  inconclusive: "The check ran, but the observation neither established nor refuted the claim.",
-  "infrastructure-error": "The check could not produce an observation because of an infrastructure error.",
-  refuted: "A current observation contradicted the claim.",
-  waived: "A recorded waiver covers the gap of this claim.",
-  "not-checkable": "No declared condition can establish or refute this claim.",
+/**
+ * The reason a state was reported.
+ *
+ * The text says what the map reports. It never guesses a cause the map did
+ * not give, and it never promises that a check will repair anything. The
+ * reason is named by a key, so the interface reads it in the language of the
+ * human.
+ */
+const REASON_KEYS: Record<StateReason, MessageKey> = {
+  current: "state.reason_current",
+  "never-checked": "state.reason_never_checked",
+  "source-changed": "state.reason_source_changed",
+  "materials-changed": "state.reason_materials_changed",
+  "definition-changed": "state.reason_definition_changed",
+  "verifier-changed": "state.reason_verifier_changed",
+  "environment-changed": "state.reason_environment_changed",
+  expired: "state.reason_expired",
+  "not-run": "state.reason_not_run",
+  inconclusive: "state.reason_inconclusive",
+  "infrastructure-error": "state.reason_infrastructure_error",
+  refuted: "state.reason_refuted",
+  waived: "state.reason_waived",
+  "not-checkable": "state.reason_not_checkable",
 };
 
+/** The key of the catalogue that holds the reason of a state. */
+export function stateReasonKey(reason?: StateReason): MessageKey {
+  return reason === undefined ? "state.reason_unknown" : REASON_KEYS[reason];
+}
+
+/** The reason of a state in English, for the brief of an agent. */
 export function stateReasonText(reason?: StateReason): string {
-  return reason === undefined ? UNKNOWN_STATE_REASON : REASON_TEXT[reason];
+  return translate("en", stateReasonKey(reason));
 }
 
 export function formatTime(seconds: number): string {

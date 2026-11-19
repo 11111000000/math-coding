@@ -1,6 +1,7 @@
 import type { Claim, ClaimState, EvidenceRecord } from "../shared/domain";
 import type { SnapshotReady } from "../shared/schemas";
 import { canonicalJson, flattenRequirements, requirementLabel, type RequirementNode } from "../shared/requirements";
+import type { MessageRef } from "../shared/message";
 import type { AttentionModel, HumanAttentionItem } from "./attention";
 
 /**
@@ -38,7 +39,7 @@ export interface ConditionEvidence {
 export interface HumanQueueItem {
   id: string;
   kind: string;
-  title: string;
+  title: MessageRef;
   expectation: string;
   attention: HumanAttentionItem;
   claimIds: string[];
@@ -72,7 +73,7 @@ export interface StandingObligation {
  * step instead of reporting it as done.
  */
 export interface GoalAcceptance {
-  title: string;
+  title: MessageRef;
   owner: string | null;
   obligationsConfirmed: boolean;
   areaResolved: boolean;
@@ -212,7 +213,7 @@ export function buildHumanQueue(
     conditions: claimConditions(claim, grouped.get(claim.id) ?? []),
   }));
   const acceptance: GoalAcceptance = {
-    title: "Accept the result on the basis of the map",
+    title: { key: "queue.accept_basis" },
     owner: snapshot.map.goal?.by ?? null,
     // The verdict of the map is the only source of the conclusion. The states
     // of the claims cannot carry it: a journal with an unreadable record keeps

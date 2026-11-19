@@ -197,7 +197,7 @@ export type RpcName = (typeof rpcSchemas)[keyof typeof rpcSchemas]["name"];
 export const preferencesDefinition = {
   id: "general",
   scope: "host" as const,
-  version: 3,
+  version: 4,
   migrate(values: unknown, fromVersion: number): unknown {
     if (typeof values !== "object" || values === null || Array.isArray(values)) {
       return values;
@@ -212,6 +212,11 @@ export const preferencesDefinition = {
       // decision is a new one and therefore starts closed.
       return { ...record, allowHumanDecisions: false };
     }
+    if (fromVersion === 3) {
+      // The language of the interface is a new preference. It follows the host
+      // until the human chooses another one.
+      return { ...record, locale: "auto" };
+    }
     return values;
   },
   schema: z.strictObject({
@@ -224,6 +229,14 @@ export const preferencesDefinition = {
      * by default: the human opens it in the settings of the host.
      */
     allowHumanDecisions: z.boolean().default(false),
+    /**
+     * The language of the interface.
+     *
+     * `auto` follows the language of the host application. An explicit
+     * language overrides it for everything the console draws itself; the
+     * labels the host draws itself always follow the host.
+     */
+    locale: z.enum(["auto", "en", "ru"]).default("auto"),
     autoRefreshSeconds: z.union([
       z.literal(0),
       z.literal(15),
