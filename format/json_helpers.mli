@@ -4,6 +4,7 @@ val string_opt : string -> (string * Yojson.Safe.t) list -> (string option, stri
 val string_list : string -> (string * Yojson.Safe.t) list -> (string list, string) result
 val int : string -> (string * Yojson.Safe.t) list -> (int, string) result
 val int_opt : string -> (string * Yojson.Safe.t) list -> (int option, string) result
+val bool : string -> (string * Yojson.Safe.t) list -> (bool, string) result
 val json_string : string -> Yojson.Safe.t
 val json_string_opt : string option -> Yojson.Safe.t
 val json_strings : string list -> Yojson.Safe.t

@@ -82,12 +82,12 @@ let price_of ~root ~cut ~environment ~has_control requirement =
     | Verifier command ->
         let started = Unix.gettimeofday () in
         let result =
-          Process.run ~timeout:Commands.verifier_timeout ~root
-            (Commands.command_in_environment environment command)
+          Process.run ~timeout:Execution.verifier_timeout ~root
+            (Execution.command_in_environment environment command)
         in
         let spent = Unix.gettimeofday () -. started in
         elapsed := !elapsed +. spent;
-        if cut_off spent Commands.verifier_timeout then cut := true;
+        if cut_off spent Execution.verifier_timeout then cut := true;
         executed := requirement :: !executed;
         (* The protocol confirms a passing check only when the claim has a
            negative control. A claim without one is never confirmed, and the
@@ -148,7 +148,7 @@ let measure ?limit root =
       (* The limit of the protocol arm is derived from the limits of the
          protocol itself, so a legitimate run is never cut short. *)
       let limit =
-        match limit with Some value -> value | None -> Commands.protocol_timeout (List.length spec.claims)
+        match limit with Some value -> value | None -> Execution.protocol_timeout (List.length spec.claims)
       in
       let started = Unix.gettimeofday () in
       (* The journal before the protocol arm: the records the arm appends are
