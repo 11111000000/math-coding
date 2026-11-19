@@ -63,6 +63,19 @@ let requirements_of_claim (claim : claim) =
   | Judgment -> List.filter_map Verdict.judgment_requirements claim.requirements
   | Fact | Hypothesis | Undeclared -> claim.requirements
 
+(* The review branches of a claim: the branches that only a person can settle.
+   A decision is bound to the decision, not to the bytes of the document that
+   carries it, so the branches of a decision are found by their kind. *)
+let rec review_branches = function
+  | Verifier _ -> []
+  | Review _ as requirement -> [ requirement ]
+  | All requirements | Any requirements -> List.concat_map review_branches requirements
+
+(* The reviews a claim waits for: the review branches of its active
+   requirements. *)
+let reviews_of_claim (claim : claim) =
+  List.concat_map review_branches (requirements_of_claim claim)
+
 (* The branches of a claim that no evidence settles yet: what still has to
    close for the claim to hold. Every branch is asked on its own, so a branch
    that no evidence settles is left out and a settled one is not. *)

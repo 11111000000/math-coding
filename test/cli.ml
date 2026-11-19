@@ -332,12 +332,13 @@ let () =
       check "a recorded review settles the claim"
         (contains (run root "map").stdout "holds"
         && contains (run root "next").stdout "nothing to do");
+      (* A decision is bound to the decision, not to the bytes of the document
+         that carries it: the claim stays settled when the document grows. *)
       write root "subject.txt" "changed\n";
-      let stale = run root "next" in
-      check "a stale human claim names the record command and not the checks"
-        (contains stale.stdout "the evidence of judged is stale (materials-changed)"
-        && contains stale.stdout "mathc record judged owner --by WHO --outcome OUTCOME"
-        && not (contains stale.stdout "re-run the checks"));
+      let grown = run root "next" in
+      check "a growing document does not make the decision stale"
+        (contains grown.stdout "nothing to do"
+        && not (contains grown.stdout "materials-changed"));
       print_endline "next-names-the-human-review: PASS")
 
 (* A claim that asks for both a machine check and a human review waits for the
@@ -829,3 +830,68 @@ let () =
         (not (contains finished.stdout "the run was stopped"));
       check "a run that finished gives the verdict of the map" (finished.code = 0);
       print_endline "stopped-run: PASS")
+
+(* A decision of a person is bound to the decision, not to the bytes of the
+   document that carries it. A document that keeps growing does not make the
+   decision stale, and the person revises the decision explicitly when it
+   changes: the revision records the author, the reason and the time, and the
+   previous decision stays in the journal. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the owner decides the order of the waves\" plan.md owner" 0;
+      write root "plan.md" "wave 1, wave 2\n";
+      expect root "add decided \"the owner decided the order of the waves\" plan.md \"the order is not the owner's\" judgment --requirement \"review:owner\"" 0;
+      expect root "record decided owner --by owner --outcome pass" 0;
+      check "a decision settles the claim" (contains (run root "map").stdout "holds");
+      (* The carrier keeps growing: the decision does not become stale. *)
+      write root "plan.md" "wave 1, wave 2, wave 3\n";
+      let grown = run root "map" in
+      check "a growing document does not make the decision stale"
+        (grown.code = 0 && contains grown.stdout "holds"
+        && not (contains grown.stdout "materials-changed"));
+      check "the owner is not asked to decide again"
+        (contains (run root "next").stdout "nothing to do");
+      (* The revision carries the author, the reason and the time. *)
+      expect root "review-decision decided --by owner --reason \"the order changed on 2026-11-19\"" 0;
+      let records = trail_records root in
+      check "the journal keeps the previous decision and the revision"
+        (List.length records = 2);
+      check "the revision carries the reason of the person"
+        (List.exists (fun line -> contains line "the order changed on 2026-11-19") records);
+      check "the revision settles the claim" (contains (run root "map").stdout "holds");
+      (* A revision is a decision of a person: it needs an author, a reason and
+         a decision to revise. *)
+      expect root "review-decision decided --reason \"no author\"" 2;
+      expect root "review-decision decided --by owner" 2;
+      expect root "review-decision decided --by stranger --reason \"not my decision\"" 2;
+      expect root "review-decision absent --by owner --reason \"there is no such claim\"" 2;
+      expect root "review-decision decided --by owner --reason \"why\" --outcome nonsense" 2;
+      (* A claim that a machine check settles has no decision to revise. *)
+      expect root "add checked \"the plan holds the order\" plan.md \"the order is not in the plan\" fact --requirement \"verifier:grep -q wave plan.md\" --control \"printf broken > plan.md\"" 0;
+      expect root "review-decision checked --by owner --reason \"there is no decision here\"" 2;
+      print_endline "decision-revision: PASS")
+
+(* The decision is bound to the definition of the claim: when the claim says
+   something else, the old decision does not apply to it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the owner decides the order of the waves\" plan.md owner" 0;
+      write root "plan.md" "wave 1, wave 2\n";
+      expect root "add decided \"the owner decided the order of the waves\" plan.md \"the order is not the owner's\" judgment --requirement \"review:owner\"" 0;
+      expect root "record decided owner --by owner --outcome pass" 0;
+      check "a decision settles the claim" (contains (run root "map").stdout "holds");
+      (* The claim now says something else: the decision does not apply. *)
+      let goal = Some { text = "the owner decides the order of the waves"; scope = [ "plan.md" ];
+                        by = "owner"; at = 1; reason = None } in
+      let decided = { claim with id = "decided"; text = "the owner decided the order of the waves twice";
+                      scope = [ "plan.md" ]; register = Judgment; owner = Some "owner";
+                      requirements = [ Review { authority = "owner"; minimum_independence = External } ];
+                      falsifier = "the order is not the owner's"; control = None } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ decided ]; environment = None }));
+      let redefined = run root "map" in
+      check "a decision does not apply to a claim that says something else"
+        (redefined.code = 3 && contains redefined.stdout "definition-changed");
+      print_endline "decision-binding: PASS")

@@ -37,6 +37,7 @@ val states : string -> spec -> ((string * state) list, string) result
 val environment : string -> environment
 val source_changed : string -> claim -> bool
 val uncovered : string -> spec -> (string list, string) result
+val reviews_of_claim : claim -> requirement list
 val evaluate : string -> spec -> (evaluation, string) result
 val selection : string -> spec -> (selection, string) result
 val selection_words : selection -> string

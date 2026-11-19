@@ -32,6 +32,9 @@ val explain_claim :
    branches: a machine check cannot settle a human decision. *)
 val judgment_requirements : requirement -> requirement option
 
+(* The last record for a requirement, by time of issue and then by position. *)
+val latest : claim -> requirement -> evidence list -> evidence option
+
 val state_of_evidence : now:int -> ?materials:string -> ?environment:environment -> claim -> requirement -> evidence option -> state
 val state_of_attestation : now:int -> ?materials:string -> ?environment:environment -> claim -> requirement -> evidence option -> state
 val state_of_claim : now:int -> ?materials:string -> ?environment:environment -> claim -> evidence list -> state

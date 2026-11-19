@@ -7,6 +7,7 @@ val next : string -> int
 val context : string -> int
 val waive : string -> string -> string -> string -> int -> string -> int
 val record : string -> string -> string -> string -> string -> int option -> string option -> int
+val review_decision : string -> string -> string -> string -> string -> int option -> int
 val install : string -> int
 val authorize : string -> string -> string -> int
 val re_evaluate : string -> int
