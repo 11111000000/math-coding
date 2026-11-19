@@ -10,6 +10,7 @@ type options = {
   mutable recovery : string;
   mutable control : string;
   mutable requirements : string list;
+  mutable commands : string list;
   mutable write : bool;
   mutable version : bool;
   mutable help : bool;
@@ -18,19 +19,10 @@ type options = {
 
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
-    valid_for = None; recovery = ""; control = ""; requirements = []; write = false;
-    version = false; help = false; source = "" }
+    valid_for = None; recovery = ""; control = ""; requirements = []; commands = [];
+    write = false; version = false; help = false; source = "" }
 
-let parse_requirement text =
-  match String.index_opt text ':' with
-  | None -> Error "expected verifier:CMD or review:WHO"
-  | Some index ->
-      let kind = String.sub text 0 index in
-      let value = String.sub text (index + 1) (String.length text - index - 1) in
-      if value = "" then Error "the requirement is empty"
-      else if kind = "verifier" then Ok (Verifier value)
-      else if kind = "review" then Ok (Review { authority = value; minimum_independence = External })
-      else Error ("unknown requirement kind: " ^ kind)
+let parse_requirement text = Requirements.parse text
 
 let parse_flags o arguments =
   let rec loop acc = function
@@ -48,6 +40,7 @@ let parse_flags o arguments =
     | "--control" :: value :: rest -> o.control <- value; loop acc rest
     | "--source" :: value :: rest -> o.source <- value; loop acc rest
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
+    | "--command" :: value :: rest -> o.commands <- o.commands @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
     | "--version" :: rest -> o.version <- true; loop acc rest
     | ("--help" | "-h") :: rest -> o.help <- true; loop acc rest
@@ -104,6 +97,7 @@ let main () =
     | [ "doctor" ] -> Doctor.doctor o.root
     | [ "adopt" ] -> Adopt.run o.root
     | [ "authorize" ] -> Commands.authorize o.root o.by o.reason
+    | [ "approve" ] -> Commands.approve o.root o.by o.reason o.commands
     | [ "re-evaluate" ] -> Commands.re_evaluate o.root
     | "review-source" :: id :: _ -> Commands.review_source o.root id o.by o.reason
     | "import-adr" :: path :: _ -> Adr.import_file o.root path
