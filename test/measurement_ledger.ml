@@ -11,6 +11,11 @@ let replace name value json =
   | `Assoc fields -> `Assoc ((name, value) :: List.remove_assoc name fields)
   | _ -> failwith "expected a ledger object"
 
+let remove name json =
+  match json with
+  | `Assoc fields -> `Assoc (List.filter (fun (key, _) -> key <> name) fields)
+  | _ -> failwith "expected a ledger object"
+
 let write_json root path json =
   write root path (Yojson.Safe.to_string json ^ "\n")
 
@@ -19,7 +24,7 @@ let () =
   let valid = invoke root (Filename.quote dry_run) in
   check "ledger invocation requires a verb" (valid.code = 2);
   let valid = invoke root ("validate " ^ Filename.quote dry_run) in
-  check "dry run ledger validates" (valid.code = 0 && contains valid.stdout "valid: 3 run(s)");
+  check "dry run ledger validates" (valid.code = 0 && contains valid.stdout "valid: 4 run(s)");
   let summary = invoke root ("summary " ^ Filename.quote dry_run) in
   check "summary preserves infrastructure and handoff"
     (summary.code = 0 && contains summary.stdout "\"infrastructure\": 1"
@@ -93,4 +98,49 @@ let () =
       let unmeasured_count = invoke root ("validate " ^ Filename.quote (Filename.concat root "unmeasured-count.jsonl")) in
       check "a count cannot be unmeasured"
         (unmeasured_count.code = 2 && contains unmeasured_count.stderr "agent_tokens");
+      (* The price of the gate: the protocol counts the machine execution of the
+         method, so the schema carries it and the number of runs killed by the
+         limit. *)
+      let priced = List.nth dry_lines 3 |> Yojson.Safe.from_string in
+      write_json root "priced-ledger.jsonl" priced;
+      let priced_valid = invoke root ("validate " ^ Filename.quote (Filename.concat root "priced-ledger.jsonl")) in
+      check "a record carries the measured machine time and the killed runs"
+        (priced_valid.code = 0 && contains priced_valid.stdout "valid: 1 run(s)");
+      let priced_summary = invoke root ("summary " ^ Filename.quote (Filename.concat root "priced-ledger.jsonl")) in
+      check "the summary names the machine time and the killed runs"
+        (priced_summary.code = 0 && contains priced_summary.stdout "\"machine_seconds_total\": 45.5"
+        && contains priced_summary.stdout "\"machine_seconds_unmeasured\": 0"
+        && contains priced_summary.stdout "\"killed_runs_total\": 1"
+        && contains priced_summary.stdout "\"killed_runs_unmeasured\": 0");
+      (* A record of the older version has no price: the difference between
+         "not measured" and zero is kept. *)
+      write_json root "legacy-ledger.jsonl" protocol;
+      let legacy_summary = invoke root ("summary " ^ Filename.quote (Filename.concat root "legacy-ledger.jsonl")) in
+      check "a record without the price is reported as unmeasured, not as zero"
+        (legacy_summary.code = 0 && contains legacy_summary.stdout "\"machine_seconds_total\": 0"
+        && contains legacy_summary.stdout "\"machine_seconds_unmeasured\": 1"
+        && contains legacy_summary.stdout "\"killed_runs_unmeasured\": 1");
+      (* The protocol promises the price, and the schema has to have it. *)
+      write_json root "no-machine-time.jsonl" (remove "machine_seconds" priced);
+      let no_machine = invoke root ("validate " ^ Filename.quote (Filename.concat root "no-machine-time.jsonl")) in
+      check "a record of the new version without the machine time is rejected"
+        (no_machine.code = 2 && contains no_machine.stderr "machine_seconds");
+      write_json root "no-killed-runs.jsonl" (remove "killed_runs" priced);
+      let no_killed = invoke root ("validate " ^ Filename.quote (Filename.concat root "no-killed-runs.jsonl")) in
+      check "a record of the new version without the killed runs is rejected"
+        (no_killed.code = 2 && contains no_killed.stderr "killed_runs");
+      write_json root "negative-killed.jsonl" (replace "killed_runs" (`Int (-1)) priced);
+      let negative = invoke root ("validate " ^ Filename.quote (Filename.concat root "negative-killed.jsonl")) in
+      check "a negative number of killed runs is rejected"
+        (negative.code = 2 && contains negative.stderr "killed_runs");
+      (* The version of a record is a discipline: a record of the older version
+         does not carry the fields of the newer one. *)
+      write_json root "mixed-version.jsonl" (replace "machine_seconds" (`Float 10.0) protocol);
+      let mixed = invoke root ("validate " ^ Filename.quote (Filename.concat root "mixed-version.jsonl")) in
+      check "a record of the older version does not carry the price"
+        (mixed.code = 2 && contains mixed.stderr "unknown fields");
+      write_json root "unknown-version.jsonl" (replace "schema_version" (`Int 3) priced);
+      let unknown_version = invoke root ("validate " ^ Filename.quote (Filename.concat root "unknown-version.jsonl")) in
+      check "an unknown version of the record is rejected"
+        (unknown_version.code = 2 && contains unknown_version.stderr "schema_version");
       print_endline "measurement-ledger: PASS")

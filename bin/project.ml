@@ -303,7 +303,16 @@ let next_text root spec =
       let* uncovered = uncovered root spec in
       Ok (next_of_states evaluation.states uncovered evaluation.damaged)
 
-let text_of verdict states uncovered next damaged =
+(* The area of the aim: the paths the aim declares. The coverage of the map
+   is counted inside it, so it is printed next to the uncovered files: "0
+   uncovered" means "nothing is uncovered in this area", not "the project is
+   covered". *)
+let goal_scope_words spec =
+  match spec.goal with
+  | Some goal when goal.scope <> [] -> String.concat " " goal.scope
+  | _ -> "none"
+
+let text_of verdict states goal_scope uncovered next damaged =
   String.concat ""
     ([ Printf.sprintf "verdict: %s\n" (verdict_to_string verdict) ]
     @ List.map
@@ -311,6 +320,7 @@ let text_of verdict states uncovered next damaged =
           Printf.sprintf "  %-28s %s (%s)\n" item.id (state_to_string item.state)
             (Verdict.reason_to_words item.reason))
         states
+    @ [ Printf.sprintf "goal scope: %s\n" goal_scope ]
     @ [ Printf.sprintf "uncovered: %d file(s)\n" (List.length uncovered) ]
     @ List.map (fun file -> Printf.sprintf "  %s\n" file) uncovered
     @ (match damaged with
@@ -354,7 +364,7 @@ let map_output root spec =
             "uncovered", `List (List.map (fun file -> `String file) uncovered);
             "next", `String next ]
       in
-      Ok { json; text = text_of verdict evaluation.states uncovered next evaluation.damaged;
+      Ok { json; text = text_of verdict evaluation.states (goal_scope_words spec) uncovered next evaluation.damaged;
            exit_code = verdict_to_exit verdict }
 
 let map_json root spec =
