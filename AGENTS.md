@@ -84,7 +84,7 @@ mathc run
 человек. `mathc --help` работает и до создания
 спецификации, `mathc help COMMAND` описывает отдельный глагол. Дополнительные
 глаголы: `context`, `waive`, `record`, `install`, `doctor`, `adopt`,
-`import-adr`, `import-junit`, `authorize`,
+`import-adr`, `import-junit`, `authorize`, `approve`,
 `re-evaluate`, `review-source`, `mcp`. У `add` необязательный `--source PATH`
 привязывает существующий ADR по digest, не изменяя его. `source_changed`
 означает `outdated`, а не green. `review-source ID --by ВЛАДЕЛЕЦ --reason WHY`
@@ -96,7 +96,9 @@ Scope и source paths не могут быть absolute, traversal или symlin
 `fail`, но после inconclusive/infrastructure/not-run продолжает остальные ветви,
 чтобы не потерять позднее опровержение. `record --outcome` принимает только пять
 значений домена. `authorize` не работает без `policy.json`; это журнал, не
-аутентификация.
+аутентификация. `approve --by ВЛАДЕЛЕЦ --reason ПРИЧИНА` одобряет команды,
+которые агент может исполнять: без одобрения MCP отказывает в `add` и `run`
+и называет сами команды.
 
 ## Запреты
 
@@ -126,5 +128,5 @@ v5 keeps evidence linked, fresh, and independent
 mathc run
 ```
 
-Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc re-evaluate mathc review-source mathc mcp
+Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc approve mathc re-evaluate mathc review-source mathc mcp
 <!-- math-coding:end -->

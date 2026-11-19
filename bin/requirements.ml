@@ -13,6 +13,22 @@
    constructors of the outcome are named here and not left to the inference. *)
 type outcome = Domain.outcome = Pass | Fail | Inconclusive | Infrastructure_error | Not_run
 
+(* The text of a requirement: "verifier:CMD" or "review:WHO". The CLI and the
+   agent surface read the same text, so the reading lives here: two readings of
+   one syntax can drift apart, and the agent surface would then approve a
+   command the program never runs. *)
+let parse text =
+  match String.index_opt text ':' with
+  | None -> Error "expected verifier:CMD or review:WHO"
+  | Some index ->
+      let kind = String.sub text 0 index in
+      let value = String.sub text (index + 1) (String.length text - index - 1) in
+      if value = "" then Error "the requirement is empty"
+      else if kind = "verifier" then Ok (Domain.Verifier value)
+      else if kind = "review" then
+        Ok (Domain.Review { authority = value; minimum_independence = Domain.External })
+      else Error ("unknown requirement kind: " ^ kind)
+
 let rec run ~leaf requirement =
   match requirement with
   | Domain.Review _ | Domain.Verifier _ -> leaf requirement

@@ -9,6 +9,7 @@ val waive : string -> string -> string -> string -> int -> string -> int
 val record : string -> string -> string -> string -> string -> int option -> string option -> int
 val install : string -> int
 val authorize : string -> string -> string -> int
+val approve : string -> string -> string -> string list -> int
 val re_evaluate : string -> int
 val review_source : string -> string -> string -> string -> int
 val version : unit -> int

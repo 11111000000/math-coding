@@ -113,6 +113,10 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <li><code>mathc authorize --by WHO --reason WHY</code> &mdash; работает
 только при наличии <code>policy.json</code>; это журнал разрешения, а не
 аутентификация.</li>
+<li><code>mathc approve --by WHO --reason WHY [--command CMD]</code> &mdash;
+одобряет команды, которые поверхность агента может исполнять в этом проекте.
+Без одобрения поверхность отказывает в объявлении и в запуске команды и
+называет её.</li>
 <li><code>mathc install</code> обновляет маркированный блок в
 <code>AGENTS.md</code>; <code>mathc doctor</code> проверяет настройку и
 ничего не исправляет.</li>
@@ -132,6 +136,7 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <tr><td><code>re-evaluate</code></td><td>перечисляет утверждения, чей источник, определение или доказательства требуют ревью</td></tr>
 <tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>связывает изменённый источник после человеческого ревью; сохраняет прежний digest, очищает waiver и всё равно требует свежего <code>run</code></td></tr>
 <tr><td><code>authorize --by WHO --reason WHY</code></td><td>записывает разрешение на текущие защищённые изменения при наличии <code>policy.json</code>; это журнал, а не аутентификация</td></tr>
+<tr><td><code>approve --by WHO --reason WHY [--command CMD]</code></td><td>одобряет команды, которые может исполнять поверхность агента; одобрение привязано к самим командам, а неодобренная команда не проходит</td></tr>
 <tr><td><code>doctor</code></td><td>проверяет git, спецификацию, цель, защищённую политику и страницу агента, ничего не меняя</td></tr>
 <tr><td><code>install</code></td><td>обновляет только блок math-coding в <code>AGENTS.md</code> проекта; бинари он не ставит</td></tr>
 <tr><td><code>mcp</code></td><td>отдаёт поверхность инструментов JSON-RPC через stdio</td></tr>

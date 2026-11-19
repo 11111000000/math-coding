@@ -1,13 +1,32 @@
 let protocol_version = "2026-07-28"
 
+let project_root root =
+  if Filename.is_relative root then Filename.concat (Sys.getcwd ()) root else root
+
 let run_verb ~root args =
-  let project_root = if Filename.is_relative root then Filename.concat (Sys.getcwd ()) root else root in
+  let project_root = project_root root in
   let command =
     String.concat " "
       (Filename.quote Sys.executable_name :: "--root" :: Filename.quote project_root
        :: List.map Filename.quote args)
   in
   Process.run ~timeout:120.0 ~root command
+
+(* The agent surface asks the human first. The checks of a project and the
+   control of every claim are executed in the tree of the project, and a
+   command declared through this surface is arbitrary. So the program runs a
+   command only when the human approved this exact command. The refusal names
+   the commands and the step of the human: a door without a handle is a wall. *)
+let approved_or_error ~root ~commands =
+  match Approval.load (project_root root) with
+  | Error error -> Error error
+  | Ok records ->
+      let missing = Approval.unapproved records commands in
+      if missing = [] then Ok ()
+      else
+        Error
+          ("the human has not approved these commands: " ^ String.concat "; " missing
+           ^ "; the human runs: mathc approve --by WHO --reason WHY")
 
 let next_step ~root =
   let result = run_verb ~root [ "next" ] in
@@ -119,13 +138,22 @@ let validate_arguments name args =
   | _ -> Error "tool arguments must be an object"
 
 let call ~root name args =
+  let refused message =
+    `Assoc [ "ok", `Bool false; "text", `String message; "next", next_step ~root ]
+  in
   match name with
   | "map" | "context" -> parsed ~verdict:true ~root [ "map"; "--json" ]
   | "next" -> (
       let result = run_verb ~root [ "next" ] in
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String result.stdout;
                "next", next_step ~root ])
-  | "run" -> parsed ~verdict:true ~root [ "run"; "--json" ]
+  | "run" -> (
+      match Project.load_spec (project_root root) with
+      | Error error -> refused error
+      | Ok spec -> (
+          match approved_or_error ~root ~commands:(Approval.commands_of_spec spec) with
+          | Error message -> refused message
+          | Ok () -> parsed ~verdict:true ~root [ "run"; "--json" ]))
   | "adopt" -> parsed ~root [ "adopt" ]
   | "import-adr" -> parsed ~root [ "import-adr"; string_arg "path" args ]
   | "doctor" -> (
@@ -133,15 +161,28 @@ let call ~root name args =
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String (result.stdout ^ result.stderr);
                "next", next_step ~root ])
   | "add" ->
-      let arguments =
-        [ "add"; string_arg "id" args; string_arg "text" args;
-          string_arg "scope" args; string_arg "falsifier" args;
-          (match string_arg "register" args with "" -> "unknown" | value -> value);
-          "--requirement"; string_arg "requirement" args;
-          "--control"; string_arg "control" args;
-          "--source"; string_arg "source" args ]
+      (* The command of the requirement and the control are what the tree will
+         execute, so they are the commands the human has to approve. *)
+      let requirement = string_arg "requirement" args in
+      let control = string_arg "control" args in
+      let commands =
+        (match Requirements.parse requirement with
+         | Ok parsed -> Domain.verifier_commands parsed
+         | Error _ -> [])
+        @ (if control = "" then [] else [ control ])
       in
-      parsed ~root arguments
+      (match approved_or_error ~root ~commands with
+       | Error message -> refused message
+       | Ok () ->
+           let arguments =
+             [ "add"; string_arg "id" args; string_arg "text" args;
+               string_arg "scope" args; string_arg "falsifier" args;
+               (match string_arg "register" args with "" -> "unknown" | value -> value);
+               "--requirement"; requirement;
+               "--control"; control;
+               "--source"; string_arg "source" args ]
+           in
+           parsed ~root arguments)
   | _ -> `Assoc [ "ok", `Bool false; "text", `String ("unknown tool: " ^ name); "next", next_step ~root ]
 
 let handle ~root request =

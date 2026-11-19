@@ -14,6 +14,7 @@ let command_help = function
   | "import-adr" -> "import-adr PATH: read a MADR/adr-tools document and print a draft claim; the source and spec.json are not changed."
   | "import-junit" -> "import-junit PATH: parse a JUnit XML report and print exact test and failure counts."
   | "authorize" -> "authorize --by WHO --reason WHY: record authorization for current protected changes when policy.json exists; this is a journal, not authentication."
+  | "approve" -> "approve --by WHO --reason WHY [--command CMD]: approve the commands the agent surface (MCP) may execute in this project. Without --command the approval covers the commands the specification declares now; with it, the named command. The agent surface refuses to declare or run a command nobody approved."
   | "re-evaluate" -> "re-evaluate: list claims whose source, definition or evidence requires review."
   | "review-source" -> "review-source ID --by OWNER --reason WHY: bind a changed source after human review; records the previous digest, clears waiver and still requires a fresh run."
   | "mcp" -> "mcp: serve the JSON-RPC tool surface over stdio."
@@ -42,6 +43,7 @@ Human decisions (record only what a person actually decided):
   mathc record ID AUTHORITY --by WHO --outcome OUTCOME
   mathc waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION
   mathc authorize --by WHO --reason WHY
+  mathc approve --by WHO --reason WHY [--command CMD]
 
 Other commands:
   mathc install              update only the math-coding block in AGENTS.md
