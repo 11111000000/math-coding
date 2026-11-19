@@ -12,9 +12,9 @@ type evaluated_state = {
   state : state;
   changed : bool;
   reason : Verdict.reason;
-  (* The branches that no evidence settles yet: what still has to close for
-     the claim to hold. *)
-  open_branches : requirement list;
+  (* The branches that no evidence settles yet, with the state each of them
+     stands in: what still has to close for the claim to hold. *)
+  open_branches : (requirement * state) list;
 }
 
 type evaluation = { states : evaluated_state list; damaged : Trail.damage list }

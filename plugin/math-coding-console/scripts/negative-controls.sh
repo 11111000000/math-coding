@@ -258,6 +258,16 @@ start_control \
   's/"record", action.claimId, action.authority, "--by", by/"record", action.claimId, action.authority, "--who", by/' \
   "test/human-decision.test.ts"
 
+# The acceptance of the result follows the verdict of the map. A panel that
+# derives it from the states of the claims would report a green conclusion
+# next to an unknown verdict, and nothing else in the checks would notice.
+start_control \
+  control_check \
+  "the acceptance cannot be derived from the states of the claims" \
+  "client/human-queue.ts" \
+  's/snapshot.map.verdict === "green"/snapshot.map.states.length > 0 \&\& snapshot.map.states.every((state) => state.state === "holds")/' \
+  "test/human-queue.test.ts"
+
 set -- $PIDS
 for pid in "$@"; do
   if ! wait "$pid"; then
