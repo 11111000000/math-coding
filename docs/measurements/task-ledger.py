@@ -28,7 +28,7 @@ FRICTION = (
 # с причиной, а не исчезает.
 EXCLUSIONS = ("duplicate", "not-a-task", "owner-cancelled", "setup-unavailable",
               "outside-sample")
-FIELDS = {
+FIELDS_V1 = {
     "schema_version", "comparison_id", "task_id", "run_id", "project", "arm",
     "task_kind", "model", "mathc_build", "base_revision", "started_at", "finished_at",
     "agent_seconds", "human_seconds", "agent_tokens", "mathc_calls",
@@ -38,12 +38,18 @@ FIELDS = {
     "observation_complete", "post_acceptance_defects", "reopened", "false_green",
     "friction_classes", "exclusion_reason",
 }
+# Версия 2 добавляет измеренное машинное время гейта и число прогонов, убитых
+# по пределу: без них стоимость метода некуда записать, хотя протокол (§5)
+# относит машинное исполнение к полной стоимости. Старые записи не
+# переписываются: этих измерений у них просто нет.
+FIELDS_V2 = FIELDS_V1 | {"machine_seconds", "killed_runs"}
+SCHEMA_VERSIONS = {1: FIELDS_V1, 2: FIELDS_V2}
 TEXT_FIELDS = ("comparison_id", "task_id", "run_id", "project", "task_kind", "model", "mathc_build", "base_revision")
 COUNT_FIELDS = (
     "agent_tokens", "mathc_calls", "repeated_investigations", "control_setup_failures",
     "environment_mismatches", "initial_uncovered", "final_uncovered", "final_outdated",
 )
-TIME_FIELDS = ("agent_seconds", "human_seconds")
+TIME_FIELDS = ("agent_seconds", "human_seconds", "machine_seconds")
 
 
 def require(condition, message):
@@ -89,19 +95,29 @@ def timestamp(value, field):
 
 def validate_record(record, location):
     require(type(record) is dict, f"{location}: expected a JSON object")
-    missing = FIELDS - record.keys()
-    extra = record.keys() - FIELDS
+    version = record.get("schema_version")
+    require(type(version) is int and version in SCHEMA_VERSIONS,
+            f"{location}: unsupported schema_version")
+    fields = SCHEMA_VERSIONS[version]
+    missing = fields - record.keys()
+    extra = record.keys() - fields
     require(not missing, f"{location}: missing fields: {sorted(missing)}")
     require(not extra, f"{location}: unknown fields: {sorted(extra)}")
-    require(record["schema_version"] == 1 and type(record["schema_version"]) is int,
-            f"{location}: unsupported schema_version")
     for field in TEXT_FIELDS:
         text(record, field)
     require(record["arm"] in ARMS, f"{location}: unknown arm")
     for field in COUNT_FIELDS:
         count(record, field)
     for field in TIME_FIELDS:
-        seconds(record[field], field)
+        if field in record:
+            seconds(record[field], field)
+    # Число прогонов, убитых по пределу, — счётчик, у которого ноль значим:
+    # прогон, который не убили, и прогон, который не считали, — разные вещи.
+    # Поэтому здесь null означает «не измерено», как и у времени.
+    if "killed_runs" in record:
+        killed = record["killed_runs"]
+        require(killed is None or (type(killed) is int and killed >= 0),
+                f"{location}: killed_runs must be null or a nonnegative integer")
     started = timestamp(record["started_at"], "started_at")
     finished = timestamp(record["finished_at"], "finished_at")
     require(finished >= started, f"{location}: finished_at precedes started_at")
@@ -181,12 +197,12 @@ def total(records, field):
     нельзя: неполный итог выдаёт себя за полный. Поэтому измеренное всегда
     идёт парой — сколько насчитано и сколько записей осталось неизмеренными.
     """
-    measured = [record[field] for record in records if record[field] is not None]
+    measured = [record.get(field) for record in records if record.get(field) is not None]
     return sum(measured), len(records) - len(measured)
 
 
 def summarize(records):
-    result = {"schema_version": 1, "runs": len(records), "arms": {}}
+    result = {"schema_version": 2, "runs": len(records), "arms": {}}
     for arm in ARMS:
         selected = [record for record in records if record["arm"] == arm]
         outcomes = {outcome: 0 for outcome in OUTCOMES}
@@ -195,6 +211,8 @@ def summarize(records):
         handoffs = [record["handoff_seconds"] for record in selected if record["handoff_seconds"] is not None]
         agent_seconds, agent_seconds_unmeasured = total(selected, "agent_seconds")
         human_seconds, human_seconds_unmeasured = total(selected, "human_seconds")
+        machine_seconds, machine_seconds_unmeasured = total(selected, "machine_seconds")
+        killed_runs, killed_runs_unmeasured = total(selected, "killed_runs")
         result["arms"][arm] = {
             "runs": len(selected),
             "outcomes": outcomes,
@@ -207,6 +225,10 @@ def summarize(records):
             "agent_seconds_unmeasured": agent_seconds_unmeasured,
             "human_seconds_total": human_seconds,
             "human_seconds_unmeasured": human_seconds_unmeasured,
+            "machine_seconds_total": machine_seconds,
+            "machine_seconds_unmeasured": machine_seconds_unmeasured,
+            "killed_runs_total": killed_runs,
+            "killed_runs_unmeasured": killed_runs_unmeasured,
             "agent_tokens_total": sum(record["agent_tokens"] for record in selected),
             "mathc_calls_total": sum(record["mathc_calls"] for record in selected),
             "repeated_investigations_total": sum(record["repeated_investigations"] for record in selected),
