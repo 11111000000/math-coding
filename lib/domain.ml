@@ -99,8 +99,6 @@ type execution_log = {
 
 type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
-(* The optional environment is the prefix every declared check runs under; without
-   it the checks run exactly as declared. *)
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
 (* The effective environment of a claim: its own, else the one of the spec. *)
