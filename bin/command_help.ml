@@ -2,10 +2,10 @@ let command_help = function
   | "init" -> "init: create an empty spec.json; refuses to overwrite an existing specification."
   | "goal" -> "goal AIM SCOPE OWNER [--reason WHY]; SCOPE is comma-separated. Replacing an existing goal requires --reason."
   | "add" -> "add ID TEXT SCOPE FALSIFIER REGISTER --requirement verifier:CMD|review:WHO [--control CMD] [--source PATH]; REGISTER is fact, hypothesis, judgment or unknown; SCOPE is comma-separated. Judgment requires review:WHO and cannot use machine verifiers."
-  | "run" -> "run [--changed] [--limit SECONDS] [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. --changed executes only the claims whose evidence is no longer current and leaves the rest as they are; the claims it cannot see are executed anyway. --limit is the time the run may take (3600 s by default); a run that reaches it or is stopped by a signal says that it was stopped and hands over the map over what was observed. Exit 0 green, 1 refuted/protected, 3 unknown, 4 stopped."
-  | "map" -> "map [--json]: show the verdict, claim states, uncovered files and next action. Exit 0 green, 1 red, 3 unknown/vacant."
-  | "next" -> "next: print exactly one next action. Exit 0 when an action can be printed."
-  | "context" -> "context: print the bounded task context as JSON. Exit 0 on success, 3 when unknown."
+  | "run" -> "run [--changed] [--limit SECONDS] [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. --changed executes only the claims whose evidence is no longer current and leaves the rest as they are; the claims it cannot see are executed anyway. --limit is the time the run may take (3600 s by default); a run that reaches it or is stopped by a signal says that it was stopped and hands over the map over what was observed. Exit 0 green, 1 refuted/protected, 3 unknown, 4 stopped, 5 the tool could not answer."
+  | "map" -> "map [--json]: show the verdict, claim states, uncovered files and next action. Exit 0 green, 1 red, 3 unknown/vacant, 5 the tool could not answer."
+  | "next" -> "next: print exactly one next action. Exit 0 when an action can be printed, 5 when the tool could not answer."
+  | "context" -> "context: print the bounded task context as JSON. Exit 0 on success, 5 when the tool could not answer."
   | "waive" -> "waive ID --by WHO --reason WHY --valid-for DAYS --recovery ACTION; DAYS is a positive number of days. A waiver is never a pass and cannot cover a refuted claim."
   | "record" -> "record ID AUTHORITY --by WHO --outcome OUTCOME [--valid-for DAYS]; OUTCOME is pass, fail, inconclusive, infrastructure-error or not-run. The claim must declare review:AUTHORITY."
   | "review-decision" -> "review-decision ID --by WHO --reason WHY [--outcome OUTCOME] [--valid-for DAYS]: revise the human decision about a claim. The decision is bound to the decision, not to the bytes of the document that carries it, so a growing document does not make it stale; the revision records the author, the reason and the time, and the previous decision stays in the journal. Only the owner of the claim or the author of the decision may revise it."
@@ -22,7 +22,8 @@ let command_help = function
   | _ -> ""
 
 let help topic =
-  print_endline {|mathc 5 - source-linked, fresh and independent evidence
+  print_endline
+    ({|mathc 5 - source-linked, fresh and independent evidence
 
 Usage: mathc [--root DIR] COMMAND [ARGS]
 
@@ -59,13 +60,7 @@ Other commands:
 Local binary and agent-skill installation: ./install.sh
 
 Exit codes:
-  successful actions and next/context  0
-  run/map verdict green                0
-  run/map verdict red or protected     1
-  usage error                          2
-  unknown/vacant/uncomputable          3
-  run stopped before it finished       4
-|};
+|} ^ String.concat "\n" (Exit_code.lines ()) ^ "\n");
   match topic with
   | None -> 0
   | Some command ->

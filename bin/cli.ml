@@ -79,7 +79,7 @@ let main () =
   let positional =
     match parse_flags o arguments with
     | positional -> positional
-    | exception Failure message -> exit (fail 2 message)
+    | exception Failure message -> exit (fail Exit_code.usage message)
   in
   let code =
     let topic = match positional with verb :: _ -> Some verb | [] -> None in
@@ -94,7 +94,7 @@ let main () =
     | "goal" :: text :: scope :: by :: _ -> Commands.goal o.root text (split_scope scope) by o.reason
     | "add" :: id :: text :: scope :: falsifier :: register :: _ -> (
         match parse_all o.requirements with
-        | Error error -> fail 2 error
+        | Error error -> fail Exit_code.usage error
         | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
     | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed ~limit:o.limit
     | [ "map" ] -> Commands.map o.root o.json
@@ -113,6 +113,6 @@ let main () =
     | "import-adr" :: path :: _ -> Adr.import_file o.root path
     | "import-junit" :: path :: _ -> Junit.import_file path
     | [ "mcp" ] -> Mcp.loop ~root:o.root
-    | verb :: _ -> fail 2 ("unknown verb: " ^ verb)
+    | verb :: _ -> fail Exit_code.usage ("unknown verb: " ^ verb)
   in
   exit code

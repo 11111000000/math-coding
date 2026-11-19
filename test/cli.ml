@@ -662,8 +662,65 @@ let () =
       write root "spec.json" (Yojson.Safe.pretty_to_string garbage);
       let refused = run root "map" in
       check "an empty environment of a claim is refused"
-        (refused.code = 3 && contains refused.stderr "claim.environment");
+        (refused.code = 5 && contains refused.stderr "claim.environment");
       print_endline "claim-environment: PASS")
+
+(* The tool that could not answer says so with its own code. A broken
+   specification is not an unknown verdict: the verdict is the answer, and
+   here there is no answer at all. A consumer that cannot tell the two apart
+   reads a broken tool as an unfinished project. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"measure\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      write root "spec.json" "this is not a specification";
+      let map = run root "map" in
+      check "a broken specification is not an unknown verdict"
+        (map.code = 5 && contains map.stderr "the standing specification is not readable");
+      let stopped = run root "run" in
+      check "a broken specification stops the run"
+        (stopped.code = 5);
+      let next_failed = run root "next" in
+      check "a broken specification stops the next action"
+        (next_failed.code = 5);
+      let context_failed = run root "context" in
+      check "a broken specification stops the context"
+        (context_failed.code = 5);
+      print_endline "internal-error: PASS")
+
+(* An absent specification is not a broken tool: the project is vacant, and
+   the tool answered that there is nothing here. That answer has its own code,
+   and it is not the code of a failure. *)
+let () =
+  with_repo (fun root ->
+      let vacant = run root "approve --by owner --reason \"nothing\"" in
+      check "an absent specification is vacant, not broken"
+        (vacant.code = 3 && contains vacant.stderr "no standing specification");
+      print_endline "vacant-project: PASS")
+
+(* The help names the codes the tool returns. The number is a contract with
+   the consumer: the table of the help and the exit status of the command
+   cannot say different things about the same kind of outcome. *)
+let () =
+  with_repo (fun root ->
+      let help = run root "help" in
+      let code_named text =
+        help.stdout
+        |> String.split_on_char '\n'
+        |> List.find_opt (fun line -> contains line text)
+        |> Option.map (fun line ->
+               let words = String.split_on_char ' ' (String.trim line) |> List.filter (fun word -> word <> "") in
+               match List.rev words with
+               | number :: _ -> int_of_string_opt number
+               | [] -> None)
+        |> Option.join
+      in
+      check "the help names the code of a vacant project"
+        (code_named "unknown/vacant" = Some 3);
+      check "the help names the code of a tool that could not answer"
+        (code_named "the tool could not answer" = Some 5);
+      print_endline "exit-code-table: PASS")
 
 (* The journal receives every observation as soon as it is made. The second
    claim reads the journal of the first one while the run is still working. *)

@@ -155,11 +155,17 @@ state of its own. <a href="interfaces.html">The interfaces, piece by piece</a>.<
 <tr><td><code>0</code></td><td>green, or the action succeeded</td></tr>
 <tr><td><code>1</code></td><td>red, or a protected transition was refused</td></tr>
 <tr><td><code>2</code></td><td>invocation error</td></tr>
-<tr><td><code>3</code></td><td>unknown or vacant &mdash; the state cannot be computed</td></tr>
+<tr><td><code>3</code></td><td>unknown or vacant &mdash; the state is not established</td></tr>
+<tr><td><code>4</code></td><td>the run was stopped before it finished</td></tr>
+<tr><td><code>5</code></td><td>the tool could not answer &mdash; a broken specification or a broken repository</td></tr>
 </tbody>
 </table>
 <p>A corrupted evidence trail is neither ignored nor treated as absence of
 evidence. <code>mathc help COMMAND</code> prints the exact codes per verb.</p>
+<p>Code 3 and code 5 are not the same answer. Code 3 says that the state is not
+established yet; code 5 says that the tool could not answer at all. A consumer
+that reads a broken tool as an unfinished project will wait for work that will
+never arrive.</p>
 
 <p class="callout">Minimal sufficient friction: ordinary work needs no
 paperwork per file. Structure is added only where a measured benefit
