@@ -39,10 +39,11 @@ type evaluated_state = {
      cannot be digested: the run cannot see such a claim, and a claim it
      cannot see is not one it may leave alone. *)
   materials : string option;
-  (* The branches that no evidence settles yet: what still has to close for
-     the claim to hold. The next action names them, because an action that
-     cannot close the claim is a dead end and not a next step. *)
-  open_branches : requirement list;
+  (* The branches that no evidence settles yet, with the state each of them
+     stands in: what still has to close for the claim to hold. The next action
+     names them, because an action that cannot close the claim is a dead end
+     and not a next step. *)
+  open_branches : (requirement * state) list;
 }
 
 type map_output = {
@@ -87,7 +88,7 @@ let open_branches_of ~now ~environment ?materials (claim : claim) evidence =
       let state, _ =
         Verdict.explain_claim ~now ~environment ?materials ~requirements:[ requirement ] claim evidence
       in
-      if state = Holds then None else Some requirement)
+      if state = Holds then None else Some (requirement, state))
     (requirements_of_claim claim)
 
 let evaluate root spec =
@@ -223,11 +224,46 @@ let rec review_authorities = function
    settles yet. A claim with an open machine check is not among them: the
    checks can still close it, and the run takes the machine branch first. *)
 let human_action item =
-  if List.exists needs_a_check item.open_branches then None
+  let branches = List.map fst item.open_branches in
+  if List.exists needs_a_check branches then None
   else
-    let reviews = List.sort_uniq String.compare (List.concat_map review_authorities item.open_branches) in
+    let reviews = List.sort_uniq String.compare (List.concat_map review_authorities branches) in
     if reviews = [] then None
     else Some (String.concat "; " (List.map (record_command item.id) reviews))
+
+(* The checks that can close the claim: the commands of the branches no
+   evidence settles yet. The next action names them, because a hint that does
+   not say what to run leaves the reader guessing. *)
+let open_checks item =
+  List.concat_map (fun (requirement, _) -> Domain.verifier_commands requirement) item.open_branches
+
+(* The checks that refuted the claim. A refutation is not closed by another
+   run: the same check would reject the same subject again. The action that
+   closes it is the change of the subject, so the check that rejected the
+   subject is named. *)
+let refuting_checks item =
+  List.filter_map
+    (fun (requirement, state) ->
+      match state, Domain.verifier_commands requirement with
+      | Refuted, commands when commands <> [] -> Some (String.concat " && " commands)
+      | _ -> None)
+    item.open_branches
+
+let checks_words item =
+  match open_checks item with
+  | [] -> ""
+  | commands -> ": " ^ String.concat "; " commands
+
+(* The action that closes a refuted claim. *)
+let next_of_refutation item =
+  match human_action item with
+  | Some action -> "next: the claim " ^ item.id ^ " is refuted; a human review settles it: " ^ action
+  | None ->
+      (match refuting_checks item with
+       | [] -> "next: the claim " ^ item.id ^ " is refuted"
+       | checks ->
+           "next: the claim " ^ item.id ^ " is refuted by " ^ String.concat "; " checks
+           ^ "; fix the subject or withdraw the claim, then run the checks again")
 
 let next_of_reason item =
   let human = human_action item in
@@ -242,7 +278,7 @@ let next_of_reason item =
   | Why_not_run ->
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
-       | None -> "next: the check for " ^ item.id ^ " could not start")
+       | None -> "next: the check for " ^ item.id ^ " could not start" ^ checks_words item)
   | Why_infrastructure_error ->
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
@@ -257,7 +293,7 @@ let next_of_reason item =
   | Why_waived | Why_not_checkable ->
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
-       | None -> "next: check the claim " ^ item.id)
+       | None -> "next: check the claim " ^ item.id ^ checks_words item)
 
 (* What the journal could not say, in words a human can act on. *)
 let damage_words (damages : Trail.damage list) =
@@ -272,7 +308,7 @@ let damage_words (damages : Trail.damage list) =
 
 let next_of_states states uncovered damaged =
   let sources = List.filter_map (fun item -> if item.changed then Some item else None) states in
-  let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item.id else None) states in
+  let refuted = List.filter_map (fun item -> if item.state = Refuted then Some item else None) states in
   let pending =
     List.filter_map
       (fun item ->
@@ -291,7 +327,7 @@ let next_of_states states uncovered damaged =
       ^ (match human_action item with
          | Some action -> "; then record the human review: " ^ action
          | None -> "")
-  | [], [], id :: _, _, _ -> "next: the claim " ^ id ^ " is refuted"
+  | [], [], item :: _, _, _ -> next_of_refutation item
   | [], [], [], item :: _, _ -> next_of_reason item
   | [], [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
   | [], [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"

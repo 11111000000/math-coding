@@ -214,9 +214,12 @@ export function buildHumanQueue(
   const acceptance: GoalAcceptance = {
     title: "Accept the result on the basis of the map",
     owner: snapshot.map.goal?.by ?? null,
-    obligationsConfirmed:
-      snapshot.map.states.length > 0 &&
-      snapshot.map.states.every((state) => state.state === "holds"),
+    // The verdict of the map is the only source of the conclusion. The states
+    // of the claims cannot carry it: a journal with an unreadable record keeps
+    // the states of the claims and still lowers the verdict to unknown, and a
+    // panel that reads the states would report a green conclusion next to an
+    // unknown verdict.
+    obligationsConfirmed: snapshot.map.verdict === "green",
     areaResolved:
       (snapshot.map.goal?.scope.length ?? 0) > 0 && snapshot.map.uncovered.length === 0,
     uncovered: snapshot.map.uncovered,

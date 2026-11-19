@@ -95,7 +95,7 @@ let method_files = [
   ".gitignore"; "AGENTS.md"; "AXIOMS.md"; "GOAL.md"; "PHILOSOPHY.md";
   "README.md"; "dune-project"; "flake.lock"; "spec.json";
   "docs/ENGINEERING-PRACTICES.md"; "docs/V5-ARCHITECTURE-AND-PLAN.md";
-  "docs/V5-DEFECT-CATALOG.md";
+  "docs/V5-DEFECT-CATALOG.md"; "docs/V5-PRIORITIES-2026-11-19.md";
 ]
 
 let method_directories = [ ".math/"; "docs/lineage/"; "docs/measurements/" ]

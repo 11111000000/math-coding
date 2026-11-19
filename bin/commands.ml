@@ -364,6 +364,16 @@ let authorize root by reason =
   | Ok None -> fail 2 "there is no policy.json; protected transitions are not configured"
   | Ok (Some policy) -> Policy.authorize root policy by reason
 
+(* The approval of the human: the commands that the agent surface may execute
+   in this project. Without an explicit command the approval covers the
+   commands the specification declares now, so the human approves the checks of
+   the project in one step. *)
+let approve root by reason commands =
+  let commands = if commands <> [] then commands else Approval.commands_of_spec (load root) in
+  match Approval.approve root ~by ~reason ~commands with
+  | Ok count -> Printf.printf "approved %d command(s)\n" count; 0
+  | Error error -> fail 2 error
+
 let re_evaluate root =
   let spec = load root in
   match Re_evaluation.pending root spec with

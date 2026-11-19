@@ -212,6 +212,29 @@ let () =
       expect root "add linked \"symlink source\" subject.txt \"symlink source\" fact --requirement \"verifier:true\" --source link.md" 2;
       print_endline "source-re-evaluation: PASS")
 
+(* The next action names the check that can close the claim. A hint that says
+   only "check the claim" leaves the reader guessing what to run, and a
+   refutation that names no check leaves the reader guessing what to fix. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the claim names its check\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add named \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let waiting = run root "next" in
+      check "the next action names the check that can close the claim"
+        (contains waiting.stdout "next: check the claim named"
+        && contains waiting.stdout "grep -q expected subject.txt");
+      expect root "add failing \"the subject is wrong\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q absent subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 1;
+      let refused = run root "next" in
+      check "a refutation names the check that rejected the subject"
+        (contains refused.stdout "next: the claim failing is refuted by grep -q absent subject.txt"
+        && contains refused.stdout "fix the subject or withdraw the claim");
+      check "a refutation is not sent to a human record"
+        (not (contains refused.stdout "mathc record"));
+      print_endline "next-names-the-check: PASS")
+
 let () =
   with_repo (fun root ->
       expect root "init" 0;
@@ -920,3 +943,44 @@ let () =
       check "a decision does not apply to a claim that says something else"
         (redefined.code = 3 && contains redefined.stdout "definition-changed");
       print_endline "decision-binding: PASS")
+(* The approval of the human: the commands the agent surface may execute in the
+   project. The approval is bound to the commands themselves, so a command that
+   nobody approved cannot travel under the approval of another one. *)
+let () =
+  with_repo (fun root ->
+      (* Without a specification there is nothing to approve. *)
+      let vacant = run root "approve --by owner --reason \"nothing\"" in
+      check "the approval needs a specification"
+        (vacant.code = 3 && contains vacant.stderr "no standing specification");
+      expect root "init" 0;
+      expect root "goal \"measure\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      (* An approval of nothing is no approval. The project declares no
+         command yet, so there is nothing for the human to approve. *)
+      let nothing = run root "approve --by owner --reason \"nothing\"" in
+      check "there is nothing to approve without a claim"
+        (nothing.code = 2 && contains nothing.stderr "nothing to approve");
+      (* An approval without an issuer or without a reason is no approval. *)
+      let no_issuer = run root "approve --reason \"the release checks\"" in
+      check "the approval needs an issuer"
+        (no_issuer.code = 2 && contains no_issuer.stderr "needs an issuer and a reason");
+      let no_reason = run root "approve --by owner" in
+      check "the approval needs a reason"
+        (no_reason.code = 2 && contains no_reason.stderr "needs an issuer and a reason");
+      expect root "add sample \"the subject is expected\" subject.txt \"the subject is not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      (* The approval of the commands the specification declares now: the check
+         and the control of the claim. *)
+      let approved = run root "approve --by owner --reason \"the release checks\"" in
+      check "the approval covers the commands of the project"
+        (approved.code = 0 && contains approved.stdout "approved 2 command(s)");
+      let approval = Filename.concat root ".math/v5/approval.json" in
+      check "the approval is kept in the project"
+        (Sys.file_exists approval && contains (Io.read_file approval) "the release checks");
+      (* A named command can be approved on its own. *)
+      let named = run root "approve --by owner --reason \"one more check\" --command \"echo hello\"" in
+      check "a named command can be approved"
+        (named.code = 0 && contains named.stdout "approved 1 command(s)");
+      (* The approval is a history: the first decision stays readable. *)
+      check "the approval keeps the earlier decision"
+        (contains (Io.read_file approval) "the release checks");
+      print_endline "approve: PASS")

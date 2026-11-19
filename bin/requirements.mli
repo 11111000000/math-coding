@@ -4,4 +4,7 @@
 
 type outcome = Domain.outcome = Pass | Fail | Inconclusive | Infrastructure_error | Not_run
 
+(* The text of a requirement: "verifier:CMD" or "review:WHO". *)
+val parse : string -> (Domain.requirement, string) result
+
 val run : leaf:(Domain.requirement -> outcome) -> Domain.requirement -> outcome

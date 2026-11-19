@@ -112,6 +112,9 @@ requirement. Exactly five outcomes exist: <code>pass</code>, <code>fail</code>,
 a bounded risk acceptance. It is not a pass and never covers a failure.</li>
 <li><code>mathc authorize --by WHO --reason WHY</code> &mdash; works only with
 a <code>policy.json</code>; it is a permission log, not authentication.</li>
+<li><code>mathc approve --by WHO --reason WHY [--command CMD]</code> &mdash;
+approves the commands the agent surface may execute in this project. Without an
+approval the surface refuses to declare or to run a command, and names it.</li>
 <li><code>mathc install</code> refreshes the marked block in
 <code>AGENTS.md</code>; <code>mathc doctor</code> checks the setup and fixes
 nothing.</li>
@@ -130,6 +133,7 @@ project, and none of them changes the working tree unless it says so.</p>
 <tr><td><code>re-evaluate</code></td><td>list the claims whose source, definition or evidence requires a review</td></tr>
 <tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>bind a changed source after a human review; it records the previous digest, clears the waiver and still requires a fresh <code>run</code></td></tr>
 <tr><td><code>authorize --by WHO --reason WHY</code></td><td>record an authorization for the current protected changes when <code>policy.json</code> exists; it is a journal, not authentication</td></tr>
+<tr><td><code>approve --by WHO --reason WHY [--command CMD]</code></td><td>approve the commands the agent surface may execute; the approval is bound to the commands themselves, and the surface refuses an unapproved command</td></tr>
 <tr><td><code>doctor</code></td><td>check git, the specification, the aim, the protected policy and the agent page without changing them</td></tr>
 <tr><td><code>install</code></td><td>update only the math-coding block in the <code>AGENTS.md</code> of the project; it installs no binaries</td></tr>
 <tr><td><code>mcp</code></td><td>serve the JSON-RPC tool surface over stdio</td></tr>

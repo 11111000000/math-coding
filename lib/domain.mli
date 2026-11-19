@@ -122,3 +122,5 @@ val verdict_to_exit : verdict -> int
 val digest_string : string -> string
 val definition_digest : claim -> string
 val verifier_digest : claim -> string
+(* The commands of the checks a requirement asks for. *)
+val verifier_commands : requirement -> string list
