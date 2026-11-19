@@ -15,7 +15,12 @@ let next_step ~root =
   else if result.code <> 0 then `String (result.stdout ^ result.stderr)
   else `String (String.trim result.stdout)
 
-let parsed ~root args =
+(* The commands that answer with the map carry the verdict in their exit code:
+   a project that is not finished yet answers with an unknown verdict and a
+   non-zero code, and a refuted claim answers with a red one. The tool did its
+   job in both cases, so the call is not an error - the verdict is the data.
+   Only a command that could not answer at all is a tool error. *)
+let parsed ?(verdict = false) ~root args =
   let result = run_verb ~root args in
   if result.truncated then
     `Assoc [ "ok", `Bool false; "text", `String "verifier output was truncated"; "next", next_step ~root ]
@@ -27,7 +32,7 @@ let parsed ~root args =
         | `Assoc pairs -> (match List.assoc_opt "next" pairs with Some (`String value) -> `String value | _ -> next_step ~root)
         | _ -> next_step ~root
       in
-      `Assoc [ "ok", `Bool (result.code = 0); "data", json; "next", next ]
+      `Assoc [ "ok", `Bool (verdict || result.code = 0); "data", json; "next", next ]
   | exception Yojson.Json_error _ ->
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String (result.stdout ^ result.stderr);
                "next", next_step ~root ]
@@ -115,12 +120,12 @@ let validate_arguments name args =
 
 let call ~root name args =
   match name with
-  | "map" | "context" -> parsed ~root [ "map"; "--json" ]
+  | "map" | "context" -> parsed ~verdict:true ~root [ "map"; "--json" ]
   | "next" -> (
       let result = run_verb ~root [ "next" ] in
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String result.stdout;
                "next", next_step ~root ])
-  | "run" -> parsed ~root [ "run"; "--json" ]
+  | "run" -> parsed ~verdict:true ~root [ "run"; "--json" ]
   | "adopt" -> parsed ~root [ "adopt" ]
   | "import-adr" -> parsed ~root [ "import-adr"; string_arg "path" args ]
   | "doctor" -> (

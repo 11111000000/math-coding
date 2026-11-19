@@ -52,6 +52,18 @@ test("the queue names the third outcome and what the map still leaves open", () 
   assert.equal(queue.acceptance.owner, "owner");
 });
 
+test("the acceptance follows the verdict of the map, not the states of the claims", () => {
+  const data = snapshot([claim()]);
+  // A journal with an unreadable record: the states of the claims stay, the
+  // verdict does not. A panel that reads the states would report a green
+  // conclusion beside an unknown verdict.
+  data.map.verdict = "unknown";
+  data.map.exit = 3;
+  const attention = buildAttentionModel(data, 1_000);
+  const queue = buildHumanQueue(data, attention, []);
+  assert.equal(queue.acceptance.obligationsConfirmed, false);
+});
+
 test("an area that the project never declared is not resolved", () => {
   const data = snapshot([claim()]);
   data.map.goal = { ...data.map.goal!, scope: [] };

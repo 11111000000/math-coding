@@ -212,6 +212,29 @@ let () =
       expect root "add linked \"symlink source\" subject.txt \"symlink source\" fact --requirement \"verifier:true\" --source link.md" 2;
       print_endline "source-re-evaluation: PASS")
 
+(* The next action names the check that can close the claim. A hint that says
+   only "check the claim" leaves the reader guessing what to run, and a
+   refutation that names no check leaves the reader guessing what to fix. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the claim names its check\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add named \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let waiting = run root "next" in
+      check "the next action names the check that can close the claim"
+        (contains waiting.stdout "next: check the claim named"
+        && contains waiting.stdout "grep -q expected subject.txt");
+      expect root "add failing \"the subject is wrong\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q absent subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 1;
+      let refused = run root "next" in
+      check "a refutation names the check that rejected the subject"
+        (contains refused.stdout "next: the claim failing is refuted by grep -q absent subject.txt"
+        && contains refused.stdout "fix the subject or withdraw the claim");
+      check "a refutation is not sent to a human record"
+        (not (contains refused.stdout "mathc record"));
+      print_endline "next-names-the-check: PASS")
+
 let () =
   with_repo (fun root ->
       expect root "init" 0;

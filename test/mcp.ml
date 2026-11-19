@@ -47,10 +47,13 @@ let () =
        | Some response ->
            (match field "result" response with
             | Some result ->
-                check "an unknown run is a tool error" (field "isError" result = Some (`Bool true));
+                (* An unknown verdict is the normal state of a project whose
+                   checks have not run. The tool answered, so the call is not an
+                   error; the verdict is the data. *)
+                check "an unknown verdict is not a tool error" (field "isError" result = Some (`Bool false));
                 (match field "structuredContent" result with
                  | Some content ->
-                     check "run returns an unsuccessful structured result" (field "ok" content = Some (`Bool false));
+                     check "run returns the map as data" (field "ok" content = Some (`Bool true));
                      (match field "data" content with
                       | Some data ->
                           check "run returns the current map as data"
@@ -64,3 +67,30 @@ let () =
             | None -> failwith "run has no result")
        | None -> failwith "run has no response");
       print_endline "mcp: PASS")
+
+(* A command that could not answer at all is a tool error: the map of a
+   project without a specification is not a map. *)
+let () =
+  with_repo (fun root ->
+      let requests =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\"}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"map\",\"arguments\":{}}}\n"
+      in
+      let command = Printf.sprintf "%s --root %s mcp" (Filename.quote (binary ())) (Filename.quote root) in
+      let channel = Unix.open_process_in (Printf.sprintf "%s <<'EOF'\n%sEOF" command requests) in
+      let output = In_channel.input_all channel in
+      ignore (Unix.close_process_in channel);
+      let responses = String.split_on_char '\n' output
+        |> List.filter (fun line -> String.trim line <> "")
+        |> List.map Yojson.Safe.from_string in
+      let called = List.find_opt (fun response -> field "id" response = Some (`Int 2)) responses in
+      (match called with
+       | Some response ->
+           (match field "result" response with
+            | Some result ->
+                check "a broken specification is a tool error" (field "isError" result = Some (`Bool true));
+                (match field "structuredContent" result with
+                 | Some content -> check "a broken specification is not ok" (field "ok" content = Some (`Bool false))
+                 | None -> failwith "map has no structured content")
+            | None -> failwith "map has no result")
+       | None -> failwith "map has no response");
+      print_endline "mcp-broken-spec: PASS")
