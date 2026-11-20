@@ -498,6 +498,26 @@
       "register": "fact",
       "control": "sed -i 's|<HostProvider value={host}>||; s|</HostProvider>||' plugin/math-coding-console/client/host/sheet.tsx",
       "waiver": null
+    },
+    {
+      "id": "i18n-report",
+      "text": "the report of the bilingual console is in step with the work it describes: it keeps the sections it promises, names the catalogue of every language the console ships, and states the number of claims the project has",
+      "scope": [
+        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
+        "test/i18n_report.sh"
+      ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        { "kind": "verifier", "spec": "sh test/i18n_report.sh" }
+      ],
+      "falsifier": "the report states a number of claims, a language or a section the project does not have",
+      "register": "fact",
+      "control": "sed -i -E 's/[0-9]+ утверждени/0 утверждени/' docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
+      "waiver": null
     }
   ]
 }
