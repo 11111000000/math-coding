@@ -2,6 +2,7 @@ import { en } from "../../shared/locales/en";
 import { ru } from "../../shared/locales/ru";
 import type { MessageArgs, MessageKey, MessageRef } from "../../shared/message";
 import { FALLBACK_LOCALE, type Locale } from "./locale";
+import { pluralForm } from "./plural";
 
 /**
  * The resolver of the interface text.
@@ -23,16 +24,6 @@ function lookup(catalogue: unknown, path: string): string | undefined {
     node = (node as Record<string, unknown>)[segment];
   }
   return typeof node === "string" ? node : undefined;
-}
-
-/**
- * The plural form of a language for a number.
- *
- * The rules are the rules of the language itself: Russian asks for `one`, `few`
- * and `many`, English for `one` and `other`.
- */
-function pluralForm(locale: Locale, count: number): string {
-  return new Intl.PluralRules(locale).select(count);
 }
 
 /**
