@@ -1,3 +1,4 @@
+import { CodedError } from "../../shared/errors";
 import { isAbsolute, join } from "node:path";
 import type {
   ClaimDetail,
@@ -53,7 +54,7 @@ export interface OperationsHost {
 export function binaryFromPreferences(values: Preferences): string {
   const configured = values.binaryPath.trim();
   if (configured === "") return "mathc";
-  if (!isAbsolute(configured)) throw new Error("The mathc binary override must be an absolute path");
+  if (!isAbsolute(configured)) throw new CodedError("binary_path_not_absolute");
   return configured;
 }
 
@@ -80,7 +81,7 @@ export class ConsoleOperations {
 
   private async exclusive<T>(key: string, operation: () => Promise<T>): Promise<T> {
     const depth = this.depths.get(key) ?? 0;
-    if (depth >= 2) throw new Error("Math Coding workspace is busy; try again after the current operation");
+    if (depth >= 2) throw new CodedError("workspace_busy");
     this.depths.set(key, depth + 1);
     const previous = this.tails.get(key) ?? Promise.resolve();
     const result = previous.catch(() => undefined).then(operation);
@@ -156,12 +157,12 @@ export class ConsoleOperations {
     host: OperationsHost,
     input: { workspaceId: string; confirmation: "RUN_CHECKS" },
   ): Promise<{ snapshot: SnapshotReady; durationMs: number }> {
-    if (input.confirmation !== "RUN_CHECKS") throw new Error("Run checks requires explicit confirmation");
+    if (input.confirmation !== "RUN_CHECKS") throw new CodedError("run_checks_needs_confirmation");
     const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
       const runtime = await host.resolveRuntime(workspace);
       if (!runtime.allowRunChecks) {
-        throw new Error("Run checks are disabled; enable them in Math Coding settings");
+        throw new CodedError("run_checks_disabled");
       }
       const project = await loadProject(workspace.directory, runtime.binary, "run");
       return { snapshot: readySnapshot(workspace, project), durationMs: project.durationMs };
@@ -195,13 +196,13 @@ export class ConsoleOperations {
    */
   async humanDecision(host: OperationsHost, input: HumanDecisionInput): Promise<HumanDecisionOutput> {
     if (input.confirmation !== "APPLY_HUMAN_DECISION") {
-      throw new Error("A human decision requires explicit confirmation");
+      throw new CodedError("human_decision_needs_confirmation");
     }
     const workspace = await host.resolveWorkspace(input.workspaceId);
     return this.exclusive(workspace.directory, async () => {
       const runtime = await host.resolveRuntime(workspace);
       if (!runtime.allowHumanDecisions) {
-        throw new Error("Human decisions are disabled; enable them in Math Coding settings");
+        throw new CodedError("human_decisions_disabled");
       }
       const result = await applyHumanDecision(workspace.directory, runtime.binary, input);
       return { snapshot: readySnapshot(workspace, result.snapshot), message: result.message };

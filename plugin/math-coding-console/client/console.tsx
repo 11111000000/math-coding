@@ -22,22 +22,24 @@ import { GraphView, type GraphSelection } from "./graph";
 import { useHost } from "./host/context";
 import { HumanActionForm } from "./human-action";
 import { buildHumanQueue, queueEvidenceComplete } from "./human-queue";
+import { errorText, renderValue, useT } from "./i18n";
 import { Body, Button, Card, Empty, Mono, Note, Segmented } from "./parts";
 import { previewIsOpen } from "./preview-target";
 import { QueueView } from "./queue-view";
 import { RunConfirmation } from "./run-confirmation";
 import { runScale } from "./run-scale";
+import { verdictKey } from "./vocabulary";
 
 const VIEWS = [
-  { value: "attention", label: "Queue", icon: "UserRoundCheck" },
-  { value: "explore", label: "Explore", icon: "Search" },
-  { value: "evidence", label: "Evidence", icon: "History" },
+  { value: "attention", labelKey: "panel.tab_queue", icon: "UserRoundCheck" },
+  { value: "explore", labelKey: "panel.tab_explore", icon: "Search" },
+  { value: "evidence", labelKey: "panel.tab_evidence", icon: "History" },
 ] as const;
 
 const EXPLORE_VIEWS = [
-  { value: "claims", label: "Claims", icon: "Boxes" },
-  { value: "proof", label: "Proof graph", icon: "Workflow" },
-  { value: "scope", label: "Scope", icon: "FolderTree" },
+  { value: "claims", labelKey: "panel.tab_claims", icon: "Boxes" },
+  { value: "proof", labelKey: "panel.tab_proof", icon: "Workflow" },
+  { value: "scope", labelKey: "panel.tab_scope", icon: "FolderTree" },
 ] as const;
 
 export interface ConsolePanelProps {
@@ -49,6 +51,7 @@ export interface ConsolePanelProps {
 export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) {
   const compact = layout.compact;
   const { Modal, useRpc, useSettings, useToast } = useHost();
+  const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
   const fetchSnapshot = useRpc(rpcSchemas.snapshot);
@@ -73,7 +76,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
       setConfirmRun(false);
       setView("attention");
       const holds = snapshot.map.states.filter((state) => state.state === "holds").length;
-      toast.show(`Checks finished: ${snapshot.map.verdict} · ${holds} holds`, {
+      toast.show(t("toast.checks_finished", { verdict: t(verdictKey(snapshot.map.verdict)), holds }), {
         variant: snapshot.map.verdict === "green" ? "success" : snapshot.map.verdict === "red" ? "error" : "warning",
       });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
@@ -86,7 +89,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     onSuccess: ({ snapshot, message }) => {
       queryClient.setQueryData(["mathcoding-snapshot", workspaceId], snapshot);
       setDecision(null);
-      toast.show(message.length > 0 ? message : "The decision is recorded", { variant: "success" });
+      toast.show(message.length > 0 ? message : t("toast.decision_recorded"), { variant: "success" });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-claim", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-evidence", workspaceId] });
       void queryClient.invalidateQueries({ queryKey: ["mathcoding-queue-evidence", workspaceId] });
@@ -173,7 +176,8 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     [snapshot, canonicalNow],
   );
   const openDecision = (action: HumanAction) => {
-    const by = action.owner !== "" ? action.owner : snapshot?.map.goal?.by ?? "";
+    const owner = renderValue(t, action.owner);
+    const by = owner !== "" ? owner : snapshot?.map.goal?.by ?? "";
     setDecision({ action, values: { ...emptyHumanActionValues(), by } });
   };
   const confirmDecision = () => {
@@ -183,7 +187,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     try {
       humanActionArgv(action, values);
     } catch (problem) {
-      toast.error(problem instanceof Error ? problem.message : String(problem));
+      toast.error(errorText(t, problem));
       return;
     }
     const days = values.validForDays.trim();
@@ -203,21 +207,23 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const runEnabled = settings.status === "ready" ? settings.values?.allowRunChecks ?? null : null;
   const snapshotError = snapshotQuery.error ? String(snapshotQuery.error) : null;
   const workspaceBusy = snapshotError?.includes("busy") ?? false;
+  const views = VIEWS.map((option) => ({ value: option.value, label: t(option.labelKey), icon: option.icon }));
+  const exploreViews = EXPLORE_VIEWS.map((option) => ({ value: option.value, label: t(option.labelKey), icon: option.icon }));
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.surface0 }}>
       {snapshotQuery.isPending ? (
-        <Empty theme={theme} title="Reading the canonical map" detail="This is read-only. No project checks are running." icon="Workflow" />
+        <Empty theme={theme} title={t("panel.loading_map")} detail={t("panel.loading_map_detail")} icon="Workflow" />
       ) : snapshotQuery.isError && !snapshotQuery.data ? (
         <View style={{ padding: compact ? 14 : 22, gap: 12 }}>
-          <Empty theme={theme} title={workspaceBusy ? "Math Coding workspace is busy" : "Math Coding is unavailable"} detail={workspaceBusy ? "A longer operation is active. Retry after it finishes." : "The plugin did not accept a fallback verdict."} icon={workspaceBusy ? "Clock3" : "ShieldX"} />
+          <Empty theme={theme} title={workspaceBusy ? t("panel.busy_title") : t("panel.unavailable_title")} detail={workspaceBusy ? t("panel.busy_detail") : t("panel.unavailable_detail")} icon={workspaceBusy ? "Clock3" : "ShieldX"} />
           <Note theme={theme} tone="bad">{snapshotError}</Note>
-          <Button theme={theme} label="Retry read-only snapshot" icon="RefreshCw" onPress={refresh} />
+          <Button theme={theme} label={t("panel.retry_snapshot")} icon="RefreshCw" onPress={refresh} />
         </View>
       ) : snapshotQuery.data?.status === "not-initialized" ? (
         <View style={{ padding: compact ? 14 : 22 }}>
           <Card theme={theme} compact={compact}>
-            <Empty theme={theme} title="Math Coding is not initialized here" detail={snapshotQuery.data.workspace.directory} icon="Map" />
-            <Body theme={theme} muted>A spec.json is required before the plugin can show a canonical map. The empty state is not presented as a verdict.</Body>
+            <Empty theme={theme} title={t("panel.not_initialized_title")} detail={snapshotQuery.data.workspace.directory} icon="Map" />
+            <Body theme={theme} muted>{t("panel.not_initialized_body")}</Body>
             <Mono theme={theme}>mathc init</Mono>
           </Card>
         </View>
@@ -226,10 +232,10 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
           <View style={{ flex: 1 }}>
             <ScrollView nestedScrollEnabled contentContainerStyle={{ padding: compact ? 10 : 16, gap: 10 }}>
               {snapshotQuery.isError && (
-                <Note theme={theme} tone="bad">Refresh failed. The visible data is the last successful snapshot from {snapshot.generatedAt}: {String(snapshotQuery.error)}</Note>
+                <Note theme={theme} tone="bad">{t("panel.refresh_failed", { time: snapshot.generatedAt, error: String(snapshotQuery.error) })}</Note>
               )}
               <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
-              <Segmented theme={theme} options={VIEWS} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
+              <Segmented theme={theme} options={views} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
               {view === "attention" && queue && briefContext && (
                 <>
                   <QueueView
@@ -252,7 +258,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
                 <>
                   <Segmented
                     theme={theme}
-                    options={EXPLORE_VIEWS}
+                    options={exploreViews}
                     value={exploreView}
                     onChange={(value) => { setExploreView(value); setShowScopeGraph(false); }}
                   />
@@ -276,7 +282,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
       {previewIsOpen(previewPath) && (
         <FilePreview theme={theme} compact={compact} workspaceId={workspaceId} path={previewPath} onClose={() => setPreviewPath(null)} />
       )}
-      <Modal title="Run project checks?" open={confirmRun} onOpenChange={(open) => { if (!run.isPending) setConfirmRun(open); }}>
+      <Modal title={t("panel.run_modal_title")} open={confirmRun} onOpenChange={(open) => { if (!run.isPending) setConfirmRun(open); }}>
         <RunConfirmation
           theme={theme}
           scale={scale}
@@ -287,7 +293,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
         />
       </Modal>
       {decision && (
-        <Modal title="Record a decision of the method" open onOpenChange={(open) => { if (!open && !decisionMutation.isPending) setDecision(null); }}>
+        <Modal title={t("panel.decision_modal_title")} open onOpenChange={(open) => { if (!open && !decisionMutation.isPending) setDecision(null); }}>
           <HumanActionForm
             theme={theme}
             action={decision.action}

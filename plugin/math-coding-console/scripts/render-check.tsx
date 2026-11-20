@@ -4,7 +4,10 @@ import { QueryClient } from "@tanstack/react-query";
 import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
 import { emptyHumanActionValues, humanActions } from "../shared/human-actions";
 import { buildHumanQueue } from "../client/human-queue";
-import { renderWithHost } from "../test/host-stub";
+import { translate } from "../client/i18n/translate";
+import { renderWithHost, host } from "../test/host-stub";
+import type { HostContextValue } from "../client/host/contract";
+import type { MessageKey } from "../shared/message";
 import { runScale } from "../client/run-scale";
 import { theme, snapshot, claim } from "../test/fixtures";
 
@@ -185,6 +188,40 @@ async function main() {
   const lightMarkup = render(React(InstrumentFrame, { ...frameProps, theme: light, compact: true }));
   assert.ok(lightMarkup.includes("test the plugin"));
   process.stdout.write(`ok: light compact frame rendered ${lightMarkup.length} bytes\n`);
+
+  /**
+   * The same interface in Russian.
+   *
+   * The language of the host decides the language of the interface when the
+   * human has not chosen one. The check draws the screens again with a host
+   * that speaks Russian and asks for the Russian text of the labels: the
+   * English text of the same label must be gone.
+   */
+  const russianHost: HostContextValue = { ...host, useAppLocale: () => "ru" };
+  const russian = (element: ReactNode) => renderWithHost(element, queryClient, russianHost);
+  const ru = (key: MessageKey) => translate("ru", key);
+  const en = (key: MessageKey) => translate("en", key);
+  const russianScreens: [string, ReactNode, MessageKey[]][] = [
+    ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" }), ["panel.tab_queue", "panel.tab_explore", "panel.tab_evidence"]],
+    ["human queue", React(QueueView, { theme, compact: false, queue: humanQueue, context: humanContext, actions: humanActionsForFixture, decisionsEnabled: true, onTakeAction: () => undefined, onOpenFile: () => undefined, onSelect: () => undefined }), ["queue.title", "queue.accept_title", "queue.next_safe_step"]],
+    ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined }), ["detail.requirements_title", "detail.proof_title", "detail.evidence_title"]],
+    ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined }), ["graph.links_note", "graph.kind_goal"]],
+    ["settings screen", React(SettingsScreen, { theme }), ["settings.locale_label", "settings.locale_ru"]],
+  ];
+  for (const [name, element, keys] of russianScreens) {
+    const markup = russian(element);
+    for (const key of keys) {
+      assert.ok(markup.includes(ru(key)), `the Russian ${name} does not show ${key}`);
+      // A name that both languages spell alike — the name of a language itself —
+      // is the same word in either language, so only a different word is missing.
+      if (en(key) !== ru(key)) {
+        assert.ok(!markup.includes(en(key)), `the Russian ${name} still shows the English text of ${key}`);
+      }
+    }
+    process.stdout.write(`ok: ${name} rendered in Russian (${markup.length} bytes)\n`);
+  }
+  assert.ok(!brief.includes(ru("queue.accept_title")), "the brief of the agent stays in the language of the method");
+  process.stdout.write("ok: the brief of the agent stays in English\n");
   process.stdout.write("render-check: PASS\n");
 }
 

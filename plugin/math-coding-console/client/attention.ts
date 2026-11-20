@@ -1,7 +1,9 @@
 import type { Claim, ClaimState, MapState, Requirement, StateReason, Verdict } from "../shared/domain";
 import { flattenRequirements, requirementLabel } from "../shared/requirements";
 import type { SnapshotReady } from "../shared/schemas";
-import { stateReasonText } from "./vocabulary";
+import type { MessageRef } from "../shared/message";
+import { translate, type Translate } from "./i18n/translate";
+import { stateReasonKey, stateReasonText } from "./vocabulary";
 
 export type HumanAttentionKind =
   | "source-review"
@@ -34,15 +36,15 @@ export interface StateReasonEntry {
 export interface HumanAttentionItem {
   id: string;
   kind: HumanAttentionKind;
-  title: string;
+  title: MessageRef;
   claimIds: string[];
   states: ClaimState[];
   reasons: StateReasonEntry[];
-  why: string;
-  humanQuestion: string;
-  agentMay: string;
-  agentMustNot: string;
-  suggestedAction: string;
+  why: MessageRef;
+  humanQuestion: MessageRef;
+  agentMay: MessageRef;
+  agentMustNot: MessageRef;
+  suggestedAction: MessageRef;
   sourcePaths: string[];
   claimContext: ClaimContext[];
 }
@@ -50,15 +52,15 @@ export interface HumanAttentionItem {
 export interface AgentAttentionItem {
   id: string;
   kind: AgentAttentionKind;
-  title: string;
+  title: MessageRef;
   claimIds: string[];
   states: ClaimState[];
   reasons: StateReasonEntry[];
-  why: string;
-  humanBoundary: string;
-  agentMay: string;
-  agentMustNot: string;
-  suggestedAction: string;
+  why: MessageRef;
+  humanBoundary: MessageRef;
+  agentMay: MessageRef;
+  agentMustNot: MessageRef;
+  suggestedAction: MessageRef;
   sourcePaths: string[];
   uncoveredPaths: string[];
   claimContext: ClaimContext[];
@@ -67,7 +69,7 @@ export interface AgentAttentionItem {
 export interface AcceptedRiskItem {
   id: string;
   claimId: string;
-  title: string;
+  title: MessageRef;
   gap: string;
   issuer: string;
   reason: string;
@@ -161,54 +163,57 @@ function humanItemForClaim(
   if (sourceChanged) {
     const source = claim.source?.path ?? "the linked source";
     return humanItem("source-review", claim, mapState, {
-      title: `Review the changed source for ${claim.id}`,
-      why: `The linked source ${source} changed. Previous evidence no longer applies to the current source.`,
-      humanQuestion: `Does ${source} still justify “${claim.text}”, or should the claim, falsifier, or acceptance condition change?`,
-      agentMay: "Collect the source diff and explain how the claim's scope, falsifier, and acceptance conditions may be affected.",
-      agentMustNot: "Do not rewrite the source, record a source review, or treat the human review as complete.",
-      suggestedAction: "Prepare the source diff, claim context, and relevant evidence for the owner's review.",
+      title: { key: "attention.source_review_title", args: { claim: claim.id } },
+      why: { key: "attention.source_review_why", args: { source } },
+      humanQuestion: { key: "attention.source_review_question", args: { source, claim: claim.text } },
+      agentMay: { key: "attention.source_review_agent_may" },
+      agentMustNot: { key: "attention.source_review_agent_must_not" },
+      suggestedAction: { key: "attention.source_review_suggested" },
     });
   }
   if (state === "refuted") {
     return humanItem("refutation", claim, mapState, {
-      title: `Decide the direction of refuted claim ${claim.id}`,
-      why: "A current observation contradicted the claim. The implementation may be wrong, but the contract may also be wrong.",
-      humanQuestion: `Should the implementation be repaired while keeping “${claim.text}” and its falsifier, or does the claim itself need to change?`,
-      agentMay: "Reproduce the failure and propose a repair without weakening the verifier or negative control.",
-      agentMustNot: "Do not weaken the oracle, alter the claim to obtain green, or decide the contract direction.",
-      suggestedAction: "Reproduce the failure and present repair options; leave the contract decision to the owner.",
+      title: { key: "attention.refutation_title", args: { claim: claim.id } },
+      why: { key: "attention.refutation_why" },
+      humanQuestion: { key: "attention.refutation_question", args: { claim: claim.text } },
+      agentMay: { key: "attention.refutation_agent_may" },
+      agentMustNot: { key: "attention.refutation_agent_must_not" },
+      suggestedAction: { key: "attention.refutation_suggested" },
     });
   }
   if (state === "not-checkable") {
     return humanItem("acceptance-criterion", claim, mapState, {
-      title: `Choose an acceptance criterion for ${claim.id}`,
-      why: "The canonical map says this claim has no suitable way to establish or refute its current condition.",
-      humanQuestion: `What observable condition would prove or refute “${claim.text}”, and should a machine or a human produce it?`,
-      agentMay: "Propose one or more machine checks and explain their sensitivity, but do not make them authoritative.",
-      agentMustNot: "Do not declare the claim checkable, weaken the intended condition, or record a human review.",
-      suggestedAction: "Propose candidate machine checks; leave selection of the acceptance criterion to the owner.",
+      title: { key: "attention.criterion_title", args: { claim: claim.id } },
+      why: { key: "attention.criterion_why" },
+      humanQuestion: { key: "attention.criterion_question", args: { claim: claim.text } },
+      agentMay: { key: "attention.criterion_agent_may" },
+      agentMustNot: { key: "attention.criterion_agent_must_not" },
+      suggestedAction: { key: "attention.criterion_suggested" },
     });
   }
   const reviews = reviewRequirements(claim);
   if (reviews.length > 0 && state !== "holds" && state !== "waived") {
     const authorities = reviews.map((review) => `${review.spec} (${review.minimum_independence})`).join(", ");
     return humanItem("human-review", claim, mapState, {
-      title: `Complete the human review for ${claim.id}`,
-      why: `The claim requires human review by ${authorities}, and the current canonical state is ${state}.`,
-      humanQuestion: `Do the named reviewers confirm “${claim.text}” at the declared independence, or should the condition or authority change?`,
-      agentMay: "Prepare the claim, source, scope, falsifier, and relevant evidence for the reviewer.",
-      agentMustNot: "Do not impersonate the reviewer, record the review, or treat a machine check as human review.",
-      suggestedAction: "Prepare the review context for the named human reviewer; leave the review decision to the reviewer.",
+      title: { key: "attention.human_review_title", args: { claim: claim.id } },
+      why: { key: "attention.human_review_why", args: { authorities, state } },
+      humanQuestion: { key: "attention.human_review_question", args: { claim: claim.text } },
+      agentMay: { key: "attention.human_review_agent_may" },
+      agentMustNot: { key: "attention.human_review_agent_must_not" },
+      suggestedAction: { key: "attention.human_review_suggested" },
     });
   }
   if (claim.waiver && nowSeconds >= claim.waiver.expires_at && state !== "holds") {
     return humanItem("expired-waiver", claim, mapState, {
-      title: `Renew or close the expired waiver for ${claim.id}`,
-      why: `The accepted risk expired at ${new Date(claim.waiver.expires_at * 1000).toISOString()}. It no longer covers the declared gap.`,
-      humanQuestion: `Is “${claim.waiver.gap}” still accepted on the same terms, or should the recovery plan start now?`,
-      agentMay: "Prepare evidence about the gap and the existing recovery plan for the decision.",
-      agentMustNot: "Do not renew the waiver, extend its interval, or treat expired acceptance as current.",
-      suggestedAction: "Prepare the risk and recovery evidence; leave renewal or closure to the owner.",
+      title: { key: "attention.expired_waiver_title", args: { claim: claim.id } },
+      why: {
+        key: "attention.expired_waiver_why",
+        args: { time: new Date(claim.waiver.expires_at * 1000).toISOString() },
+      },
+      humanQuestion: { key: "attention.expired_waiver_question", args: { gap: claim.waiver.gap } },
+      agentMay: { key: "attention.expired_waiver_agent_may" },
+      agentMustNot: { key: "attention.expired_waiver_agent_must_not" },
+      suggestedAction: { key: "attention.expired_waiver_suggested" },
     });
   }
   return null;
@@ -235,15 +240,15 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
       refresh.push({
         id: `refresh-evidence:${claim.id}`,
         kind: "refresh-evidence",
-        title: "Refresh current evidence",
+        title: { key: "attention.refresh_title" },
         claimIds: [claim.id],
         states: [state],
         reasons: [{ claimId: claim.id, reason: mapState.reason }],
-        why: `The canonical state is ${state}; the declared machine checks can restore current evidence without changing the claim.`,
-        humanBoundary: "The machine portion can proceed unless a fresh result reveals that the claim's meaning changed.",
-        agentMay: "Run the declared verifier and negative control, then report the canonical result.",
-        agentMustNot: "Do not weaken the verifier, change the claim to obtain green, or record a human review.",
-        suggestedAction: "Run checks and return any failure or human-decision ambiguity for inspection.",
+        why: { key: "attention.refresh_why", args: { state } },
+        humanBoundary: { key: "attention.refresh_boundary" },
+        agentMay: { key: "attention.refresh_agent_may" },
+        agentMustNot: { key: "attention.refresh_agent_must_not" },
+        suggestedAction: { key: "attention.refresh_suggested" },
         sourcePaths: sourcePaths(claim),
         uncoveredPaths: [],
         claimContext: [claimContext(claim)],
@@ -252,15 +257,15 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
       investigate.push({
         id: `investigate-unknown:${claim.id}`,
         kind: "investigate-unknown",
-        title: "Investigate an inconclusive result",
+        title: { key: "attention.investigate_title" },
         claimIds: [claim.id],
         states: [state],
         reasons: [{ claimId: claim.id, reason: mapState.reason }],
-        why: "The canonical state is inconclusive: the current observations did not establish or refute the claim.",
-        humanBoundary: "Bring the claim back to the human only if the intended acceptance criterion remains ambiguous.",
-        agentMay: "Inspect the latest observations and propose a fix or a more sensitive check.",
-        agentMustNot: "Do not replace an inconclusive observation with an assumed pass or weaken the condition.",
-        suggestedAction: "Diagnose the inconclusive branch and propose the smallest honest repair.",
+        why: { key: "attention.investigate_why" },
+        humanBoundary: { key: "attention.investigate_boundary" },
+        agentMay: { key: "attention.investigate_agent_may" },
+        agentMustNot: { key: "attention.investigate_agent_must_not" },
+        suggestedAction: { key: "attention.investigate_suggested" },
         sourcePaths: sourcePaths(claim),
         uncoveredPaths: [],
         claimContext: [claimContext(claim)],
@@ -272,15 +277,15 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
     result.push({
       id: "refresh-evidence:group",
       kind: "refresh-evidence",
-      title: `Refresh evidence for ${refresh.length} claims`,
+      title: { key: "attention.refresh_group_title", args: { count: refresh.length } },
       claimIds: refresh.flatMap((item) => item.claimIds),
       states: [...new Set(refresh.flatMap((item) => item.states))],
       reasons: refresh.flatMap((item) => item.reasons),
-      why: "These claims have machine-verifiable work that can proceed without waiting for a separate human-only part.",
-      humanBoundary: "No human decision is required for the machine portion unless a fresh result changes the intended contract.",
-      agentMay: "Run the declared checks and group the outcomes by claim.",
-      agentMustNot: "Do not weaken verifiers, alter claims to obtain green, or record human decisions.",
-      suggestedAction: "Refresh evidence and report only genuine failures or contract ambiguity.",
+      why: { key: "attention.refresh_group_why" },
+      humanBoundary: { key: "attention.refresh_group_boundary" },
+      agentMay: { key: "attention.refresh_group_agent_may" },
+      agentMustNot: { key: "attention.refresh_group_agent_must_not" },
+      suggestedAction: { key: "attention.refresh_group_suggested" },
       sourcePaths: [...new Set(refresh.flatMap((item) => item.sourcePaths))],
       uncoveredPaths: [],
       claimContext: refresh.flatMap((item) => item.claimContext),
@@ -290,15 +295,15 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
     result.push({
       id: "investigate-unknown:group",
       kind: "investigate-unknown",
-      title: `Investigate ${investigate.length} inconclusive claims`,
+      title: { key: "attention.investigate_group_title", args: { count: investigate.length } },
       claimIds: investigate.flatMap((item) => item.claimIds),
       states: ["inconclusive"],
       reasons: investigate.flatMap((item) => item.reasons),
-      why: "The current observations left these claims unknown rather than confirming or refuting them.",
-      humanBoundary: "Return to the human only if the intended acceptance criterion is ambiguous.",
-      agentMay: "Inspect the linked observations and propose fixes or more sensitive checks.",
-      agentMustNot: "Do not convert unknown observations into an assumed pass.",
-      suggestedAction: "Diagnose each inconclusive branch and preserve the original acceptance condition.",
+      why: { key: "attention.investigate_group_why" },
+      humanBoundary: { key: "attention.investigate_group_boundary" },
+      agentMay: { key: "attention.investigate_group_agent_may" },
+      agentMustNot: { key: "attention.investigate_group_agent_must_not" },
+      suggestedAction: { key: "attention.investigate_group_suggested" },
       sourcePaths: [...new Set(investigate.flatMap((item) => item.sourcePaths))],
       uncoveredPaths: [],
       claimContext: investigate.flatMap((item) => item.claimContext),
@@ -308,15 +313,15 @@ function agentItems(snapshot: SnapshotReady): AgentAttentionItem[] {
     result.push({
       id: "coverage:group",
       kind: "coverage",
-      title: `Map ${snapshot.map.uncovered.length} uncovered paths to claims`,
+      title: { key: "attention.coverage_title", args: { count: snapshot.map.uncovered.length } },
       claimIds: [],
       states: [],
       reasons: [],
-      why: "These goal-scope paths are not included in any active claim subject.",
-      humanBoundary: "The agent may propose claims and scope; only the human decides whether the goal boundary changes.",
-      agentMay: "Inspect the uncovered paths and propose one or more checkable claims.",
-      agentMustNot: "Do not expand the goal scope or create claims without the owner's decision.",
-      suggestedAction: "Prepare a coverage proposal for human approval.",
+      why: { key: "attention.coverage_why" },
+      humanBoundary: { key: "attention.coverage_boundary" },
+      agentMay: { key: "attention.coverage_agent_may" },
+      agentMustNot: { key: "attention.coverage_agent_must_not" },
+      suggestedAction: { key: "attention.coverage_suggested" },
       sourcePaths: [],
       uncoveredPaths: snapshot.map.uncovered,
       claimContext: [],
@@ -349,7 +354,7 @@ export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = snapsh
       acceptedRisks.push({
         id: `accepted-risk:${claim.id}`,
         claimId: claim.id,
-        title: `Accepted risk for ${claim.id}`,
+        title: { key: "attention.accepted_risk_title", args: { claim: claim.id } },
         gap: claim.waiver.gap,
         issuer: claim.waiver.issuer,
         reason: claim.waiver.reason,
@@ -409,11 +414,11 @@ export function attentionReasonCodes(entries: StateReasonEntry[]): StateReason[]
   return [...new Set(entries.map((entry) => entry.reason).filter((reason): reason is StateReason => reason !== undefined))];
 }
 
-export function attentionReasonText(entries: StateReasonEntry[]): string {
+export function attentionReasonText(entries: StateReasonEntry[], t: Translate): string {
   if (entries.length === 0) return "";
   const reasons = attentionReasonCodes(entries);
-  if (reasons.length === 0) return stateReasonText(undefined);
-  return reasons.map((reason) => stateReasonText(reason)).join(" ");
+  if (reasons.length === 0) return t("state.reason_unknown");
+  return reasons.map((reason) => t(stateReasonKey(reason))).join(" ");
 }
 
 /**
@@ -430,6 +435,12 @@ export function attentionReasonLines(entries: StateReasonEntry[]): string[] {
 
 export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, context: AttentionBriefContext): string {
   const human = "humanQuestion" in item;
+  /**
+   * The brief is a contract with an agent, so it is written in one language:
+   * the English one. The interface reads the same words in the language of the
+   * human; the brief keeps the language of the method.
+   */
+  const words = (ref: MessageRef) => translate("en", ref.key, ref.args);
   const lines = [
     "Math Coding attention brief",
     "",
@@ -440,12 +451,12 @@ export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, co
   for (const path of context.uncovered) lines.push(`  - ${path}`);
   lines.push(`Accepted risks: ${context.acceptedRisks.length}`);
   for (const risk of context.acceptedRisks) {
-    lines.push(`  - ${risk.title}: ${risk.gap} (issuer ${risk.issuer}, expires ${new Date(risk.expiresAt * 1000).toISOString()})`);
+    lines.push(`  - ${words(risk.title)}: ${risk.gap} (issuer ${risk.issuer}, expires ${new Date(risk.expiresAt * 1000).toISOString()})`);
   }
   lines.push(`Canonical next action: ${context.next}`);
   lines.push(
     "",
-    `Title: ${item.title}`,
+    `Title: ${words(item.title)}`,
     `Claims: ${item.claimIds.length > 0 ? item.claimIds.join(", ") : "goal coverage"}`,
     `Canonical states: ${item.states.length > 0 ? item.states.join(", ") : "not claim-specific"}`,
   );
@@ -461,14 +472,14 @@ export function attentionBrief(item: HumanAttentionItem | AgentAttentionItem, co
       lines.push(`  requirements: ${entry.requirements.join(" | ") || "none"}`);
     }
   }
-  lines.push("", "Why:", item.why);
+  lines.push("", "Why:", words(item.why));
   if (human) {
-    lines.push("", "Human decision (the agent must not make it):", item.humanQuestion);
+    lines.push("", "Human decision (the agent must not make it):", words(item.humanQuestion));
   } else {
-    lines.push("", "Human boundary:", item.humanBoundary);
+    lines.push("", "Human boundary:", words(item.humanBoundary));
   }
-  lines.push("", "Agent may:", item.agentMay);
-  lines.push("Agent must not:", item.agentMustNot);
-  lines.push("", "Next safe step:", item.suggestedAction);
+  lines.push("", "Agent may:", words(item.agentMay));
+  lines.push("Agent must not:", words(item.agentMustNot));
+  lines.push("", "Next safe step:", words(item.suggestedAction));
   return lines.join("\n");
 }

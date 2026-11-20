@@ -113,6 +113,14 @@ export interface HostContextValue {
   Icon: ComponentType<HostIconProps>;
   Modal: HostModalComponent;
   TextInput: ComponentType<HostTextInputProps>;
+  /**
+   * The language the host application speaks.
+   *
+   * The interface follows it unless the human chooses another language in the
+   * settings of the plugin. The value is live: a change of the language of the
+   * host reaches the interface without a reload.
+   */
+  useAppLocale: () => string;
   SettingsSection: ComponentType<HostSettingsSectionProps>;
   SettingsCard: ComponentType<HostSettingsCardProps>;
   SettingsInput: ComponentType<HostSettingsInputProps>;

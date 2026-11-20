@@ -180,6 +180,7 @@ export type ClaimState = (typeof CLAIM_STATES)[number];
 export type StateReason = (typeof STATE_REASONS)[number];
 export type Verdict = (typeof VERDICTS)[number];
 export type EvidenceOutcome = (typeof EVIDENCE_OUTCOMES)[number];
+export type IndependenceLevel = (typeof INDEPENDENCE_LEVELS)[number];
 export type Claim = z.output<typeof claimSchema>;
 export type Spec = z.output<typeof specSchema>;
 export type Evidence = z.output<typeof evidenceSchema>;

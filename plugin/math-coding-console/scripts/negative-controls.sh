@@ -268,6 +268,30 @@ start_control \
   's/snapshot.map.verdict === "green"/snapshot.map.states.length > 0 \&\& snapshot.map.states.every((state) => state.state === "holds")/' \
   "test/human-queue.test.ts"
 
+# The catalogue is a contract between two languages. A translation that is
+# missing, a key that only one language holds, or a placeholder that a
+# translation drops are all defects that no type of the catalogue catches.
+start_control \
+  control_check \
+  "a missing Russian translation cannot pass the catalogue" \
+  "shared/locales/ru.ts" \
+  '/    close: "Закрыть",/d' \
+  "test/i18n.test.ts"
+
+start_control \
+  control_check \
+  "a key only the Russian catalogue holds cannot pass" \
+  "shared/locales/ru.ts" \
+  '/    close: "Закрыть",/a\    invented_key: "Придумано",' \
+  "test/i18n.test.ts"
+
+start_control \
+  control_check \
+  "a translation cannot drop the placeholder of a text" \
+  "shared/locales/ru.ts" \
+  's|    refresh_failed: .*|    refresh_failed: "Не удалось обновить.",|' \
+  "test/i18n.test.ts"
+
 set -- $PIDS
 for pid in "$@"; do
   if ! wait "$pid"; then

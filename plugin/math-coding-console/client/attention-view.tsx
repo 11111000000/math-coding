@@ -10,8 +10,9 @@ import {
 } from "./attention";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
+import { useT } from "./i18n";
 import { Badge, Body, Button, Card, Empty, Mono } from "./parts";
-import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonKey } from "./vocabulary";
 
 export interface AttentionViewProps {
   theme: ConsoleTheme;
@@ -25,13 +26,14 @@ export interface AttentionViewProps {
 
 export function AttentionView({ theme, compact, model, context, onSelect, onRun, runEnabled }: AttentionViewProps) {
   const host = useHost();
+  const t = useT();
   const toast = host.useToast();
   const copy = async (item: AgentAttentionItem, label: string) => {
     try {
       await host.copyText(attentionBrief(item, context));
-      toast.show(`${label} copied for an agent`);
+      toast.show(t("toast.brief_copied_for", { label }));
     } catch {
-      toast.error("The brief could not be copied");
+      toast.error(t("toast.brief_not_copied"));
     }
   };
   return (
@@ -39,35 +41,37 @@ export function AttentionView({ theme, compact, model, context, onSelect, onRun,
       <Card
         theme={theme}
         compact={compact}
-        title="Agent can act"
-        subtitle={model.agentTaskCount === 0 ? "No delegated work is visible" : `${model.agentTaskCount} grouped task(s) · ${model.agentClaimCount} claim(s) with machine-verifiable work`}
+        title={t("attention.title_agent_can_act")}
+        subtitle={model.agentTaskCount === 0
+          ? t("attention.empty_delegated_visible")
+          : `${t("attention.grouped_task_count", { count: model.agentTaskCount })} · ${t("attention.grouped_claim_count", { count: model.agentClaimCount })}`}
       >
         {model.agentCanAct.length === 0 ? (
-          <Empty theme={theme} title="No delegated work" detail="There is no machine-verifiable work that can proceed without a human decision." icon="Bot" />
+          <Empty theme={theme} title={t("attention.empty_delegated")} detail={t("attention.empty_delegated_detail")} icon="Bot" />
         ) : (
           <View style={{ gap: 10 }}>
             {model.agentCanAct.map((item) => (
-              <AgentCard key={item.id} theme={theme} compact={compact} item={item} onCopy={() => void copy(item, "Agent task brief")} onRun={onRun} runEnabled={runEnabled} />
+              <AgentCard key={item.id} theme={theme} compact={compact} item={item} onCopy={() => void copy(item, t("attention.agent_task_brief"))} onRun={onRun} runEnabled={runEnabled} />
             ))}
           </View>
         )}
       </Card>
       {model.acceptedRisks.length > 0 && (
-        <Card theme={theme} compact={compact} title="Accepted risk" subtitle="A human decision already stands until its stated expiry">
+        <Card theme={theme} compact={compact} title={t("attention.title_accepted_risk")} subtitle={t("attention.accepted_risk_detail")}>
           <View style={{ gap: 10 }}>
             {model.acceptedRisks.map((risk) => (
               <View key={risk.id} style={{ borderWidth: 1, borderColor: theme.colors.statusWarning, borderRadius: 9, padding: 12, gap: 7 }}>
                 <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-                  <Badge theme={theme} label="accepted risk" tone="warn" icon="ShieldCheck" />
-                  <Badge theme={theme} label={`expires ${formatTime(risk.expiresAt)}`} icon="Clock3" />
+                  <Badge theme={theme} label={t("attention.kind_accepted_risk")} tone="warn" icon="ShieldCheck" />
+                  <Badge theme={theme} label={t("attention.expires_at", { time: formatTime(risk.expiresAt) })} icon="Clock3" />
                 </View>
-                <Text style={{ color: theme.colors.foreground, fontSize: 14, fontWeight: "700" }}>{risk.title}</Text>
+                <Text style={{ color: theme.colors.foreground, fontSize: 14, fontWeight: "700" }}>{t(risk.title)}</Text>
                 <Body theme={theme} muted>{risk.gap}</Body>
-                <Mono theme={theme}>issuer: {risk.issuer}</Mono>
-                <Mono theme={theme}>reason: {risk.reason}</Mono>
-                <Mono theme={theme}>recovery: {risk.recovery}</Mono>
-                {risk.compensatingControls.length > 0 && <Mono theme={theme}>controls: {risk.compensatingControls.join(", ")}</Mono>}
-                <Button theme={theme} compact label="Inspect claim" icon="Search" onPress={() => onSelect({ claimId: risk.claimId })} />
+                <Mono theme={theme}>{t("attention.issuer_label")}: {risk.issuer}</Mono>
+                <Mono theme={theme}>{t("attention.reason_label")}: {risk.reason}</Mono>
+                <Mono theme={theme}>{t("attention.recovery_label")}: {risk.recovery}</Mono>
+                {risk.compensatingControls.length > 0 && <Mono theme={theme}>{t("attention.controls_label")}: {risk.compensatingControls.join(", ")}</Mono>}
+                <Button theme={theme} compact label={t("queue.inspect_claim")} icon="Search" onPress={() => onSelect({ claimId: risk.claimId })} />
               </View>
             ))}
           </View>
@@ -85,24 +89,25 @@ function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
   onRun: () => void;
   runEnabled: boolean;
 }) {
+  const t = useT();
   return (
     <View style={{ borderWidth: 1, borderColor: theme.colors.accent, borderRadius: 10, padding: compact ? 12 : 14, gap: 9 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-        <Badge theme={theme} label="agent can act" tone="info" icon="Bot" />
-        {item.claimIds.length > 0 && <Badge theme={theme} label={`${item.claimIds.length} claim(s)`} icon="Boxes" />}
-        {item.states.map((state) => <Badge key={state} theme={theme} label={state} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
-        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={reason} />)}
+        <Badge theme={theme} label={t("attention.kind_agent_can_act")} tone="info" icon="Bot" />
+        {item.claimIds.length > 0 && <Badge theme={theme} label={t("attention.item_claim_count", { count: item.claimIds.length })} icon="Boxes" />}
+        {item.states.map((state) => <Badge key={state} theme={theme} label={t(claimStateKey(state))} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
+        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} />)}
       </View>
-      <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.title}</Text>
-      {item.reasons.length > 0 && <DecisionText theme={theme} label="Reason">{attentionReasonText(item.reasons)}</DecisionText>}
-      <DecisionText theme={theme} label="Why">{item.why}</DecisionText>
-      <DecisionText theme={theme} label="Human boundary">{item.humanBoundary}</DecisionText>
-      <DecisionText theme={theme} label="Agent may">{item.agentMay}</DecisionText>
-      <DecisionText theme={theme} label="Agent must not">{item.agentMustNot}</DecisionText>
-      <DecisionText theme={theme} label="Next safe step">{item.suggestedAction}</DecisionText>
+      <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{t(item.title)}</Text>
+      {item.reasons.length > 0 && <DecisionText theme={theme} label={t("state.reason_title")}>{attentionReasonText(item.reasons, t)}</DecisionText>}
+      <DecisionText theme={theme} label={t("queue.why")}>{t(item.why)}</DecisionText>
+      <DecisionText theme={theme} label={t("queue.human_boundary")}>{t(item.humanBoundary)}</DecisionText>
+      <DecisionText theme={theme} label={t("queue.agent_may")}>{t(item.agentMay)}</DecisionText>
+      <DecisionText theme={theme} label={t("queue.agent_must_not")}>{t(item.agentMustNot)}</DecisionText>
+      <DecisionText theme={theme} label={t("queue.next_safe_step")}>{t(item.suggestedAction)}</DecisionText>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-        {item.kind === "refresh-evidence" && <Button theme={theme} compact label="Run checks" icon="Play" variant="primary" onPress={onRun} disabled={!runEnabled} />}
-        <Button theme={theme} compact label="Copy task brief" icon="Clipboard" onPress={onCopy} />
+        {item.kind === "refresh-evidence" && <Button theme={theme} compact label={t("attention.run_checks")} icon="Play" variant="primary" onPress={onRun} disabled={!runEnabled} />}
+        <Button theme={theme} compact label={t("attention.copy_task_brief")} icon="Clipboard" onPress={onCopy} />
       </View>
     </View>
   );

@@ -5,6 +5,7 @@ import { rpcSchemas } from "../shared/schemas";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
 import { HostModalContent } from "./host/sheet";
+import { useT } from "./i18n";
 import { Badge, Body, Button, Empty, Mono, Note } from "./parts";
 import { previewChild, previewIsOpen, previewParent, previewTarget } from "./preview-target";
 
@@ -25,6 +26,7 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
   onClose: () => void;
 }) {
   const { Modal, useRpc, useToast, copyText } = useHost();
+  const t = useT();
   const fetchFile = useRpc(rpcSchemas.file);
   const toast = useToast();
   const [navigated, setNavigated] = useState<string | null>(null);
@@ -41,34 +43,34 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
     if (!current) return;
     try {
       await copyText(current);
-      toast.show("Path copied");
+      toast.show(t("toast.path_copied"));
     } catch {
-      toast.error("The path could not be copied");
+      toast.error(t("toast.path_not_copied"));
     }
   };
   const parent = previewParent(current);
   return (
-    <Modal title={current ?? "File"} open={previewIsOpen(path)} onOpenChange={(openState) => { if (!openState) { setNavigated(null); onClose(); } }}>
+    <Modal title={current ?? t("file.title")} open={previewIsOpen(path)} onOpenChange={(openState) => { if (!openState) { setNavigated(null); onClose(); } }}>
       <HostModalContent>
         <View style={{ gap: 10 }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-            {parent !== null && <Button theme={theme} compact label="Up" icon="CornerLeftUp" onPress={() => open(parent)} />}
-            <Button theme={theme} compact label="Copy path" icon="Clipboard" onPress={() => void copyPath()} />
-            <Button theme={theme} compact label="Close" icon="X" onPress={() => { setNavigated(null); onClose(); }} />
+            {parent !== null && <Button theme={theme} compact label={t("file.up")} icon="CornerLeftUp" onPress={() => open(parent)} />}
+            <Button theme={theme} compact label={t("file.copy_path")} icon="Clipboard" onPress={() => void copyPath()} />
+            <Button theme={theme} compact label={t("common.close")} icon="X" onPress={() => { setNavigated(null); onClose(); }} />
           </View>
           <Mono theme={theme}>{current ?? ""}</Mono>
           {query.isPending ? (
-            <Empty theme={theme} title="Reading the file" icon="FileText" />
+            <Empty theme={theme} title={t("file.reading")} icon="FileText" />
           ) : query.isError ? (
-            <Note theme={theme} tone="bad">{String(query.error)}</Note>
+            <Note theme={theme} tone="bad">{t("file.read_error", { error: String(query.error) })}</Note>
           ) : query.data?.kind === "directory" ? (
             <View style={{ gap: 6 }}>
-              <Body theme={theme} muted>{query.data.entries.length} entr(ies); a bounded listing of the directory.</Body>
+              <Body theme={theme} muted>{t("file.directory_entry", { count: query.data.entries.length })}</Body>
               {query.data.entries.map((entry) => (
                 <Pressable
                   key={entry.name}
                   accessibilityRole="button"
-                  accessibilityLabel={`Open ${entry.name}`}
+                  accessibilityLabel={t("file.open_entry", { name: entry.name })}
                   onPress={() => open(previewChild(current, entry.name))}
                   style={{ padding: 8, borderRadius: 7, backgroundColor: theme.colors.surface2, flexDirection: "row", gap: 8, alignItems: "center" }}
                 >
@@ -76,18 +78,18 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
                   <Text style={{ color: theme.colors.foreground, fontSize: 12, fontFamily: "monospace" }}>{entry.name}</Text>
                 </Pressable>
               ))}
-              {query.data.entries.length === 0 && <Empty theme={theme} title="Empty directory" icon="FolderOpen" />}
-              {query.data.truncated && <Body theme={theme} muted>The listing is bounded; some entries are not shown.</Body>}
+              {query.data.entries.length === 0 && <Empty theme={theme} title={t("file.empty_directory")} icon="FolderOpen" />}
+              {query.data.truncated && <Body theme={theme} muted>{t("file.listing_bounded")}</Body>}
             </View>
           ) : query.data?.kind === "file" ? (
             <View style={{ gap: 6 }}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
-                <Badge theme={theme} label={`${query.data.bytes} bytes`} icon="HardDrive" />
-                {query.data.binary && <Badge theme={theme} label="binary" tone="warn" icon="FileWarning" />}
-                {query.data.truncated && <Badge theme={theme} label="truncated" tone="warn" icon="Scissors" />}
+                <Badge theme={theme} label={t("file.bytes", { bytes: query.data.bytes })} icon="HardDrive" />
+                {query.data.binary && <Badge theme={theme} label={t("file.binary_badge")} tone="warn" icon="FileWarning" />}
+                {query.data.truncated && <Badge theme={theme} label={t("file.truncated_badge")} tone="warn" icon="Scissors" />}
               </View>
               {query.data.binary ? (
-                <Body theme={theme} muted>This file is not UTF-8 text, so the panel shows no content of it.</Body>
+                <Body theme={theme} muted>{t("file.binary_note")}</Body>
               ) : (
                 <ScrollView style={{ maxHeight: compact ? 260 : 420 }} nestedScrollEnabled>
                   <View style={{ backgroundColor: theme.colors.surface2, borderRadius: 8, padding: 10 }}>
@@ -98,9 +100,9 @@ export function FilePreview({ theme, compact, workspaceId, path, onClose }: {
                 </ScrollView>
               )}
               {query.data.content.split("\n").length > MAX_LINES && (
-                <Body theme={theme} muted>Showing the first {MAX_LINES} lines of {query.data.content.split("\n").length}.</Body>
+                <Body theme={theme} muted>{t("file.showing_lines", { shown: MAX_LINES, total: query.data.content.split("\n").length })}</Body>
               )}
-              {query.data.truncated && <Body theme={theme} muted>The file is larger than the preview limit; the beginning is shown.</Body>}
+              {query.data.truncated && <Body theme={theme} muted>{t("file.larger_than_limit")}</Body>}
             </View>
           ) : null}
         </View>

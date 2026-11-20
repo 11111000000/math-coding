@@ -15,6 +15,7 @@ import type {
   HostTextInputProps,
 } from "../client/host/contract";
 import { HostProvider } from "../client/host/context";
+import { LocaleProvider } from "../client/i18n";
 import { rpcSchemas } from "../shared/schemas";
 import { snapshot } from "./fixtures";
 
@@ -47,7 +48,11 @@ const SettingsInput = ({ label, initialValue }: HostSettingsInputProps) => React
   defaultValue: initialValue,
   "aria-label": label,
 });
-const SettingsSelect = ({ label }: HostSettingsSelectProps) => React("select", { readOnly: true, "aria-label": label });
+const SettingsSelect = ({ label, options }: HostSettingsSelectProps) => React(
+  "select",
+  { readOnly: true, "aria-label": label },
+  options.map((option) => React("option", { key: option.value, value: option.value }, option.label)),
+);
 const SettingsAction = ({ actionLabel }: HostSettingsActionProps) => React("button", { type: "button" }, actionLabel);
 const SettingsSwitch = ({ label, value }: HostSettingsSwitchProps) => React("div", null, label, React("input", { type: "checkbox", readOnly: true, checked: value }));
 
@@ -61,6 +66,7 @@ export const host: HostContextValue = {
   SettingsSelect,
   SettingsAction,
   SettingsSwitch,
+  useAppLocale: () => "en",
   copyText: async () => undefined,
   useToast: () => ({ show: () => undefined, error: () => undefined }),
   useRpc: ((contract: unknown) => async () =>
@@ -69,7 +75,13 @@ export const host: HostContextValue = {
       : snapshot()) as unknown as HostContextValue["useRpc"],
   useSettings: ((definition: never) => ({
     status: "ready",
-    values: { binaryPath: "", allowRunChecks: false, autoRefreshSeconds: 30 },
+    values: {
+      binaryPath: "",
+      allowRunChecks: false,
+      allowHumanDecisions: false,
+      autoRefreshSeconds: 30,
+      locale: "auto",
+    },
     revision: "revision",
     saving: false,
     saveError: null,
@@ -87,6 +99,13 @@ mock("react-native", "react-native-web");
 export function renderWithHost(element: ReactNode, queryClient?: QueryClient, hostValue: HostContextValue = host): string {
   const client = queryClient ?? new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
   return renderToStaticMarkup(
-    React(QueryClientProvider, { client }, React(HostProvider, { value: hostValue, children: element })),
+    React(
+      QueryClientProvider,
+      { client },
+      React(
+        HostProvider,
+        { value: hostValue, children: React(LocaleProvider, { children: element }) },
+      ),
+    ),
   );
 }

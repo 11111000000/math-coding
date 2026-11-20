@@ -68,13 +68,18 @@ if [ -z "$browser" ]; then
 elif [ -z "$mathc" ]; then
   printf 'check-page: no mathc on this machine, the copies are the only evidence\n'
 else
-  mkdir -p "$work/project" "$work/bin"
+  mkdir -p "$work/project" "$work/bin" "$work/config"
   ln -s "$mathc" "$work/bin/mathc"
   (cd "$work/project" && git init -q && "$mathc" init >/dev/null &&
     "$mathc" goal "the page shows the state of the project" "src/" "owner" >/dev/null &&
     git add -A && git -c user.email=check@example.com -c user.name=check commit -q -m "a project for the check")
 
-  PATH="$work/bin:$PATH" "$PAGE/node_modules/.bin/tsx" "$PAGE/src/server.ts" --port 0 --root "$work/project" >"$work/server.log" 2>&1 &
+  # The preferences of the console live outside the project. The check must
+  # not read them: a saved language of the machine would decide the language
+  # of the page and the verdict of this check. The server therefore reads an
+  # empty directory of its own.
+  PATH="$work/bin:$PATH" XDG_CONFIG_HOME="$work/config" \
+    "$PAGE/node_modules/.bin/tsx" "$PAGE/src/server.ts" --port 0 --root "$work/project" >"$work/server.log" 2>&1 &
   server=$!
 
   url=""
@@ -92,7 +97,10 @@ else
     document="$work/page.html"
     if "$browser" --headless --no-sandbox --disable-gpu --dump-dom \
         --virtual-time-budget=10000 "$url" >"$document" 2>/dev/null; then
-      if ! grep -q 'Your queue' "$document"; then
+      # The page follows the language of the host unless the language is
+      # pinned. Both titles name the same queue, so the check accepts either
+      # of them and never decides by the language of the browser.
+      if ! grep -qE 'Your queue|Ваша очередь' "$document"; then
         fail "the page did not render the queue of the human"
       fi
     else
