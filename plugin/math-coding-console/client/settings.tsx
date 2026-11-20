@@ -5,6 +5,7 @@ import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
 import type { HostSettingsState } from "./host/contract";
 import { errorText } from "./i18n/errors";
+import { setLocalePreference } from "./i18n/preference";
 import { useT } from "./i18n";
 
 export interface SettingsScreenProps {
@@ -89,7 +90,16 @@ function ReadySettings({ theme, settings }: { theme: ConsoleTheme; settings: Rea
           { label: t("settings.locale_en"), value: "en" },
           { label: t("settings.locale_ru"), value: "ru" },
         ]}
-        onValueChange={(value) => void settings.save({ ...settings.values, locale: value as Preferences["locale"] }, settings.revision)}
+        onValueChange={(value) => {
+          const locale = value as Preferences["locale"];
+          void settings
+            .save({ ...settings.values, locale }, settings.revision)
+            .then((saved) => {
+              // The host has accepted the language. Announce it to the readers
+              // of the plugin, so the interface follows the choice at once.
+              if (saved) setLocalePreference(locale);
+            });
+        }}
         disabled={settings.saving}
       />
       <SettingsSelect

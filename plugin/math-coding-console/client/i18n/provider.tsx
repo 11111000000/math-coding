@@ -3,6 +3,7 @@ import { preferencesDefinition } from "../../shared/schemas";
 import { useHost } from "../host/context";
 import { rememberLocale } from "./current";
 import { resolveLocale, type Locale } from "./locale";
+import { useLocalePreference } from "./preference";
 import { makeTranslator, type Translate } from "./translate";
 
 /**
@@ -11,6 +12,10 @@ import { makeTranslator, type Translate } from "./translate";
  * The provider joins two sources: the choice of the human in the settings of
  * the plugin and the language of the host application. The choice wins, and
  * `auto` hands the decision to the host.
+ *
+ * The choice of the session wins over the stored preference, so the interface
+ * follows a change of the language at once, even on a host that answers the
+ * preferences to every reader with its own state.
  *
  * The provider reads the settings of the host once, so a screen that draws
  * many texts does not read them many times.
@@ -29,7 +34,9 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   const host = useHost();
   const appLocale = host.useAppLocale();
   const settings = host.useSettings(preferencesDefinition);
-  const preference = settings.status === "ready" ? settings.values?.locale ?? "auto" : "auto";
+  const chosen = useLocalePreference();
+  const stored = settings.status === "ready" ? settings.values?.locale ?? "auto" : "auto";
+  const preference = chosen ?? stored;
   const locale = resolveLocale(preference, appLocale);
   useEffect(() => {
     rememberLocale(locale);

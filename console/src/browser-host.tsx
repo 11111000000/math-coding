@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { TextInput as NativeTextInput } from "react-native-web";
 import type { StyleProp, TextStyle } from "react-native";
 import type { input as ZodInput, output as ZodOutput } from "zod";
@@ -8,10 +8,10 @@ import type {
   HostModalComponent,
   HostModalProps,
   HostRpcContract,
-  HostSettingsDefinition,
-  HostSettingsState,
   HostTextInputProps,
 } from "../../plugin/math-coding-console/client/host/contract";
+import { useBrowserSettings } from "./browser-settings";
+import { readJson, serverError } from "./http";
 import { resolveIcon } from "./icons";
 import { useToast } from "./toast";
 
@@ -23,30 +23,6 @@ import { useToast } from "./toast";
  * here re-implements console behaviour: the page only talks to the local
  * server and draws what the server returned.
  */
-
-const SETTINGS_ENDPOINT = "/api/settings";
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-async function readJson(response: Response): Promise<unknown> {
-  const text = await response.text();
-  if (text.trim() === "") return null;
-  try {
-    return JSON.parse(text) as unknown;
-  } catch {
-    return null;
-  }
-}
-
-function serverError(body: unknown, fallback: string): string {
-  if (typeof body === "object" && body !== null && "error" in body) {
-    const value = (body as { error: unknown }).error;
-    if (typeof value === "string" && value !== "") return value;
-  }
-  return fallback;
-}
 
 /* -------------------------------------------------------------------------- */
 /* Icons                                                                       */
@@ -311,143 +287,6 @@ function useBrowserRpc<Contract extends HostRpcContract>(
     [contract],
   );
   return call as (input: ZodInput<Contract["input"]>) => Promise<ZodOutput<Contract["output"]>>;
-}
-
-/* -------------------------------------------------------------------------- */
-/* Settings                                                                    */
-/* -------------------------------------------------------------------------- */
-
-interface SettingsReadResult {
-  status: "ready" | "invalid";
-  revision: string;
-  values?: unknown;
-  error?: string;
-}
-
-interface SettingsWriteResult {
-  status: "saved" | "conflict" | "invalid";
-  revision?: string;
-  values?: unknown;
-  error?: string;
-}
-
-function useBrowserSettings<Definition extends HostSettingsDefinition>(
-  definition: Definition,
-): HostSettingsState<ZodOutput<Definition["schema"]>> {
-  type Values = ZodOutput<Definition["schema"]>;
-  const [status, setStatus] = useState<HostSettingsState<Values>["status"]>("loading");
-  const [values, setValues] = useState<Values | undefined>(undefined);
-  const [error, setError] = useState<string | undefined>(undefined);
-  const [revision, setRevision] = useState<string | undefined>(undefined);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const alive = useRef(true);
-
-  useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
-  }, []);
-
-  const reload = useCallback(async () => {
-    try {
-      const response = await fetch(SETTINGS_ENDPOINT, { headers: { Accept: "application/json" } });
-      const body = (await readJson(response)) as SettingsReadResult | null;
-      if (!alive.current) return;
-      if (!response.ok || !body) {
-        setStatus("error");
-        setError(`settings_unavailable: ${String(response.status)}`);
-        return;
-      }
-      setRevision(body.revision);
-      if (body.status === "ready") {
-        setStatus("ready");
-        setValues(body.values as Values);
-        setError(undefined);
-      } else {
-        setStatus("invalid");
-        setValues(undefined);
-        setError(body.error ?? "settings_invalid");
-      }
-    } catch (failure) {
-      if (!alive.current) return;
-      setStatus("error");
-      setError(errorMessage(failure));
-    }
-  }, []);
-
-  useEffect(() => {
-    void reload();
-  }, [reload, definition.id]);
-
-  const save = useCallback(
-    async (next: Values, currentRevision: string): Promise<boolean> => {
-      setSaving(true);
-      setSaveError(null);
-      try {
-        const response = await fetch(SETTINGS_ENDPOINT, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ revision: currentRevision, values: next }),
-        });
-        const body = (await readJson(response)) as SettingsWriteResult | null;
-        if (!alive.current) return false;
-        if (!response.ok || !body) {
-          setSaveError(serverError(body, `settings_not_saved: ${String(response.status)}`));
-          return false;
-        }
-        if (body.status === "saved") {
-          setStatus("ready");
-          setValues(body.values as Values);
-          setRevision(body.revision);
-          setError(undefined);
-          return true;
-        }
-        setSaveError(body.error ?? "settings_not_saved");
-        return false;
-      } catch (failure) {
-        if (alive.current) setSaveError(errorMessage(failure));
-        return false;
-      } finally {
-        if (alive.current) setSaving(false);
-      }
-    },
-    [],
-  );
-
-  const reset = useCallback(async (): Promise<boolean> => {
-    setSaving(true);
-    setSaveError(null);
-    try {
-      const response = await fetch(`${SETTINGS_ENDPOINT}/reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      const body = (await readJson(response)) as SettingsWriteResult | null;
-      if (!alive.current) return false;
-      if (!response.ok || !body || body.status !== "saved") {
-        setSaveError(serverError(body, "settings_not_reset"));
-        return false;
-      }
-      setStatus("ready");
-      setValues(body.values as Values);
-      setRevision(body.revision);
-      setError(undefined);
-      return true;
-    } catch (failure) {
-      if (alive.current) setSaveError(errorMessage(failure));
-      return false;
-    } finally {
-      if (alive.current) setSaving(false);
-    }
-  }, []);
-
-  return useMemo(
-    () => ({ status, values, error, revision, saving, saveError, save, reset, reload }),
-    [status, values, error, revision, saving, saveError, save, reset, reload],
-  );
 }
 
 /* -------------------------------------------------------------------------- */

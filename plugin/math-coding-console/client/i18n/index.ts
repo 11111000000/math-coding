@@ -3,4 +3,10 @@ export { makeTranslator, renderValue, translate, type MessageArgs, type Translat
 export type { MessageKey } from "./keys";
 export { rememberLocale, rememberedLocale, translateNow } from "./current";
 export { errorText } from "./errors";
+export {
+  localePreference,
+  setLocalePreference,
+  useLocalePreference,
+  type LocalePreference,
+} from "./preference";
 export { LocaleProvider, useLocale, useT, type LocaleContextValue } from "./provider";
