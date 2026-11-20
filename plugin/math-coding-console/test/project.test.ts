@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
 import { loadProject } from "../server/project";
+import { coded } from "./coded";
 import { claim, map, rawEvidence } from "./fixtures";
 import type { MathMap } from "../shared/domain";
 
@@ -58,16 +59,16 @@ test("rejects invocation errors, missing maps, malformed maps and wrong versions
   await setMap(binary, root, { ...current, schema_version: 4 } as unknown as MathMap);
   await assert.rejects(loadProject(root, binary), /validation/);
   await setMap(binary, root, current, "mathc 4");
-  await assert.rejects(loadProject(root, binary), /not mathc 5/);
+  await assert.rejects(loadProject(root, binary), coded("binary_not_mathc5"));
 });
 
 test("rejects map/spec claim mismatches and inconsistent exits", async (t) => {
   const current = map([claim()]);
   const { root, binary } = await fixture(t, current);
   await setMap(binary, root, { ...current, claims: 2 });
-  await assert.rejects(loadProject(root, binary), /different claim sets/);
+  await assert.rejects(loadProject(root, binary), coded("claim_sets_differ"));
   await setMap(binary, root, { ...current, exit: 1 });
-  await assert.rejects(loadProject(root, binary), /inconsistent verdict and exit/);
+  await assert.rejects(loadProject(root, binary), coded("map_inconsistent"));
 });
 
 test("a missing trail is empty and a corrupt trail rejects the whole detail", async (t) => {

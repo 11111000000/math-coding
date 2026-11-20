@@ -1,4 +1,5 @@
 import type { Claim, Requirement } from "./domain";
+import type { MessageRef } from "./message";
 
 export interface RequirementNode {
   path: string;
@@ -49,6 +50,21 @@ export function requirementLabel(requirement: Requirement): string {
   if ("all" in requirement) return `all (${requirement.all.length})`;
   if ("any" in requirement) return `any (${requirement.any.length})`;
   return requirement.kind === "verifier" ? requirement.spec : `review: ${requirement.spec}`;
+}
+
+/**
+ * The name of a requirement, named rather than written.
+ *
+ * The words of the interface live in the catalogue, so the same requirement is
+ * read in the language of the human. The brief of an agent keeps the English
+ * one, because the brief is a contract of the method.
+ */
+export function requirementLabelRef(requirement: Requirement): MessageRef {
+  if ("all" in requirement) return { key: "detail.requirement_all", args: { count: requirement.all.length } };
+  if ("any" in requirement) return { key: "detail.requirement_any", args: { count: requirement.any.length } };
+  return requirement.kind === "verifier"
+    ? { key: "detail.requirement_verifier", args: { spec: requirement.spec } }
+    : { key: "detail.requirement_review", args: { spec: requirement.spec } };
 }
 
 export function shortRequirement(requirement: Requirement, max = 72): string {

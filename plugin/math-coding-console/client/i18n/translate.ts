@@ -49,11 +49,13 @@ function candidates(locale: Locale, key: string, args: MessageArgs | undefined):
   return form === "other" ? [`${key}_other`, key] : [`${key}_${form}`, `${key}_other`, key];
 }
 
-function interpolate(template: string, args: MessageArgs | undefined): string {
+function interpolate(locale: Locale, template: string, args: MessageArgs | undefined): string {
   if (!args) return template;
   return template.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, name: string) => {
     const value = args[name];
-    return value === undefined ? match : String(value);
+    if (value === undefined) return match;
+    if (typeof value === "object") return translate(locale, value.key, value.args);
+    return String(value);
   });
 }
 
@@ -67,11 +69,11 @@ function interpolate(template: string, args: MessageArgs | undefined): string {
 export function translate(locale: Locale, key: string, args?: MessageArgs): string {
   for (const candidate of candidates(locale, key, args)) {
     const found = lookup(catalogues[locale], candidate);
-    if (found !== undefined) return interpolate(found, args);
+    if (found !== undefined) return interpolate(locale, found, args);
   }
   for (const candidate of candidates(FALLBACK_LOCALE, key, args)) {
     const found = lookup(catalogues[FALLBACK_LOCALE], candidate);
-    if (found !== undefined) return interpolate(found, args);
+    if (found !== undefined) return interpolate(locale, found, args);
   }
   return key;
 }

@@ -1,5 +1,5 @@
 import type { ConsoleTheme } from "../shared/theme";
-import type { ClaimState, EvidenceOutcome, StateReason, Verdict } from "../shared/domain";
+import type { ClaimState, EvidenceOutcome, IndependenceLevel, StateReason, Verdict } from "../shared/domain";
 import type { MessageKey } from "../shared/message";
 import { translate } from "./i18n/translate";
 
@@ -121,4 +121,78 @@ export function stateReasonText(reason?: StateReason): string {
 
 export function formatTime(seconds: number): string {
   return `${new Date(seconds * 1000).toISOString().replace("T", " ").slice(0, 16)} UTC`;
+}
+
+/**
+ * The names of the domain values the interface shows.
+ *
+ * A state, an outcome and a verdict are values of the method, and the method
+ * names them in one language. The interface names them in the language of the
+ * human, so the words live in the catalogue and the code holds the key.
+ */
+const CLAIM_STATE_KEYS: Record<ClaimState, MessageKey> = {
+  holds: "state.claim_holds",
+  refuted: "state.claim_refuted",
+  inconclusive: "state.claim_inconclusive",
+  "not-checkable": "state.claim_not_checkable",
+  outdated: "state.claim_outdated",
+  "never-checked": "state.claim_never_checked",
+  waived: "state.claim_waived",
+};
+
+const OUTCOME_KEYS: Record<EvidenceOutcome, MessageKey> = {
+  pass: "state.outcome_pass",
+  fail: "state.outcome_fail",
+  inconclusive: "state.outcome_inconclusive",
+  "infrastructure-error": "state.outcome_infrastructure_error",
+  "not-run": "state.outcome_not_run",
+};
+
+const VERDICT_KEYS: Record<Verdict, MessageKey> = {
+  green: "state.verdict_green",
+  red: "state.verdict_red",
+  unknown: "state.verdict_unknown",
+  vacant: "state.verdict_vacant",
+};
+
+/** The key of the catalogue that holds the name of a state. */
+export function claimStateKey(state: ClaimState): MessageKey {
+  return CLAIM_STATE_KEYS[state];
+}
+
+/** The key of the catalogue that holds the name of an outcome. */
+export function outcomeKey(outcome: EvidenceOutcome): MessageKey {
+  return OUTCOME_KEYS[outcome];
+}
+
+/** The key of the catalogue that holds the name of a verdict. */
+export function verdictKey(verdict: Verdict): MessageKey {
+  return VERDICT_KEYS[verdict];
+}
+
+const INDEPENDENCE_KEYS: Record<IndependenceLevel, MessageKey> = {
+  self: "state.independence_self",
+  "fresh-context": "state.independence_fresh_context",
+  external: "state.independence_external",
+};
+
+/** The key of the catalogue that holds the name of an independence level. */
+export function independenceKey(level: IndependenceLevel): MessageKey {
+  return INDEPENDENCE_KEYS[level];
+}
+
+/**
+ * The key of the catalogue that holds the name of a kind of requirement.
+ *
+ * The tree of the requirements is drawn in the graph, and its nodes carry the
+ * kind of the node: all, any, a verifier or a review.
+ */
+export function requirementKindKey(kind: string): MessageKey | null {
+  switch (kind) {
+    case "all": return "state.requirement_all";
+    case "any": return "state.requirement_any";
+    case "verifier": return "state.requirement_verifier";
+    case "review": return "state.requirement_review";
+    default: return null;
+  }
 }

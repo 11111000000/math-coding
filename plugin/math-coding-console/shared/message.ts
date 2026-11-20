@@ -10,8 +10,14 @@ import type { en } from "./locales/en";
  * bundle.
  */
 
-/** The values a text may hold in place of its own words. */
-export type MessageArgs = Record<string, string | number>;
+/**
+ * The values a text may hold in place of its own words.
+ *
+ * A value may be a descriptor as well: a model is built once and drawn later, so
+ * a text inside a text is named by a key and read in the language of the human
+ * when the model is drawn.
+ */
+export type MessageArgs = Record<string, string | number | MessageRef>;
 
 type DotPaths<T> = T extends string
   ? never

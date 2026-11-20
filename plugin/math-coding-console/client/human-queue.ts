@@ -1,6 +1,6 @@
-import type { Claim, ClaimState, EvidenceRecord } from "../shared/domain";
+import type { Claim, ClaimState, EvidenceOutcome, EvidenceRecord, IndependenceLevel } from "../shared/domain";
 import type { SnapshotReady } from "../shared/schemas";
-import { canonicalJson, flattenRequirements, requirementLabel, type RequirementNode } from "../shared/requirements";
+import { canonicalJson, flattenRequirements, requirementLabelRef, type RequirementNode } from "../shared/requirements";
 import type { MessageRef } from "../shared/message";
 import type { AttentionModel, HumanAttentionItem } from "./attention";
 
@@ -22,10 +22,10 @@ import type { AttentionModel, HumanAttentionItem } from "./attention";
  */
 export interface ConditionEvidence {
   path: string;
-  label: string;
-  outcome: string;
+  label: MessageRef;
+  outcome: EvidenceOutcome;
   issuedAt: number;
-  independence: string | null;
+  independence: IndependenceLevel | null;
   controlReach: string | null;
 }
 
@@ -124,7 +124,7 @@ export function claimConditions(claim: Claim, records: EvidenceRecord[]): Condit
     const record = newest.get(canonicalJson(node.requirement));
     return {
       path: node.path,
-      label: requirementLabel(node.requirement),
+      label: requirementLabelRef(node.requirement),
       outcome: record?.outcome ?? "not-run",
       issuedAt: record?.issued_at ?? 0,
       independence: record?.independence ?? null,

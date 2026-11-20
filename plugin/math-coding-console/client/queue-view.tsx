@@ -4,15 +4,16 @@ import type { AttentionBriefContext } from "./attention";
 import { attentionBrief, attentionReasonCodes, attentionReasonText } from "./attention";
 import type { ConsoleTheme } from "../shared/theme";
 import {
-  humanActionKindLabel,
+  humanActionKindRef,
   primaryActionForClaim,
   type HumanAction,
 } from "../shared/human-actions";
 import type { ConditionEvidence, HumanQueue, HumanQueueItem, StandingObligation } from "./human-queue";
 import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
+import { useT, type Translate } from "./i18n";
 import { Badge, Body, Button, Card, Empty, Mono, Note } from "./parts";
-import { claimStateColor, claimStateIcon, formatTime } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, independenceKey, outcomeKey, stateReasonKey } from "./vocabulary";
 
 export interface QueueViewProps {
   theme: ConsoleTheme;
@@ -52,15 +53,16 @@ export interface QueueViewProps {
  */
 export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect, actions, decisionsEnabled, onTakeAction, trailComplete = true, trailExhausted = true }: QueueViewProps) {
   const { copyText, useToast } = useHost();
+  const t = useT();
   const toast = useToast();
   const [showAll, setShowAll] = useState(false);
   const visible = showAll ? queue.obligations : queue.obligations.slice(0, 5);
   const copyBrief = async (item: HumanQueueItem) => {
     try {
       await copyText(attentionBrief(item.attention, context));
-      toast.show("Brief copied for the agent");
+      toast.show(t("toast.brief_copied"));
     } catch {
-      toast.error("The brief could not be copied");
+      toast.error(t("toast.brief_not_copied"));
     }
   };
   return (
@@ -68,24 +70,24 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
       {!trailComplete && (
         <Note theme={theme} tone="warn">
           {trailExhausted
-            ? "Some conditions have no record in the trail yet."
-            : "The trail was not read to the end: some conditions may still have older evidence."}
+            ? t("queue.trail_partial_detail")
+            : t("queue.trail_partial_long")}
         </Note>
       )}
       <Card
         theme={theme}
         compact={compact}
-        title="Your queue"
+        title={t("queue.title")}
         subtitle={queue.items.length === 0
-          ? "No decision waits for you; the obligations below stay yours"
-          : `${queue.items.length} decision(s) cannot be delegated to an agent`}
+          ? t("queue.empty_detail")
+          : t("queue.count_decisions", { count: queue.items.length })}
       >
         {queue.items.length === 0 ? (
           <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-            <Badge theme={theme} label="clear" tone="good" icon="Check" />
+            <Badge theme={theme} label={t("queue.clear_badge")} tone="good" icon="Check" />
             <View style={{ flex: 1, gap: 2 }}>
-              <Body theme={theme}>Nothing needs your decision now.</Body>
-              <Body theme={theme} muted>The remaining work can proceed within the declared claims and checks.</Body>
+              <Body theme={theme}>{t("queue.nothing_now")}</Body>
+              <Body theme={theme} muted>{t("queue.remaining_proceed")}</Body>
             </View>
           </View>
         ) : (
@@ -117,11 +119,11 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
       <Card
         theme={theme}
         compact={compact}
-        title="Your standing obligations"
-        subtitle={`${queue.obligations.length} claim(s) of this goal stay the responsibility of their owner`}
+        title={t("queue.obligations_title")}
+        subtitle={t("queue.count_obligations", { count: queue.obligations.length })}
       >
         {queue.obligations.length === 0 ? (
-          <Empty theme={theme} title="No declared obligations" detail="The project declares no claim yet." icon="ListX" />
+          <Empty theme={theme} title={t("queue.obligations_empty_title")} detail={t("queue.obligations_empty_detail")} icon="ListX" />
         ) : (
           <View style={{ gap: 8 }}>
             {visible.map((obligation) => (
@@ -135,10 +137,10 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
               />
             ))}
             {queue.obligations.length > visible.length && (
-              <Button theme={theme} compact label={`Show all ${queue.obligations.length} obligations`} icon="List" onPress={() => setShowAll(true)} />
+              <Button theme={theme} compact label={t("queue.show_all", { count: queue.obligations.length })} icon="List" onPress={() => setShowAll(true)} />
             )}
             {showAll && queue.obligations.length > 5 && (
-              <Button theme={theme} compact label="Show fewer" icon="ChevronUp" onPress={() => setShowAll(false)} />
+              <Button theme={theme} compact label={t("queue.show_fewer")} icon="ChevronUp" onPress={() => setShowAll(false)} />
             )}
           </View>
         )}
@@ -146,34 +148,32 @@ export function QueueView({ theme, compact, queue, context, onOpenFile, onSelect
       <Card
         theme={theme}
         compact={compact}
-        title="Accept the result"
-        subtitle="The third outcome of the method: the owner accepts the result on the basis of the map"
+        title={t("queue.accept_title")}
+        subtitle={t("queue.accept_detail_long")}
       >
         <View style={{ gap: 7 }}>
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6 }}>
             <Badge
               theme={theme}
-              label={queue.acceptance.obligationsConfirmed ? "all obligations hold" : "not all obligations hold"}
+              label={queue.acceptance.obligationsConfirmed ? t("queue.obligations_hold") : t("queue.obligations_not_hold")}
               tone={queue.acceptance.obligationsConfirmed ? "good" : "warn"}
               icon={queue.acceptance.obligationsConfirmed ? "Check" : "CircleHelp"}
             />
             <Badge
               theme={theme}
-              label={queue.acceptance.areaResolved ? "declared area resolved" : `${queue.acceptance.uncovered.length} uncovered path(s)`}
+              label={queue.acceptance.areaResolved ? t("queue.area_resolved") : t("queue.count_uncovered", { count: queue.acceptance.uncovered.length })}
               tone={queue.acceptance.areaResolved ? "good" : "warn"}
               icon={queue.acceptance.areaResolved ? "Check" : "FolderSearch"}
             />
-            {queue.acceptance.owner && <Badge theme={theme} label={`owner ${queue.acceptance.owner}`} icon="User" />}
+            {queue.acceptance.owner && <Badge theme={theme} label={t("queue.owner_label", { owner: queue.acceptance.owner })} icon="User" />}
           </View>
-          <Body theme={theme} muted>
-            The tool keeps no record of that acceptance. The owner accepts the result separately, on the basis of the map.
-          </Body>
+          <Body theme={theme} muted>{t("queue.accept_body_note")}</Body>
           {queue.acceptance.uncovered.length > 0 && (
             <View style={{ gap: 4 }}>
               {queue.acceptance.uncovered.slice(0, 6).map((path) => (
                 <View key={path} style={{ flexDirection: "row", gap: 6, alignItems: "center" }}>
                   <Mono theme={theme} lines={1}>{path}</Mono>
-                  <Button theme={theme} compact label="Open" icon="FileText" onPress={() => onOpenFile(path)} />
+                  <Button theme={theme} compact label={t("queue.open_file")} icon="FileText" onPress={() => onOpenFile(path)} />
                 </View>
               ))}
             </View>
@@ -195,43 +195,44 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
   onTakeAction: (action: HumanAction) => void;
   onCopyBrief: (item: HumanQueueItem) => void;
 }) {
+  const t = useT();
   return (
     <View style={{ borderWidth: 1, borderColor: theme.colors.statusWarning, borderRadius: 10, padding: compact ? 12 : 14, gap: 9 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-        <Badge theme={theme} label="needs you" tone="warn" icon="UserRoundCheck" />
-        {item.attention.states.map((state) => <Badge key={state} theme={theme} label={state} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
-        {attentionReasonCodes(item.attention.reasons).map((reason) => <Badge key={reason} theme={theme} label={reason} />)}
+        <Badge theme={theme} label={t("queue.needs_you")} tone="warn" icon="UserRoundCheck" />
+        {item.attention.states.map((state) => <Badge key={state} theme={theme} label={t(claimStateKey(state))} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
+        {attentionReasonCodes(item.attention.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} />)}
       </View>
-      <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{item.title}</Text>
-      {item.expectation.length > 0 && <QueueLine theme={theme} label="Expected">{item.expectation}</QueueLine>}
+      <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{t(item.title)}</Text>
+      {item.expectation.length > 0 && <QueueLine theme={theme} label={t("queue.expected")}>{item.expectation}</QueueLine>}
       {item.conditions.length > 0 && (
         <View style={{ gap: 3 }}>
-          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>How it is checked</Text>
+          <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>{t("queue.how_checked")}</Text>
           {item.conditions.map((condition) => <ConditionLine key={condition.path} theme={theme} condition={condition} />)}
         </View>
       )}
-      {item.attention.reasons.length > 0 && <QueueLine theme={theme} label="Reason">{attentionReasonText(item.attention.reasons)}</QueueLine>}
-      {item.attention.humanQuestion.length > 0 && <QueueLine theme={theme} label="Your decision" emphasis>{item.attention.humanQuestion}</QueueLine>}
-      {item.attention.why.length > 0 && <QueueLine theme={theme} label="Why this needs you">{item.attention.why}</QueueLine>}
-      {item.attention.agentMay.length > 0 && <QueueLine theme={theme} label="Agent may">{item.attention.agentMay}</QueueLine>}
-      {item.attention.agentMustNot.length > 0 && <QueueLine theme={theme} label="Agent must not">{item.attention.agentMustNot}</QueueLine>}
-      {item.attention.suggestedAction.length > 0 && <QueueLine theme={theme} label="Next safe step">{item.attention.suggestedAction}</QueueLine>}
+      <QueueLine theme={theme} label={t("queue.reason")}>{attentionReasonText(item.attention.reasons, t)}</QueueLine>
+      <QueueLine theme={theme} label={t("queue.your_decision")} emphasis>{t(item.attention.humanQuestion)}</QueueLine>
+      <QueueLine theme={theme} label={t("queue.why_needs_you")}>{t(item.attention.why)}</QueueLine>
+      <QueueLine theme={theme} label={t("queue.agent_may")}>{t(item.attention.agentMay)}</QueueLine>
+      <QueueLine theme={theme} label={t("queue.agent_must_not")}>{t(item.attention.agentMustNot)}</QueueLine>
+      <QueueLine theme={theme} label={t("queue.next_safe_step")}>{t(item.attention.suggestedAction)}</QueueLine>
       {action ? (
         <Button
           theme={theme}
           compact
-          label={`Take this step: ${humanActionKindLabel(action.kind)}`}
+          label={t("queue.take_step", { step: t(humanActionKindRef(action.kind)) })}
           icon="Stamp"
           onPress={() => onTakeAction(action)}
           disabled={!decisionsEnabled}
         />
       ) : (
-        <Note theme={theme} tone="neutral">{manualNote(item)}</Note>
+        <Note theme={theme} tone="neutral">{manualNote(item, t)}</Note>
       )}
       <FileButtons theme={theme} paths={item.files} onOpenFile={onOpenFile} />
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-        {item.claimIds[0] && <Button theme={theme} compact label="Inspect" icon="Search" onPress={() => onSelect({ claimId: item.claimIds[0]! })} />}
-        <Button theme={theme} compact label="Copy brief for agent" icon="Clipboard" onPress={() => onCopyBrief(item)} />
+        {item.claimIds[0] && <Button theme={theme} compact label={t("common.inspect")} icon="Search" onPress={() => onSelect({ claimId: item.claimIds[0]! })} />}
+        <Button theme={theme} compact label={t("queue.copy_brief")} icon="Clipboard" onPress={() => onCopyBrief(item)} />
       </View>
     </View>
   );
@@ -245,14 +246,14 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
  * without a checkable condition. The console names them instead of leaving
  * the human without an answer.
  */
-function manualNote(item: HumanQueueItem): string {
+function manualNote(item: HumanQueueItem, t: Translate): string {
   if (item.kind === "refutation") {
-    return "The method has no verb for this decision: a refuted claim cannot be waived, and the direction of the claim is yours. Repair the implementation or change the claim.";
+    return t("queue.no_verb_refuted");
   }
   if (item.kind === "acceptance-criterion") {
-    return "The method has no verb for this decision: the acceptance criterion has to be declared in the specification before it can be checked.";
+    return t("queue.no_verb_criterion");
   }
-  return "The method has no manual step for this decision in the current map.";
+  return t("queue.no_step_detail");
 }
 
 /**
@@ -269,37 +270,38 @@ function ManualStepsCard({ theme, compact, actions, decisionsEnabled, onTakeActi
   decisionsEnabled: boolean;
   onTakeAction: (action: HumanAction) => void;
 }) {
+  const t = useT();
   return (
     <Card
       theme={theme}
       compact={compact}
-      title="Manual steps you can take now"
+      title={t("queue.manual_title")}
       subtitle={actions.length === 0
-        ? "The method has no manual step for the current map"
-        : `${actions.length} step(s) the program can record for you`}
+        ? t("queue.no_step_title")
+        : t("queue.count_steps", { count: actions.length })}
     >
       {actions.length === 0 ? (
-        <Body theme={theme} muted>Every claim of the current map is settled, and the project declares no protected transition.</Body>
+        <Body theme={theme} muted>{t("queue.manual_empty_body")}</Body>
       ) : (
         <View style={{ gap: 8 }}>
           {!decisionsEnabled && (
             <Note theme={theme} tone="warn">
-              The console may not record a decision yet. Open the Math Coding settings and allow human decisions.
+              {t("queue.decisions_disabled_note")}
             </Note>
           )}
           {actions.map((action) => (
             <View key={action.id} style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 9, padding: compact ? 9 : 11, gap: 6 }}>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
-                <Badge theme={theme} label={humanActionKindLabel(action.kind)} icon="Stamp" />
+                <Badge theme={theme} label={t(humanActionKindRef(action.kind))} icon="Stamp" />
                 {action.claimId && <Badge theme={theme} label={action.claimId} icon="Target" />}
-                {action.authority && <Badge theme={theme} label={`review: ${action.authority}`} />}
+                {action.authority && <Badge theme={theme} label={t("queue.review_authority", { authority: action.authority })} />}
               </View>
-              <Text style={{ color: theme.colors.foreground, fontSize: 13, fontWeight: "700" }}>{action.title}</Text>
-              <Body theme={theme} muted lines={4}>{action.detail}</Body>
+              <Text style={{ color: theme.colors.foreground, fontSize: 13, fontWeight: "700" }}>{t(action.title)}</Text>
+              <Body theme={theme} muted lines={4}>{t(action.detail)}</Body>
               <Button
                 theme={theme}
                 compact
-                label="Take this step"
+                label={t("queue.take_step_label")}
                 icon="Stamp"
                 onPress={() => onTakeAction(action)}
                 disabled={!decisionsEnabled}
@@ -319,12 +321,13 @@ function ObligationRow({ theme, compact, obligation, onOpenFile, onSelect }: {
   onOpenFile: (path: string) => void;
   onSelect: (selection: GraphSelection) => void;
 }) {
+  const t = useT();
   return (
     <View style={{ borderWidth: 1, borderColor: theme.colors.border, borderRadius: 9, padding: compact ? 9 : 11, gap: 6 }}>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
-        <Badge theme={theme} label={obligation.state} color={claimStateColor(theme, obligation.state)} icon={claimStateIcon(obligation.state)} />
+        <Badge theme={theme} label={t(claimStateKey(obligation.state))} color={claimStateColor(theme, obligation.state)} icon={claimStateIcon(obligation.state)} />
         <Text style={{ color: theme.colors.foreground, fontSize: 13, fontWeight: "700" }}>{obligation.claimId}</Text>
-        {obligation.owner && <Badge theme={theme} label={`owner ${obligation.owner}`} icon="User" />}
+        {obligation.owner && <Badge theme={theme} label={t("queue.owner_label", { owner: obligation.owner })} icon="User" />}
       </View>
       <Body theme={theme} lines={2}>{obligation.expectation}</Body>
       {obligation.conditions.length > 0 && (
@@ -333,7 +336,7 @@ function ObligationRow({ theme, compact, obligation, onOpenFile, onSelect }: {
         </View>
       )}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7, alignItems: "center" }}>
-        <Button theme={theme} compact label="Inspect" icon="Search" onPress={() => onSelect({ claimId: obligation.claimId })} />
+        <Button theme={theme} compact label={t("common.inspect")} icon="Search" onPress={() => onSelect({ claimId: obligation.claimId })} />
         <FileButtons theme={theme} paths={obligation.files} onOpenFile={onOpenFile} />
       </View>
     </View>
@@ -347,14 +350,15 @@ function ObligationRow({ theme, compact, obligation, onOpenFile, onSelect }: {
  * state from it.
  */
 function ConditionLine({ theme, condition }: { theme: ConsoleTheme; condition: ConditionEvidence }) {
+  const t = useT();
   const tone = condition.outcome === "pass" ? "good" : condition.outcome === "fail" ? "bad" : "neutral";
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
-      <Badge theme={theme} label={`${condition.path}: ${condition.label}`} />
-      <Badge theme={theme} label={condition.outcome} tone={tone} />
+      <Badge theme={theme} label={`${condition.path}: ${t(condition.label)}`} />
+      <Badge theme={theme} label={t(outcomeKey(condition.outcome))} tone={tone} />
       {condition.issuedAt > 0 && <Mono theme={theme}>{formatTime(condition.issuedAt)}</Mono>}
-      {condition.issuedAt > 0 && condition.independence && <Mono theme={theme}>{condition.independence}</Mono>}
-      {condition.controlReach && <Mono theme={theme}>control: {condition.controlReach}</Mono>}
+      {condition.issuedAt > 0 && condition.independence && <Mono theme={theme}>{t(independenceKey(condition.independence))}</Mono>}
+      {condition.controlReach && <Mono theme={theme}>{t("queue.control_reach", { value: condition.controlReach })}</Mono>}
     </View>
   );
 }
@@ -364,13 +368,14 @@ function FileButtons({ theme, paths, onOpenFile }: {
   paths: string[];
   onOpenFile: (path: string) => void;
 }) {
+  const t = useT();
   if (paths.length === 0) return null;
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center" }}>
       {paths.slice(0, 4).map((path) => (
         <Button key={path} theme={theme} compact label={path} icon="FileText" onPress={() => onOpenFile(path)} />
       ))}
-      {paths.length > 4 && <Mono theme={theme}>{paths.length - 4} more path(s)</Mono>}
+      {paths.length > 4 && <Mono theme={theme}>{t("queue.more_paths", { count: paths.length - 4 })}</Mono>}
     </View>
   );
 }

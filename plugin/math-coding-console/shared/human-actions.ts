@@ -33,7 +33,7 @@ export interface HumanActionField {
   label: MessageRef;
   hint: MessageRef;
   required: boolean;
-  placeholder?: string;
+  placeholder?: string | MessageRef;
   /** The closed set of values of the field, when the method declares one. */
   options?: readonly string[];
 }
@@ -125,7 +125,7 @@ const byField: HumanActionField = {
   label: { key: "action.field_by" },
   hint: { key: "action.field_by_hint" },
   required: true,
-  placeholder: "the name of the person who decided",
+  placeholder: { key: "action.field_by_placeholder" },
 };
 
 function reasonField(hint: MessageRef): HumanActionField {

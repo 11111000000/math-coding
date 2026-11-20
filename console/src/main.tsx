@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConsolePanel } from "../../plugin/math-coding-console/client/console";
 import { HostProvider } from "../../plugin/math-coding-console/client/host/context";
+import { LocaleProvider, useT } from "../../plugin/math-coding-console/client/i18n";
 import { SettingsScreen } from "../../plugin/math-coding-console/client/settings";
 import { createBrowserHost } from "./browser-host";
 import { ToastProvider } from "./toast";
@@ -32,6 +33,7 @@ const host = createBrowserHost();
 
 function ConsoleRoot() {
   const theme = useSystemTheme();
+  const t = useT();
   const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     applyTheme(theme);
@@ -39,14 +41,14 @@ function ConsoleRoot() {
   return (
     <div className="mc-local">
       <div className="mc-local-bar">
-        <span className="mc-local-title">Math Coding console</span>
+        <span className="mc-local-title">{t("local.title")}</span>
         <button
           type="button"
           className="mc-local-button"
           aria-expanded={settingsOpen}
           onClick={() => setSettingsOpen((open) => !open)}
         >
-          {settingsOpen ? "Close settings" : "Settings"}
+          {settingsOpen ? t("local.close_settings") : t("local.settings")}
         </button>
       </div>
       {settingsOpen && (
@@ -66,9 +68,11 @@ createRoot(container).render(
   <StrictMode>
     <ToastProvider>
       <HostProvider value={host}>
-        <QueryClientProvider client={queryClient}>
-          <ConsoleRoot />
-        </QueryClientProvider>
+        <LocaleProvider>
+          <QueryClientProvider client={queryClient}>
+            <ConsoleRoot />
+          </QueryClientProvider>
+        </LocaleProvider>
       </HostProvider>
     </ToastProvider>
   </StrictMode>,

@@ -1,9 +1,19 @@
 import type { SnapshotReady } from "../shared/schemas";
 import type { ClaimState } from "../shared/domain";
-import { flattenRequirements, shortRequirement } from "../shared/requirements";
+import { flattenRequirements, requirementLabelRef } from "../shared/requirements";
 import type { MessageRef } from "../shared/message";
+import { requirementKindKey } from "./vocabulary";
 
 export type GraphNodeKind = "goal" | "source" | "claim" | "requirement" | "scope" | "uncovered";
+
+/**
+ * The kind of a node of the tree of requirements.
+ *
+ * The node carries the kind of the requirement as a value of the domain, not as
+ * a word: the word is chosen by the language of the human when the node is
+ * drawn, and the icon of the node follows the value, never the translation.
+ */
+export type RequirementNodeKind = "all" | "any" | "verifier" | "review";
 
 export interface GraphNode {
   id: string;
@@ -15,6 +25,7 @@ export interface GraphNode {
   depth: number;
   claimId?: string;
   requirementPath?: string;
+  requirementKind?: RequirementNodeKind;
   state?: ClaimState;
   sourceChanged?: boolean;
 }
@@ -104,15 +115,16 @@ export function buildProofGraph(
         }
         const id = `requirement:${claim.id}:${item.path}`;
         const parentId = item.parentPath === null ? claimId : `requirement:${claim.id}:${item.parentPath}`;
-        const kind = "all" in item.requirement ? "all" : "any" in item.requirement ? "any" : item.requirement.kind;
+        const kind: RequirementNodeKind = "all" in item.requirement ? "all" : "any" in item.requirement ? "any" : item.requirement.kind;
         nodes.push({
           id,
           kind: "requirement",
-          title: shortRequirement(item.requirement),
-          subtitle: { key: "graph.requirement_node", args: { kind, path: item.path } },
+          title: requirementLabelRef(item.requirement),
+          subtitle: { key: "graph.requirement_node", args: { kind: { key: requirementKindKey(kind) ?? "state.requirement_verifier" }, path: item.path } },
           depth: depth + item.depth + 1,
           claimId: claim.id,
           requirementPath: item.path,
+          requirementKind: kind,
         });
         edges.push({ id: `${parentId}→${id}`, from: parentId, to: id, kind: "proof", claimId: claim.id });
       }

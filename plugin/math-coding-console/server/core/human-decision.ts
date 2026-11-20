@@ -1,4 +1,5 @@
 import type { EvidenceOutcome } from "../../shared/domain";
+import { CodedError } from "../../shared/errors";
 import {
   humanActionArgv,
   humanActions,
@@ -96,7 +97,7 @@ export async function applyHumanDecision(
   );
   const action = actions.find((candidate) => matches(candidate, request));
   if (!action) {
-    throw new Error("This decision is not available for the current canonical map");
+    throw new CodedError("decision_not_available");
   }
   const argv = humanActionArgv(action, valuesOf(request));
   const result = await runProcess(binary, ["--root", root, ...argv], {

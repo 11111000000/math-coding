@@ -8,11 +8,15 @@ import type { Translate } from "./translate";
  * catalogue holds the sentence of every code. A failure that carries no code
  * is the output of the program or of the host; it is shown as it is, because
  * it reports what happened rather than what the interface says.
+ *
+ * A detail is the data of the failure. The sentence of the code takes it when
+ * it has a place for it, and the detail follows the sentence when it does not.
  */
 export function errorText(t: Translate, error: unknown): string {
   const coded = readCodedError(error);
   if (!coded) return error instanceof Error ? error.message : String(error);
   const key = ERROR_KEYS[coded.code];
   if (coded.detail === undefined) return t(key);
-  return t(key, { values: coded.detail });
+  const text = t(key, { values: coded.detail });
+  return text.includes("{{") ? `${text}: ${coded.detail}` : text;
 }

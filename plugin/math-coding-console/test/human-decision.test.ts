@@ -14,6 +14,7 @@ import {
   type HumanAction,
 } from "../shared/human-actions";
 import type { Claim, ClaimState } from "../shared/domain";
+import { coded } from "./coded";
 import { claim, map } from "./fixtures";
 
 type Paseo = PluginHandlerContext["paseo"];
@@ -198,19 +199,19 @@ test("an incomplete decision is refused before anything runs", () => {
   const action = stepsOf([reviewedClaim()], "outdated").find((item) => item.kind === "record") as HumanAction;
   assert.throws(
     () => humanActionArgv(action, { ...emptyHumanActionValues(), by: "az" }),
-    /outcome/,
+    coded("decision_needs_outcome"),
   );
   assert.throws(
     () => humanActionArgv(action, { ...emptyHumanActionValues(), outcome: "pass" }),
-    /name of the person/,
+    coded("decision_needs_by"),
   );
 });
 
 test("an accepted risk needs a positive interval", () => {
   const action = stepsOf([reviewedClaim()], "outdated").find((item) => item.kind === "waive") as HumanAction;
   const base = { ...emptyHumanActionValues(), by: "az", reason: "the migration is late", recovery: "finish the migration" };
-  assert.throws(() => humanActionArgv(action, { ...base, validForDays: "0" }), /positive/);
-  assert.throws(() => humanActionArgv(action, { ...base, validForDays: "" }), /days/);
+  assert.throws(() => humanActionArgv(action, { ...base, validForDays: "0" }), coded("validity_positive"));
+  assert.throws(() => humanActionArgv(action, { ...base, validForDays: "" }), coded("days_required"));
   assert.deepEqual(
     humanActionArgv(action, { ...base, validForDays: "7" }),
     ["waive", "hello", "--by", "az", "--reason", "the migration is late", "--valid-for", "7", "--recovery", "finish the migration"],
@@ -249,7 +250,7 @@ test("a decision needs the explicit confirmation of the human", async (t) => {
       by: "az",
       outcome: "pass",
     }),
-    /explicit confirmation/,
+    coded("human_decision_needs_confirmation"),
   );
   const calls = await callsOf(project.log);
   assert.equal(calls.some((call) => call[2] === "record"), false);
@@ -305,7 +306,7 @@ test("a step the map does not offer never reaches the program", async (t) => {
       validForDays: 7,
       recovery: "investigate the failure",
     }),
-    /not available for the current canonical map/,
+    coded("decision_not_available"),
   );
   const calls = await callsOf(project.log);
   assert.equal(calls.some((call) => call[2] === "waive"), false);
@@ -322,7 +323,7 @@ test("the authorization of a project without a policy never reaches the program"
       by: "owner",
       reason: "the protected change is reviewed",
     }),
-    /not available for the current canonical map/,
+    coded("decision_not_available"),
   );
   const calls = await callsOf(project.log);
   assert.equal(calls.some((call) => call[2] === "authorize"), false);

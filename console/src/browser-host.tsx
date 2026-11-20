@@ -357,7 +357,7 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
       if (!alive.current) return;
       if (!response.ok || !body) {
         setStatus("error");
-        setError(`Settings are unavailable (${String(response.status)})`);
+        setError(`settings_unavailable: ${String(response.status)}`);
         return;
       }
       setRevision(body.revision);
@@ -368,7 +368,7 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
       } else {
         setStatus("invalid");
         setValues(undefined);
-        setError(body.error ?? "The stored settings are invalid");
+        setError(body.error ?? "settings_invalid");
       }
     } catch (failure) {
       if (!alive.current) return;
@@ -394,7 +394,7 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
         const body = (await readJson(response)) as SettingsWriteResult | null;
         if (!alive.current) return false;
         if (!response.ok || !body) {
-          setSaveError(serverError(body, `Settings could not be saved (${String(response.status)})`));
+          setSaveError(serverError(body, `settings_not_saved: ${String(response.status)}`));
           return false;
         }
         if (body.status === "saved") {
@@ -404,7 +404,7 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
           setError(undefined);
           return true;
         }
-        setSaveError(body.error ?? "The settings were not saved");
+        setSaveError(body.error ?? "settings_not_saved");
         return false;
       } catch (failure) {
         if (alive.current) setSaveError(errorMessage(failure));
@@ -428,7 +428,7 @@ function useBrowserSettings<Definition extends HostSettingsDefinition>(
       const body = (await readJson(response)) as SettingsWriteResult | null;
       if (!alive.current) return false;
       if (!response.ok || !body || body.status !== "saved") {
-        setSaveError(serverError(body, "The settings were not reset"));
+        setSaveError(serverError(body, "settings_not_reset"));
         return false;
       }
       setStatus("ready");

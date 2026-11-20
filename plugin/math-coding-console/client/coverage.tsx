@@ -4,6 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import type { SnapshotReady } from "../shared/schemas";
 import { Badge, Body, Button, Card, Empty, Mono, Note, SearchBox } from "./parts";
 import type { GraphSelection } from "./graph";
+import { useT } from "./i18n";
 
 export function CoverageView({ theme, compact, snapshot, onSelect, onOpenScope }: {
   theme: ConsoleTheme;
@@ -12,22 +13,23 @@ export function CoverageView({ theme, compact, snapshot, onSelect, onOpenScope }
   onSelect: (selection: GraphSelection) => void;
   onOpenScope: () => void;
 }) {
+  const t = useT();
   const [query, setQuery] = useState("");
   const uncovered = useMemo(() => {
     const groups = new Map<string, string[]>();
     for (const path of snapshot.map.uncovered) {
       if (!path.toLowerCase().includes(query.trim().toLowerCase())) continue;
       const parts = path.split("/");
-      const group = parts.length > 1 ? parts.slice(0, -1).join("/") : "project root";
+      const group = parts.length > 1 ? parts.slice(0, -1).join("/") : t("scope.project_root");
       const list = groups.get(group) ?? [];
       list.push(path);
       groups.set(group, list);
     }
     return [...groups.entries()].sort(([a], [b]) => a.localeCompare(b));
-  }, [snapshot, query]);
+  }, [snapshot, query, t]);
   return (
     <View style={{ gap: 10 }}>
-      <Card theme={theme} compact={compact} title="Goal scope" subtitle="Coverage is computed separately from the claims verdict">
+      <Card theme={theme} compact={compact} title={t("scope.goal_title")} subtitle={t("scope.goal_subtitle")}>
         {snapshot.map.goal ? (
           <>
             <Body theme={theme}>{snapshot.map.goal.text}</Body>
@@ -35,15 +37,15 @@ export function CoverageView({ theme, compact, snapshot, onSelect, onOpenScope }
               {snapshot.map.goal.scope.map((path) => <Badge key={path} theme={theme} label={path} icon="Folder" />)}
             </View>
           </>
-        ) : <Empty theme={theme} title="No goal scope" detail="Without a declared goal, the map cannot define its coverage boundary." icon="ScanSearch" />}
+        ) : <Empty theme={theme} title={t("scope.goal_empty_title")} detail={t("scope.goal_empty_detail")} icon="ScanSearch" />}
         <Note theme={theme} tone={snapshot.map.uncovered.length ? "warn" : "neutral"}>
-          {snapshot.map.uncovered.length} path(s) are uncovered. No percentage is shown because this map does not expose a canonical total file count.
+          {t("scope.uncovered_note", { count: snapshot.map.uncovered.length })}
         </Note>
-        <Button theme={theme} compact label="Open scope graph" icon="Workflow" onPress={onOpenScope} />
+        <Button theme={theme} compact label={t("scope.open_scope_graph")} icon="Workflow" onPress={onOpenScope} />
       </Card>
-      <Card theme={theme} compact={compact} title="Uncovered paths" subtitle="Paths inside goal scope that no active claim includes">
-        <SearchBox theme={theme} value={query} onChange={setQuery} placeholder="Filter uncovered paths" />
-        {uncovered.length === 0 ? <Empty theme={theme} title={snapshot.map.uncovered.length === 0 ? "No uncovered paths" : "No matching paths"} detail={snapshot.map.uncovered.length === 0 ? "The declared file scope is covered. This does not prove semantic completeness." : "Clear the filter to see all uncovered paths."} icon="ScanSearch" /> : (
+      <Card theme={theme} compact={compact} title={t("scope.uncovered_title")} subtitle={t("scope.uncovered_subtitle")}>
+        <SearchBox theme={theme} value={query} onChange={setQuery} placeholder={t("scope.uncovered_placeholder")} />
+        {uncovered.length === 0 ? <Empty theme={theme} title={snapshot.map.uncovered.length === 0 ? t("scope.empty_title") : t("scope.no_match_title")} detail={snapshot.map.uncovered.length === 0 ? t("scope.empty_detail") : t("scope.clear_filter")} icon="ScanSearch" /> : (
           <View style={{ gap: 10 }}>
             {uncovered.map(([group, paths]) => (
               <View key={group} style={{ gap: 4 }}>
@@ -54,10 +56,10 @@ export function CoverageView({ theme, compact, snapshot, onSelect, onOpenScope }
           </View>
         )}
       </Card>
-      <Card theme={theme} compact={compact} title="Declared claim scopes" subtitle="Select a claim to inspect its definition and evidence">
+      <Card theme={theme} compact={compact} title={t("scope.declared_title")} subtitle={t("scope.declared_subtitle")}>
         <View style={{ gap: 8 }}>
           {snapshot.claims.map((claim) => (
-            <Pressable key={claim.id} accessibilityRole="button" accessibilityLabel={`Open scope claim ${claim.id}`} onPress={() => onSelect({ claimId: claim.id })} style={{ padding: 9, borderRadius: 8, backgroundColor: theme.colors.surface2, gap: 5 }}>
+            <Pressable key={claim.id} accessibilityRole="button" accessibilityLabel={t("scope.open_scope_claim", { claim: claim.id })} onPress={() => onSelect({ claimId: claim.id })} style={{ padding: 9, borderRadius: 8, backgroundColor: theme.colors.surface2, gap: 5 }}>
               <Text style={{ color: theme.colors.foreground, fontSize: 12, fontWeight: "600" }}>{claim.id}</Text>
               <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 4 }}>
                 {claim.scope.map((path) => <Badge key={path} theme={theme} label={path} />)}

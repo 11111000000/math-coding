@@ -4,7 +4,8 @@ import type { StateReason } from "../shared/domain";
 import type { ConsoleTheme } from "../shared/theme";
 import { useHost } from "./host/context";
 import { HostModalContent } from "./host/sheet";
-import { stateReasonText, toneColor, type Tone } from "./vocabulary";
+import { useT } from "./i18n";
+import { stateReasonKey, toneColor, type Tone } from "./vocabulary";
 
 export function Card({ theme, title, subtitle, right, children, compact = false }: {
   theme: ConsoleTheme;
@@ -162,10 +163,11 @@ export function ReasonBlock({ theme, reason }: {
   theme: ConsoleTheme;
   reason?: StateReason;
 }) {
+  const t = useT();
   return (
     <View style={{ gap: 2 }}>
-      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "600", textTransform: "uppercase" }}>Reason</Text>
-      <Text selectable style={{ color: theme.colors.foreground, fontSize: 12, lineHeight: 17 }}>{stateReasonText(reason)}</Text>
+      <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "600", textTransform: "uppercase" }}>{t("state.reason_title")}</Text>
+      <Text selectable style={{ color: theme.colors.foreground, fontSize: 12, lineHeight: 17 }}>{t(stateReasonKey(reason))}</Text>
     </View>
   );
 }
@@ -233,19 +235,21 @@ export function Segmented({ theme, options, value, onChange }: {
   );
 }
 
-export function SearchBox({ theme, value, onChange, placeholder = "Search claims" }: {
+export function SearchBox({ theme, value, onChange, placeholder }: {
   theme: ConsoleTheme;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
 }) {
   const { TextInput } = useHost();
+  const t = useT();
+  const text = placeholder ?? t("common.search_claims");
   return (
     <TextInput
-      accessibilityLabel={placeholder}
+      accessibilityLabel={text}
       value={value}
       onChangeText={onChange}
-      placeholder={placeholder}
+      placeholder={text}
       placeholderTextColor={theme.colors.foregroundMuted}
       style={{
         borderWidth: 1,
@@ -262,20 +266,28 @@ export function SearchBox({ theme, value, onChange, placeholder = "Search claims
   );
 }
 
-export function Select({ theme, label, value, options, onChange }: {
+/**
+ * A choice of one value of a closed set.
+ *
+ * The value stays the value of the domain, so the filter that reads it never
+ * sees a translated word; only the text the human reads is translated.
+ */
+export function Select({ theme, label, value, options, optionLabels, onChange }: {
   theme: ConsoleTheme;
   label: string;
   value: string;
   options: readonly string[];
+  optionLabels?: Record<string, string>;
   onChange: (value: string) => void;
 }) {
   const { Icon, Modal } = useHost();
   const [open, setOpen] = useState(false);
+  const text = (option: string) => optionLabels?.[option] ?? option;
   return (
     <>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value}`}
+        accessibilityLabel={`${label}: ${text(value)}`}
         onPress={() => setOpen(true)}
         style={{
           flexDirection: "row",
@@ -290,7 +302,7 @@ export function Select({ theme, label, value, options, onChange }: {
         }}
       >
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>{label}</Text>
-        <Text style={{ color: theme.colors.foreground, fontSize: 11, maxWidth: 150 }} numberOfLines={1}>{value}</Text>
+        <Text style={{ color: theme.colors.foreground, fontSize: 11, maxWidth: 150 }} numberOfLines={1}>{text(value)}</Text>
         <Icon name="ChevronDown" size={12} color={theme.colors.foregroundMuted} />
       </Pressable>
       <Modal title={label} open={open} onOpenChange={setOpen}>
@@ -300,7 +312,7 @@ export function Select({ theme, label, value, options, onChange }: {
               <Pressable
                 key={option}
                 accessibilityRole="button"
-                accessibilityLabel={`${label} ${option}`}
+                accessibilityLabel={`${label} ${text(option)}`}
                 onPress={() => { onChange(option); setOpen(false); }}
                 style={{
                   flexDirection: "row",
@@ -312,7 +324,7 @@ export function Select({ theme, label, value, options, onChange }: {
                 }}
               >
                 {option === value && <Icon name="Check" size={14} color={theme.colors.accent} />}
-                <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{option}</Text>
+                <Text style={{ color: theme.colors.foreground, fontSize: 13 }}>{text(option)}</Text>
               </Pressable>
             ))}
           </View>

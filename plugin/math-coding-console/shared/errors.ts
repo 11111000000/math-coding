@@ -19,6 +19,7 @@ export const ERROR_CODES = [
   "run_checks_needs_confirmation",
   "human_decision_needs_confirmation",
   "decision_not_available",
+  "binary_path_not_absolute",
   "binary_not_mathc5",
   "map_inconsistent",
   "claim_sets_differ",
@@ -41,6 +42,13 @@ export const ERROR_CODES = [
   "decision_needs_validity",
   "decision_needs_recovery",
   "days_required",
+  "settings_invalid_json",
+  "settings_invalid_shape",
+  "settings_conflict",
+  "settings_unavailable",
+  "settings_not_saved",
+  "settings_not_reset",
+  "settings_invalid",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -52,6 +60,7 @@ export const ERROR_KEYS: Record<ErrorCode, MessageKey> = {
   run_checks_needs_confirmation: "error.run_checks_needs_confirmation",
   human_decision_needs_confirmation: "error.human_decision_needs_confirmation",
   decision_not_available: "error.decision_not_available",
+  binary_path_not_absolute: "error.binary_path_not_absolute",
   binary_not_mathc5: "error.binary_not_mathc5",
   map_inconsistent: "error.map_inconsistent",
   claim_sets_differ: "error.claim_sets_differ",
@@ -74,6 +83,13 @@ export const ERROR_KEYS: Record<ErrorCode, MessageKey> = {
   decision_needs_validity: "error.decision_needs_validity",
   decision_needs_recovery: "error.decision_needs_recovery",
   days_required: "error.days_required",
+  settings_invalid_json: "error.settings_invalid_json",
+  settings_invalid_shape: "error.settings_invalid_shape",
+  settings_conflict: "error.settings_conflict",
+  settings_unavailable: "error.settings_unavailable",
+  settings_not_saved: "error.settings_not_saved",
+  settings_not_reset: "error.settings_not_reset",
+  settings_invalid: "error.settings_invalid",
 };
 
 export function isErrorCode(value: string): value is ErrorCode {
