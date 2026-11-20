@@ -48,7 +48,9 @@ test("one definition of settings has one store", () => {
 test("a reader of the store learns what the server answered", async () => {
   const store = new SettingsStore();
   const seen: SettingsSnapshot[] = [];
-  const stop = store.subscribe((snapshot) => seen.push(snapshot));
+  const stop = store.subscribe((snapshot) => {
+    seen.push(snapshot);
+  });
   answer(() => READY);
 
   await store.load();
@@ -63,7 +65,9 @@ test("a reader of the store learns what the server answered", async () => {
 test("a save publishes the values the server accepted to every reader", async () => {
   const store = new SettingsStore();
   const seen: SettingsSnapshot[] = [];
-  store.subscribe((snapshot) => seen.push(snapshot));
+  store.subscribe((snapshot) => {
+    seen.push(snapshot);
+  });
   const calls = answer((url, init) => {
     if (init?.method === "POST") {
       const body = JSON.parse(String(init.body)) as { revision: string; values: unknown };
@@ -84,6 +88,9 @@ test("a save publishes the values the server accepted to every reader", async ()
   assert.equal(calls.length, 2);
   // The readers of the store see the change, not only the one that made it.
   assert.ok(seen.length >= 3, "the readers of the store did not see the save");
+  const last = seen[seen.length - 1];
+  assert.deepEqual(last.values, { locale: "ru" });
+  assert.equal(last.revision, "r2");
 });
 
 test("a refused save keeps the code of the error and the old values", async () => {

@@ -43,14 +43,14 @@ interface SettingsBody {
 
 export class SettingsStore {
   private snapshot: SettingsSnapshot = INITIAL_SNAPSHOT;
-  private readonly listeners = new Set<() => void>();
+  private readonly listeners = new Set<(snapshot: SettingsSnapshot) => void>();
   private loadStarted = false;
 
   /** The current state. The same object until something changes it. */
   getSnapshot = (): SettingsSnapshot => this.snapshot;
 
   /** Announces every change of the state to the readers. */
-  subscribe = (listener: () => void): (() => void) => {
+  subscribe = (listener: (snapshot: SettingsSnapshot) => void): (() => void) => {
     this.listeners.add(listener);
     return () => {
       this.listeners.delete(listener);
@@ -59,7 +59,7 @@ export class SettingsStore {
 
   private publish(next: SettingsSnapshot): void {
     this.snapshot = next;
-    for (const listener of [...this.listeners]) listener();
+    for (const listener of [...this.listeners]) listener(next);
   }
 
   /** Reads the settings of the server and publishes them. */
