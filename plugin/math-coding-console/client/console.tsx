@@ -18,6 +18,7 @@ import { ClaimDetailView } from "./detail";
 import { EvidenceView } from "./evidence";
 import { FilePreview } from "./file-preview";
 import { InstrumentFrame } from "./frame";
+import { PermissionsCard } from "./permissions";
 import { GraphView, type GraphSelection } from "./graph";
 import { useHost } from "./host/context";
 import { HumanActionForm } from "./human-action";
@@ -50,7 +51,7 @@ export interface ConsolePanelProps {
 
 export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) {
   const compact = layout.compact;
-  const { Modal, useRpc, useSettings, useToast } = useHost();
+  const { Modal, openSettings, useRpc, useSettings, useToast } = useHost();
   const t = useT();
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -68,7 +69,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
   const [decision, setDecision] = useState<{ action: HumanAction; values: HumanActionValues } | null>(null);
   const [previewPath, setPreviewPath] = useState<string | null>(null);
   const autoRefreshSeconds = settings.status === "ready" ? settings.values?.autoRefreshSeconds ?? 0 : 0;
-  const decisionsEnabled = settings.status === "ready" ? settings.values?.allowHumanDecisions ?? false : false;
+  const decisionsEnabled = settings.status === "ready" ? settings.values?.allowHumanDecisions ?? null : null;
   const run = useMutation({
     mutationFn: () => runChecks({ workspaceId, confirmation: "RUN_CHECKS" }),
     onSuccess: ({ snapshot }) => {
@@ -235,6 +236,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
                 <Note theme={theme} tone="bad">{t("panel.refresh_failed", { time: snapshot.generatedAt, error: String(snapshotQuery.error) })}</Note>
               )}
               <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
+              <PermissionsCard theme={theme} compact={compact} runEnabled={runEnabled} decisionsEnabled={decisionsEnabled} onOpenSettings={openSettings} />
               <Segmented theme={theme} options={views} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
               {view === "attention" && queue && briefContext && (
                 <>
@@ -244,7 +246,7 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
                     queue={queue}
                     context={briefContext}
                     actions={actions}
-                    decisionsEnabled={decisionsEnabled}
+                    decisionsEnabled={decisionsEnabled === true}
                     onTakeAction={openDecision}
                     onOpenFile={setPreviewPath}
                     onSelect={setSelected}

@@ -16,6 +16,17 @@ import { resolveIcon } from "./icons";
 import { useToast } from "./toast";
 
 /**
+ * What the host gives the console to reach its own settings.
+ *
+ * The settings of the local page live in the panel at the top of the page,
+ * so the host opens that panel for the human who has to change them.
+ */
+export interface BrowserHostOptions {
+  /** Opens the settings panel of the page. */
+  openSettings: () => void;
+}
+
+/**
  * The browser implementation of the host surface.
  *
  * It answers exactly the contract the Paseo host answers, so the shared
@@ -312,7 +323,7 @@ function useAppLocale(): string {
   return locale;
 }
 
-export function createBrowserHost(): HostContextValue {
+export function createBrowserHost(options: BrowserHostOptions): HostContextValue {
   return {
     Icon: BrowserIcon,
     Modal: BrowserModal,
@@ -325,6 +336,7 @@ export function createBrowserHost(): HostContextValue {
     SettingsSwitch,
     useAppLocale,
     copyText,
+    openSettings: options.openSettings,
     useToast,
     useRpc: useBrowserRpc,
     useSettings: useBrowserSettings,

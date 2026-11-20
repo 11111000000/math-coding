@@ -60,11 +60,24 @@ export const en = {
     goal_summary: "Owner: {{owner}} · {{scope}} goal scope path(s) · {{uncovered}} uncovered",
     refreshing: "Refreshing",
     running: "Running",
-    run_disabled_note: "Run checks are disabled. Enable them in the settings of the host before executing project-declared checks.",
     run_pending_note: "Run checks availability will be known after the host settings finish loading.",
     next_action_title: "Canonical next action",
     snapshot_line: "snapshot {{time}} · revision {{revision}}",
     binary_line: "{{path}} · {{version}}",
+  },
+
+  permissions: {
+    title: "What the console can do now",
+    read_always: "Reading the map, the evidence, the briefs and the navigation always works.",
+    run: "Run checks",
+    decisions: "Human decisions",
+    on: "allowed",
+    off: "closed",
+    unknown: "the settings are still loading",
+    run_closed: "Run checks are closed.",
+    decisions_closed: "Human decisions are closed.",
+    switch_off: "Turn on “{{switch}}” in the settings of the plugin.",
+    open_settings: "Open the Math Coding settings",
   },
 
   state: {
@@ -181,7 +194,6 @@ export const en = {
     owner_label: "owner {{owner}}",
     accept_body_note: "The tool keeps no record of that acceptance. The owner accepts the result separately, on the basis of the map.",
     manual_empty_body: "Every claim of the current map is settled, and the project declares no protected transition.",
-    decisions_disabled_note: "The console may not record a decision yet. Open the Math Coding settings and allow human decisions.",
     control_reach: "control: {{value}}",
     more_paths: "{{count}} more path(s)",
     more_paths_other: "{{count}} more path(s)",

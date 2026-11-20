@@ -28,6 +28,7 @@ async function main() {
     { RunConfirmation },
     { FilePreview },
     { HumanActionForm },
+    { PermissionsCard },
   ] = await Promise.all([
     import("../client/frame"),
     import("../client/attention-view"),
@@ -42,6 +43,7 @@ async function main() {
     import("../client/run-confirmation"),
     import("../client/file-preview"),
     import("../client/human-action"),
+    import("../client/permissions"),
   ]);
   const data = snapshot();
   data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
@@ -128,6 +130,7 @@ async function main() {
       onConfirm: () => undefined,
     })],
     ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
+    ["permissions card", React(PermissionsCard, { theme, compact: false, runEnabled: false, decisionsEnabled: false, onOpenSettings: () => undefined })],
     ["settings screen", React(SettingsScreen, { theme })],
   ];
   for (const [name, element] of views) {
@@ -163,7 +166,14 @@ async function main() {
       assert.ok(markup.includes("15 can move without you"));
       assert.ok(markup.includes("Nothing needs your decision now"));
       assert.ok(markup.includes("Refresh evidence for 15 claims"));
-      assert.ok(markup.includes("Run checks are disabled"));
+      assert.ok(markup.includes("What the console can do now"), "the panel does not say what it can do");
+      assert.ok(markup.includes("Allow Run checks"), "the panel does not name the switch of the run");
+      assert.ok(markup.includes("Allow human decisions"), "the panel does not name the switch of the decisions");
+      assert.ok(markup.includes("Open the Math Coding settings"), "the panel does not offer the settings of the host");
+    }
+    if (name === "permissions card") {
+      assert.ok(markup.includes("Reading the map, the evidence, the briefs and the navigation always works"), "the card does not say what always works");
+      assert.ok(markup.includes("in the settings of the plugin"), "the card does not name the place of the switch");
     }
     if (name === "run confirmation") {
       assert.ok(markup.includes("Scale: 15 claim(s) and 30 check command(s) will run"), "the confirmation does not name the scale of the run");
@@ -207,6 +217,7 @@ async function main() {
     ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined }), ["detail.requirements_title", "detail.proof_title", "detail.evidence_title"]],
     ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined }), ["graph.links_note", "graph.kind_goal"]],
     ["settings screen", React(SettingsScreen, { theme }), ["settings.locale_label", "settings.locale_ru"]],
+    ["permissions card", React(PermissionsCard, { theme, compact: false, runEnabled: false, decisionsEnabled: false, onOpenSettings: () => undefined }), ["permissions.title", "permissions.open_settings"]],
   ];
   for (const [name, element, keys] of russianScreens) {
     const markup = russian(element);

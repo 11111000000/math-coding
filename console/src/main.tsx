@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useState } from "react";
+import { StrictMode, useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ConsolePanel } from "../../plugin/math-coding-console/client/console";
@@ -29,12 +29,40 @@ const queryClient = new QueryClient({
   },
 });
 
-const host = createBrowserHost();
-
 function ConsoleRoot() {
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  /**
+   * The host of the console.
+   *
+   * The permissions of the console live in the settings of the page, so the
+   * host opens that panel for the human who has to change them.
+   */
+  const host = useMemo(() => createBrowserHost({ openSettings: () => setSettingsOpen(true) }), []);
+  return (
+    <HostProvider value={host}>
+      <LocaleProvider>
+        <ConsolePage
+          settingsOpen={settingsOpen}
+          onToggleSettings={() => setSettingsOpen((open) => !open)}
+        />
+      </LocaleProvider>
+    </HostProvider>
+  );
+}
+
+/**
+ * The page itself.
+ *
+ * It draws the bar with the settings of the page and the shared console under
+ * it. The host of the console is above it, so every part of the page reads
+ * the same host.
+ */
+function ConsolePage({ settingsOpen, onToggleSettings }: {
+  settingsOpen: boolean;
+  onToggleSettings: () => void;
+}) {
   const theme = useSystemTheme();
   const t = useT();
-  const [settingsOpen, setSettingsOpen] = useState(false);
   useEffect(() => {
     applyTheme(theme);
   }, [theme]);
@@ -46,7 +74,7 @@ function ConsoleRoot() {
           type="button"
           className="mc-local-button"
           aria-expanded={settingsOpen}
-          onClick={() => setSettingsOpen((open) => !open)}
+          onClick={onToggleSettings}
         >
           {settingsOpen ? t("local.close_settings") : t("local.settings")}
         </button>
@@ -67,13 +95,9 @@ if (!container) throw new Error("The Math Coding console page needs a root eleme
 createRoot(container).render(
   <StrictMode>
     <ToastProvider>
-      <HostProvider value={host}>
-        <LocaleProvider>
-          <QueryClientProvider client={queryClient}>
-            <ConsoleRoot />
-          </QueryClientProvider>
-        </LocaleProvider>
-      </HostProvider>
+      <QueryClientProvider client={queryClient}>
+        <ConsoleRoot />
+      </QueryClientProvider>
     </ToastProvider>
   </StrictMode>,
 );

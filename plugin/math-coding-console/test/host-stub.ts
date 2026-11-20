@@ -68,6 +68,7 @@ export const host: HostContextValue = {
   SettingsSwitch,
   useAppLocale: () => "en",
   copyText: async () => undefined,
+  openSettings: () => undefined,
   useToast: () => ({ show: () => undefined, error: () => undefined }),
   useRpc: ((contract: unknown) => async () =>
     contract === rpcSchemas.file

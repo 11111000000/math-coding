@@ -6,9 +6,16 @@ import { LocaleProvider } from "./client/i18n";
 import { SettingsScreen } from "./client/settings";
 
 const PANEL_ID = "math-coding-console";
-const paseoHost = createPaseoHost();
+const SETTINGS_ID = "math-coding";
 
 export default function contribute(client: PluginClientContext) {
+  /**
+   * The host of the console.
+   *
+   * The permissions of the console live in the settings screen of the plugin,
+   * so the host opens that screen for the human who has to change them.
+   */
+  const paseoHost = createPaseoHost({ openSettings: () => client.openSettings(SETTINGS_ID) });
   /**
    * The labels the host draws.
    *
@@ -51,7 +58,7 @@ export default function contribute(client: PluginClientContext) {
     },
   });
   client.addSettingsScreen({
-    id: "math-coding",
+    id: SETTINGS_ID,
     title: messages.message("host.settings_title"),
     icon: "UserRoundCheck",
     Component: (props) => (
