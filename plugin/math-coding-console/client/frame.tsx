@@ -54,7 +54,7 @@ export function InstrumentFrame({ theme, compact, snapshot, attention, onRefresh
           <Button theme={theme} compact label={running ? t("panel.running") : t("attention.run_checks")} icon="Play" variant="primary" onPress={onRun} disabled={running || refreshing || runEnabled !== true} />
         </View>
       </View>
-      {runEnabled === false && <Body theme={theme} muted>{t("panel.run_disabled_note")}</Body>}
+      {runEnabled === false && <Body theme={theme} muted>{t("permissions.run_closed")}</Body>}
       {runEnabled === null && <Body theme={theme} muted>{t("panel.run_pending_note")}</Body>}
       <View style={{ backgroundColor: theme.colors.surface2, borderRadius: 8, padding: 10, gap: 3 }}>
         <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10, fontWeight: "700", textTransform: "uppercase" }}>{t("panel.next_action_title")}</Text>

@@ -128,6 +128,14 @@ export interface HostContextValue {
   SettingsAction: ComponentType<HostSettingsActionProps>;
   SettingsSwitch: ComponentType<HostSettingsSwitchProps>;
   copyText: (text: string) => Promise<void>;
+  /**
+   * Opens the settings of the host.
+   *
+   * The permissions of the console live in the settings of the host. A host
+   * that keeps them closed has to offer a way to the place where they are
+   * opened, otherwise a closed action is a button nobody can explain.
+   */
+  openSettings: () => void;
   useToast: () => HostToast;
   useRpc: <Contract extends HostRpcContract>(
     contract: Contract,

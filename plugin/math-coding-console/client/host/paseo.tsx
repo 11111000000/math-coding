@@ -38,12 +38,24 @@ function useAppLocale(): string {
 }
 
 /**
+ * What the host gives the console to reach its own settings.
+ *
+ * The settings screen of the plugin belongs to Paseo, so the plugin opens it
+ * through the client of the installation. The console never guesses where the
+ * settings live.
+ */
+export interface PaseoHostOptions {
+  /** Opens the settings screen of the plugin. */
+  openSettings: () => void;
+}
+
+/**
  * The Paseo implementation of the host surface.
  *
  * It is the only module in the shared interface that is allowed to import the
  * Paseo host packages. Every other module goes through the host contract.
  */
-export function createPaseoHost(): HostContextValue {
+export function createPaseoHost(options: PaseoHostOptions): HostContextValue {
   return {
     Icon: Icon as unknown as HostContextValue["Icon"],
     Modal: Modal as unknown as HostContextValue["Modal"],
@@ -56,6 +68,7 @@ export function createPaseoHost(): HostContextValue {
     SettingsSwitch: SettingsSwitch as unknown as HostContextValue["SettingsSwitch"],
     useAppLocale,
     copyText,
+    openSettings: options.openSettings,
     useToast,
     useRpc: ((contract: never) => useRpc(contract)) as HostContextValue["useRpc"],
     useSettings: ((definition: never) => useSettings(definition)) as HostContextValue["useSettings"],

@@ -218,14 +218,19 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
       <QueueLine theme={theme} label={t("queue.agent_must_not")}>{t(item.attention.agentMustNot)}</QueueLine>
       <QueueLine theme={theme} label={t("queue.next_safe_step")}>{t(item.attention.suggestedAction)}</QueueLine>
       {action ? (
-        <Button
-          theme={theme}
-          compact
-          label={t("queue.take_step", { step: t(humanActionKindRef(action.kind)) })}
-          icon="Stamp"
-          onPress={() => onTakeAction(action)}
-          disabled={!decisionsEnabled}
-        />
+        <View style={{ gap: 4 }}>
+          <Button
+            theme={theme}
+            compact
+            label={t("queue.take_step", { step: t(humanActionKindRef(action.kind)) })}
+            icon="Stamp"
+            onPress={() => onTakeAction(action)}
+            disabled={!decisionsEnabled}
+          />
+          {!decisionsEnabled && (
+            <Body theme={theme} muted>{t("permissions.decisions_closed")}</Body>
+          )}
+        </View>
       ) : (
         <Note theme={theme} tone="neutral">{manualNote(item, t)}</Note>
       )}
@@ -286,7 +291,7 @@ function ManualStepsCard({ theme, compact, actions, decisionsEnabled, onTakeActi
         <View style={{ gap: 8 }}>
           {!decisionsEnabled && (
             <Note theme={theme} tone="warn">
-              {t("queue.decisions_disabled_note")}
+              {t("permissions.switch_off", { switch: t("settings.allow_decisions") })}
             </Note>
           )}
           {actions.map((action) => (

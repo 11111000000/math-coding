@@ -518,6 +518,26 @@
       "register": "fact",
       "control": "sed -i -E 's/[0-9]+ утверждени/0 утверждени/' docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
       "waiver": null
+    },
+    {
+      "id": "console-permissions",
+      "text": "the console names the permission that is closed and opens the settings of the host, so a closed button is never a button without a reason",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "kind": "acceptance",
+      "phase": "pre-merge",
+      "owner": "owner",
+      "review_on": [],
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-permissions.sh"
+        }
+      ],
+      "falsifier": "the console leaves a closed action unexplained, or offers no way to the settings that open it",
+      "register": "fact",
+      "control": "sed -i 's/switchLabel={t(\"settings.allow_run\")}/switchLabel=\"Run checks\"/' plugin/math-coding-console/client/permissions.tsx",
+      "waiver": null
     }
   ]
 }

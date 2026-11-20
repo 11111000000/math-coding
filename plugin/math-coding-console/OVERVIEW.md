@@ -30,6 +30,8 @@ The plugin needs Math Coding v5 installed as `mathc` on the daemon machine. An a
 
 The daemon reads the workspace's `spec.json` and `.math/v5/evidence.jsonl`, and executes `mathc` in the workspace. It does not send project data to an external service.
 
+A closed action says so. The panel names the switch that opens it and offers the way to the settings of the host, so a grey button is never a button without a reason.
+
 Opening, refreshing, filtering, copying a brief, and navigating are read-only. **Run checks** is disabled by default and is the only action with side effects. After it is enabled in the plugin settings, the action still requires explicit confirmation, executes the verifier and negative-control commands declared by the project, and appends local evidence.
 
 ## Limits

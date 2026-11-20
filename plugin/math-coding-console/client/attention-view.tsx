@@ -106,7 +106,12 @@ function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
       <DecisionText theme={theme} label={t("queue.agent_must_not")}>{t(item.agentMustNot)}</DecisionText>
       <DecisionText theme={theme} label={t("queue.next_safe_step")}>{t(item.suggestedAction)}</DecisionText>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 7 }}>
-        {item.kind === "refresh-evidence" && <Button theme={theme} compact label={t("attention.run_checks")} icon="Play" variant="primary" onPress={onRun} disabled={!runEnabled} />}
+        {item.kind === "refresh-evidence" && (
+          <View style={{ gap: 4 }}>
+            <Button theme={theme} compact label={t("attention.run_checks")} icon="Play" variant="primary" onPress={onRun} disabled={!runEnabled} />
+            {!runEnabled && <Body theme={theme} muted>{t("permissions.run_closed")}</Body>}
+          </View>
+        )}
         <Button theme={theme} compact label={t("attention.copy_task_brief")} icon="Clipboard" onPress={onCopy} />
       </View>
     </View>
