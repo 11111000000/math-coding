@@ -268,6 +268,61 @@ start_control \
   's/snapshot.map.verdict === "green"/snapshot.map.states.length > 0 \&\& snapshot.map.states.every((state) => state.state === "holds")/' \
   "test/human-queue.test.ts"
 
+# The catalogue is a contract between two languages. A translation that is
+# missing, a key that only one language holds, or a placeholder that a
+# translation drops are all defects that no type of the catalogue catches.
+start_control \
+  control_check \
+  "a missing Russian translation cannot pass the catalogue" \
+  "shared/locales/ru.ts" \
+  '/    close: "Закрыть",/d' \
+  "test/i18n.test.ts"
+
+start_control \
+  control_check \
+  "a key only the Russian catalogue holds cannot pass" \
+  "shared/locales/ru.ts" \
+  '/    close: "Закрыть",/a\    invented_key: "Придумано",' \
+  "test/i18n.test.ts"
+
+start_control \
+  control_check \
+  "a translation cannot drop the placeholder of a text" \
+  "shared/locales/ru.ts" \
+  's|    refresh_failed: .*|    refresh_failed: "Не удалось обновить.",|' \
+  "test/i18n.test.ts"
+
+# The console names the permission that is closed. A closed button without a
+# reason is a button nobody can read, so the panel names the switch that opens
+# it, and the button of the settings opens the place where the switch lives.
+start_control \
+  control_check \
+  "the panel cannot drop the card of the permissions" \
+  "client/console.tsx" \
+  's|<PermissionsCard theme={theme} compact={compact} runEnabled={runEnabled} decisionsEnabled={decisionsEnabled} onOpenSettings={openSettings} />||' \
+  "test/permissions.test.ts"
+
+start_control \
+  control_check \
+  "the card cannot stop naming the switch of the run" \
+  "client/permissions.tsx" \
+  's|switchLabel={t("settings.allow_run")}|switchLabel="Run checks"|' \
+  "test/permissions.test.ts"
+
+start_control \
+  control_check \
+  "the frame cannot stop saying that the run is closed" \
+  "client/frame.tsx" \
+  's|t("permissions.run_closed")|t("permissions.on")|' \
+  "test/permissions.test.ts"
+
+start_control \
+  control_check \
+  "the queue cannot stop saying that the decisions are closed" \
+  "client/queue-view.tsx" \
+  's|t("permissions.decisions_closed")|t("permissions.on")|g' \
+  "test/permissions.test.ts"
+
 set -- $PIDS
 for pid in "$@"; do
   if ! wait "$pid"; then

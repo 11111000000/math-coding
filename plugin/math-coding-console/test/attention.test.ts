@@ -1,8 +1,20 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { attentionBrief, attentionContext, buildAttentionModel, snapshotSeconds } from "../client/attention";
+import { translate } from "../client/i18n/translate";
 import type { Claim, ClaimState } from "../shared/domain";
+import type { MessageRef } from "../shared/message";
 import { claim, snapshot } from "./fixtures";
+
+/**
+ * The words of a descriptor, in the language of the method.
+ *
+ * The model of the console carries descriptors; the brief resolves them in
+ * English, so the tests read the same English the brief carries.
+ */
+function words(ref: MessageRef | undefined): string {
+  return ref ? translate("en", ref.key, ref.args) : "";
+}
 
 function stateSnapshot(claims: Claim[], states: Array<{ state: ClaimState; sourceChanged?: boolean }>, uncovered: string[] = []) {
   const result = snapshot(claims);
@@ -25,15 +37,15 @@ test("a changed source requires a human review and is not delegated to the agent
   assert.equal(model.needsHuman.length, 1);
   assert.equal(model.needsHuman[0]?.kind, "source-review");
   assert.equal(model.agentCanAct.length, 0);
-  assert.match(model.needsHuman[0]?.humanQuestion ?? "", /still justify/);
+  assert.match(words(model.needsHuman[0]?.humanQuestion), /still justify/);
 });
 
 test("a refutation requires a human contract decision while the agent may repair the subject", () => {
   const current = claim({ id: "broken" });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "refuted" }]), 1_000);
   assert.equal(model.needsHuman[0]?.kind, "refutation");
-  assert.match(model.needsHuman[0]?.agentMay ?? "", /repair/i);
-  assert.match(model.needsHuman[0]?.agentMustNot ?? "", /contract direction/i);
+  assert.match(words(model.needsHuman[0]?.agentMay), /repair/i);
+  assert.match(words(model.needsHuman[0]?.agentMustNot), /contract direction/i);
 });
 
 test("an unmet human review requirement cannot be assigned to an agent", () => {
@@ -43,7 +55,7 @@ test("an unmet human review requirement cannot be assigned to an agent", () => {
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "never-checked" }]), 1_000);
   assert.equal(model.needsHuman[0]?.kind, "human-review");
-  assert.match(model.needsHuman[0]?.why ?? "", /product-owner \(external\)/);
+  assert.match(words(model.needsHuman[0]?.why), /product-owner \(external\)/);
   assert.equal(model.agentCanAct.length, 0);
 });
 
@@ -51,7 +63,7 @@ test("a not-checkable claim asks the human for an acceptance criterion", () => {
   const current = claim({ id: "criterion" });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "not-checkable" }]), 1_000);
   assert.equal(model.needsHuman[0]?.kind, "acceptance-criterion");
-  assert.match(model.needsHuman[0]?.humanQuestion ?? "", /observable condition/i);
+  assert.match(words(model.needsHuman[0]?.humanQuestion), /observable condition/i);
 });
 
 test("outdated without a source change is agent work", () => {
@@ -74,7 +86,7 @@ test("uncovered paths are a coverage proposal for the agent, not a scope change"
   const model = buildAttentionModel(stateSnapshot([claim()], [{ state: "holds" }], ["src/uncovered.ts"]), 1_000);
   assert.equal(model.agentCanAct.length, 1);
   assert.equal(model.agentCanAct[0]?.kind, "coverage");
-  assert.match(model.agentCanAct[0]?.humanBoundary ?? "", /human decides/i);
+  assert.match(words(model.agentCanAct[0]?.humanBoundary), /human decides/i);
 });
 
 test("an active waiver is an accepted risk rather than a pending decision", () => {

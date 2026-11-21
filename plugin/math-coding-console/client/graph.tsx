@@ -11,8 +11,9 @@ import {
   type PositionedNode,
 } from "./graph-layout";
 import { useHost } from "./host/context";
+import { renderValue, useT } from "./i18n";
 import { Badge, Button, Card, Empty, Note, SearchBox } from "./parts";
-import { claimStateColor, claimStateIcon } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey } from "./vocabulary";
 
 export interface GraphSelection {
   claimId: string;
@@ -26,17 +27,33 @@ function nodeColor(theme: ConsoleTheme, node: GraphNode): string {
   return theme.colors.border;
 }
 
+/**
+ * The icon of a node.
+ *
+ * The icon follows the kind of the node as a value of the domain, so a
+ * translated word never decides what a node looks like.
+ */
 function nodeIcon(node: GraphNode): string {
   if (node.state) return claimStateIcon(node.state);
   switch (node.kind) {
     case "goal": return "Target";
     case "source": return "FileText";
-    case "requirement": return node.title.startsWith("all") ? "ListTree" : node.title.startsWith("any") ? "GitFork" : "CheckCheck";
+    case "requirement": return node.requirementKind === "all" ? "ListTree" : node.requirementKind === "any" ? "GitFork" : "CheckCheck";
     case "scope": return "Folder";
     case "uncovered": return "FileQuestion";
     case "claim": return "Box";
   }
 }
+
+/** The name of the kind of a node, in the language of the interface. */
+const KIND_KEYS = {
+  goal: "graph.kind_goal",
+  source: "graph.kind_source",
+  claim: "graph.kind_claim",
+  requirement: "graph.kind_requirement",
+  scope: "graph.kind_scope",
+  uncovered: "graph.kind_uncovered",
+} as const;
 
 function NodeView({ theme, node, selected, faded, onSelect }: {
   theme: ConsoleTheme;
@@ -46,12 +63,13 @@ function NodeView({ theme, node, selected, faded, onSelect }: {
   onSelect: () => void;
 }) {
   const { Icon } = useHost();
+  const t = useT();
   const color = nodeColor(theme, node);
   const state: ClaimState | undefined = node.state;
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`${node.kind} ${node.title}${state ? `, ${state}` : ""}`}
+      accessibilityLabel={`${t(KIND_KEYS[node.kind])} ${renderValue(t, node.title)}${state ? `, ${t(claimStateKey(state))}` : ""}`}
       accessibilityState={{ selected }}
       onPress={onSelect}
       style={{
@@ -73,12 +91,12 @@ function NodeView({ theme, node, selected, faded, onSelect }: {
       <View style={{ flexDirection: "row", alignItems: "center", gap: 5 }}>
         <Icon name={nodeIcon(node)} size={Math.max(11, node.height * 0.15)} color={color} />
         <Text numberOfLines={1} style={{ color: theme.colors.foregroundMuted, fontSize: Math.max(8, node.height * 0.1), fontWeight: "700", textTransform: "uppercase", flex: 1 }}>
-          {node.kind}{node.requirementPath ? ` ${node.requirementPath}` : ""}
+          {t(KIND_KEYS[node.kind])}{node.requirementPath ? ` ${node.requirementPath}` : ""}
         </Text>
         {node.sourceChanged && <Icon name="FileClock" size={12} color={theme.colors.statusWarning} />}
       </View>
-      <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: Math.max(10, node.height * 0.14), fontWeight: "600" }}>{node.title}</Text>
-      <Text numberOfLines={2} style={{ color: theme.colors.foregroundMuted, fontSize: Math.max(8, node.height * 0.105), lineHeight: Math.max(11, node.height * 0.14) }}>{node.subtitle}</Text>
+      <Text numberOfLines={1} style={{ color: theme.colors.foreground, fontSize: Math.max(10, node.height * 0.14), fontWeight: "600" }}>{renderValue(t, node.title)}</Text>
+      <Text numberOfLines={2} style={{ color: theme.colors.foregroundMuted, fontSize: Math.max(8, node.height * 0.105), lineHeight: Math.max(11, node.height * 0.14) }}>{renderValue(t, node.subtitle)}</Text>
     </Pressable>
   );
 }
@@ -97,6 +115,7 @@ export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleCl
   const [query, setQuery] = useState("");
   const [scale, setScale] = useState(compact ? 0.85 : 1);
   const [viewportWidth, setViewportWidth] = useState(0);
+  const t = useT();
   const model = useMemo(
     () => mode === "proof" ? buildProofGraph(snapshot, expanded, query) : buildScopeGraph(snapshot, query),
     [snapshot, mode, expanded, query],
@@ -117,24 +136,24 @@ export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleCl
   return (
     <Card theme={theme} compact={compact}>
       <View style={{ flexDirection: compact ? "column" : "row", gap: 8, alignItems: compact ? "stretch" : "center" }}>
-        <View style={{ flex: 1 }}><SearchBox theme={theme} value={query} onChange={setQuery} placeholder="Filter the visible graph" /></View>
+        <View style={{ flex: 1 }}><SearchBox theme={theme} value={query} onChange={setQuery} placeholder={t("graph.search_placeholder")} /></View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-          {onClose && <Button theme={theme} compact label="Back to lists" icon="ArrowLeft" onPress={onClose} />}
-          <Button theme={theme} compact label="Expand" icon="UnfoldVertical" onPress={() => snapshot.claims.forEach((claim) => { if (!expanded.has(claim.id)) onToggleClaim(claim.id); })} />
-          <Button theme={theme} compact label="Collapse" icon="FoldVertical" onPress={() => [...expanded].forEach(onToggleClaim)} />
+          {onClose && <Button theme={theme} compact label={t("graph.back_to_lists")} icon="ArrowLeft" onPress={onClose} />}
+          <Button theme={theme} compact label={t("graph.expand")} icon="UnfoldVertical" onPress={() => snapshot.claims.forEach((claim) => { if (!expanded.has(claim.id)) onToggleClaim(claim.id); })} />
+          <Button theme={theme} compact label={t("graph.collapse")} icon="FoldVertical" onPress={() => [...expanded].forEach(onToggleClaim)} />
         </View>
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, alignItems: "center", justifyContent: "space-between" }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-          <Badge theme={theme} label={`${model.nodes.length} nodes`} icon="Workflow" />
-          <Badge theme={theme} label={`${model.edges.length} declared links`} />
-          {model.truncated > 0 && <Badge theme={theme} label={`${model.truncated} hidden`} tone="warn" />}
+          <Badge theme={theme} label={t("graph.nodes_count", { count: model.nodes.length })} icon="Workflow" />
+          <Badge theme={theme} label={t("graph.links_count", { count: model.edges.length })} />
+          {model.truncated > 0 && <Badge theme={theme} label={t("graph.hidden_count", { count: model.truncated })} tone="warn" />}
         </View>
         <View style={{ flexDirection: "row", gap: 4 }}>
           <Button theme={theme} compact label="−" onPress={() => setScale((value) => Math.max(0.65, value - 0.15))} />
           <Button theme={theme} compact label={`${Math.round(scale * 100)}%`} onPress={() => setScale(1)} />
           <Button theme={theme} compact label="+" onPress={() => setScale((value) => Math.min(1.4, value + 0.15))} />
-          <Button theme={theme} compact label="Fit" icon="Maximize2" onPress={fit} />
+          <Button theme={theme} compact label={t("graph.fit")} icon="Maximize2" onPress={fit} />
         </View>
       </View>
       <View
@@ -186,12 +205,12 @@ export function GraphView({ theme, compact, snapshot, mode, expanded, onToggleCl
           </ScrollView>
         </ScrollView>
       </View>
-      {model.truncated > 0 && <Note theme={theme} tone="warn">The graph is bounded for readability. Narrow the filter or open Claims to reach hidden items.</Note>}
+      {model.truncated > 0 && <Note theme={theme} tone="warn">{t("graph.bounded_note")}</Note>}
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 10 }}>
-        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>Select a claim to inspect evidence and reveal its requirement tree.</Text>
-        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>{mode === "scope" ? "Scope links show declarations, not dependencies." : "Only source, claim and requirement links present in v5 are drawn."}</Text>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>{t("graph.select_hint")}</Text>
+        <Text style={{ color: theme.colors.foregroundMuted, fontSize: 10 }}>{mode === "scope" ? t("graph.scope_links_note") : t("graph.links_note")}</Text>
       </View>
-      {snapshot.map.claims === 0 && <Empty theme={theme} title="Vacant map" detail="The canonical map has no claims. Add one to three important claims before expanding the graph." icon="CircleDashed" />}
+      {snapshot.map.claims === 0 && <Empty theme={theme} title={t("graph.vacant_title")} detail={t("graph.vacant_detail")} icon="CircleDashed" />}
     </Card>
   );
 }

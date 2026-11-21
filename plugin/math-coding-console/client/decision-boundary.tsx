@@ -2,7 +2,9 @@ import type { ConsoleTheme } from "../shared/theme";
 import { Text, View } from "react-native";
 import type { Claim, ClaimState } from "../shared/domain";
 import { flattenRequirements } from "../shared/requirements";
+import { useT } from "./i18n";
 import { Badge, Body, Card, Mono } from "./parts";
+import { claimStateKey } from "./vocabulary";
 
 export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }: {
   theme: ConsoleTheme;
@@ -11,32 +13,33 @@ export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }
   state?: ClaimState;
   sourceChanged: boolean;
 }) {
+  const t = useT();
   const requirements = flattenRequirements(claim).map((node) => node.requirement);
   const verifiers = requirements.filter((requirement) => "kind" in requirement && requirement.kind === "verifier");
   const reviews = requirements.filter((requirement) => "kind" in requirement && requirement.kind === "review");
   const agentMay = sourceChanged
-    ? "Collect the source diff and prepare the changed decision context for the owner."
+    ? t("boundary.agent_may_source_changed")
     : state === "refuted"
-      ? "Reproduce the failure and propose a repair that preserves the declared falsifier and control."
+      ? t("boundary.agent_may_refuted")
       : state === "not-checkable"
-        ? "Propose machine checks and explain their sensitivity; the owner still chooses the acceptance criterion."
-        : "Implement the declared subject and run the declared checks without changing the intended contract.";
+        ? t("boundary.agent_may_not_checkable")
+        : t("boundary.agent_may_default");
   return (
-    <Card theme={theme} compact={compact} title="Decision boundary" subtitle="What the machine can establish and what remains with the human">
+    <Card theme={theme} compact={compact} title={t("boundary.title")} subtitle={t("boundary.subtitle")}>
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
           <Badge theme={theme} label={claim.register} />
-          {state && <Badge theme={theme} label={`claim: ${state}`} />}
-          {claim.kind === "judgment" && <Badge theme={theme} label="human judgment" tone="warn" icon="UserRoundCheck" />}
+          {state && <Badge theme={theme} label={t("boundary.claim_state", { state: t(claimStateKey(state)) })} />}
+          {claim.kind === "judgment" && <Badge theme={theme} label={t("boundary.human_judgment")} tone="warn" icon="UserRoundCheck" />}
         </View>
-        <BoundaryRow theme={theme} label="Machine checks">
+        <BoundaryRow theme={theme} label={t("boundary.machine_checks")}>
           {verifiers.length === 0
-            ? <Body theme={theme} muted>No machine verifier is declared for this claim.</Body>
+            ? <Body theme={theme} muted>{t("boundary.no_machine_verifier")}</Body>
             : verifiers.map((requirement, index) => <Mono key={index} theme={theme}>{requirement.kind === "verifier" ? requirement.spec : ""}</Mono>)}
         </BoundaryRow>
-        <BoundaryRow theme={theme} label="Human review">
+        <BoundaryRow theme={theme} label={t("boundary.human_review")}>
           {reviews.length === 0
-            ? <Body theme={theme} muted>No explicit human-review requirement is declared.</Body>
+            ? <Body theme={theme} muted>{t("boundary.no_human_review")}</Body>
             : reviews.map((requirement, index) => (
               <Mono key={index} theme={theme}>
                 {requirement.kind === "review" ? `${requirement.spec} · ${requirement.minimum_independence}` : ""}
@@ -44,16 +47,16 @@ export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }
             ))}
         </BoundaryRow>
         {claim.waiver && (
-          <BoundaryRow theme={theme} label={state === "waived" ? "Accepted risk" : "Waiver record"}>
+          <BoundaryRow theme={theme} label={state === "waived" ? t("boundary.accepted_risk") : t("boundary.waiver_record")}>
             <Body theme={theme} muted>{claim.waiver.gap}</Body>
-            <Mono theme={theme}>issuer: {claim.waiver.issuer}</Mono>
-            <Mono theme={theme}>interval: {new Date(claim.waiver.issued_at * 1000).toISOString()} → {new Date(claim.waiver.expires_at * 1000).toISOString()}</Mono>
-            <Mono theme={theme}>recovery: {claim.waiver.recovery}</Mono>
+            <Mono theme={theme}>{t("attention.issuer_label")}: {claim.waiver.issuer}</Mono>
+            <Mono theme={theme}>{t("boundary.interval")}: {new Date(claim.waiver.issued_at * 1000).toISOString()} → {new Date(claim.waiver.expires_at * 1000).toISOString()}</Mono>
+            <Mono theme={theme}>{t("attention.recovery_label")}: {claim.waiver.recovery}</Mono>
           </BoundaryRow>
         )}
-        <BoundaryRow theme={theme} label="Agent may">{agentMay}</BoundaryRow>
-        <BoundaryRow theme={theme} label="Agent must not">
-          Do not impersonate a reviewer, record a human review or waiver, weaken a verifier/control, or change the claim merely to obtain green.
+        <BoundaryRow theme={theme} label={t("boundary.agent_may")}>{agentMay}</BoundaryRow>
+        <BoundaryRow theme={theme} label={t("boundary.agent_must_not")}>
+          {t("boundary.agent_must_not_rule")}
         </BoundaryRow>
       </View>
     </Card>

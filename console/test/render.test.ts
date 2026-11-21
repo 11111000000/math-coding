@@ -42,7 +42,7 @@ const { ToastProvider } = await import("../src/toast");
 const { lightTheme } = await import("../src/theme");
 const { snapshot } = await import("../../plugin/math-coding-console/test/fixtures");
 
-const host = createBrowserHost();
+const host = createBrowserHost({ openSettings: () => undefined });
 
 interface PanelProps {
   theme: typeof lightTheme;

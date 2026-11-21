@@ -200,25 +200,25 @@ test("the settings are read, written and reset", async () => {
   assert.equal(initial.body.status, "ready");
   const revision = initial.body.revision as string;
   assert.equal(typeof revision, "string");
-  assert.deepEqual(initial.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30 });
+  assert.deepEqual(initial.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30, locale: "auto" });
 
   const saved = await ask({
     method: "POST",
     path: "/api/settings",
-    body: { revision, values: { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15 } },
+    body: { revision, values: { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15, locale: "auto" } },
   });
   assert.equal(saved.status, 200);
   assert.equal(saved.body.status, "saved");
   assert.notEqual(saved.body.revision, revision);
-  assert.deepEqual(saved.body.values, { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15 });
+  assert.deepEqual(saved.body.values, { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15, locale: "auto" });
 
   const reread = await ask({ path: "/api/settings" });
-  assert.deepEqual(reread.body.values, { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15 });
+  assert.deepEqual(reread.body.values, { binaryPath: "", allowRunChecks: true, allowHumanDecisions: false, autoRefreshSeconds: 15, locale: "auto" });
 
   const conflict = await ask({
     method: "POST",
     path: "/api/settings",
-    body: { revision, values: { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30 } },
+    body: { revision, values: { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30, locale: "auto" } },
   });
   assert.equal(conflict.body.status, "conflict");
   assert.equal(typeof conflict.body.error, "string");
@@ -233,17 +233,17 @@ test("the settings are read, written and reset", async () => {
 
   const reset = await ask({ method: "POST", path: "/api/settings/reset", body: {} });
   assert.equal(reset.body.status, "saved");
-  assert.deepEqual(reset.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30 });
+  assert.deepEqual(reset.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30, locale: "auto" });
 
   const afterReset = await ask({ path: "/api/settings" });
-  assert.deepEqual(afterReset.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30 });
+  assert.deepEqual(afterReset.body.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30, locale: "auto" });
 });
 
 test("the settings live outside the project", async () => {
   const { readFile } = await import("node:fs/promises");
   const stored = JSON.parse(await readFile(settingsPath, "utf8")) as { version: number; values: unknown };
-  assert.equal(stored.version, 3);
-  assert.deepEqual(stored.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30 });
+  assert.equal(stored.version, 4);
+  assert.deepEqual(stored.values, { binaryPath: "", allowRunChecks: false, allowHumanDecisions: false, autoRefreshSeconds: 30, locale: "auto" });
 });
 
 test("a file of the project is read through the file endpoint", async () => {

@@ -2,6 +2,7 @@ import { View } from "react-native";
 import type { ConsoleTheme } from "../shared/theme";
 import type { RunScale } from "./run-scale";
 import { HostModalContent } from "./host/sheet";
+import { useT } from "./i18n";
 import { Body, Button, Note } from "./parts";
 
 /**
@@ -18,16 +19,17 @@ export function RunConfirmation({ theme, scale, running, error, onCancel, onRun 
   onCancel: () => void;
   onRun: () => void;
 }) {
+  const t = useT();
   return (
     <HostModalContent>
       <View style={{ gap: 14 }}>
-        <Body theme={theme}>This executes the verifier and negative-control commands declared by the project and appends evidence to .math/v5/. Controls use isolated copies; verifiers still execute project code.</Body>
-        <Body theme={theme} muted>Scale: {scale?.claimCount ?? 0} claim(s) and {scale?.commandCount ?? 0} check command(s) will run for this workspace.</Body>
-        <Body theme={theme} muted>Refresh, graph navigation and automatic polling never perform this action. The server also requires Run checks to be enabled in plugin settings.</Body>
-        {error !== null && error !== undefined && <Note theme={theme} tone="bad">Run failed: {String(error)}</Note>}
+        <Body theme={theme}>{t("run.body")}</Body>
+        <Body theme={theme} muted>{t("run.scale", { claims: scale?.claimCount ?? 0, commands: scale?.commandCount ?? 0 })}</Body>
+        <Body theme={theme} muted>{t("run.never_automatic")}</Body>
+        {error !== null && error !== undefined && <Note theme={theme} tone="bad">{t("run.failed", { error: String(error) })}</Note>}
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 8, justifyContent: "flex-end" }}>
-          <Button theme={theme} label="Cancel" onPress={onCancel} disabled={running} />
-          <Button theme={theme} label={running ? "Running checks" : "Run checks"} icon="Play" variant="danger" onPress={onRun} disabled={running} />
+          <Button theme={theme} label={t("common.cancel")} onPress={onCancel} disabled={running} />
+          <Button theme={theme} label={running ? t("common.running_checks") : t("run.run")} icon="Play" variant="danger" onPress={onRun} disabled={running} />
         </View>
       </View>
     </HostModalContent>

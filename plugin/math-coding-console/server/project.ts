@@ -1,3 +1,4 @@
+import { CodedError } from "../shared/errors";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
 import {
@@ -52,7 +53,7 @@ function parseMap(result: ProcessResult, operation: string): MathMap {
   if (result.stdout.trim() === "") throw processError(result, operation);
   const map = parseWith(mapSchema, parseJson(result.stdout, `mathc ${operation} output`), "mathc map");
   if (map.exit !== result.code || expectedExit(map) !== result.code) {
-    throw new Error("mathc returned an inconsistent verdict and exit code");
+    throw new CodedError("map_inconsistent");
   }
   return map;
 }
@@ -67,7 +68,7 @@ function validateJoin(map: MathMap, claims: Claim[]): void {
     claimIds.length !== stateIds.length ||
     claimIds.some((id) => !stateIds.includes(id))
   ) {
-    throw new Error("mathc map and spec.json describe different claim sets");
+    throw new CodedError("claim_sets_differ");
   }
 }
 
@@ -93,7 +94,7 @@ async function attempt(
       (versionLines.length === 2 && /^build [0-9a-f]{64}$/.test(versionLines[1] ?? "")));
   if (version.code !== 0 || !validVersion) {
     if (version.code !== 0) throw processError(version, "--version");
-    throw new Error("The configured binary is not mathc 5");
+    throw new CodedError("binary_not_mathc5");
   }
   const result = await runProcess(binary, ["--root", root, operation, "--json"], {
     cwd: root,
@@ -107,7 +108,7 @@ async function attempt(
   const spec = parseWith(specSchema, parseJson(afterSpec, "spec.json"), "spec.json");
   validateJoin(map, spec.claims);
   if (canonicalJson(map.goal) !== canonicalJson(spec.goal)) {
-    throw new Error("mathc map and spec.json describe different goals");
+    throw new CodedError("goals_differ");
   }
   return {
     generatedAt: new Date().toISOString(),
@@ -136,7 +137,7 @@ export async function loadProject(
     return await attempt(root, binary, operation, includeTrail);
   } catch (error) {
     if (error instanceof ChangedDuringRead) {
-      throw new Error("Project files changed while the snapshot was being read; refresh to retry");
+      throw new CodedError("project_changed");
     }
     throw error;
   }
