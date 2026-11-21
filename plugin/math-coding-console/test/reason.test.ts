@@ -45,6 +45,71 @@ test("the map state may omit the reason", () => {
   assert.equal(parsed.states[0]?.reason, undefined);
 });
 
+/**
+ * The reason of a changed tool.
+ *
+ * The evidence was produced by another build of the program. The claim still
+ * holds and the evidence still applies, so the reason is an information and
+ * not a failure.
+ */
+test("the map state accepts the reason of a changed tool", () => {
+  const parsed = mapSchema.parse({
+    ...map([claim()]),
+    states: [{ id: "hello", state: "holds", source_changed: false, reason: "tool-changed" }],
+  });
+  assert.equal(parsed.states[0]?.reason, "tool-changed");
+});
+
+/**
+ * The reason of a changed tool is named in the catalogue.
+ *
+ * A reason the reader cannot name is a reason the reader hides. The catalogue
+ * must hold the reason of a changed tool, or the console would show an empty
+ * label exactly where the observer changed.
+ */
+test("the reason of a changed tool is named in the catalogue", async () => {
+  const { stateReasonKey, stateReasonText } = await import("../client/vocabulary");
+  assert.equal(stateReasonKey("tool-changed"), "state.reason_tool_changed");
+  assert.notEqual(stateReasonKey("tool-changed"), undefined);
+  assert.match(stateReasonText("tool-changed"), /another build of the tool/);
+});
+
+test("the changed tool is an information and not a failure", async () => {
+  const { stateReasonTone } = await import("../client/vocabulary");
+  assert.equal(stateReasonTone("tool-changed"), "info");
+  assert.equal(stateReasonTone("current"), "neutral");
+  assert.equal(stateReasonTone("refuted"), "neutral");
+
+  const data = snapshot();
+  data.map.states = [{ id: "hello", state: "holds", source_changed: false, reason: "tool-changed" }];
+  data.map.verdict = "green";
+  data.map.exit = 0;
+  const model = buildAttentionModel(data, 1_000);
+  assert.equal(model.needsHuman.length, 0, "the changed tool asks the human for a decision");
+  assert.equal(model.agentCanAct.length, 0, "the changed tool asks the agent for work");
+
+  const { ClaimDetailView } = await import("../client/detail");
+  const markup = renderWithHost(createElement(ClaimDetailView, {
+    theme,
+    compact: false,
+    snapshot: data,
+    selection: { claimId: "hello" },
+    onClose: () => undefined,
+    onSelect: () => undefined,
+    onRefresh: () => undefined,
+    onOpenFile: () => undefined,
+  }));
+  assert.ok(markup.includes("holds"), "the claim does not hold any more");
+  assert.ok(
+    markup.includes("The recorded evidence was produced by another build of the tool"),
+    "the claim card does not name the changed observer",
+  );
+  assert.ok(
+    !markup.includes("The recorded evidence is fresh and still applies to this claim."),
+    "the claim card shows the ordinary current reason instead of the changed tool",
+  );
+});
+
 test("the snapshot contract keeps the reason of a state", () => {
   const data = stateSnapshot("materials-changed");
   const parsed = rpcSchemas.snapshot.output.parse(data);

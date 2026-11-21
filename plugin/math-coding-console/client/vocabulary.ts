@@ -76,13 +76,7 @@ export function stateOrder(state: ClaimState): number {
 }
 
 /**
- * The reason a state was reported.
- *
- * The text says what the map reports. It never guesses a cause the map did
- * not give, and it never promises that a check will repair anything.
- */
-/**
- * The reason a state was reported.
+ * The reason of a state was reported.
  *
  * The text says what the map reports. It never guesses a cause the map did
  * not give, and it never promises that a check will repair anything. The
@@ -109,6 +103,24 @@ const REASON_KEYS: Record<StateReason, MessageKey> = {
 /** The key of the catalogue that holds the reason of a state. */
 export function stateReasonKey(reason?: StateReason): MessageKey {
   return reason === undefined ? "state.reason_unknown" : REASON_KEYS[reason];
+}
+
+/**
+ * The tone of the reason of a state.
+ *
+ * The reason `tool-changed` is an information: the claim still holds, and the
+ * evidence still applies, but the program that produced it is not the program
+ * that reads it. The reader deserves to see that the observer changed, and the
+ * reason is not a failure and not the ordinary `current` either. Every other
+ * reason keeps the quiet tone of a note.
+ */
+export function stateReasonTone(reason?: StateReason): Tone {
+  return reason === "tool-changed" ? "info" : "neutral";
+}
+
+/** The icon of the reason of a state. */
+export function stateReasonIcon(reason?: StateReason): string {
+  return reason === "tool-changed" ? "RefreshCw" : "CircleHelp";
 }
 
 /** The reason of a state in English, for the brief of an agent. */

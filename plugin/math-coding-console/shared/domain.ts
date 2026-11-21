@@ -44,15 +44,28 @@ export const STATE_REASONS = [
 export const stateReasonSchema = z.enum(STATE_REASONS);
 
 /**
- * The digest of the program that produced a map or an evidence record.
+ * The digest of the program that produced a map.
  *
  * The class names the program, and the fingerprint names the build of it. A
- * reader that sees another fingerprint knows that the observer changed, and the
- * reason `tool-changed` says so in the map.
+ * map is always written by a program that knows itself, so the fingerprint of
+ * a map is never empty.
  */
-export const toolSchema = z.strictObject({
+export const mapToolSchema = z.strictObject({
   class: z.string().min(1),
   fingerprint: z.string().min(1),
+});
+
+/**
+ * The digest of the program that produced an evidence record.
+ *
+ * A record carried over from the previous format does not know the program
+ * that wrote it. The migration says so honestly: it names the class and
+ * leaves the fingerprint empty. An empty fingerprint is therefore not a
+ * broken record, and the consumer reads it as an unknown producer.
+ */
+export const evidenceToolSchema = z.strictObject({
+  class: z.string().min(1),
+  fingerprint: z.string(),
 });
 
 const nullableString = z.string().nullable().default(null);
@@ -79,7 +92,7 @@ export const mapSchema = z.strictObject({
   goal: goalSchema.nullable(),
   // The program that produced this map. The digest names the build, so a
   // reader knows which observer wrote the map it reads.
-  tool: toolSchema,
+  tool: mapToolSchema,
   states: z.array(mapStateSchema),
   uncovered: z.array(z.string()),
   next: z.string(),
@@ -165,8 +178,10 @@ export const evidenceSchema = z.strictObject({
   verifier_digest: z.string().min(1),
   environment: z.strictObject({ class: z.string().min(1), fingerprint: z.string().min(1) }),
   // The program that produced this record. A record of another build still
-  // applies, and the map names the change with the reason `tool-changed`.
-  tool: toolSchema,
+  // applies, and the map names the change with the reason `tool-changed`. A
+  // record carried over from the previous format names an unknown producer
+  // with an empty fingerprint, and that is not a broken record.
+  tool: evidenceToolSchema,
   producer: z.strictObject({
     class: z.string().min(1),
     identity: z.string().min(1),

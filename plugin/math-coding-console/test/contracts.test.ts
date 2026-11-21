@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { claimSchema, evidenceSchema, mapSchema, specSchema } from "../shared/domain";
 import { preferences, snapshotRpc } from "../shared/contracts";
 import { linkEvidence, parseTrail } from "../server/evidence";
-import { claim, evidence, map, nestedClaim, rawEvidence } from "./fixtures";
+import { claim, evidence, map, nestedClaim, rawEvidence, unknownTool } from "./fixtures";
 
 /**
  * A waiver as the specification carries it.
@@ -56,6 +56,19 @@ test("a map of the previous format is refused instead of read as a green one", (
 });
 
 /**
+ * The map of the current format is read.
+ *
+ * The version is the contract between the program and its readers. The reader
+ * accepts the format it was written for and refuses every other one, so the
+ * map it shows is a map it understands and not a map of another release that
+ * happens to look the same.
+ */
+test("the map of the current format is read", () => {
+  const parsed = mapSchema.parse({ ...map([claim()]), schema_version: 6 });
+  assert.equal(parsed.schema_version, 6);
+});
+
+/**
  * The fields the specification no longer carries are refused.
  *
  * The program writes the fields it uses and no others, and the consumer
@@ -97,6 +110,39 @@ test("the evidence record names the program that produced it", () => {
   assert.equal(parsed.tool.class, "mathc");
   assert.equal(parsed.tool.fingerprint.length, 64);
   assert.equal(evidenceSchema.safeParse({ ...rawEvidence(), tool: undefined }).success, false);
+});
+
+/**
+ * A record carried over from the previous format names an unknown program.
+ *
+ * The migration cannot know which program wrote a record of the previous
+ * format. It says so honestly with an empty fingerprint, and the consumer
+ * reads such a record instead of refusing it: the record is not broken, only
+ * its producer is unknown.
+ */
+test("a record carried over from the previous format names an unknown program", () => {
+  const migrated = evidenceSchema.parse({ ...rawEvidence(), tool: unknownTool });
+  assert.equal(migrated.tool.class, "mathc");
+  assert.equal(migrated.tool.fingerprint, "");
+  assert.equal(
+    evidenceSchema.safeParse({ ...rawEvidence(), tool: { class: "", fingerprint: "" } }).success,
+    false,
+  );
+  assert.equal(
+    evidenceSchema.safeParse({ ...rawEvidence(), tool: { class: "mathc", fingerprint: 42 } }).success,
+    false,
+  );
+});
+
+/**
+ * The map always names the program that wrote it.
+ *
+ * A map is written by the program that reads it, so it knows its own digest.
+ * An empty digest there would name nothing, and the consumer refuses it.
+ */
+test("the map refuses a digest of the program that names nothing", () => {
+  assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: unknownTool }).success, false);
+  assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: { class: "", fingerprint: "e".repeat(64) } }).success, false);
 });
 
 test("carries the declared environment of the specification", () => {

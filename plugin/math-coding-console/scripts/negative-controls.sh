@@ -148,6 +148,20 @@ start_control \
 
 start_control \
   control_check \
+  "a map without the digest of the program cannot be read" \
+  "shared/domain.ts" \
+  's|tool: mapToolSchema,|tool: mapToolSchema.optional(),|' \
+  "test/tool.test.ts"
+
+start_control \
+  control_check \
+  "a record of an unknown producer cannot be refused" \
+  "shared/domain.ts" \
+  's|fingerprint: z.string(),|fingerprint: z.string().min(1),|' \
+  "test/contracts.test.ts"
+
+start_control \
+  control_check \
   "snapshot cannot execute project checks" \
   "server/core/operations.ts" \
   's|loadProject(workspace.directory, runtime.binary);|loadProject(workspace.directory, runtime.binary, "run");|' \

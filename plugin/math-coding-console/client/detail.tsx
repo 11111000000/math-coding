@@ -12,7 +12,7 @@ import { useHost } from "./host/context";
 import { HostModalContent } from "./host/sheet";
 import { useT } from "./i18n";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note, ReasonBlock } from "./parts";
-import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonKey } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonIcon, stateReasonKey, stateReasonTone } from "./vocabulary";
 
 export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh, onOpenFile }: {
   theme: ConsoleTheme;
@@ -84,7 +84,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
           <View style={{ flex: 1, gap: 5 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
               {state && <Badge theme={theme} label={t(claimStateKey(state.state))} color={claimStateColor(theme, state.state)} icon={claimStateIcon(state.state)} />}
-              {state?.reason && <Badge theme={theme} label={t(stateReasonKey(state.reason))} icon="CircleHelp" />}
+              {state?.reason && <Badge theme={theme} label={t(stateReasonKey(state.reason))} tone={stateReasonTone(state.reason)} icon={stateReasonIcon(state.reason)} />}
               <Badge theme={theme} label={claim.register} />
               {state?.source_changed && <Badge theme={theme} label={t("state.source_changed")} tone="warn" />}
             </View>

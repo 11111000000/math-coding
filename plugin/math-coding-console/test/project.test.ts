@@ -58,6 +58,8 @@ test("rejects invocation errors, missing maps, malformed maps and wrong versions
   await assert.rejects(loadProject(root, binary), /exit 2/);
   await setMap(binary, root, { ...current, schema_version: 4 } as unknown as MathMap);
   await assert.rejects(loadProject(root, binary), /validation/);
+  await setMap(binary, root, { ...current, schema_version: 5 } as unknown as MathMap);
+  await assert.rejects(loadProject(root, binary), /schema_version/);
   await setMap(binary, root, current, "mathc 4");
   await assert.rejects(loadProject(root, binary), coded("binary_not_mathc5"));
 });

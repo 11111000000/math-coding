@@ -37,6 +37,15 @@ export function claim(overrides: Partial<Claim> = {}): Claim {
 /** The digest of the program that produced the map or the record. */
 export const tool = { class: "mathc", fingerprint: "e".repeat(64) };
 
+/**
+ * The digest of an unknown program.
+ *
+ * A record carried over from the previous format does not know the program
+ * that wrote it. The migration names the class and leaves the fingerprint
+ * empty rather than inventing one.
+ */
+export const unknownTool = { class: "mathc", fingerprint: "" };
+
 export function map(claims: Claim[], state: ClaimState = "holds"): MathMap {
   const verdict = claims.length === 0 ? "vacant" : state === "refuted" ? "red" : state === "holds" ? "green" : "unknown";
   return {

@@ -152,6 +152,9 @@ async function main() {
       assert.ok(markup.includes("Accepted risk for waived"));
       assert.ok(markup.includes("Next safe step"));
     }
+    if (name === "instrument frame") {
+      assert.ok(markup.includes("tool mathc"), "the frame does not name the program that produced the map");
+    }
     if (name === "claim detail") {
       assert.ok(markup.includes("The environment changed after the evidence was recorded"), "the claim card does not explain the reason");
     }
