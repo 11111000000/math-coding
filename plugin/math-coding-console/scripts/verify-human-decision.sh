@@ -20,8 +20,12 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
 PLUGIN="$ROOT/plugin/math-coding-console"
 
-# The checks of the decision need the packages of the plugin.
-(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+# The checks of the decision need the packages of the plugin. They are
+# installed only when they are missing: an installed tree is not touched again
+# while a check runs.
+if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
+  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+fi
 
 # The fixtures of the decision: the steps are read from the canonical map, the
 # program performs them with the arguments it declares, and the state after

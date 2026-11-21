@@ -27,9 +27,16 @@ fi
 # The packages of both projects are installed one after another, the way
 # console/scripts/check-page.sh installs them. Two installs at the same time
 # need twice the memory, and on a small machine the installer is killed.
+# The packages are installed only when they are missing: an installed tree is
+# not touched again while a check runs, and the check does not spend the
+# network on every run.
 status=0
-(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
-(cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
+if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
+  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
+fi
+if [ ! -x "$PAGE/node_modules/.bin/tsx" ]; then
+  (cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
+fi
 if [ "$status" -ne 0 ]; then
   echo "verify-console: the packages are not installed" >&2
   exit 1

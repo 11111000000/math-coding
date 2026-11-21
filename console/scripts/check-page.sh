@@ -30,8 +30,15 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 # --- the packages of both projects are needed for the build ----------------
 
-(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
-(cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+# The packages are installed only when they are missing: an installed tree is
+# not touched again while a check runs, and the check does not spend the
+# network on every run.
+if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
+  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+fi
+if [ ! -x "$PAGE/node_modules/.bin/tsx" ]; then
+  (cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+fi
 
 (cd "$PAGE" && npm run build >/dev/null)
 
