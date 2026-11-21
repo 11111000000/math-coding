@@ -15,6 +15,7 @@ type options = {
   mutable version : bool;
   mutable help : bool;
   mutable source : string;
+  mutable environment : string;
   mutable changed : bool;
   mutable dry_run : bool;
   mutable limit : float;
@@ -23,7 +24,8 @@ type options = {
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; commands = [];
-    write = false; version = false; help = false; source = ""; changed = false;
+    write = false; version = false; help = false; source = ""; environment = "";
+    changed = false;
     dry_run = false; limit = Commands.default_limit }
 
 let parse_requirement text = Requirements.parse text
@@ -43,6 +45,7 @@ let parse_flags o arguments =
     | "--recovery" :: value :: rest -> o.recovery <- value; loop acc rest
     | "--control" :: value :: rest -> o.control <- value; loop acc rest
     | "--source" :: value :: rest -> o.source <- value; loop acc rest
+    | "--environment" :: value :: rest -> o.environment <- value; loop acc rest
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--command" :: value :: rest -> o.commands <- o.commands @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
@@ -97,7 +100,9 @@ let main () =
     | "add" :: id :: text :: scope :: falsifier :: register :: _ -> (
         match parse_all o.requirements with
         | Error error -> fail Exit_code.usage error
-        | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
+        | Ok requirements ->
+            Commands.add o.root id text (split_scope scope) falsifier register requirements o.control
+              o.source o.environment)
     | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed ~limit:o.limit
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root

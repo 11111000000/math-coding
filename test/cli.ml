@@ -103,6 +103,19 @@ let () =
       write root "subject.txt" "expected\n";
       write root "outside.txt" "outside\n";
       expect root "add mixed \"outside scope\" subject.txt,outside.txt \"accepted\" fact --requirement \"verifier:true\"" 2;
+      (* The environment a verifier runs in is a part of the claim. The tool
+         that writes the claim checks the rule of the format: an empty
+         environment and an environment with a line break are refused, and the
+         refusal leaves the project without the claim. *)
+      expect root "add with-environment \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:true\" --environment \"LC_ALL=C\"" 0;
+      let with_environment = Io.read_file (Filename.concat root "spec.json") in
+      check "the claim carries the environment its verifier runs in"
+        (contains with_environment "\"id\": \"with-environment\""
+        && contains with_environment "\"environment\": \"LC_ALL=C\"");
+      expect root "add broken-environment \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:true\" --environment \"$(printf 'a\\nb')\"" 2;
+      let broken = Io.read_file (Filename.concat root "spec.json") in
+      check "the refused claim is not written"
+        (not (contains broken "broken-environment"));
       expect root "map --unknown-option" 2;
       expect root "waive sample --by owner --reason reason --valid-for nope --recovery rerun" 2;
       expect root "add reviewed \"human review\" subject.txt \"review refutes it\" fact --requirement \"review:owner\"" 0;

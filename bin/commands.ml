@@ -42,7 +42,7 @@ let rec has_review = function
   | Review _ -> true
   | All requirements | Any requirements -> List.exists has_review requirements
 
-let add root id text scope falsifier register requirements control source_path =
+let add root id text scope falsifier register requirements control source_path environment =
   let spec = load root in
   let inside_aim goal_scope prefix =
     List.exists (fun allowed -> Git.path_contains ~dir:allowed ~path:prefix) goal_scope
@@ -79,11 +79,21 @@ let add root id text scope falsifier register requirements control source_path =
           | Some digest -> Some { kind = Madr; path = source_path; section = None; digest; review = None }
           | None -> fail Exit_code.usage ("source file not found or not a regular project file: " ^ source_path)
       in
+      (* The environment a verifier runs in is a part of the claim: a check that
+         needs the toolchain of the project says so, and the run reads it from
+         here. The rule is the rule of the format, so the format checks it. *)
+      let environment =
+        if environment = "" then None
+        else
+          match Spec.environment_value "claim.environment" (`String environment) with
+          | Ok value -> Some value
+          | Error error -> fail Exit_code.usage error
+      in
       let claim = {
         id; text; scope; source;
         owner = Option.map (fun goal -> goal.by) spec.goal;
         requirements; falsifier; register; control = (if control = "" then None else Some control);
-        waiver = None; environment = None;
+        waiver = None; environment;
       } in
       Project.save_spec root { spec with claims = spec.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;

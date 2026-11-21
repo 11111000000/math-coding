@@ -20,5 +20,9 @@ val claim_of_json : Yojson.Safe.t -> (claim, string) result
 val requirement_to_json : requirement -> Yojson.Safe.t
 val requirement_of_json : Yojson.Safe.t -> (requirement, string) result
 val source_to_json : source_ref -> Yojson.Safe.t
+(* The rule of a declared environment: a non-empty single line of at most
+   512 characters. The claim and the specification share it. *)
+val environment_value : string -> Yojson.Safe.t -> (string, string) result
+
 val waiver_to_json : waiver -> Yojson.Safe.t
 val waiver_of_json : Yojson.Safe.t -> (waiver, string) result

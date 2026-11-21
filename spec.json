@@ -177,9 +177,7 @@
     {
       "id": "style-bounds",
       "text": "the size of the code stays within the bounds of the practices: the core, the format layer and the split CLI",
-      "scope": [
-        "lib/", "format/", "bin/", "test/style_bounds.sh"
-      ],
+      "scope": [ "lib/", "format/", "bin/", "test/style_bounds.sh" ],
       "source": null,
       "owner": "owner",
       "requirements": [
@@ -451,8 +449,7 @@
       "id": "i18n-report",
       "text": "the report of the bilingual console is in step with the work it describes: it keeps the sections it promises, names the catalogue of every language the console ships, and states the number of claims the project has",
       "scope": [
-        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
-        "test/i18n_report.sh"
+        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md", "test/i18n_report.sh"
       ],
       "source": null,
       "owner": "owner",
@@ -486,18 +483,41 @@
       "text": "the canonical documents of the method are intact: their numbered lists run from one to the last without a gap and without a repeat, and every document the canon names is there",
       "scope": [
         "AXIOMS.md", "PHILOSOPHY.md", "GOAL.md", "AGENTS.md", "spec.json",
-        "skills/math-coding/references/METHODOLOGY.md", "skills/math-coding/SKILL.md",
-        "docs/ENGINEERING-PRACTICES.md", "docs/V5-DEFECT-CATALOG.md",
-        "test/canon.ml", "test/dune"
+        "skills/math-coding/references/METHODOLOGY.md",
+        "skills/math-coding/SKILL.md", "docs/ENGINEERING-PRACTICES.md",
+        "docs/V5-DEFECT-CATALOG.md", "test/canon.ml", "test/dune"
       ],
       "source": null,
       "owner": "owner",
       "requirements": [
-        { "kind": "verifier", "spec": "dune runtest --root . --force test/canon.exe" }
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/canon.exe"
+        }
       ],
       "falsifier": "a canonical document is renumbered wrongly, loses a required document or is missing",
       "register": "fact",
       "control": "sed -i 's/^1\\. /2. /' AXIOMS.md",
+      "waiver": null,
+      "environment": "nix develop -c"
+    },
+    {
+      "id": "format-migration",
+      "text": "a project of the previous version of the format is moved to this version, and no record of the journal is lost or invented",
+      "scope": [
+        "adapter/migration.ml", "bin/migrate.ml", "test/migrate.ml"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/migrate.exe"
+        }
+      ],
+      "falsifier": "a project of the previous version cannot be moved, or the move loses a record or claims a record it did not read",
+      "register": "fact",
+      "control": "sed -i \"s/let evidence = Migration.rebind_definitions spec journals.evidence in/let evidence = [] in/\" bin/migrate.ml",
       "waiver": null,
       "environment": "nix develop -c"
     }

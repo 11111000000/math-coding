@@ -1,6 +1,6 @@
 val init : string -> int
 val goal : string -> string -> string list -> string -> string -> int
-val add : string -> string -> string -> string list -> string -> string -> Domain.requirement list -> string -> string -> int
+val add : string -> string -> string -> string list -> string -> string -> Domain.requirement list -> string -> string -> string -> int
 val run : ?changed:bool -> ?limit:float -> string -> bool -> int
 val map : string -> bool -> int
 val next : string -> int
