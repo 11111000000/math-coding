@@ -1,5 +1,5 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "goal": {
     "text": "v5 keeps evidence linked, fresh, and independent",
     "scope": [
@@ -18,10 +18,7 @@
       "text": "pure verdict laws and freshness",
       "scope": [ "lib/", "test/laws.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -39,10 +36,7 @@
       "text": "strict versioned JSON codecs",
       "scope": [ "format/", "test/spec_format.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -60,10 +54,7 @@
       "text": "the CLI produces fresh independent evidence",
       "scope": [ "bin/", "adapter/", "test/cli.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -81,10 +72,7 @@
       "text": "ADR and JUnit are imported read-only with provenance",
       "scope": [ "adapter/adr.ml", "adapter/junit.ml", "test/adr_junit.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -102,10 +90,7 @@
       "text": "MCP returns typed JSON-RPC results and actionable errors",
       "scope": [ "bin/mcp.ml", "test/mcp.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -126,10 +111,7 @@
         "test/stand.ml"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -147,10 +129,7 @@
       "text": "installed mathc and stand work together",
       "scope": [ "flake.nix", "test/package_smoke.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/package_smoke.sh" }
       ],
@@ -164,10 +143,7 @@
       "text": "portable mathc and stand run outside the Nix store",
       "scope": [ "flake.nix", "test/package_smoke.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/package_smoke.sh portable" }
       ],
@@ -185,10 +161,7 @@
         "test/repository_control.ml"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -206,10 +179,7 @@
       "text": "local binaries, agent skill, and canonical methodology install cleanly",
       "scope": [ "install.sh", "skills/", "test/agent_installer.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -227,10 +197,7 @@
       "text": "an installed agent can integrate no-ADR and MADR projects",
       "scope": [ "test/agent_onboarding.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -248,10 +215,7 @@
       "text": "the delivery workflow is valid",
       "scope": [ ".github/workflows/ci.yml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -269,10 +233,7 @@
       "text": "the site is generated from spec.json and the live map and shows every claim with its current state",
       "scope": [ "site/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [ { "kind": "verifier", "spec": "sh site/check.sh" } ],
       "falsifier": "a claim is missing from the rendered map or shows a state that mathc map does not report",
       "register": "fact",
@@ -285,10 +246,7 @@
       "text": "the navigation keeps every item and every frame on a phone screen, and the English and the Russian pages are drawn by the same typefaces",
       "scope": [ "site/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh site/check-ui.sh" }
       ],
@@ -305,10 +263,7 @@
         "docs/measurements/", "test/measurement_ledger.ml", "test/dune"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -326,10 +281,7 @@
       "text": "the Math Coding console shows the canonical map only, keeps the host boundary explicit and refuses to invent a reason",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -346,10 +298,7 @@
       "text": "the development shell keeps stdout free of prose, so the machine interface stays machine readable",
       "scope": [ "test/shell_output.ml", "flake.nix" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -367,10 +316,7 @@
       "text": "the runner notices a finished child at once and never adds a delay of its own",
       "scope": [ "adapter/process.ml", "test/process.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -388,10 +334,7 @@
       "text": "the console opens with the queue of the human: the expectations, the checks, the evidence and the state come from the canonical map, and the queue never computes a state of its own",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -408,10 +351,7 @@
       "text": "the console shows the files of the subject inside the repository and reads no file outside it",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -430,10 +370,7 @@
         "flake.nix", "scripts/keep-dev-shell.sh", "test/dev_shell_smoke.sh"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/dev_shell_smoke.sh" }
       ],
@@ -447,10 +384,7 @@
       "text": "the local browser page is one interface: the bundle holds one copy of the shared interface and one copy of the data layer, and the page renders the queue of the human",
       "scope": [ "console/", "plugin/math-coding-console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh console/scripts/check-page.sh" }
       ],
@@ -464,10 +398,7 @@
       "text": "the console shows the manual steps of the method and performs them through the program itself: the human decides, the program records",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -484,10 +415,7 @@
       "text": "the console opens the sheet of the host with the surface of the host inside it: the claim detail of the queue, the confirmation of a run, the decision of the method and the preview of a file stay readable in the host",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
