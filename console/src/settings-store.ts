@@ -85,10 +85,10 @@ export class SettingsStore {
     try {
       parsed = JSON.parse(raw) as unknown;
     } catch {
-      return { status: "invalid", revision: hashOf(raw), error: "The stored settings are not valid JSON" };
+      return { status: "invalid", revision: hashOf(raw), error: "settings_invalid_json" };
     }
     if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-      return { status: "invalid", revision: hashOf(raw), error: "The stored settings have an unexpected shape" };
+      return { status: "invalid", revision: hashOf(raw), error: "settings_invalid_shape" };
     }
     const stored = parsed as Partial<StoredSettings>;
     const version = typeof stored.version === "number" ? stored.version : 1;
@@ -97,7 +97,7 @@ export class SettingsStore {
       : preferencesDefinition.migrate(stored.values, version);
     const result = preferencesDefinition.schema.safeParse(migrated);
     if (!result.success) {
-      return { status: "invalid", revision: hashOf(raw), error: describe(result.error) };
+      return { status: "invalid", revision: hashOf(raw), error: `settings_invalid: ${describe(result.error)}` };
     }
     if (version !== preferencesDefinition.version) {
       await this.persist(result.data);
@@ -108,11 +108,11 @@ export class SettingsStore {
   async write(revision: string, values: unknown): Promise<SettingsWriteResult> {
     const current = await this.read();
     if (current.revision !== revision) {
-      return { status: "conflict", error: "The settings changed since they were read; reload them before saving" };
+      return { status: "conflict", error: "settings_conflict" };
     }
     const result = preferencesDefinition.schema.safeParse(values);
     if (!result.success) {
-      return { status: "invalid", error: describe(result.error) };
+      return { status: "invalid", error: `settings_invalid: ${describe(result.error)}` };
     }
     await this.persist(result.data);
     return { status: "saved", revision: revisionOf(result.data), values: result.data };

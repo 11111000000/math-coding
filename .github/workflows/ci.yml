@@ -30,6 +30,8 @@ jobs:
           restore-prefixes-first-match: nix-${{ runner.os }}-
       - run: nix develop -c dune build --root .
       - run: nix develop -c dune runtest --root . --force
+      - name: Check the style bounds of the code
+        run: nix develop -c sh test/style_bounds.sh
       - run: nix develop -c sh test/package_smoke.sh
       - name: Verify the Paseo Math Coding plugin
         run: |

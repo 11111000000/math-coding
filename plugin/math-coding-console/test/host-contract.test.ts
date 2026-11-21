@@ -33,7 +33,9 @@ test("the host contract exposes the whole surface the shared interface uses", ()
     SettingsAction: () => null,
     SettingsSwitch: () => null,
     copyText: async () => undefined,
+    openSettings: () => undefined,
     useToast: () => ({ show: () => undefined, error: () => undefined }),
+    useAppLocale: () => "en",
     useRpc: <Contract extends HostRpcContract>(contract: Contract) => async () => undefined as unknown as ZodOutput<Contract["output"]>,
     useSettings: <Definition extends HostSettingsDefinition>(definition: Definition) => ({
       status: "ready",
@@ -58,6 +60,8 @@ test("the host contract exposes the whole surface the shared interface uses", ()
     "SettingsSwitch",
     "TextInput",
     "copyText",
+    "openSettings",
+    "useAppLocale",
     "useRpc",
     "useSettings",
     "useToast",

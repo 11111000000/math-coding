@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { buildProofGraph, buildScopeGraph, layoutGraph } from "../client/graph-layout";
+import { translate } from "../client/i18n/translate";
 import { claim, nestedClaim, snapshot } from "./fixtures";
 
 test("proof graph follows source and requirement links only", () => {
@@ -23,7 +24,9 @@ test("scope graph labels shared declarations without inventing dependencies", ()
   data.map.uncovered = ["README.md"];
   const graph = buildScopeGraph(data);
   const shared = graph.nodes.find((node) => node.id === "scope:src/");
-  assert.match(shared?.subtitle ?? "", /shared declared scope/);
+  const subtitle = shared?.subtitle;
+  const text = typeof subtitle === "string" ? subtitle : translate("en", subtitle?.key ?? "", subtitle?.args);
+  assert.match(text, /shared declared scope/);
   assert.ok(graph.edges.filter((edge) => edge.to === "scope:src/").every((edge) => edge.kind === "shared-scope"));
   assert.equal(graph.edges.some((edge) => edge.from === "claim:a" && edge.to === "claim:b"), false);
   assert.ok(graph.nodes.some((node) => node.id === "uncovered:README.md"));

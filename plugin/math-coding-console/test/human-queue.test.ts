@@ -1,8 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { attentionContext, buildAttentionModel } from "../client/attention";
+import { translate } from "../client/i18n/translate";
 import { buildHumanQueue, claimConditions, claimFiles, queueEvidenceComplete } from "../client/human-queue";
+import type { MessageRef } from "../shared/message";
 import { claim, evidence, snapshot } from "./fixtures";
+
+/**
+ * The words of a descriptor, in the language of the method.
+ */
+function words(ref: MessageRef): string {
+  return translate("en", ref.key, ref.args);
+}
 
 function record(overrides: Parameters<typeof evidence>[0] = {}) {
   return evidence(overrides);
@@ -24,9 +33,9 @@ test("the queue names the decision, the expectation and the files of a claim", (
   assert.equal(item.claimIds[0], "changed");
   assert.equal(item.expectation, "the changed source stays reviewed");
   assert.deepEqual(item.files, ["docs/adr.md", "lib/"]);
-  assert.equal(item.attention.humanQuestion.length > 0, true);
+  assert.equal(words(item.attention.humanQuestion).length > 0, true);
   assert.equal(item.conditions.length, 1);
-  assert.equal(item.conditions[0]!.label, "sh test/check.sh");
+  assert.equal(words(item.conditions[0]!.label), "verifier sh test/check.sh");
 });
 
 test("the queue shows the expectation of every declared claim", () => {
@@ -45,7 +54,7 @@ test("the queue names the third outcome and what the map still leaves open", () 
   data.map.uncovered = ["src/uncovered.ts"];
   const attention = buildAttentionModel(data, 1_000);
   const queue = buildHumanQueue(data, attention, []);
-  assert.equal(queue.acceptance.title, "Accept the result on the basis of the map");
+  assert.equal(words(queue.acceptance.title), "Accept the result on the basis of the map");
   assert.equal(queue.acceptance.obligationsConfirmed, true);
   assert.equal(queue.acceptance.areaResolved, false);
   assert.deepEqual(queue.acceptance.uncovered, ["src/uncovered.ts"]);
@@ -143,6 +152,6 @@ test("the brief of a queue item is the canonical brief of its decision", () => {
   const context = attentionContext(data, attention);
   const queue = buildHumanQueue(data, attention, []);
   assert.equal(queue.items.length, 1);
-  assert.ok(queue.items[0]!.attention.humanQuestion.length > 0);
+  assert.ok(words(queue.items[0]!.attention.humanQuestion).length > 0);
   assert.equal(context.goal, "test the plugin");
 });

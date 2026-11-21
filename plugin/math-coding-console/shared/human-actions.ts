@@ -1,4 +1,6 @@
 import { EVIDENCE_OUTCOMES, type Claim, type EvidenceOutcome, type MapState, type Requirement } from "./domain";
+import { CodedError, type ErrorCode } from "./errors";
+import type { MessageRef } from "./message";
 import { flattenRequirements } from "./requirements";
 
 /**
@@ -14,6 +16,10 @@ import { flattenRequirements } from "./requirements";
  *
  * The module never computes a verdict and never computes a state. A step is
  * offered from the canonical map and from the declared specification only.
+ *
+ * The words of a step are named, not written: a step carries the key of the
+ * catalogue and the values of its placeholders, so the server builds the same
+ * step as the client draws it and neither of them holds a language.
  */
 
 export const HUMAN_ACTION_KINDS = ["review-source", "record", "waive", "authorize"] as const;
@@ -24,10 +30,10 @@ export type HumanActionFieldName = "by" | "reason" | "outcome" | "validForDays" 
 
 export interface HumanActionField {
   name: HumanActionFieldName;
-  label: string;
-  hint: string;
+  label: MessageRef;
+  hint: MessageRef;
   required: boolean;
-  placeholder?: string;
+  placeholder?: string | MessageRef;
   /** The closed set of values of the field, when the method declares one. */
   options?: readonly string[];
 }
@@ -42,13 +48,24 @@ export interface HumanAction {
   claimId: string | null;
   /** The declared review authority, for a human review. */
   authority: string | null;
-  title: string;
+  title: MessageRef;
   /** What the program will do with the step. */
-  detail: string;
-  /** The expectation of the claim the step is about. */
-  expectation: string;
-  /** The declared owner of the claim, empty when the claim has none. */
-  owner: string;
+  detail: MessageRef;
+  /**
+   * The expectation of the claim the step is about.
+   *
+   * A claim carries its own text, and that text is data of the project: it is
+   * shown as it is. A step that belongs to no claim names its expectation with
+   * a key of the catalogue instead.
+   */
+  expectation: string | MessageRef;
+  /**
+   * The declared owner of the claim.
+   *
+   * A claim without a declared owner names the one who may act: the words are
+   * named, not written, so the interface reads them in its own language.
+   */
+  owner: string | MessageRef;
   fields: HumanActionField[];
 }
 
@@ -77,16 +94,16 @@ export function emptyHumanActionValues(): HumanActionValues {
  * The verb of the program stays visible in the command; the label says what
  * the step means.
  */
-export function humanActionKindLabel(kind: HumanActionKind): string {
+export function humanActionKindRef(kind: HumanActionKind): MessageRef {
   switch (kind) {
     case "review-source":
-      return "review of a source";
+      return { key: "action.kind_review_source" };
     case "record":
-      return "human review";
+      return { key: "action.kind_record" };
     case "waive":
-      return "accepted risk";
+      return { key: "action.kind_waive" };
     case "authorize":
-      return "authorization";
+      return { key: "action.kind_authorize" };
   }
 }
 
@@ -105,32 +122,32 @@ export interface HumanActionSource {
 
 const byField: HumanActionField = {
   name: "by",
-  label: "Who decides",
-  hint: "The name is written into the journal of decisions. It is not an authentication.",
+  label: { key: "action.field_by" },
+  hint: { key: "action.field_by_hint" },
   required: true,
-  placeholder: "the name of the person who decided",
+  placeholder: { key: "action.field_by_placeholder" },
 };
 
-function reasonField(hint: string): HumanActionField {
-  return { name: "reason", label: "Why", hint, required: true };
+function reasonField(hint: MessageRef): HumanActionField {
+  return { name: "reason", label: { key: "action.field_reason" }, hint, required: true };
 }
 
 const outcomeField: HumanActionField = {
   name: "outcome",
-  label: "Outcome of the review",
-  hint: "Only the five outcomes of the domain are accepted.",
+  label: { key: "action.field_outcome" },
+  hint: { key: "action.field_outcome_hint" },
   required: true,
   options: EVIDENCE_OUTCOMES,
 };
 
-function validForField(required: boolean, hint: string): HumanActionField {
-  return { name: "validForDays", label: "Valid for (days)", hint, required, placeholder: "7" };
+function validForField(required: boolean, hint: MessageRef): HumanActionField {
+  return { name: "validForDays", label: { key: "action.field_valid_for" }, hint, required, placeholder: "7" };
 }
 
 const recoveryField: HumanActionField = {
   name: "recovery",
-  label: "Recovery plan",
-  hint: "What is done when the accepted risk is no longer accepted.",
+  label: { key: "action.field_recovery" },
+  hint: { key: "action.field_recovery_hint" },
   required: true,
 };
 
@@ -162,20 +179,18 @@ export function humanActions(source: HumanActionSource, nowSeconds: number): Hum
     const state = states.get(claim.id);
     if (!state) continue;
     if (state.source_changed && claim.source) {
-      const owner = claim.owner ?? "the owner of the claim";
+      const owner: string | MessageRef = claim.owner ?? { key: "action.owner_fallback" };
       actions.push({
         id: `review-source:${claim.id}`,
         kind: "review-source",
         claimId: claim.id,
         authority: null,
-        title: `Review the changed source of ${claim.id}`,
-        detail:
-          `The linked source ${claim.source.path} changed. The review stores the author, the reason and the previous digest, ` +
-          "clears the accepted risk and still requires a fresh run. Only the owner of the claim may record it.",
+        title: { key: "action.title_review_source", args: { claim: claim.id } },
+        detail: { key: "action.detail_review_source", args: { path: claim.source.path } },
         expectation: claim.text,
         fields: [
           byField,
-          reasonField(`Why ${claim.source.path} still justifies the claim, or why it does not.`),
+          reasonField({ key: "action.reason_review_source", args: { path: claim.source.path } }),
         ],
         owner,
       });
@@ -188,12 +203,10 @@ export function humanActions(source: HumanActionSource, nowSeconds: number): Hum
           kind: "record",
           claimId: claim.id,
           authority: review.spec,
-          title: `Record the human review of ${claim.id}`,
-          detail:
-            `The claim declares the review by ${review.spec}. The record is human evidence with external independence: ` +
-            "it is not a machine verification, and it does not authenticate the author.",
+          title: { key: "action.title_record", args: { claim: claim.id } },
+          detail: { key: "action.detail_record", args: { authority: review.spec } },
           expectation: claim.text,
-          fields: [byField, outcomeField, validForField(false, "Optional. The record expires after this many days.")],
+          fields: [byField, outcomeField, validForField(false, { key: "action.valid_for_optional" })],
           owner: claim.owner ?? "",
         });
       }
@@ -206,16 +219,19 @@ export function humanActions(source: HumanActionSource, nowSeconds: number): Hum
           claimId: claim.id,
           authority: null,
           title: expired
-            ? `Renew the accepted risk of ${claim.id}`
-            : `Accept the risk of ${claim.id}`,
+            ? { key: "action.title_waive_renew", args: { claim: claim.id } }
+            : { key: "action.title_waive", args: { claim: claim.id } },
           detail: expired
-            ? `The accepted risk expired at ${new Date(waiver.expires_at * 1000).toISOString()}. A new waiver replaces it and acts only inside its own interval.`
-            : "The waiver marks the unknown gap of the claim as accepted for a limited time. It never turns an unknown into a confirmation, it never covers a refutation and it does not give a green verdict.",
+            ? {
+              key: "action.detail_waive_renew",
+              args: { time: new Date(waiver.expires_at * 1000).toISOString() },
+            }
+            : { key: "action.detail_waive" },
           expectation: claim.text,
           fields: [
             byField,
-            reasonField("Why this gap is accepted on these terms."),
-            validForField(true, "The waiver acts only inside this interval."),
+            reasonField({ key: "action.reason_waive" }),
+            validForField(true, { key: "action.valid_for_required" }),
             recoveryField,
           ],
           owner: claim.owner ?? "",
@@ -229,12 +245,10 @@ export function humanActions(source: HumanActionSource, nowSeconds: number): Hum
       kind: "authorize",
       claimId: null,
       authority: null,
-      title: "Authorize the protected changes",
-      detail:
-        "The project declares protected transitions. The authorization is a journal entry for the current commit; " +
-        "it is not an authentication, and only the declared person may record it.",
-      expectation: "The protected changes of the current commit.",
-      fields: [byField, reasonField("Why the protected changes are authorized.")],
+      title: { key: "action.title_authorize" },
+      detail: { key: "action.detail_authorize" },
+      expectation: { key: "action.expectation_authorize" },
+      fields: [byField, reasonField({ key: "action.reason_authorize" })],
       owner: "",
     });
   }
@@ -265,18 +279,18 @@ export function primaryActionForClaim(actions: HumanAction[], claimId: string): 
   return undefined;
 }
 
-function requireText(value: string, label: string): string {
+function requireText(value: string, code: ErrorCode): string {
   const text = value.trim();
-  if (text === "") throw new Error(`The decision needs ${label}`);
+  if (text === "") throw new CodedError(code);
   return text;
 }
 
-function optionalDays(value: string, label: string): number | null {
+function optionalDays(value: string): number | null {
   const text = value.trim();
   if (text === "") return null;
-  if (!/^\d+$/.test(text)) throw new Error(`${label} must be a whole number of days`);
+  if (!/^\d+$/.test(text)) throw new CodedError("validity_whole");
   const days = Number(text);
-  if (days <= 0) throw new Error(`${label} must be a positive number of days`);
+  if (days <= 0) throw new CodedError("validity_positive");
   return days;
 }
 
@@ -289,31 +303,31 @@ function optionalDays(value: string, label: string): number | null {
  * involved.
  */
 export function humanActionArgv(action: HumanAction, values: HumanActionValues): string[] {
-  const by = requireText(values.by, "the name of the person who decided");
+  const by = requireText(values.by, "decision_needs_by");
   switch (action.kind) {
     case "review-source": {
-      if (!action.claimId) throw new Error("The review of a source needs a claim");
-      const reason = requireText(values.reason, "the reason of the review");
+      if (!action.claimId) throw new CodedError("review_needs_claim");
+      const reason = requireText(values.reason, "decision_needs_reason");
       return ["review-source", action.claimId, "--by", by, "--reason", reason];
     }
     case "record": {
-      if (!action.claimId) throw new Error("A human review needs a claim");
-      if (!action.authority) throw new Error("A human review needs the declared authority");
-      const outcome = requireText(values.outcome, "the outcome of the review");
+      if (!action.claimId) throw new CodedError("record_needs_claim");
+      if (!action.authority) throw new CodedError("record_needs_authority");
+      const outcome = requireText(values.outcome, "decision_needs_outcome");
       if (!EVIDENCE_OUTCOMES.includes(outcome as (typeof EVIDENCE_OUTCOMES)[number])) {
-        throw new Error(`The outcome must be one of ${EVIDENCE_OUTCOMES.join(", ")}`);
+        throw new CodedError("outcome_unknown", EVIDENCE_OUTCOMES.join(", "));
       }
       const argv = ["record", action.claimId, action.authority, "--by", by, "--outcome", outcome];
-      const days = optionalDays(values.validForDays, "The validity");
+      const days = optionalDays(values.validForDays);
       if (days !== null) argv.push("--valid-for", String(days));
       return argv;
     }
     case "waive": {
-      if (!action.claimId) throw new Error("An accepted risk needs a claim");
-      const reason = requireText(values.reason, "the reason of the accepted risk");
-      const recovery = requireText(values.recovery, "the recovery plan");
-      const days = optionalDays(values.validForDays, "The validity");
-      if (days === null) throw new Error("An accepted risk needs the number of days it acts for");
+      if (!action.claimId) throw new CodedError("waive_needs_claim");
+      const reason = requireText(values.reason, "decision_needs_reason_accepted_risk");
+      const recovery = requireText(values.recovery, "decision_needs_recovery");
+      const days = optionalDays(values.validForDays);
+      if (days === null) throw new CodedError("days_required");
       return [
         "waive",
         action.claimId,
@@ -328,7 +342,7 @@ export function humanActionArgv(action: HumanAction, values: HumanActionValues):
       ];
     }
     case "authorize": {
-      const reason = requireText(values.reason, "the reason of the authorization");
+      const reason = requireText(values.reason, "decision_needs_reason_authorization");
       return ["authorize", "--by", by, "--reason", reason];
     }
   }

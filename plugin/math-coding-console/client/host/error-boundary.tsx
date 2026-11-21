@@ -1,5 +1,6 @@
 import { Component, type ReactNode } from "react";
 import { Text, View } from "react-native";
+import { translateNow } from "../i18n/current";
 
 interface HostErrorBoundaryProps {
   children: ReactNode;
@@ -31,10 +32,8 @@ export class HostErrorBoundary extends Component<HostErrorBoundaryProps, HostErr
     if (this.state.failed) {
       return (
         <View style={{ padding: 16, gap: 6 }}>
-          <Text style={{ fontSize: 15, fontWeight: "700" }}>This view could not be drawn</Text>
-          <Text style={{ fontSize: 12 }}>
-            Close this sheet and open it again. The rest of the console keeps working.
-          </Text>
+          <Text style={{ fontSize: 15, fontWeight: "700" }}>{translateNow("error.view_failed")}</Text>
+          <Text style={{ fontSize: 12 }}>{translateNow("error.view_failed_detail")}</Text>
         </View>
       );
     }

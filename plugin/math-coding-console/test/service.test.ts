@@ -6,6 +6,7 @@ import { test, type TestContext } from "node:test";
 import type { PluginHandlerContext } from "@getpaseo/plugin/server";
 import { ConsoleOperations } from "../server/core/operations";
 import { PaseoOperationsHost } from "../server/paseo/service";
+import { coded } from "./coded";
 import { claim, map } from "./fixtures";
 import type { MathMap } from "../shared/domain";
 
@@ -76,7 +77,7 @@ test("a relative binary override is rejected before execution", async (t) => {
   const root = await temp(t);
   await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
   const service = consoleService(settings("relative/mathc") as never);
-  await assert.rejects(service.snapshot(paseoFor(root), "workspace-1"), /absolute path/);
+  await assert.rejects(service.snapshot(paseoFor(root), "workspace-1"), coded("binary_path_not_absolute"));
 });
 
 test("run requires explicit confirmation", async (t) => {
@@ -84,7 +85,7 @@ test("run requires explicit confirmation", async (t) => {
   const service = consoleService(settings() as never);
   await assert.rejects(
     service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "NOPE" as "RUN_CHECKS" }),
-    /explicit confirmation/,
+    coded("run_checks_needs_confirmation"),
   );
 });
 
@@ -94,7 +95,7 @@ test("run remains disabled until the host setting is enabled", async (t) => {
   const service = consoleService(settings("", false) as never);
   await assert.rejects(
     service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "RUN_CHECKS" }),
-    /disabled/,
+    coded("run_checks_disabled"),
   );
 });
 

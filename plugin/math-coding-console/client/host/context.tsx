@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from "react";
+import { translateNow } from "../i18n/current";
 import type { HostContextValue } from "./contract";
 
 const HostContext = createContext<HostContextValue | null>(null);
@@ -10,7 +11,7 @@ export function HostProvider({ value, children }: { value: HostContextValue; chi
 export function useHost(): HostContextValue {
   const value = useContext(HostContext);
   if (!value) {
-    throw new Error("The Math Coding console requires a host provider");
+    throw new Error(translateNow("error.host_provider_required"));
   }
   return value;
 }

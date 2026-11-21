@@ -10,7 +10,7 @@
     ],
     "by": "owner",
     "at": 1794829339,
-    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it"
+    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it; the three-arm measurement of the method has never been run, and until it is, the project carries a debt of honesty that the protocol names and the claim of the field measurement keeps in view"
   },
   "claims": [
     {
@@ -154,11 +154,11 @@
     },
     {
       "id": "repository-lints",
-      "text": "repository structure and public interfaces stay bounded",
+      "text": "the repository keeps the shape the method needs: every module has its interface, the format layer loses no error silently, the legacy implementation is absent and the practices are written",
       "scope": [
-        "lib/", "format/", "bin/", "test/dune", "test/helpers.ml",
-        "test/helpers.mli", "test/repository_lints.ml",
-        "test/repository_control.ml"
+        "lib/", "format/", "adapter/", "docs/ENGINEERING-PRACTICES.md",
+        "test/dune", "test/helpers.ml", "test/helpers.mli",
+        "test/repository_lints.ml", "test/repository_control.ml"
       ],
       "source": null,
       "owner": "owner",
@@ -168,11 +168,27 @@
           "spec": "dune runtest --root . --force test/repository_lints.exe test/repository_control.exe"
         }
       ],
-      "falsifier": "a core or interface exceeds its bound or loses required files",
+      "falsifier": "a module loses its interface, the format layer loses an error silently, the legacy implementation returns or the practices document disappears",
       "register": "fact",
       "control": "printf 'let broken = 0\\n' > lib/without_interface.ml",
       "waiver": null,
       "environment": "nix develop -c"
+    },
+    {
+      "id": "style-bounds",
+      "text": "the size of the code stays within the bounds of the practices: the core, the format layer and the split CLI",
+      "scope": [
+        "lib/", "format/", "bin/", "test/style_bounds.sh"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "sh test/style_bounds.sh" }
+      ],
+      "falsifier": "the core, the format layer or a module of them outgrows its bound",
+      "register": "fact",
+      "control": "printf 'val x : int\\n' > lib/long_module.mli && printf 'let x = 0\\n' > lib/long_module.ml && for i in $(seq 1 300); do printf 'let v%d = %d\\n' $i $i >> lib/long_module.ml; done",
+      "waiver": null
     },
     {
       "id": "agent-installer",
@@ -258,7 +274,7 @@
     },
     {
       "id": "field-measurement",
-      "text": "the field pilot ledger accepts consistent records and rejects inconsistent comparisons",
+      "text": "the apparatus of the field measurement is whole and runnable: the ledger accepts consistent records and rejects inconsistent comparisons, and the protocol declares what the measurement needs",
       "scope": [
         "docs/measurements/", "test/measurement_ledger.ml", "test/dune"
       ],
@@ -268,11 +284,15 @@
         {
           "kind": "verifier",
           "spec": "dune runtest --root . --force test/measurement_ledger.exe"
+        },
+        {
+          "kind": "verifier",
+          "spec": "test -f docs/measurements/BENCHMARK-PROTOCOL.md && test -s docs/measurements/dry-run.jsonl && test -f docs/measurements/task-ledger.py && for part in \"Экспериментальные руки\" \"Baseline\" \"Checklist\" \"Protocol\" \"Набор задач\" \"число задач и повторов\" \"критерий принятого результата\" \"Критерий принятия метода\" \"не менее 30% снижения\" \"независимый оценщик\" \"независимым ревьюером\" \"отличная по числу задач\"; do grep -qF \"$part\" docs/measurements/BENCHMARK-PROTOCOL.md || exit 1; done"
         }
       ],
-      "falsifier": "an inconsistent task record is accepted or a valid dry run is rejected",
+      "falsifier": "an inconsistent task record is accepted, a valid dry run is rejected, the protocol stops declaring what the measurement needs or a part of the apparatus is missing",
       "register": "fact",
-      "control": "sed -i 's/accepted_by is None/accepted_by is not None/' docs/measurements/task-ledger.py",
+      "control": "sed -i 's/^## 2\\. Экспериментальные руки/## 2. Руки сравнения/' docs/measurements/BENCHMARK-PROTOCOL.md",
       "waiver": null,
       "environment": "nix develop -c"
     },
@@ -426,6 +446,60 @@
       "register": "fact",
       "control": "sed -i 's|<HostProvider value={host}>||; s|</HostProvider>||' plugin/math-coding-console/client/host/sheet.tsx",
       "waiver": null
+    },
+    {
+      "id": "i18n-report",
+      "text": "the report of the bilingual console is in step with the work it describes: it keeps the sections it promises, names the catalogue of every language the console ships, and states the number of claims the project has",
+      "scope": [
+        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
+        "test/i18n_report.sh"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "sh test/i18n_report.sh" }
+      ],
+      "falsifier": "the report states a number of claims, a language or a section the project does not have",
+      "register": "fact",
+      "control": "sed -i -E 's/[0-9]+ утверждени/0 утверждени/' docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
+      "waiver": null
+    },
+    {
+      "id": "console-permissions",
+      "text": "the console names the permission that is closed and opens the settings of the host, so a closed button is never a button without a reason",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-permissions.sh"
+        }
+      ],
+      "falsifier": "the console leaves a closed action unexplained, or offers no way to the settings that open it",
+      "register": "fact",
+      "control": "sed -i 's/switchLabel={t(\"settings.allow_run\")}/switchLabel=\"Run checks\"/' plugin/math-coding-console/client/permissions.tsx",
+      "waiver": null
+    },
+    {
+      "id": "canon-integrity",
+      "text": "the canonical documents of the method are intact: their numbered lists run from one to the last without a gap and without a repeat, and every document the canon names is there",
+      "scope": [
+        "AXIOMS.md", "PHILOSOPHY.md", "GOAL.md", "AGENTS.md", "spec.json",
+        "skills/math-coding/references/METHODOLOGY.md", "skills/math-coding/SKILL.md",
+        "docs/ENGINEERING-PRACTICES.md", "docs/V5-DEFECT-CATALOG.md",
+        "test/canon.ml", "test/dune"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "dune runtest --root . --force test/canon.exe" }
+      ],
+      "falsifier": "a canonical document is renumbered wrongly, loses a required document or is missing",
+      "register": "fact",
+      "control": "sed -i 's/^1\\. /2. /' AXIOMS.md",
+      "waiver": null,
+      "environment": "nix develop -c"
     }
   ]
 }

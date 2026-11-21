@@ -4,7 +4,10 @@ import { QueryClient } from "@tanstack/react-query";
 import { attentionBrief, attentionContext, buildAttentionModel } from "../client/attention";
 import { emptyHumanActionValues, humanActions } from "../shared/human-actions";
 import { buildHumanQueue } from "../client/human-queue";
-import { renderWithHost } from "../test/host-stub";
+import { translate } from "../client/i18n/translate";
+import { renderWithHost, host } from "../test/host-stub";
+import type { HostContextValue } from "../client/host/contract";
+import type { MessageKey } from "../shared/message";
 import { runScale } from "../client/run-scale";
 import { theme, snapshot, claim } from "../test/fixtures";
 
@@ -25,6 +28,7 @@ async function main() {
     { RunConfirmation },
     { FilePreview },
     { HumanActionForm },
+    { PermissionsCard },
   ] = await Promise.all([
     import("../client/frame"),
     import("../client/attention-view"),
@@ -39,6 +43,7 @@ async function main() {
     import("../client/run-confirmation"),
     import("../client/file-preview"),
     import("../client/human-action"),
+    import("../client/permissions"),
   ]);
   const data = snapshot();
   data.map.states = [{ id: "hello", state: "outdated", source_changed: false, reason: "environment-changed" }];
@@ -125,6 +130,7 @@ async function main() {
       onConfirm: () => undefined,
     })],
     ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" })],
+    ["permissions card", React(PermissionsCard, { theme, compact: false, runEnabled: false, decisionsEnabled: false, onOpenSettings: () => undefined })],
     ["settings screen", React(SettingsScreen, { theme })],
   ];
   for (const [name, element] of views) {
@@ -160,7 +166,14 @@ async function main() {
       assert.ok(markup.includes("15 can move without you"));
       assert.ok(markup.includes("Nothing needs your decision now"));
       assert.ok(markup.includes("Refresh evidence for 15 claims"));
-      assert.ok(markup.includes("Run checks are disabled"));
+      assert.ok(markup.includes("What the console can do now"), "the panel does not say what it can do");
+      assert.ok(markup.includes("Allow Run checks"), "the panel does not name the switch of the run");
+      assert.ok(markup.includes("Allow human decisions"), "the panel does not name the switch of the decisions");
+      assert.ok(markup.includes("Open the Math Coding settings"), "the panel does not offer the settings of the host");
+    }
+    if (name === "permissions card") {
+      assert.ok(markup.includes("Reading the map, the evidence, the briefs and the navigation always works"), "the card does not say what always works");
+      assert.ok(markup.includes("in the settings of the plugin"), "the card does not name the place of the switch");
     }
     if (name === "run confirmation") {
       assert.ok(markup.includes("Scale: 15 claim(s) and 30 check command(s) will run"), "the confirmation does not name the scale of the run");
@@ -185,6 +198,41 @@ async function main() {
   const lightMarkup = render(React(InstrumentFrame, { ...frameProps, theme: light, compact: true }));
   assert.ok(lightMarkup.includes("test the plugin"));
   process.stdout.write(`ok: light compact frame rendered ${lightMarkup.length} bytes\n`);
+
+  /**
+   * The same interface in Russian.
+   *
+   * The language of the host decides the language of the interface when the
+   * human has not chosen one. The check draws the screens again with a host
+   * that speaks Russian and asks for the Russian text of the labels: the
+   * English text of the same label must be gone.
+   */
+  const russianHost: HostContextValue = { ...host, useAppLocale: () => "ru" };
+  const russian = (element: ReactNode) => renderWithHost(element, queryClient, russianHost);
+  const ru = (key: MessageKey) => translate("ru", key);
+  const en = (key: MessageKey) => translate("en", key);
+  const russianScreens: [string, ReactNode, MessageKey[]][] = [
+    ["console panel", React(ConsolePanel, { theme, layout: { compact: false }, workspaceId: "workspace-1" }), ["panel.tab_queue", "panel.tab_explore", "panel.tab_evidence"]],
+    ["human queue", React(QueueView, { theme, compact: false, queue: humanQueue, context: humanContext, actions: humanActionsForFixture, decisionsEnabled: true, onTakeAction: () => undefined, onOpenFile: () => undefined, onSelect: () => undefined }), ["queue.title", "queue.accept_title", "queue.next_safe_step"]],
+    ["claim detail", React(ClaimDetailView, { theme, compact: false, snapshot: data, selection: { claimId: "hello" }, onClose: () => undefined, onSelect: () => undefined, onRefresh: () => undefined, onOpenFile: () => undefined }), ["detail.requirements_title", "detail.proof_title", "detail.evidence_title"]],
+    ["proof graph", React(GraphView, { theme, compact: false, snapshot: data, mode: "proof", expanded: new Set<string>(["hello"]), onToggleClaim: () => undefined, selected: null, onSelect: () => undefined }), ["graph.links_note", "graph.kind_goal"]],
+    ["settings screen", React(SettingsScreen, { theme }), ["settings.locale_label", "settings.locale_ru"]],
+    ["permissions card", React(PermissionsCard, { theme, compact: false, runEnabled: false, decisionsEnabled: false, onOpenSettings: () => undefined }), ["permissions.title", "permissions.open_settings"]],
+  ];
+  for (const [name, element, keys] of russianScreens) {
+    const markup = russian(element);
+    for (const key of keys) {
+      assert.ok(markup.includes(ru(key)), `the Russian ${name} does not show ${key}`);
+      // A name that both languages spell alike — the name of a language itself —
+      // is the same word in either language, so only a different word is missing.
+      if (en(key) !== ru(key)) {
+        assert.ok(!markup.includes(en(key)), `the Russian ${name} still shows the English text of ${key}`);
+      }
+    }
+    process.stdout.write(`ok: ${name} rendered in Russian (${markup.length} bytes)\n`);
+  }
+  assert.ok(!brief.includes(ru("queue.accept_title")), "the brief of the agent stays in the language of the method");
+  process.stdout.write("ok: the brief of the agent stays in English\n");
   process.stdout.write("render-check: PASS\n");
 }
 

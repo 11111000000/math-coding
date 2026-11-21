@@ -43,6 +43,11 @@
  (libraries mathc_test_helpers mathcoding_adapter))
 
 (test
+ (name canon)
+ (modules canon)
+ (libraries mathc_test_helpers mathcoding_adapter yojson))
+
+(test
  (name repository_control)
  (modules repository_control)
  (libraries mathc_test_helpers mathcoding_adapter))
@@ -82,6 +87,7 @@
 (test
  (name measurement_ledger)
  (modules measurement_ledger)
- (libraries mathc_test_helpers mathcoding_adapter)
+ (libraries mathc_test_helpers mathcoding_adapter mathcoding_format)
  (deps ../docs/measurements/task-ledger.py
-  ../docs/measurements/dry-run.jsonl))
+  ../docs/measurements/dry-run.jsonl
+  ../docs/measurements/BENCHMARK-PROTOCOL.md))

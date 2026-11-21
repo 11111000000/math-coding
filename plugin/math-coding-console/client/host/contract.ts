@@ -113,6 +113,14 @@ export interface HostContextValue {
   Icon: ComponentType<HostIconProps>;
   Modal: HostModalComponent;
   TextInput: ComponentType<HostTextInputProps>;
+  /**
+   * The language the host application speaks.
+   *
+   * The interface follows it unless the human chooses another language in the
+   * settings of the plugin. The value is live: a change of the language of the
+   * host reaches the interface without a reload.
+   */
+  useAppLocale: () => string;
   SettingsSection: ComponentType<HostSettingsSectionProps>;
   SettingsCard: ComponentType<HostSettingsCardProps>;
   SettingsInput: ComponentType<HostSettingsInputProps>;
@@ -120,6 +128,14 @@ export interface HostContextValue {
   SettingsAction: ComponentType<HostSettingsActionProps>;
   SettingsSwitch: ComponentType<HostSettingsSwitchProps>;
   copyText: (text: string) => Promise<void>;
+  /**
+   * Opens the settings of the host.
+   *
+   * The permissions of the console live in the settings of the host. A host
+   * that keeps them closed has to offer a way to the place where they are
+   * opened, otherwise a closed action is a button nobody can explain.
+   */
+  openSettings: () => void;
   useToast: () => HostToast;
   useRpc: <Contract extends HostRpcContract>(
     contract: Contract,
