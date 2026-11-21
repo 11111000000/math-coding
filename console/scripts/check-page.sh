@@ -55,8 +55,13 @@ for candidate in chromium chromium-browser google-chrome google-chrome-stable ch
   fi
 done
 
+# The check exercises the code of this tree, so the binary of this tree comes
+# first. The shared channel changes when the ritual of the build runs, and a
+# check of the tree must not depend on what the host happens to have
+# installed: the binary of the tree and the binary of the channel speak
+# different versions of the format.
 mathc=""
-for candidate in mathc "$ROOT/_build/default/bin/mathc.exe"; do
+for candidate in "$ROOT/_build/default/bin/mathc.exe" mathc; do
   if command -v "$candidate" >/dev/null 2>&1; then
     mathc=$(command -v "$candidate")
     break
