@@ -30,8 +30,6 @@ type source_ref = {
   review : source_review option;
 }
 
-type obligation_kind = Invariant | Acceptance | Recovery | Operational | Judgment
-type phase = Pre_merge | Pre_release | Post_release
 type register = Fact | Hypothesis | Judgment | Undeclared
 
 type requirement =
@@ -49,7 +47,6 @@ type waiver = {
   reason : string;
   compensating_controls : string list;
   recovery : string;
-  review_on : string list;
 }
 
 type claim = {
@@ -57,10 +54,7 @@ type claim = {
   text : string;
   scope : string list;
   source : source_ref option;
-  kind : obligation_kind;
-  phase : phase;
   owner : string option;
-  review_on : string list;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -72,6 +66,10 @@ type claim = {
 type environment = { class_ : string; fingerprint : string }
 type producer = { class_ : string; identity : string; run : string option }
 
+(* The tool that produced a record. It is an observer, not a subject: the
+   evidence stays applicable when the tool changes. *)
+type tool = { class_ : string; fingerprint : string }
+
 type evidence = {
   claim_id : string;
   requirement : requirement;
@@ -80,6 +78,7 @@ type evidence = {
   definition_digest : string;
   verifier_digest : string;
   environment : environment;
+  tool : tool;
   producer : producer;
   independence : independence;
   outcome : outcome;
@@ -97,7 +96,7 @@ type execution_log = {
   observed_by : string;
 }
 
-type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
+type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
@@ -110,10 +109,6 @@ val independence_of_string : string -> independence option
 val independence_rank : independence -> int
 val source_kind_to_string : source_kind -> string
 val source_kind_of_string : string -> source_kind option
-val obligation_kind_to_string : obligation_kind -> string
-val obligation_kind_of_string : string -> obligation_kind option
-val phase_to_string : phase -> string
-val phase_of_string : string -> phase option
 val register_to_string : register -> string
 val register_of_string : string -> register option
 val state_to_string : state -> string

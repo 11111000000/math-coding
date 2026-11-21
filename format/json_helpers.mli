@@ -1,5 +1,6 @@
 val object_ : string -> string list -> Yojson.Safe.t -> ((string * Yojson.Safe.t) list, string) result
 val string : string -> (string * Yojson.Safe.t) list -> (string, string) result
+val string_any : string -> (string * Yojson.Safe.t) list -> (string, string) result
 val string_opt : string -> (string * Yojson.Safe.t) list -> (string option, string) result
 val string_list : string -> (string * Yojson.Safe.t) list -> (string list, string) result
 val int : string -> (string * Yojson.Safe.t) list -> (int, string) result

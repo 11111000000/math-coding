@@ -12,7 +12,7 @@
 (test
  (name spec_format)
  (modules spec_format)
- (libraries mathc_test_helpers mathcoding_format))
+ (libraries mathc_test_helpers mathcoding_format mathcoding_adapter))
 
 (test
  (name adr_junit)
@@ -70,6 +70,12 @@
 (test
  (name shell_output)
  (modules shell_output)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps %{exe:../bin/mathc.exe}))
+
+(test
+ (name migrate)
+ (modules migrate)
  (libraries mathc_test_helpers mathcoding_adapter)
  (deps %{exe:../bin/mathc.exe}))
 

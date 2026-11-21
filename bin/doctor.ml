@@ -42,7 +42,7 @@ let doctor root =
   (* The state of the evidence, not only the shape of the repository. The tool
      can be in place and the evidence stale; the doctor has to tell the two
      apart, and it has to name what is wrong with the evidence. *)
-  (match Project.evaluate root spec with
+  (match Evaluation.evaluate root spec with
    | Error error -> report false ("the evidence can be read: " ^ error)
    | Ok evaluation ->
        report true "the evidence trail can be read";
@@ -51,13 +51,13 @@ let doctor root =
         | damages ->
             report false
               (Printf.sprintf "the evidence trail is not whole: %d record(s) cannot be read (%s)"
-                 (List.length damages) (Project.damage_words damages)));
-       let states = List.map (fun (item : Project.evaluated_state) -> item.state) evaluation.states in
+                 (List.length damages) (Next_action.damage_words damages)));
+       let states = List.map (fun (item : Evaluation.evaluated_state) -> item.state) evaluation.states in
        let count state = List.length (List.filter (fun value -> value = state) states) in
        note
          (Printf.sprintf "the evidence is fresh for %d of %d claim(s) (%d outdated, %d never checked, %d inconclusive)"
             (count Holds) (List.length states) (count Outdated) (count NeverChecked) (count Inconclusive));
-       (match Project.uncovered root spec with
+       (match Evaluation.uncovered root spec with
         | Error error -> report false ("the coverage of the aim can be read: " ^ error)
         | Ok files ->
             if files = [] then note "every file inside the aim is covered by a claim"

@@ -21,6 +21,14 @@ let string name pairs =
   | Some _ -> Error (name ^ " must be a string")
   | None -> Error (name ^ " is required")
 
+(* A string that may be empty: the fingerprint of an unknown tool is empty,
+   and the reader must not have to guess which build wrote the record. *)
+let string_any name pairs =
+  match List.assoc_opt name pairs with
+  | Some (`String value) -> Ok value
+  | Some _ -> Error (name ^ " must be a string")
+  | None -> Error (name ^ " is required")
+
 let string_opt name pairs =
   match List.assoc_opt name pairs with
   | None | Some `Null -> Ok None

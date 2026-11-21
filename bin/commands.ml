@@ -80,8 +80,8 @@ let add root id text scope falsifier register requirements control source_path =
           | None -> fail Exit_code.usage ("source file not found or not a regular project file: " ^ source_path)
       in
       let claim = {
-        id; text; scope; source; kind = Acceptance; phase = Pre_merge;
-        owner = Option.map (fun goal -> goal.by) spec.goal; review_on = [];
+        id; text; scope; source;
+        owner = Option.map (fun goal -> goal.by) spec.goal;
         requirements; falsifier; register; control = (if control = "" then None else Some control);
         waiver = None; environment = None;
       } in
@@ -101,29 +101,6 @@ let repair_trail root =
       | Error error -> Error error
       | Ok None -> Ok None
       | Ok (Some backup) -> Ok (Some (List.length journal.damaged, backup)))
-
-(* The price of the run, in words: what the machine spent and where. The
-   slowest claims come first, because that is what a consumer has to see to
-   know which check to look at. *)
-let cost_words (durations : Run_log.priced_claim list) =
-  let total =
-    List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
-  in
-  let sorted = List.sort (fun a b -> compare b.cost.value a.cost.value) durations in
-  let shown = List.take 10 sorted in
-  let header =
-    Printf.sprintf "machine time: %.1f s in %d claim(s); the slowest first:" total (List.length durations)
-  in
-  let lines =
-    List.map (fun (priced : Run_log.priced_claim) ->
-        Printf.sprintf "  %.1f s  %s" priced.cost.value priced.claim_id) shown
-  in
-  let rest =
-    match List.length sorted - List.length shown with
-    | 0 -> []
-    | count -> [ Printf.sprintf "  (%d more claim(s) not shown)" count ]
-  in
-  String.concat "\n" (header :: lines @ rest)
 
 (* The run has a limit of its own: the consumer does not have to impose one,
    and a run that is stopped says so instead of falling silent. *)
@@ -147,8 +124,11 @@ let install_stop_handler stop reason =
    Sys.signal Sys.sigint (Sys.Signal_handle handler))
 
 let run ?(changed = false) ?(limit = default_limit) root json =
-  (match Policy.check root with Ok () -> () | Error error -> fail Exit_code.red_or_protected error);
+  (* The specification is read before anything else: a project of the previous
+     version of the format is refused with the instruction to migrate it, and
+     nothing of that project is touched. *)
   let spec = load root in
+  (match Policy.check root with Ok () -> () | Error error -> fail Exit_code.red_or_protected error);
   (* The journal is repaired before the run: a record that cannot be read
      cannot be kept either, and the records that can be read still stand. *)
   (match repair_trail root with
@@ -167,7 +147,7 @@ let run ?(changed = false) ?(limit = default_limit) root json =
      the evidence that is in the journal now. *)
   let selection =
     if changed then
-      match Project.selection root spec with
+      match Evaluation.selection root spec with
       | Error error -> fail Exit_code.internal_failure error
       | Ok selection -> Some selection
     else None
@@ -230,13 +210,13 @@ let run ?(changed = false) ?(limit = default_limit) root json =
   (match selection with
    | None -> ()
    | Some selection ->
-       let words = Project.selection_words selection in
-       let blind = match Project.blind_words selection with Some words -> words | None -> "" in
+       let words = Evaluation.selection_words selection in
+       let blind = match Evaluation.blind_words selection with Some words -> words | None -> "" in
        let report =
          if blind = "" then words else words ^ "; " ^ blind
        in
        if json then prerr_endline ("mathc: " ^ report) else print_endline report);
-  let cost = cost_words durations in
+  let cost = Execution.cost_words durations in
   if json then prerr_endline ("mathc: " ^ cost) else print_endline cost;
   (* A stopped run says so. The map below is over what was observed, and the
      code of the exit says that the run did not finish. *)
@@ -279,7 +259,7 @@ let waive root id by reason valid_for recovery =
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
   | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim -> (
-      match Project.states root spec with
+      match Evaluation.states root spec with
       | Error error -> fail Exit_code.internal_failure error
       | Ok states ->
           if by = "" || reason = "" || recovery = "" || valid_for <= 0 then
@@ -289,7 +269,7 @@ let waive root id by reason valid_for recovery =
             let waiver = {
               gap = id; scope = claim.scope; issuer = by; issued_at = Execution.now ();
               expires_at = Execution.now () + (valid_for * 86400); reason;
-              compensating_controls = []; recovery; review_on = [];
+              compensating_controls = []; recovery;
             } in
             let claims = List.map (fun current -> if current.id = id then { current with waiver = Some waiver } else current) spec.claims in
             Project.save_spec root { spec with claims };
@@ -394,3 +374,7 @@ let review_source root id by reason =
   match Decision.review_source ~root ~spec ~id ~by ~reason with
   | Ok () -> 0
   | Error error -> fail Exit_code.usage error
+
+(* The migration of a project of the previous version of the format. It is a
+   human action: the agent surface does not move the journals of a project. *)
+let migrate root dry_run = Migrate.run root dry_run

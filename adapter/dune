@@ -1,5 +1,5 @@
 (library
  (name mathcoding_adapter)
  (wrapped false)
- (modules io process git trail run_log isolated_run adr adopt junit policy re_evaluation approval)
+ (modules io process git trail run_log isolated_run adr adopt junit policy re_evaluation approval migration)
  (libraries mathcoding mathcoding_format unix yojson omd xmlm))

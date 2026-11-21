@@ -12,7 +12,8 @@ let human_evidence ~root ~claim ~requirement ~by ~outcome ~valid_for ~run ~evide
     candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
     materials_digest = Git.binding_of_scope root ~scope:claim.scope;
     definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
-    environment = Project.environment root;
+    environment = Evaluation.environment root;
+    tool = Evaluation.tool ();
     producer = { class_ = "human"; identity = by; run };
     independence = External; outcome; issued_at = Execution.now ();
     valid_until = Option.map (fun days -> Execution.now () + (days * 86400)) valid_for;
@@ -22,7 +23,7 @@ let human_evidence ~root ~claim ~requirement ~by ~outcome ~valid_for ~run ~evide
    decision this person made; the owner of the claim speaks for all of them.
    The previous decision stays in the journal. *)
 let revise ~root ~claim ~records ~by ~reason ~outcome ~valid_for =
-  let reviews = Project.reviews_of_claim claim in
+  let reviews = Evaluation.reviews_of_claim claim in
   if reviews = [] then Error "the claim is not settled by a human review"
   else
     let mine =

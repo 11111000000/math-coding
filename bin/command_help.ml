@@ -19,6 +19,7 @@ let command_help = function
   | "re-evaluate" -> "re-evaluate: list claims whose source, definition or evidence requires review."
   | "review-source" -> "review-source ID --by OWNER --reason WHY: bind a changed source after human review; records the previous digest, clears waiver and still requires a fresh run."
   | "mcp" -> "mcp: serve the JSON-RPC tool surface over stdio."
+  | "migrate" -> "migrate [--dry-run]: move a project of the previous version of the format to the version of this method. It reads the specification and the journals of the previous version and writes the ones of this version; the files of the previous version stay where they are. The migrated records carry the tool as unknown, because the previous version wrote the binary into the fingerprint of the environment. The claims of a migrated project have to be checked again: mathc run. Exit 0 when the project is migrated, 2 when it cannot be migrated."
   | _ -> ""
 
 let help topic =
@@ -53,6 +54,7 @@ Human decisions (record only what a person actually decided):
 Other commands:
   mathc install              update only the math-coding block in AGENTS.md
   mathc doctor               check setup without changing it
+  mathc migrate              move a project of the previous format version to this one
   mathc mcp                  JSON-RPC over stdio
   mathc help [COMMAND] | mathc --help
   mathc --version

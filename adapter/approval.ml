@@ -17,7 +17,15 @@ open Domain
 
 type record = { by : string; reason : string; at : int; commands : string list }
 
-let path root = Filename.concat root ".math/v5/approval.json"
+(* The version of the format of the journal. *)
+let version = 6
+
+(* The journal of the approval of this version of the format. *)
+let path root = Filename.concat root ".math/v6/approval.json"
+
+(* The journal of the previous version. It stays where it is - it is the
+   evidence of what happened - and the migration reads it. *)
+let previous_path root = Filename.concat root ".math/v5/approval.json"
 
 let digest_of_command command = Domain.digest_string command
 
@@ -48,34 +56,40 @@ let record_of_json json =
       | Error error, _, _, _ | _, Error error, _, _ | _, _, Error error, _ | _, _, _, Error error ->
           Error error)
 
+(* The journal is read with the version it was written in: a journal of
+   another version is not read as if it were this one. *)
+let read_journal file version =
+  try
+    match Json_helpers.object_ "approval" [ "schema_version"; "approvals" ] (Yojson.Safe.from_file file) with
+    | Error error -> Error error
+    | Ok pairs -> (
+        match Json_helpers.int "schema_version" pairs with
+        | Error error -> Error error
+        | Ok found ->
+            if found <> version then Error "approval: the schema version is not the one of this method"
+            else (
+              match List.assoc_opt "approvals" pairs with
+              | Some (`List items) ->
+                  let rec read acc = function
+                    | [] -> Ok (List.rev acc)
+                    | item :: rest -> (
+                        match record_of_json item with
+                        | Error error -> Error error
+                        | Ok record -> read (record :: acc) rest)
+                  in
+                  read [] items
+              | _ -> Error "approval: approvals must be a list"))
+  with
+  | Yojson.Json_error error | Sys_error error -> Error error
+
 let load root =
   if not (Sys.file_exists (path root)) then Ok []
-  else
-    try
-      match
-        Json_helpers.object_ "approval" [ "schema_version"; "approvals" ]
-          (Yojson.Safe.from_file (path root))
-      with
-      | Error error -> Error error
-      | Ok pairs -> (
-          match Json_helpers.int "schema_version" pairs with
-          | Error error -> Error error
-          | Ok version ->
-              if version <> 5 then Error "approval: the schema version is not the one of this method"
-              else (
-                match List.assoc_opt "approvals" pairs with
-                | Some (`List items) ->
-                    let rec read acc = function
-                      | [] -> Ok (List.rev acc)
-                      | item :: rest -> (
-                          match record_of_json item with
-                          | Error error -> Error error
-                          | Ok record -> read (record :: acc) rest)
-                    in
-                    read [] items
-                | _ -> Error "approval: approvals must be a list"))
-    with
-    | Yojson.Json_error error | Sys_error error -> Error error
+  else read_journal (path root) version
+
+(* The journal of the previous version, read as it was written. *)
+let read_previous root =
+  if not (Sys.file_exists (previous_path root)) then Ok []
+  else read_journal (previous_path root) 5
 
 (* The approval of the human adds a record; it never removes one. The history
    of the decisions stays readable, and a command that was approved once stays
@@ -94,13 +108,31 @@ let approve root ~by ~reason ~commands =
         in
         let json =
           `Assoc
-            [ "schema_version", `Int 5;
+            [ "schema_version", `Int version;
               "approvals", `List (List.map record_to_json (records @ [ record ])) ]
         in
         (try
            Io.write_atomic (path root) (Yojson.Safe.pretty_to_string json ^ "\n");
            Ok (List.length record.commands)
          with Sys_error error -> Error error)
+
+(* The approval of the previous version is moved to the journal of this
+   version. The old journal stays where it is. *)
+let write root records =
+  let json =
+    `Assoc
+      [ "schema_version", `Int version;
+        "approvals", `List (List.map record_to_json records) ]
+  in
+  try
+    Io.write_atomic (path root) (Yojson.Safe.pretty_to_string json ^ "\n");
+    Ok (List.length records)
+  with Sys_error error -> Error error
+
+let migrate root =
+  match read_previous root with
+  | Error error -> Error error
+  | Ok records -> write root records
 
 (* The commands of the human's approval: the digests of every approved
    command. A command is approved when its digest is among them. *)

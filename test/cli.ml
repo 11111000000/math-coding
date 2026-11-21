@@ -8,7 +8,6 @@ let state_of_text = function
   | "holds" -> Some Holds
   | "refuted" -> Some Refuted
   | "inconclusive" -> Some Inconclusive
-  | "not-checkable" -> Some NotCheckable
   | "outdated" -> Some Outdated
   | "never-checked" -> Some NeverChecked
   | "waived" -> Some Waived
@@ -25,7 +24,7 @@ let bool_field name item =
 
 (* The journal of evidence is a JSONL file: every record is one line. *)
 let trail_records root =
-  let path = Filename.concat root ".math/v5/evidence.jsonl" in
+  let path = Filename.concat root ".math/v6/evidence.jsonl" in
   if not (Sys.file_exists path) then []
   else String.split_on_char '\n' (Io.read_file path) |> List.filter (fun line -> line <> "")
 
@@ -109,7 +108,7 @@ let () =
       expect root "add reviewed \"human review\" subject.txt \"review refutes it\" fact --requirement \"review:owner\"" 0;
       expect root "record reviewed owner --by owner --outcome invented" 2;
       expect root "record reviewed owner --by owner --outcome pass --valid-for -1" 2;
-      write root ".math/v5/evidence.jsonl" "not-json\n";
+      write root ".math/v6/evidence.jsonl" "not-json\n";
       (* A damaged record does not take the project with it: the records that
          can be read still stand, the damage is named, and the run repairs the
          journal and keeps the damaged original beside it. *)
@@ -126,18 +125,18 @@ let () =
         (contains repaired.stdout "the evidence trail had 1 record(s) that could not be read"
         && contains repaired.stdout "the damaged original is kept at");
       let kept =
-        Sys.readdir (Filename.concat root ".math/v5")
+        Sys.readdir (Filename.concat root ".math/v6")
         |> Array.to_list
         |> List.filter (fun name -> String.starts_with ~prefix:"evidence.damaged." name)
       in
       check "the damaged original is kept beside the journal"
         (kept <> []
-        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v5") (List.hd kept))) "not-json");
+        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v6") (List.hd kept))) "not-json");
       let healed = run root "map" in
       check "the repaired journal is whole"
         (not (contains healed.stdout "damaged records")
         && contains healed.stdout "never-checked");
-      write root ".math/v5/evidence.jsonl" "not-json\n";
+      write root ".math/v6/evidence.jsonl" "not-json\n";
       let corrupted_json = run root "run --json" in
       check "structured run keeps the repair notice out of the json"
         (corrupted_json.code = 3
@@ -655,7 +654,7 @@ let () =
       check "the other claim keeps its own environment" (state_of_map wrong_map "inherited" = "holds");
       (* A garbage environment of a claim is refused before anything is run. *)
       let garbage =
-        `Assoc [ "schema_version", `Int 5; "goal", `Null; "environment", `Null;
+        `Assoc [ "schema_version", `Int 6; "goal", `Null; "environment", `Null;
                  "claims", `List [ `Assoc [ "id", `String "own"; "text", `String "text"; "scope", `List [];
                                            "requirements", `List []; "falsifier", `String "x";
                                            "register", `String "fact"; "environment", `String "" ] ] ] in
@@ -733,7 +732,7 @@ let () =
                     requirements = [ Verifier "grep -q expected subject.txt" ];
                     control = Some "printf broken > subject.txt" } in
       let second = { claim with id = "second";
-                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v5/evidence.jsonl && grep -q expected subject.txt" ];
+                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v6/evidence.jsonl && grep -q expected subject.txt" ];
                      control = Some "printf broken > subject.txt" } in
       let goal = Some { text = "the journal grows while the run works";
                         scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
@@ -871,7 +870,7 @@ let () =
         (contains report.stdout "machine time:");
       check "the report names the claim that was slow"
         (contains report.stdout "sample");
-      let journal = Filename.concat root ".math/v5/runs.jsonl" in
+      let journal = Filename.concat root ".math/v6/runs.jsonl" in
       check "the journal of runs exists" (Sys.file_exists journal);
       let lines =
         String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
@@ -896,7 +895,7 @@ let () =
          | _ -> false);
       (* A record that cannot be read does not take the price of the other runs
          with it. *)
-      write root ".math/v5/runs.jsonl"
+      write root ".math/v6/runs.jsonl"
         ("{\"schema_version\": 4, \"started_at\": 0}\n" ^ String.concat "\n" lines ^ "\n");
       let doctor = run root "doctor" in
       check "the doctor still names the price of the last run"
@@ -918,7 +917,7 @@ let () =
       check "a stopped run hands over the map over what was observed"
         (contains stopped.stdout "never-checked");
       check "a stopped run does not pass the gate" (stopped.code = 4);
-      let journal = Filename.concat root ".math/v5/runs.jsonl" in
+      let journal = Filename.concat root ".math/v6/runs.jsonl" in
       let lines =
         String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
       in
@@ -1030,7 +1029,7 @@ let () =
       let approved = run root "approve --by owner --reason \"the release checks\"" in
       check "the approval covers the commands of the project"
         (approved.code = 0 && contains approved.stdout "approved 2 command(s)");
-      let approval = Filename.concat root ".math/v5/approval.json" in
+      let approval = Filename.concat root ".math/v6/approval.json" in
       check "the approval is kept in the project"
         (Sys.file_exists approval && contains (Io.read_file approval) "the release checks");
       (* A named command can be approved on its own. *)

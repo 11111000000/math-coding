@@ -16,6 +16,7 @@ type options = {
   mutable help : bool;
   mutable source : string;
   mutable changed : bool;
+  mutable dry_run : bool;
   mutable limit : float;
 }
 
@@ -23,7 +24,7 @@ let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; commands = [];
     write = false; version = false; help = false; source = ""; changed = false;
-    limit = Commands.default_limit }
+    dry_run = false; limit = Commands.default_limit }
 
 let parse_requirement text = Requirements.parse text
 
@@ -46,6 +47,7 @@ let parse_flags o arguments =
     | "--command" :: value :: rest -> o.commands <- o.commands @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
     | "--changed" :: rest -> o.changed <- true; loop acc rest
+    | "--dry-run" :: rest -> o.dry_run <- true; loop acc rest
     | "--limit" :: value :: rest -> (
         match float_of_string_opt value with
         | Some seconds when seconds >= 0.0 -> o.limit <- seconds; loop acc rest
@@ -113,6 +115,7 @@ let main () =
     | "import-adr" :: path :: _ -> Adr.import_file o.root path
     | "import-junit" :: path :: _ -> Junit.import_file path
     | [ "mcp" ] -> Mcp.loop ~root:o.root
+    | [ "migrate" ] -> Commands.migrate o.root o.dry_run
     | verb :: _ -> fail Exit_code.usage ("unknown verb: " ^ verb)
   in
   exit code

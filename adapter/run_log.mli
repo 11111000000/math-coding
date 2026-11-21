@@ -20,7 +20,15 @@ type run_record = {
   durations : priced_claim list;
 }
 
+(* The version of the format of the record. *)
+val version : int
+
+(* The journal of the price of the runs of this version of the format. *)
 val path : string -> string
+
+(* The journal of the previous version. *)
+val previous_path : string -> string
+
 val to_json : run_record -> Yojson.Safe.t
 val of_json : Yojson.Safe.t -> (run_record, string) result
 val append : string -> run_record -> unit
@@ -28,3 +36,13 @@ val append : string -> run_record -> unit
 (* The runs that can be read. A record that cannot be read is skipped, not
    fatal: the price of the other runs must not disappear with it. *)
 val read : string -> (run_record list, string) result
+
+(* The journal of the previous version, read as it was written. *)
+val read_previous : string -> (run_record list, string) result
+
+(* The journal of this version is written with the runs it holds. *)
+val write : string -> run_record list -> (int, string) result
+
+(* The journal of the previous version is moved to the journal of this one. The
+   old journal stays where it is. *)
+val migrate : string -> (int, string) result

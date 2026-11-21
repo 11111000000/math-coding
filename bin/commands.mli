@@ -15,5 +15,9 @@ val re_evaluate : string -> int
 val review_source : string -> string -> string -> string -> int
 val version : unit -> int
 
+(* The migration of a project of the previous version of the format. It is a
+   human action: the agent surface does not move the journals of a project. *)
+val migrate : string -> bool -> int
+
 (* The limit of a run in seconds: the run stops itself and says so. *)
 val default_limit : float

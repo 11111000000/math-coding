@@ -34,7 +34,19 @@ type run_record = {
   durations : priced_claim list;
 }
 
-let path root = Filename.concat root ".math/v5/runs.jsonl"
+(* The version of the format of the record. *)
+let version = 6
+
+(* The version the migration reads. *)
+let previous_version = 5
+
+(* The journal of the price of the runs of this version of the format. Every
+   journal of the project lives in the directory of the same version. *)
+let path root = Filename.concat root ".math/v6/runs.jsonl"
+
+(* The journal of the previous version. It stays where it is - it is the
+   evidence of what happened - and the migration reads it. *)
+let previous_path root = Filename.concat root ".math/v5/runs.jsonl"
 
 let scale_to_string = function
   | Wall_clock_seconds -> "wall_clock_seconds"
@@ -64,7 +76,7 @@ let priced_to_json (priced : priced_claim) =
 
 let to_json (run : run_record) =
   `Assoc
-    [ "schema_version", `Int 5;
+    [ "schema_version", `Int version;
       "started_at", `Int run.started_at;
       "finished_at", `Int run.finished_at;
       "wall_seconds", `Float run.wall_seconds;
@@ -89,7 +101,9 @@ let priced_of_json json =
       | Error error, _, _, _, _ | _, Error error, _, _, _ | _, _, Error error, _, _
       | _, _, _, Error error, _ | _, _, _, _, Error error -> Error error)
 
-let of_json json =
+(* The record of the previous version is read as it was written: the shape of
+   the record did not change, only the version it declares. *)
+let of_json_of_version expected json =
   match object_ "run"
           [ "schema_version"; "started_at"; "finished_at"; "wall_seconds"; "machine_seconds";
             "claims"; "executed"; "stopped"; "stop_reason"; "durations" ] json with
@@ -97,8 +111,8 @@ let of_json json =
   | Ok pairs -> (
       match int "schema_version" pairs with
       | Error error -> Error error
-      | Ok version ->
-          if version <> 5 then Error ("unsupported run log schema_version " ^ string_of_int version)
+      | Ok found ->
+          if found <> expected then Error ("unsupported run log schema_version " ^ string_of_int found)
           else
             match
               int "started_at" pairs, int "finished_at" pairs, float_of_json "wall_seconds" pairs,
@@ -127,6 +141,8 @@ let of_json json =
             | _, _, _, _, Error error, _, _, _ | _, _, _, _, _, Error error, _, _
             | _, _, _, _, _, _, Error error, _ | _, _, _, _, _, _, _, Error error -> Error error)
 
+let of_json json = of_json_of_version version json
+
 let append root (run : run_record) =
   let file = path root in
   Io.mkdir_p (Filename.dirname file);
@@ -137,8 +153,7 @@ let append root (run : run_record) =
 
 (* The runs that can be read. A record that cannot be read is skipped, not
    fatal: the price of the other runs must not disappear with it. *)
-let read root =
-  let file = path root in
+let read_with file expected =
   if not (Sys.file_exists file) then Ok []
   else
     try
@@ -158,9 +173,31 @@ let read root =
                   match Yojson.Safe.from_string line with
                   | exception Yojson.Json_error _ -> convert runs rest
                   | json -> (
-                      match of_json json with
+                      match of_json_of_version expected json with
                       | Ok run -> convert (run :: runs) rest
                       | Error _ -> convert runs rest)
           in
           convert [] values
     with Sys_error error -> Error ("run log: " ^ error)
+
+let read root = read_with (path root) version
+
+(* The journal of the previous version, read as it was written. *)
+let read_previous root = read_with (previous_path root) previous_version
+
+(* The journal of this version is written with the runs it holds. *)
+let write root runs =
+  let file = path root in
+  let text = runs |> List.map (fun run -> Yojson.Safe.to_string (to_json run)) |> String.concat "\n" in
+  try
+    Io.write_atomic file (if text = "" then "" else text ^ "\n");
+    Ok (List.length runs)
+  with Sys_error error -> Error ("run log: " ^ error)
+
+(* The journal of the previous version is moved to the journal of this one. The
+   old journal stays where it is. *)
+let migrate root =
+  match read_previous root with
+  | Error error -> Error error
+  | Ok runs -> write root runs
+

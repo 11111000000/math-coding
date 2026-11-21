@@ -24,6 +24,11 @@ val command_in_environment : string option -> string -> string
 val evidence_for :
   ?files:string list -> string -> claim -> requirement -> string -> outcome -> string option -> evidence
 
+(* The price of the run, in words: what the machine spent and where. The
+   slowest claims come first, because that is what a consumer has to see to
+   know which check to look at. *)
+val cost_words : Run_log.priced_claim list -> string
+
 (* The execution of one branch of a claim. The flag tells the execution that
    the run may be asked to stop: the check in flight is stopped with it. *)
 val execute_requirement :

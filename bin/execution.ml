@@ -35,10 +35,36 @@ let evidence_for ?files root (claim : claim) requirement command outcome control
     materials_digest = binding;
     definition_digest = definition_digest claim;
     verifier_digest = verifier_digest claim;
-    environment = Project.environment root;
+    environment = Evaluation.environment root;
+    tool = Evaluation.tool ();
     producer = { class_ = "mathc"; identity = Sys.executable_name; run = Some command };
     independence = Fresh_context; outcome; issued_at = now (); valid_until = None;
     evidence_ref = None; control_reach }
+
+(* The price of the run, in words: what the machine spent and where. The
+   slowest claims come first, because that is what a consumer has to see to
+   know which check to look at. *)
+let cost_words (durations : Run_log.priced_claim list) =
+  let total =
+    List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
+  in
+  let sorted =
+    List.sort (fun (a : Run_log.priced_claim) (b : Run_log.priced_claim) -> compare b.cost.value a.cost.value) durations
+  in
+  let shown = List.take 10 sorted in
+  let header =
+    Printf.sprintf "machine time: %.1f s in %d claim(s); the slowest first:" total (List.length durations)
+  in
+  let lines =
+    List.map (fun (priced : Run_log.priced_claim) ->
+        Printf.sprintf "  %.1f s  %s" priced.cost.value priced.claim_id) shown
+  in
+  let rest =
+    match List.length sorted - List.length shown with
+    | 0 -> []
+    | count -> [ Printf.sprintf "  (%d more claim(s) not shown)" count ]
+  in
+  String.concat "\n" (header :: lines @ rest)
 
 let report_failure label (result : Process.result) =
   if result.code <> 0 || result.truncated then (
