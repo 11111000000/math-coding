@@ -1,27 +1,30 @@
 open Helpers
 
-let lines path = List.length (String.split_on_char '\n' (Io.read_file (in_repo path)))
-let files directory =
+(* The shape of the repository is a behaviour: a module of the core without an
+   interface hides its invariants, a silent filter_map loses an error of the
+   format, a second implementation of the method returns, and the practices
+   document is where the rules live.
+
+   The size of the code is a style and not a behaviour. It lives in
+   test/style_bounds.sh and gates the build in CI, so a module that grew too
+   long never refutes a claim about what the method does. *)
+
+let sources directory =
   Sys.readdir (in_repo directory) |> Array.to_list
-  |> List.filter (fun name -> Filename.check_suffix name ".ml" || Filename.check_suffix name ".mli")
+  |> List.filter (fun name -> Filename.check_suffix name ".ml")
 
 let () =
   List.iter
     (fun directory ->
-      let source = Sys.readdir (in_repo directory) |> Array.to_list
-        |> List.filter (fun name -> Filename.check_suffix name ".ml") in
-      List.iter (fun name -> check (directory ^ "/" ^ name ^ " needs .mli") (Sys.file_exists (in_repo (Filename.concat directory (name ^ "i"))))) source)
+      List.iter
+        (fun name ->
+          check (directory ^ "/" ^ name ^ " needs .mli")
+            (Sys.file_exists (in_repo (Filename.concat directory (name ^ "i")))))
+        (sources directory))
     [ "lib"; "format"; "adapter" ];
-  (* The core carries the canonical reason vocabulary, the explanation of every
-     state and the rules of freshness, so it grew from 499 to 686 lines. The
-     total stays a bound, now 700: the rule that a human decision does not go
-     stale when the tool changes belongs to the core, and every module of the
-     core still has to stay within the 200-250 lines the practices ask for. *)
-  check "core remains small" (List.fold_left (+) 0 (List.map lines (files "lib" |> List.map (Filename.concat "lib"))) <= 700);
-  check "core modules remain small" (List.for_all (fun file -> lines file <= 250) (files "lib" |> List.map (Filename.concat "lib")));
-  check "format remains small" (List.fold_left (+) 0 (List.map lines (files "format" |> List.map (Filename.concat "format"))) <= 500);
-  check "CLI is split" (lines "bin/commands.ml" < 400 && lines "bin/cli.ml" < 200 && lines "bin/mathc.ml" < 50);
-  check "no silent filter_map in format" (not (contains (Io.read_file (in_repo "format/spec.ml")) "filter_map"));
-  check "legacy implementation directories are absent" (not (Sys.file_exists (in_repo "docs/lineage")));
+  check "no silent filter_map in format"
+    (not (contains (Io.read_file (in_repo "format/spec.ml")) "filter_map"));
+  check "legacy implementation directories are absent"
+    (not (Sys.file_exists (in_repo "docs/lineage")));
   check "practices are recorded" (Sys.file_exists (in_repo "docs/ENGINEERING-PRACTICES.md"));
   print_endline "repository-lints: PASS"

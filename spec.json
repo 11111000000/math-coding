@@ -178,11 +178,11 @@
     },
     {
       "id": "repository-lints",
-      "text": "repository structure and public interfaces stay bounded",
+      "text": "the repository keeps the shape the method needs: every module has its interface, the format layer loses no error silently, the legacy implementation is absent and the practices are written",
       "scope": [
-        "lib/", "format/", "bin/", "test/dune", "test/helpers.ml",
-        "test/helpers.mli", "test/repository_lints.ml",
-        "test/repository_control.ml"
+        "lib/", "format/", "adapter/", "docs/ENGINEERING-PRACTICES.md",
+        "test/dune", "test/helpers.ml", "test/helpers.mli",
+        "test/repository_lints.ml", "test/repository_control.ml"
       ],
       "source": null,
       "kind": "acceptance",
@@ -195,11 +195,27 @@
           "spec": "dune runtest --root . --force test/repository_lints.exe test/repository_control.exe"
         }
       ],
-      "falsifier": "a core or interface exceeds its bound or loses required files",
+      "falsifier": "a module loses its interface, the format layer loses an error silently, the legacy implementation returns or the practices document disappears",
       "register": "fact",
       "control": "printf 'let broken = 0\\n' > lib/without_interface.ml",
       "waiver": null,
       "environment": "nix develop -c"
+    },
+    {
+      "id": "style-bounds",
+      "text": "the size of the code stays within the bounds of the practices: the core, the format layer and the split CLI",
+      "scope": [
+        "lib/", "format/", "bin/", "test/style_bounds.sh"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "sh test/style_bounds.sh" }
+      ],
+      "falsifier": "the core, the format layer or a module of them outgrows its bound",
+      "register": "fact",
+      "control": "printf 'val x : int\\n' > lib/long_module.mli && printf 'let x = 0\\n' > lib/long_module.ml && for i in $(seq 1 300); do printf 'let v%d = %d\\n' $i $i >> lib/long_module.ml; done",
+      "waiver": null
     },
     {
       "id": "agent-installer",

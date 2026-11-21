@@ -122,7 +122,7 @@ Scope и source paths не могут быть absolute, traversal или symlin
 
 v5 keeps evidence linked, fresh, and independent
 
-27 claim(s).
+28 claim(s).
 
 ```sh
 mathc run
