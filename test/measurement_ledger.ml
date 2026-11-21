@@ -4,6 +4,16 @@ let script = in_repo "docs/measurements/task-ledger.py"
 let dry_run = in_repo "docs/measurements/dry-run.jsonl"
 let protocol_file = in_repo "docs/measurements/BENCHMARK-PROTOCOL.md"
 
+(* The place where a needle lies in a text, if it lies. *)
+let index_of_substring text needle =
+  let length = String.length text and needle_length = String.length needle in
+  let rec find index =
+    if index + needle_length > length then None
+    else if String.sub text index needle_length = needle then Some index
+    else find (index + 1)
+  in
+  find 0
+
 (* The version the protocol declares for the measurement and the version the
    codec accepts: the measurement may only run where the two agree. The
    protocol is the document that declares it, so the number is read from there
@@ -12,16 +22,10 @@ let declared_version name =
   let text = Io.read_file protocol_file in
   let needle = name ^ " = " in
   let needle_length = String.length needle in
-  let length = String.length text in
-  let rec find index =
-    if index + needle_length > length then None
-    else if String.sub text index needle_length = needle then Some index
-    else find (index + 1)
-  in
-  match find 0 with
+  match index_of_substring text needle with
   | None -> None
   | Some index ->
-      let rest = String.sub text (index + needle_length) (length - index - needle_length) in
+      let rest = String.sub text (index + needle_length) (String.length text - index - needle_length) in
       let rest_length = String.length rest in
       let rec digits position =
         if position < rest_length && rest.[position] >= '0' && rest.[position] <= '9' then
@@ -51,6 +55,27 @@ let evidence_accepts version =
 
 let invoke root arguments =
   Process.run ~root (Printf.sprintf "python3 %s %s" (Filename.quote script) arguments)
+
+(* The part of the protocol that follows the heading, up to the next heading.
+   A declaration is read as a section and not as a word: a protocol that stops
+   declaring a thing under its heading has to be noticed. *)
+let section_of text heading =
+  match index_of_substring text heading with
+  | None -> None
+  | Some index ->
+      let rest = String.sub text index (String.length text - index) in
+      (match index_of_substring rest "\n## " with
+      | None -> Some rest
+      | Some stop -> Some (String.sub rest 0 stop))
+
+(* The arms the ledger compares, named by the ledger itself. *)
+let arms_of_summary output =
+  match Yojson.Safe.from_string output with
+  | `Assoc fields -> (
+      match List.assoc_opt "arms" fields with
+      | Some (`Assoc arms) -> List.map fst arms
+      | _ -> [])
+  | _ -> []
 
 let replace name value json =
   match json with
@@ -91,6 +116,17 @@ let () =
   check "summary preserves infrastructure and handoff"
     (summary.code = 0 && contains summary.stdout "\"infrastructure\": 1"
     && contains summary.stdout "\"handoff_seconds_median\": 20");
+  (* The ledger compares arms of the measurement, and the protocol declares
+     them. The check compares the two: a ledger that compares an arm the
+     protocol does not declare measures nothing. The declaration is read as a
+     section, so a protocol that stops declaring the arms is noticed, and the
+     negative control of the claim has something to prove. *)
+  let arms_section = section_of (Io.read_file protocol_file) "## 2. Экспериментальные руки" in
+  check "the protocol declares the section of the experimental arms" (arms_section <> None);
+  let arms_section = String.lowercase_ascii (Option.value ~default:"" arms_section) in
+  let arms = arms_of_summary summary.stdout in
+  check "the protocol declares every arm the ledger compares"
+    (arms <> [] && List.for_all (fun arm -> contains arms_section (String.lowercase_ascii arm)) arms);
   let dry_lines = String.split_on_char '\n' (Io.read_file dry_run) in
   let protocol = List.nth dry_lines 2 |> Yojson.Safe.from_string in
   with_repo (fun root ->
