@@ -59,9 +59,12 @@ tree is left untouched.</p>
 
 <h2>Freshness and independence have limits</h2>
 <p>Evidence is current only while the materials, definition, verifier/control
-and environment fingerprints match and its validity window is open. The actual
-working contents, including untracked files and modes, matter more than HEAD
-alone. A changed source requires human review and a fresh <code>run</code>.</p>
+and environment fingerprints match and its validity window is open. The tool
+fingerprint is not part of that comparison: a new build does not make an
+observation outdated, the map names the reason <code>tool-changed</code>. The
+actual working contents, including untracked files and modes, matter more than
+HEAD alone. A changed source requires human review and a fresh
+<code>run</code>.</p>
 <p><code>self</code> means a self-declaration, <code>fresh-context</code> means
 a separate verifier execution with a recorded producer, and
 <code>external</code> means an external system or human review. These levels
@@ -77,7 +80,6 @@ Trust is never raised by fallback.</p>
 <tr><td><span class="v-pill v-inconclusive">inconclusive</span></td><td>observations neither establish nor refute the claim; a weak or missing control belongs here</td></tr>
 <tr><td><span class="v-pill v-outdated">outdated</span></td><td>materials, definition, verifier, environment or source changed, or validity expired</td></tr>
 <tr><td><span class="v-pill v-never-checked">never-checked</span></td><td>no applicable observation has been recorded</td></tr>
-<tr><td><span class="v-pill v-not-checkable">not-checkable</span></td><td>no suitable check exists in the current formulation; reserved in the domain and not produced by the current <code>run</code></td></tr>
 <tr><td><span class="v-pill v-waived">waived</span></td><td>an active human acceptance of an uncertain risk; neither a pass nor a cover for refutation</td></tr>
 </tbody>
 </table>
