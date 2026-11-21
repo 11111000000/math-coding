@@ -200,4 +200,3 @@ let migrate root =
   match read_previous root with
   | Error error -> Error error
   | Ok runs -> write root runs
-
