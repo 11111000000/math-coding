@@ -165,6 +165,19 @@ let read_map path =
   | json -> (
       match json with
       | `Assoc fields -> (
+          (* The site renders the map of this version of the method. A map of
+             another version is not a map with fewer fields: it is a document
+             the site cannot read, and it says so instead of rendering an
+             empty page. *)
+          let schema =
+            match List.assoc_opt "schema_version" fields with
+            | Some (`Int version) -> version
+            | _ -> failwith "the map does not declare the version of its schema"
+          in
+          if schema <> Spec.version then
+            failwith
+              (Printf.sprintf "the map declares the schema version %d, the site reads the version %d"
+                 schema Spec.version);
           let text name =
             match List.assoc_opt name fields with Some (`String value) -> value | _ -> ""
           in
