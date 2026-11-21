@@ -90,9 +90,10 @@ settings and a second confirmation in the interface. Together they protect
 against an accidental run; they are not authentication of the plugin code.</li>
 </ul>
 <p>By default the binary is <code>mathc</code> from the <code>PATH</code>. An
-explicit override must be an absolute path and must report <code>mathc 5</code>:
-a different binary changes the environment fingerprint and can make previous
-evidence outdated.</p>
+explicit override must be an absolute path and must report <code>mathc 5</code>.
+The binary is not part of the environment fingerprint: it is written as a
+separate tool fingerprint, so a different binary does not make previous evidence
+outdated &mdash; the map names the reason <code>tool-changed</code>.</p>
 </section>
 
 <section>
