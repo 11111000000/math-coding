@@ -13,7 +13,7 @@ import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
 import { useT, type Translate } from "./i18n";
 import { Badge, Body, Button, Card, Empty, Mono, Note } from "./parts";
-import { claimStateColor, claimStateIcon, claimStateKey, formatTime, independenceKey, outcomeKey, stateReasonKey } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, independenceKey, outcomeKey, stateReasonKey, stateReasonTone } from "./vocabulary";
 
 export interface QueueViewProps {
   theme: ConsoleTheme;
@@ -201,7 +201,7 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
       <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
         <Badge theme={theme} label={t("queue.needs_you")} tone="warn" icon="UserRoundCheck" />
         {item.attention.states.map((state) => <Badge key={state} theme={theme} label={t(claimStateKey(state))} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
-        {attentionReasonCodes(item.attention.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} />)}
+        {attentionReasonCodes(item.attention.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} tone={stateReasonTone(reason)} />)}
       </View>
       <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{t(item.title)}</Text>
       {item.expectation.length > 0 && <QueueLine theme={theme} label={t("queue.expected")}>{item.expectation}</QueueLine>}
@@ -247,16 +247,12 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
  * The decision the method has no verb for.
  *
  * Some decisions belong to the owner and are not recorded by the program: the
- * direction of a refuted claim and the acceptance criterion of a claim
- * without a checkable condition. The console names them instead of leaving
+ * direction of a refuted claim. The console names them instead of leaving
  * the human without an answer.
  */
 function manualNote(item: HumanQueueItem, t: Translate): string {
   if (item.kind === "refutation") {
     return t("queue.no_verb_refuted");
-  }
-  if (item.kind === "acceptance-criterion") {
-    return t("queue.no_verb_criterion");
   }
   return t("queue.no_step_detail");
 }

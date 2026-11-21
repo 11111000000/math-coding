@@ -12,7 +12,7 @@ import type { GraphSelection } from "./graph";
 import { useHost } from "./host/context";
 import { useT } from "./i18n";
 import { Badge, Body, Button, Card, Empty, Mono } from "./parts";
-import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonKey } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonKey, stateReasonTone } from "./vocabulary";
 
 export interface AttentionViewProps {
   theme: ConsoleTheme;
@@ -96,7 +96,7 @@ function AgentCard({ theme, compact, item, onCopy, onRun, runEnabled }: {
         <Badge theme={theme} label={t("attention.kind_agent_can_act")} tone="info" icon="Bot" />
         {item.claimIds.length > 0 && <Badge theme={theme} label={t("attention.item_claim_count", { count: item.claimIds.length })} icon="Boxes" />}
         {item.states.map((state) => <Badge key={state} theme={theme} label={t(claimStateKey(state))} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />)}
-        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} />)}
+        {attentionReasonCodes(item.reasons).map((reason) => <Badge key={reason} theme={theme} label={t(stateReasonKey(reason))} tone={stateReasonTone(reason)} />)}
       </View>
       <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{t(item.title)}</Text>
       {item.reasons.length > 0 && <DecisionText theme={theme} label={t("state.reason_title")}>{attentionReasonText(item.reasons, t)}</DecisionText>}

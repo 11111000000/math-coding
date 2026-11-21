@@ -16,6 +16,8 @@ A changed source, refutation, unmet human review, missing acceptance criterion, 
 
 Selecting a claim opens its falsifier, negative control, requirement tree, waiver information, linked observations, and an explicit decision boundary between machine checks and human authority.
 
+The frame names the program that produced the map, and every evidence record names the program that produced it. A record carried over from the previous format names an unknown producer instead of an invented one. When the program reports that the observer changed, the claim card says so: the evidence still applies, but the build that produced it is not the build that reads it.
+
 ## Agent briefs
 
 A card can copy a structured brief to the local clipboard for an agent. The brief carries the project goal, the canonical verdict, the coverage gap, the accepted risks and the canonical next action, and it separates the human decision from the agent's permitted investigation. It explicitly forbids weakening verifiers, impersonating a reviewer, or recording human decisions. It is not sent to a model provider and does not create an agent.
@@ -28,7 +30,7 @@ The console is written once and hosted twice. The plugin and the local browser p
 
 The plugin needs Math Coding v5 installed as `mathc` on the daemon machine. An absolute path to a different binary can be configured in the plugin settings. The selected binary must report `mathc 5`.
 
-The daemon reads the workspace's `spec.json` and `.math/v5/evidence.jsonl`, and executes `mathc` in the workspace. It does not send project data to an external service.
+The daemon reads the workspace's `spec.json` and `.math/v6/evidence.jsonl` in the format `schema_version: 6`, and executes `mathc` in the workspace. A file of another format is refused with an explicit error instead of being read as a green one. It does not send project data to an external service.
 
 A closed action says so. The panel names the switch that opens it and offers the way to the settings of the host, so a grey button is never a button without a reason.
 

@@ -59,13 +59,6 @@ test("an unmet human review requirement cannot be assigned to an agent", () => {
   assert.equal(model.agentCanAct.length, 0);
 });
 
-test("a not-checkable claim asks the human for an acceptance criterion", () => {
-  const current = claim({ id: "criterion" });
-  const model = buildAttentionModel(stateSnapshot([current], [{ state: "not-checkable" }]), 1_000);
-  assert.equal(model.needsHuman[0]?.kind, "acceptance-criterion");
-  assert.match(words(model.needsHuman[0]?.humanQuestion), /observable condition/i);
-});
-
 test("outdated without a source change is agent work", () => {
   const current = claim({ id: "stale" });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "outdated" }]), 1_000);
@@ -101,7 +94,6 @@ test("an active waiver is an accepted risk rather than a pending decision", () =
       reason: "migration is scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "waived" }]), 1_000);
@@ -122,7 +114,6 @@ test("an expired waiver requires a new human decision", () => {
       reason: "migration was scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "inconclusive" }]), 1_000);
@@ -139,16 +130,16 @@ test("holds creates no attention item", () => {
 
 test("human items follow the canonical priority order", () => {
   const claims = [
-    claim({ id: "criterion" }),
+    claim({ id: "review", requirements: [{ kind: "review", spec: "owner", minimum_independence: "external" }] }),
     claim({ id: "refuted" }),
     claim({ id: "changed", source: { kind: "madr", path: "docs/adr.md", section: null, digest: "a".repeat(64), review: null } }),
   ];
   const model = buildAttentionModel(stateSnapshot(claims, [
-    { state: "not-checkable" },
+    { state: "never-checked" },
     { state: "refuted" },
     { state: "outdated", sourceChanged: true },
   ]), 1_000);
-  assert.deepEqual(model.needsHuman.map((item) => item.kind), ["source-review", "refutation", "acceptance-criterion"]);
+  assert.deepEqual(model.needsHuman.map((item) => item.kind), ["source-review", "refutation", "human-review"]);
 });
 
 test("fifteen equally outdated claims become one agent task", () => {
@@ -174,7 +165,6 @@ test("only canonical waived state is an accepted risk", () => {
       reason: "migration is scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const waived = buildAttentionModel(stateSnapshot([current], [{ state: "waived" }]), 1_000);
@@ -199,7 +189,6 @@ test("a waived review requirement is not shown as a pending human decision", () 
       reason: "review is scheduled",
       compensating_controls: [],
       recovery: "complete the review",
-      review_on: [],
     },
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "waived" }]), 1_000);
@@ -219,7 +208,6 @@ test("an expired waiver does not override a canonical holds state", () => {
       reason: "migration was scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "holds" }]), 1_000);
@@ -239,7 +227,6 @@ test("a canonical waived claim does not disappear when its interval expires", ()
       reason: "migration was scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const model = buildAttentionModel(stateSnapshot([current], [{ state: "waived" }]), 1_000);
@@ -292,7 +279,6 @@ test("an agent brief carries the goal, the verdict, the coverage gap, the accept
       reason: "migration is scheduled",
       compensating_controls: [],
       recovery: "finish the migration",
-      review_on: [],
     },
   });
   const data = stateSnapshot([stale, waived], [{ state: "outdated" }, { state: "waived" }], ["src/uncovered.ts"]);
@@ -321,7 +307,6 @@ test("the canonical time of the snapshot decides whether a waiver is still accep
     reason: "migration is scheduled",
     compensating_controls: [],
     recovery: "finish the migration",
-    review_on: [],
   };
   data.map.states = [{ id: "waived", state: "waived", source_changed: false }];
   const model = buildAttentionModel(data);

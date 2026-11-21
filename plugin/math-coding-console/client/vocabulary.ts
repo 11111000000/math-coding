@@ -29,7 +29,6 @@ export function claimStateColor(theme: ConsoleTheme, state: ClaimState): string 
     case "outdated":
     case "waived": return theme.colors.statusWarning;
     case "inconclusive": return theme.colors.accent;
-    case "not-checkable":
     case "never-checked": return theme.colors.foregroundMuted;
   }
 }
@@ -49,7 +48,6 @@ export function claimStateIcon(state: ClaimState): string {
     case "holds": return "Check";
     case "refuted": return "X";
     case "inconclusive": return "CircleHelp";
-    case "not-checkable": return "Ban";
     case "outdated": return "Clock3";
     case "never-checked": return "CircleDashed";
     case "waived": return "ShieldAlert";
@@ -71,21 +69,14 @@ export function stateOrder(state: ClaimState): number {
     case "refuted": return 0;
     case "outdated": return 1;
     case "inconclusive": return 2;
-    case "not-checkable": return 3;
-    case "never-checked": return 4;
-    case "waived": return 5;
-    case "holds": return 6;
+    case "never-checked": return 3;
+    case "waived": return 4;
+    case "holds": return 5;
   }
 }
 
 /**
- * The reason a state was reported.
- *
- * The text says what the map reports. It never guesses a cause the map did
- * not give, and it never promises that a check will repair anything.
- */
-/**
- * The reason a state was reported.
+ * The reason of a state was reported.
  *
  * The text says what the map reports. It never guesses a cause the map did
  * not give, and it never promises that a check will repair anything. The
@@ -106,12 +97,30 @@ const REASON_KEYS: Record<StateReason, MessageKey> = {
   "infrastructure-error": "state.reason_infrastructure_error",
   refuted: "state.reason_refuted",
   waived: "state.reason_waived",
-  "not-checkable": "state.reason_not_checkable",
+  "tool-changed": "state.reason_tool_changed",
 };
 
 /** The key of the catalogue that holds the reason of a state. */
 export function stateReasonKey(reason?: StateReason): MessageKey {
   return reason === undefined ? "state.reason_unknown" : REASON_KEYS[reason];
+}
+
+/**
+ * The tone of the reason of a state.
+ *
+ * The reason `tool-changed` is an information: the claim still holds, and the
+ * evidence still applies, but the program that produced it is not the program
+ * that reads it. The reader deserves to see that the observer changed, and the
+ * reason is not a failure and not the ordinary `current` either. Every other
+ * reason keeps the quiet tone of a note.
+ */
+export function stateReasonTone(reason?: StateReason): Tone {
+  return reason === "tool-changed" ? "info" : "neutral";
+}
+
+/** The icon of the reason of a state. */
+export function stateReasonIcon(reason?: StateReason): string {
+  return reason === "tool-changed" ? "RefreshCw" : "CircleHelp";
 }
 
 /** The reason of a state in English, for the brief of an agent. */
@@ -134,7 +143,6 @@ const CLAIM_STATE_KEYS: Record<ClaimState, MessageKey> = {
   holds: "state.claim_holds",
   refuted: "state.claim_refuted",
   inconclusive: "state.claim_inconclusive",
-  "not-checkable": "state.claim_not_checkable",
   outdated: "state.claim_outdated",
   "never-checked": "state.claim_never_checked",
   waived: "state.claim_waived",

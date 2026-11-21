@@ -24,10 +24,7 @@ export function claim(overrides: Partial<Claim> = {}): Claim {
     text: "the command prints hello",
     scope: ["scripts/", "test/"],
     source: null,
-    kind: "acceptance",
-    phase: "pre-merge",
     owner: "owner",
-    review_on: [],
     requirements: [{ kind: "verifier", spec: "sh test/check.sh" }],
     falsifier: "another text is accepted",
     register: "fact",
@@ -37,14 +34,27 @@ export function claim(overrides: Partial<Claim> = {}): Claim {
   };
 }
 
+/** The digest of the program that produced the map or the record. */
+export const tool = { class: "mathc", fingerprint: "e".repeat(64) };
+
+/**
+ * The digest of an unknown program.
+ *
+ * A record carried over from the previous format does not know the program
+ * that wrote it. The migration names the class and leaves the fingerprint
+ * empty rather than inventing one.
+ */
+export const unknownTool = { class: "mathc", fingerprint: "" };
+
 export function map(claims: Claim[], state: ClaimState = "holds"): MathMap {
   const verdict = claims.length === 0 ? "vacant" : state === "refuted" ? "red" : state === "holds" ? "green" : "unknown";
   return {
-    schema_version: 5,
+    schema_version: 6,
     verdict,
     exit: verdict === "green" ? 0 : verdict === "red" ? 1 : 3,
     claims: claims.length,
     goal: { text: "test the plugin", scope: ["scripts/", "test/"], by: "owner", at: 1_790_000_000, reason: null },
+    tool,
     states: claims.map((item) => ({ id: item.id, state, source_changed: false })),
     uncovered: [],
     next: verdict === "green" ? "next: scope covered" : "next: check the claim",
@@ -66,7 +76,7 @@ export function snapshot(claims: Claim[] = [claim()], state: ClaimState = "holds
 
 export function rawEvidence(overrides: Partial<Evidence> = {}): Evidence {
   return {
-    schema_version: 5,
+    schema_version: 6,
     claim_id: "hello",
     requirement: { kind: "verifier", spec: "sh test/check.sh" },
     candidate_tree: "a".repeat(40),
@@ -74,6 +84,7 @@ export function rawEvidence(overrides: Partial<Evidence> = {}): Evidence {
     definition_digest: "b".repeat(64),
     verifier_digest: "c".repeat(64),
     environment: { class: "local", fingerprint: "d".repeat(64) },
+    tool,
     producer: { class: "process", identity: "fixture", run: "run-1" },
     independence: "fresh-context",
     outcome: "pass",

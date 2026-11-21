@@ -143,7 +143,21 @@ start_control \
   control_check \
   "an unsupported schema cannot be accepted" \
   "shared/domain.ts" \
-  's/z.literal(5)/z.literal(4)/g' \
+  's/z.literal(6)/z.literal(5)/g' \
+  "test/contracts.test.ts"
+
+start_control \
+  control_check \
+  "a map without the digest of the program cannot be read" \
+  "shared/domain.ts" \
+  's|tool: mapToolSchema,|tool: mapToolSchema.optional(),|' \
+  "test/tool.test.ts"
+
+start_control \
+  control_check \
+  "a record of an unknown producer cannot be refused" \
+  "shared/domain.ts" \
+  's|fingerprint: z.string(),|fingerprint: z.string().min(1),|' \
   "test/contracts.test.ts"
 
 start_control \

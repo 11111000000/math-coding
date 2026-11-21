@@ -102,7 +102,7 @@ async function fakeProject(
   canonical.states = [{ id: "hello", state: options.state ?? "outdated", source_changed: options.sourceChanged ?? false }];
   await writeFile(
     join(root, "spec.json"),
-    JSON.stringify({ schema_version: 5, goal: canonical.goal, claims }),
+    JSON.stringify({ schema_version: 6, goal: canonical.goal, claims }),
   );
   if (options.policy) {
     await writeFile(join(root, "policy.json"), JSON.stringify({ protected_paths: ["src/"], authorized_by: "owner" }));
