@@ -247,16 +247,12 @@ function QueueItemCard({ theme, compact, item, action, decisionsEnabled, onOpenF
  * The decision the method has no verb for.
  *
  * Some decisions belong to the owner and are not recorded by the program: the
- * direction of a refuted claim and the acceptance criterion of a claim
- * without a checkable condition. The console names them instead of leaving
+ * direction of a refuted claim. The console names them instead of leaving
  * the human without an answer.
  */
 function manualNote(item: HumanQueueItem, t: Translate): string {
   if (item.kind === "refutation") {
     return t("queue.no_verb_refuted");
-  }
-  if (item.kind === "acceptance-criterion") {
-    return t("queue.no_verb_criterion");
   }
   return t("queue.no_step_detail");
 }

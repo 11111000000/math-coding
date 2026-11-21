@@ -143,7 +143,7 @@ start_control \
   control_check \
   "an unsupported schema cannot be accepted" \
   "shared/domain.ts" \
-  's/z.literal(5)/z.literal(4)/g' \
+  's/z.literal(6)/z.literal(5)/g' \
   "test/contracts.test.ts"
 
 start_control \

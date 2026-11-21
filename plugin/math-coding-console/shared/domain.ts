@@ -5,7 +5,6 @@ export const CLAIM_STATES = [
   "holds",
   "refuted",
   "inconclusive",
-  "not-checkable",
   "outdated",
   "never-checked",
   "waived",
@@ -39,10 +38,22 @@ export const STATE_REASONS = [
   "infrastructure-error",
   "refuted",
   "waived",
-  "not-checkable",
+  "tool-changed",
 ] as const;
 
 export const stateReasonSchema = z.enum(STATE_REASONS);
+
+/**
+ * The digest of the program that produced a map or an evidence record.
+ *
+ * The class names the program, and the fingerprint names the build of it. A
+ * reader that sees another fingerprint knows that the observer changed, and the
+ * reason `tool-changed` says so in the map.
+ */
+export const toolSchema = z.strictObject({
+  class: z.string().min(1),
+  fingerprint: z.string().min(1),
+});
 
 const nullableString = z.string().nullable().default(null);
 const goalSchema = z.strictObject({
@@ -61,11 +72,14 @@ export const mapStateSchema = z.strictObject({
 });
 
 export const mapSchema = z.strictObject({
-  schema_version: z.literal(5),
+  schema_version: z.literal(6),
   verdict: z.enum(VERDICTS),
   exit: z.number().int(),
   claims: z.number().int().nonnegative(),
   goal: goalSchema.nullable(),
+  // The program that produced this map. The digest names the build, so a
+  // reader knows which observer wrote the map it reads.
+  tool: toolSchema,
   states: z.array(mapStateSchema),
   uncovered: z.array(z.string()),
   next: z.string(),
@@ -114,7 +128,6 @@ const waiverSchema = z.strictObject({
   reason: z.string().min(1),
   compensating_controls: z.array(z.string()),
   recovery: z.string().min(1),
-  review_on: z.array(z.string()),
 });
 
 export const claimSchema = z.strictObject({
@@ -122,10 +135,7 @@ export const claimSchema = z.strictObject({
   text: z.string().min(1),
   scope: z.array(z.string()),
   source: sourceSchema.nullable().default(null),
-  kind: z.enum(["invariant", "acceptance", "recovery", "operational", "judgment"]).default("invariant"),
-  phase: z.enum(["pre-merge", "pre-release", "post-release"]).default("pre-merge"),
   owner: nullableString,
-  review_on: z.array(z.string()).default([]),
   requirements: z.array(requirementSchema),
   falsifier: z.string().default(""),
   register: z.enum(["fact", "hypothesis", "judgment", "unknown"]),
@@ -133,22 +143,20 @@ export const claimSchema = z.strictObject({
   waiver: waiverSchema.nullable().default(null),
   // A claim may declare its own environment. The core owns its rules; the
   // host only carries it, and a claim without one stays without one.
-  environment: z.string().max(512).optional(),
+  environment: z.string().max(512).nullable().optional(),
 });
 
 export const specSchema = z.strictObject({
-  schema_version: z.literal(5),
+  schema_version: z.literal(6),
   // The declared environment is a prefix for every declared command. It is
   // optional, and the core owns its rules; the host only has to carry it.
-  environment: z.string().max(512).optional(),
+  environment: z.string().max(512).nullable().optional(),
   goal: goalSchema.nullable().default(null),
   claims: z.array(claimSchema),
-  uncertainty_budget: z.unknown().optional(),
-  closed_waves: z.unknown().optional(),
 });
 
 export const evidenceSchema = z.strictObject({
-  schema_version: z.literal(5),
+  schema_version: z.literal(6),
   claim_id: z.string().min(1),
   requirement: requirementSchema,
   candidate_tree: z.string().min(1),
@@ -156,6 +164,9 @@ export const evidenceSchema = z.strictObject({
   definition_digest: z.string().min(1),
   verifier_digest: z.string().min(1),
   environment: z.strictObject({ class: z.string().min(1), fingerprint: z.string().min(1) }),
+  // The program that produced this record. A record of another build still
+  // applies, and the map names the change with the reason `tool-changed`.
+  tool: toolSchema,
   producer: z.strictObject({
     class: z.string().min(1),
     identity: z.string().min(1),

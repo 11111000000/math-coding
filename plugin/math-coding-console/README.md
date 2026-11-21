@@ -206,7 +206,7 @@ mathc --root ROOT map --json
 
 Плагин не пересчитывает freshness, independence, control reach или композицию `all`/`any`. Наблюдение `pass` не становится `holds`, waiver не становится green, а `not-run` не становится `refuted`.
 
-`spec.json` и `.math/v5/evidence.jsonl` дают только содержимое для объяснения карты. Набор claim IDs, goal и числовые границы map/spec должны совпадать. Неизвестная схема, повреждённый JSONL, изменившийся во время чтения проект или несогласованный verdict/exit дают явную ошибку без fallback к прежнему green.
+`spec.json` и `.math/v6/evidence.jsonl` дают только содержимое для объяснения карты. Набор claim IDs, goal и числовые границы map/spec должны совпадать. Неизвестная схема, повреждённый JSONL, изменившийся во время чтения проект или несогласованный verdict/exit дают явную ошибку без fallback к прежнему green.
 
 Корень проекта определяется server-side по `workspaceId` через Paseo SDK. Client не передаёт произвольный filesystem path. Процессы запускаются через argv без shell interpolation, с timeout и ограничением вывода.
 

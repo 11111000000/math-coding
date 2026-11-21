@@ -28,7 +28,7 @@ The console is written once and hosted twice. The plugin and the local browser p
 
 The plugin needs Math Coding v5 installed as `mathc` on the daemon machine. An absolute path to a different binary can be configured in the plugin settings. The selected binary must report `mathc 5`.
 
-The daemon reads the workspace's `spec.json` and `.math/v5/evidence.jsonl`, and executes `mathc` in the workspace. It does not send project data to an external service.
+The daemon reads the workspace's `spec.json` and `.math/v6/evidence.jsonl`, and executes `mathc` in the workspace. It does not send project data to an external service.
 
 A closed action says so. The panel names the switch that opens it and offers the way to the settings of the host, so a grey button is never a button without a reason.
 

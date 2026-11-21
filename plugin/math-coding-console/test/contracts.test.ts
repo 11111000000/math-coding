@@ -1,48 +1,121 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { claimSchema, mapSchema, specSchema } from "../shared/domain";
+import { claimSchema, evidenceSchema, mapSchema, specSchema } from "../shared/domain";
 import { preferences, snapshotRpc } from "../shared/contracts";
 import { linkEvidence, parseTrail } from "../server/evidence";
 import { claim, evidence, map, nestedClaim, rawEvidence } from "./fixtures";
 
-test("accepts the v5 requirement tree and codec defaults", () => {
+/**
+ * A waiver as the specification carries it.
+ *
+ * The waiver has no review trigger any more: the fields the method does not
+ * use are gone from the format, and the consumer refuses them like the program.
+ */
+function waiver() {
+  return {
+    gap: "temporary limitation",
+    scope: ["src/"],
+    issuer: "owner",
+    issued_at: 900,
+    expires_at: 1_100,
+    reason: "accepted until the migration",
+    compensating_controls: [],
+    recovery: "finish the migration",
+  };
+}
+
+test("accepts the v6 requirement tree and codec defaults", () => {
   const current = nestedClaim();
-  const { kind: _kind, phase: _phase, ...withoutDefaults } = current;
   const raw = {
-    ...withoutDefaults,
+    ...current,
     source: { ...current.source, review: undefined },
     requirements: current.requirements,
   };
-  const parsed = specSchema.parse({ schema_version: 5, goal: null, claims: [raw] });
-  assert.equal(parsed.claims[0]?.kind, "invariant");
-  assert.equal(parsed.claims[0]?.phase, "pre-merge");
+  const parsed = specSchema.parse({ schema_version: 6, goal: null, claims: [raw] });
   assert.equal(parsed.claims[0]?.source?.review, null);
   assert.deepEqual(parsed.claims[0]?.requirements, current.requirements);
 });
 
 test("rejects unknown fields and unsupported schema versions", () => {
   assert.throws(() => specSchema.parse({ schema_version: 4, goal: null, claims: [] }));
-  assert.throws(() => specSchema.parse({ schema_version: 5, goal: null, claims: [], unexpected: true }));
+  assert.throws(() => specSchema.parse({ schema_version: 6, goal: null, claims: [], unexpected: true }));
   assert.throws(() => mapSchema.parse({ ...map([claim()]), extra: "laundering" }));
+});
+
+/**
+ * The map of the previous format is not read as a green one.
+ *
+ * The format version is the contract between the program and its readers. A
+ * reader that accepts an older version without saying so turns a stale map
+ * into a fresh conclusion, and nothing else in the checks would notice.
+ */
+test("a map of the previous format is refused instead of read as a green one", () => {
+  assert.equal(mapSchema.safeParse({ ...map([claim()]), schema_version: 5 }).success, false);
+  assert.equal(specSchema.safeParse({ schema_version: 5, goal: null, claims: [] }).success, false);
+  assert.equal(evidenceSchema.safeParse({ ...rawEvidence(), schema_version: 5 }).success, false);
+});
+
+/**
+ * The fields the specification no longer carries are refused.
+ *
+ * The program writes the fields it uses and no others, and the consumer
+ * refuses the same ones. A field that only one side knows would be a field
+ * that the reader believes and the writer never said.
+ */
+test("the fields the specification no longer carries are refused", () => {
+  const base = { schema_version: 6, goal: null };
+  assert.equal(specSchema.safeParse({ ...base, claims: [{ ...claim(), kind: "acceptance" }] }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [{ ...claim(), phase: "pre-merge" }] }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [{ ...claim(), review_on: [] }] }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [{ ...claim(), waiver: { ...waiver(), review_on: [] } }] }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [claim()], uncertainty_budget: {} }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [claim()], closed_waves: [] }).success, false);
+  assert.equal(specSchema.safeParse({ ...base, claims: [claim()] }).success, true);
+});
+
+/**
+ * The map names the program that produced it.
+ *
+ * The digest tells the reader which observer wrote the map. A map without it
+ * cannot be compared with the evidence it carries, so the field is required.
+ */
+test("the map names the program that produced it", () => {
+  const parsed = mapSchema.parse(map([claim()]));
+  assert.equal(parsed.tool.class, "mathc");
+  assert.equal(parsed.tool.fingerprint.length, 64);
+  assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: undefined }).success, false);
+});
+
+/**
+ * The evidence record names the program that produced it.
+ *
+ * The digest of the producer travels with the record, so a reader can tell
+ * that the observer changed without reading the journal again.
+ */
+test("the evidence record names the program that produced it", () => {
+  const parsed = evidenceSchema.parse(rawEvidence());
+  assert.equal(parsed.tool.class, "mathc");
+  assert.equal(parsed.tool.fingerprint.length, 64);
+  assert.equal(evidenceSchema.safeParse({ ...rawEvidence(), tool: undefined }).success, false);
 });
 
 test("carries the declared environment of the specification", () => {
   const declared = specSchema.parse({
-    schema_version: 5,
+    schema_version: 6,
     environment: "nix develop -c",
     goal: null,
     claims: [],
   });
   assert.equal(declared.environment, "nix develop -c");
-  const absent = specSchema.parse({ schema_version: 5, goal: null, claims: [] });
+  const absent = specSchema.parse({ schema_version: 6, goal: null, claims: [] });
   assert.equal(absent.environment, undefined);
   assert.equal(
-    specSchema.safeParse({ schema_version: 5, environment: 42, goal: null, claims: [] }).success,
+    specSchema.safeParse({ schema_version: 6, environment: 42, goal: null, claims: [] }).success,
     false,
   );
   assert.equal(
     specSchema.safeParse({
-      schema_version: 5,
+      schema_version: 6,
       environment: "x".repeat(513),
       goal: null,
       claims: [],
@@ -85,6 +158,10 @@ test("carries the environment a claim declares for itself", () => {
   assert.equal(withEnvironment.environment, "nix develop -c");
   const without = claimSchema.parse(claim());
   assert.equal(without.environment, undefined);
+  assert.equal(
+    claimSchema.safeParse({ ...claim(), environment: null }).success,
+    true,
+  );
   assert.equal(
     claimSchema.safeParse({ ...claim(), environment: 42 }).success,
     false,

@@ -29,7 +29,6 @@ export function claimStateColor(theme: ConsoleTheme, state: ClaimState): string 
     case "outdated":
     case "waived": return theme.colors.statusWarning;
     case "inconclusive": return theme.colors.accent;
-    case "not-checkable":
     case "never-checked": return theme.colors.foregroundMuted;
   }
 }
@@ -49,7 +48,6 @@ export function claimStateIcon(state: ClaimState): string {
     case "holds": return "Check";
     case "refuted": return "X";
     case "inconclusive": return "CircleHelp";
-    case "not-checkable": return "Ban";
     case "outdated": return "Clock3";
     case "never-checked": return "CircleDashed";
     case "waived": return "ShieldAlert";
@@ -71,10 +69,9 @@ export function stateOrder(state: ClaimState): number {
     case "refuted": return 0;
     case "outdated": return 1;
     case "inconclusive": return 2;
-    case "not-checkable": return 3;
-    case "never-checked": return 4;
-    case "waived": return 5;
-    case "holds": return 6;
+    case "never-checked": return 3;
+    case "waived": return 4;
+    case "holds": return 5;
   }
 }
 
@@ -106,7 +103,7 @@ const REASON_KEYS: Record<StateReason, MessageKey> = {
   "infrastructure-error": "state.reason_infrastructure_error",
   refuted: "state.reason_refuted",
   waived: "state.reason_waived",
-  "not-checkable": "state.reason_not_checkable",
+  "tool-changed": "state.reason_tool_changed",
 };
 
 /** The key of the catalogue that holds the reason of a state. */
@@ -134,7 +131,6 @@ const CLAIM_STATE_KEYS: Record<ClaimState, MessageKey> = {
   holds: "state.claim_holds",
   refuted: "state.claim_refuted",
   inconclusive: "state.claim_inconclusive",
-  "not-checkable": "state.claim_not_checkable",
   outdated: "state.claim_outdated",
   "never-checked": "state.claim_never_checked",
   waived: "state.claim_waived",

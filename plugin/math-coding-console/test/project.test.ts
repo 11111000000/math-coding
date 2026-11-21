@@ -11,7 +11,7 @@ import type { MathMap } from "../shared/domain";
 async function fixture(t: TestContext, initial = map([claim()])) {
   const root = await mkdtemp(join(tmpdir(), "mathc-plugin-"));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const spec = { schema_version: 5, goal: initial.goal, claims: [claim()] };
+  const spec = { schema_version: 6, goal: initial.goal, claims: [claim()] };
   await writeFile(join(root, "spec.json"), JSON.stringify(spec));
   const binary = join(root, "fake-mathc.js");
   await setMap(binary, root, initial);
@@ -23,7 +23,7 @@ async function setMap(binary: string, root: string, value: MathMap | null, versi
   const source = `#!/usr/bin/env node
 const fs = require("fs");
 if (process.argv[2] === "--version") { process.stdout.write(${JSON.stringify(`${version}\n`)}); process.exit(0); }
-if (process.argv[4] === "run") { fs.mkdirSync(${JSON.stringify(join(root, ".math", "v5"))}, { recursive: true }); fs.appendFileSync(${JSON.stringify(join(root, ".math", "v5", "evidence.jsonl"))}, JSON.stringify(${JSON.stringify(rawEvidence())}) + "\\n"); fs.appendFileSync(${JSON.stringify(marker)}, "run\\n"); }
+if (process.argv[4] === "run") { fs.mkdirSync(${JSON.stringify(join(root, ".math", "v6"))}, { recursive: true }); fs.appendFileSync(${JSON.stringify(join(root, ".math", "v6", "evidence.jsonl"))}, JSON.stringify(${JSON.stringify(rawEvidence())}) + "\\n"); fs.appendFileSync(${JSON.stringify(marker)}, "run\\n"); }
 if (${JSON.stringify(value)} === null) { process.stderr.write("invalid trail\\n"); process.exit(3); }
 process.stdout.write(JSON.stringify(${JSON.stringify(value)}));
 process.exit(${value?.exit ?? 3});
@@ -75,8 +75,8 @@ test("a missing trail is empty and a corrupt trail rejects the whole detail", as
   const current = map([claim()]);
   const { root, binary } = await fixture(t, current);
   assert.deepEqual((await loadProject(root, binary, "map", true)).records, []);
-  const trail = join(root, ".math", "v5", "evidence.jsonl");
-  await mkdir(join(root, ".math", "v5"), { recursive: true });
+  const trail = join(root, ".math", "v6", "evidence.jsonl");
+  await mkdir(join(root, ".math", "v6"), { recursive: true });
   await writeFile(trail, `${JSON.stringify(rawEvidence())}\nbroken\n`, { flag: "w" });
   await assert.rejects(loadProject(root, binary, "map", true), /line 2/);
   await writeFile(trail, `${JSON.stringify(rawEvidence())}\n`);

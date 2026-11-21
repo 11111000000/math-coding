@@ -22,8 +22,6 @@ export function ClaimsView({ theme, compact, snapshot, onSelect }: {
   const [query, setQuery] = useState("");
   const [state, setState] = useState("all");
   const [register, setRegister] = useState("all");
-  const [kind, setKind] = useState("all");
-  const [phase, setPhase] = useState("all");
   const [owner, setOwner] = useState("all");
   const [source, setSource] = useState("all");
   const states = useMemo(() => new Map(snapshot.map.states.map((item) => [item.id, item])), [snapshot]);
@@ -34,22 +32,18 @@ export function ClaimsView({ theme, compact, snapshot, onSelect }: {
       return (normalized === "" || haystack.includes(normalized)) &&
         (state === "all" || states.get(claim.id)?.state === state) &&
         (register === "all" || claim.register === register) &&
-        (kind === "all" || claim.kind === kind) &&
-        (phase === "all" || claim.phase === phase) &&
         (owner === "all" || (claim.owner ?? "no owner") === owner) &&
         (source === "all" || (claim.source?.path ?? "no source") === source);
     }).sort((a, b) => {
-      const aState = states.get(a.id)?.state ?? "not-checkable";
-      const bState = states.get(b.id)?.state ?? "not-checkable";
+      const aState = states.get(a.id)?.state ?? "never-checked";
+      const bState = states.get(b.id)?.state ?? "never-checked";
       return stateOrder(aState) - stateOrder(bState) || a.id.localeCompare(b.id);
     });
-  }, [snapshot, query, state, register, kind, phase, owner, source, states]);
+  }, [snapshot, query, state, register, owner, source, states]);
   const reset = () => {
     setQuery("");
     setState("all");
     setRegister("all");
-    setKind("all");
-    setPhase("all");
     setOwner("all");
     setSource("all");
   };
@@ -78,8 +72,6 @@ export function ClaimsView({ theme, compact, snapshot, onSelect }: {
         <FilterRow>
           <Select theme={theme} label={t("claims.filter_state")} value={state} options={["all", ...CLAIM_STATES]} optionLabels={stateLabels} onChange={setState} />
           <Select theme={theme} label={t("claims.filter_register")} value={register} options={["all", ...unique(snapshot.claims.map((claim) => claim.register))]} optionLabels={{ all }} onChange={setRegister} />
-          <Select theme={theme} label={t("claims.filter_kind")} value={kind} options={["all", ...unique(snapshot.claims.map((claim) => claim.kind))]} optionLabels={{ all }} onChange={setKind} />
-          <Select theme={theme} label={t("claims.filter_phase")} value={phase} options={["all", ...unique(snapshot.claims.map((claim) => claim.phase))]} optionLabels={{ all }} onChange={setPhase} />
           <Select theme={theme} label={t("claims.filter_owner")} value={owner} options={["all", ...unique(snapshot.claims.map((claim) => claim.owner ?? "no owner"))]} optionLabels={ownerLabels} onChange={setOwner} />
           <Select theme={theme} label={t("claims.filter_source")} value={source} options={["all", ...unique(snapshot.claims.map((claim) => claim.source?.path ?? "no source"))]} optionLabels={sourceLabels} onChange={setSource} />
           <Pressable accessibilityRole="button" accessibilityLabel={t("claims.reset_filters")} onPress={reset} style={{ padding: 8 }}><Text style={{ color: theme.colors.accent, fontSize: 11 }}>{t("common.reset")}</Text></Pressable>
@@ -87,7 +79,7 @@ export function ClaimsView({ theme, compact, snapshot, onSelect }: {
         {claims.length > 0 && (
           <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 3, paddingVertical: 5 }}>
             {claims.map((claim) => {
-              const claimState = states.get(claim.id)?.state ?? "not-checkable";
+              const claimState = states.get(claim.id)?.state ?? "never-checked";
               return (
                 <Pressable
                   key={claim.id}
@@ -137,7 +129,6 @@ function ClaimCard({ theme, compact, claim, state, sourceChanged, onSelect }: {
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5, alignItems: "center" }}>
           {state && <Badge theme={theme} label={t(claimStateKey(state))} color={claimStateColor(theme, state)} icon={claimStateIcon(state)} />}
           <Badge theme={theme} label={claim.register} />
-          <Badge theme={theme} label={claim.kind} />
           {sourceChanged && <Badge theme={theme} label={t("state.source_changed")} tone="warn" icon="FileClock" />}
         </View>
         <Text style={{ color: theme.colors.foreground, fontSize: 15, fontWeight: "700" }}>{claim.id}</Text>
@@ -145,7 +136,6 @@ function ClaimCard({ theme, compact, claim, state, sourceChanged, onSelect }: {
         <View style={{ flex: 1 }} />
         <Mono theme={theme} lines={2}>{claim.source ? `${claim.source.kind}: ${claim.source.path}` : t("state.no_linked_source")}</Mono>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-          <Badge theme={theme} label={claim.phase} />
           <Badge theme={theme} label={t("claims.scope_paths", { count: claim.scope.length })} />
           {claim.waiver && <Badge theme={theme} label={t("state.waiver_recorded")} tone="warn" icon="ShieldAlert" />}
         </View>

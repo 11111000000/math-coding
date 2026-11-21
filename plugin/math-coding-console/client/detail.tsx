@@ -95,8 +95,6 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
           <Button theme={theme} compact label={t("detail.close")} icon="X" onPress={onClose} />
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-          <Badge theme={theme} label={claim.kind} />
-          <Badge theme={theme} label={claim.phase} />
           <Badge theme={theme} label={claim.owner ?? t("state.no_owner")} icon="User" />
         </View>
       </Card>
@@ -217,7 +215,6 @@ function ClaimFacts({ theme, compact, claim, onOpenFile }: {
           {claim.source.review && <KeyValue theme={theme} label={t("detail.source_review")} value={`${claim.source.review.by} · ${formatTime(claim.source.review.at)} · ${claim.source.review.reason}`} />}
         </>
       )}
-      {claim.review_on.length > 0 && <KeyValue theme={theme} label={t("detail.review_triggers")} value={claim.review_on.join(", ")} />}
       {claim.waiver && (
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 9 }}>
           <Badge theme={theme} label={t("state.waiver_recorded")} tone="warn" icon="ShieldAlert" />

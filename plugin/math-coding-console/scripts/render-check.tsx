@@ -72,7 +72,6 @@ async function main() {
       reason: "accepted until migration",
       compensating_controls: [],
       recovery: "finish migration",
-      review_on: [],
     },
   });
   const humanData = snapshot([changed, refuted, waived]);
