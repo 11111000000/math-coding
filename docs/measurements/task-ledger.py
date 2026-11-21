@@ -186,6 +186,20 @@ def load(path):
         task_identity = tasks.setdefault(task_key, (record["project"], record["base_revision"], record["task_kind"]))
         require(task_identity == (record["project"], record["base_revision"], record["task_kind"]),
                 f"task {task_key} mixes project, revision or kind")
+    # Руки одного сравнения должны покрывать один и тот же набор задач: рука,
+    # отличная по числу задач, не сравнивается (протокол, §3). Проверка идёт
+    # после проверки сборок, чтобы смешение сборок называло свою причину.
+    comparison_arms = {}
+    for record in records:
+        arms = comparison_arms.setdefault(record["comparison_id"], {})
+        arms.setdefault(record["arm"], set()).add(record["task_id"])
+    for comparison_id, arms in comparison_arms.items():
+        task_sets = {frozenset(tasks) for tasks in arms.values()}
+        if len(task_sets) > 1:
+            counts = ", ".join(f"{arm}: {len(tasks)}" for arm, tasks in sorted(arms.items()))
+            raise ValueError(
+                f"comparison {comparison_id} has arms with a different number of tasks ({counts}): "
+                "an arm with a different number of tasks is not compared")
     return records
 
 

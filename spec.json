@@ -10,7 +10,7 @@
     ],
     "by": "owner",
     "at": 1794829339,
-    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it"
+    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it; the three-arm measurement of the method has never been run, and until it is, the project carries a debt of honesty that the protocol names and the claim of the field measurement keeps in view"
   },
   "claims": [
     {
@@ -316,7 +316,7 @@
     },
     {
       "id": "field-measurement",
-      "text": "the field pilot ledger accepts consistent records and rejects inconsistent comparisons",
+      "text": "the apparatus of the field measurement is whole and runnable: the ledger accepts consistent records and rejects inconsistent comparisons, and the protocol declares what the measurement needs",
       "scope": [
         "docs/measurements/", "test/measurement_ledger.ml", "test/dune"
       ],
@@ -329,11 +329,15 @@
         {
           "kind": "verifier",
           "spec": "dune runtest --root . --force test/measurement_ledger.exe"
+        },
+        {
+          "kind": "verifier",
+          "spec": "test -f docs/measurements/BENCHMARK-PROTOCOL.md && test -s docs/measurements/dry-run.jsonl && test -f docs/measurements/task-ledger.py && for part in \"Экспериментальные руки\" \"Baseline\" \"Checklist\" \"Protocol\" \"Набор задач\" \"число задач и повторов\" \"критерий принятого результата\" \"Критерий принятия метода\" \"не менее 30% снижения\" \"независимый оценщик\" \"независимым ревьюером\" \"отличная по числу задач\"; do grep -qF \"$part\" docs/measurements/BENCHMARK-PROTOCOL.md || exit 1; done"
         }
       ],
-      "falsifier": "an inconsistent task record is accepted or a valid dry run is rejected",
+      "falsifier": "an inconsistent task record is accepted, a valid dry run is rejected, the protocol stops declaring what the measurement needs or a part of the apparatus is missing",
       "register": "fact",
-      "control": "sed -i 's/accepted_by is None/accepted_by is not None/' docs/measurements/task-ledger.py",
+      "control": "sed -i 's/^## 2\\. Экспериментальные руки/## 2. Руки сравнения/' docs/measurements/BENCHMARK-PROTOCOL.md",
       "waiver": null,
       "environment": "nix develop -c"
     },
