@@ -150,6 +150,8 @@ let pill_class = function
   | "not-checkable" -> "v-not-checkable"
   | "never-checked" -> "v-never-checked"
   | "vacant" -> "v-vacant"
+  | "green" -> "v-green"
+  | "red" -> "v-red"
   | _ -> "v-unknown"
 
 let read_map path =
@@ -176,13 +178,15 @@ let read_map path =
             failwith
               (Printf.sprintf "the map declares the schema version %d, the site reads the version %d"
                  schema schema_version);
-          let text name =
-            match List.assoc_opt name fields with Some (`String value) -> value | _ -> ""
+          let verdict =
+            match List.assoc_opt "verdict" fields with
+            | Some (`String value) -> value
+            | _ -> failwith "the map does not declare a verdict"
           in
           let states =
             match List.assoc_opt "states" fields with
             | Some (`List items) ->
-                List.filter_map
+                List.map
                   (fun item ->
                     match item with
                     | `Assoc pairs -> (
@@ -190,18 +194,23 @@ let read_map path =
                           List.assoc_opt "id" pairs,
                           List.assoc_opt "state" pairs
                         with
-                        | Some (`String id), Some (`String state) -> Some (id, state)
-                        | _ -> None)
-                    | _ -> None)
+                        | Some (`String id), Some (`String state) ->
+                            (id, state)
+                        | _ ->
+                            failwith
+                              "the map has a state entry without an id and a state")
+                    | _ ->
+                        failwith
+                          "the map has a state entry that is not an object")
                   items
-            | _ -> []
+            | _ -> failwith "the map does not declare the states of its claims"
           in
           let uncovered =
             match List.assoc_opt "uncovered" fields with
             | Some (`List items) -> List.length items
-            | _ -> 0
+            | _ -> failwith "the map does not declare the uncovered files"
           in
-          { verdict = text "verdict"; states; uncovered })
+          { verdict; states; uncovered })
       | _ -> failwith "the map is not a JSON object")
 
 let state_of states id =
@@ -255,7 +264,7 @@ let count_state states wanted =
 
 let fragment labels map claims =
   let summary =
-    [Printf.sprintf "<span>%s: <span class=\"v-pill v-%s\">%s</span></span>"
+    [Printf.sprintf "<span>%s: <span class=\"v-pill %s\">%s</span></span>"
        (escape labels.verdict_word) (pill_class map.verdict) (escape map.verdict)]
     @ List.concat_map
         (fun state ->
@@ -521,6 +530,32 @@ let check root dist map_path =
         spec.claims)
     ["index.html"; "index.ru.html"];
   List.iter
+    (fun labels ->
+      let name =
+        if labels.lang = "ru" then "index.ru.html" else "index.html" in
+      let page = Io.read_file (Filename.concat dist name) in
+      let verdict_pill =
+        Printf.sprintf "<span>%s: <span class=\"v-pill %s\">%s</span></span>"
+          (escape labels.verdict_word) (pill_class map.verdict)
+          (escape map.verdict)
+      in
+      if not (contains verdict_pill page) then
+        fail
+          (Printf.sprintf
+             "the page %s does not show the verdict of the map (%s)" name
+             map.verdict);
+      let coverage =
+        Printf.sprintf "<span>%d %s &middot; %d %s</span>"
+          (List.length spec.claims) (escape labels.claims_word) map.uncovered
+          (escape labels.uncovered)
+      in
+      if not (contains coverage page) then
+        fail
+          (Printf.sprintf
+             "the page %s does not show the coverage of the map (%d uncovered)"
+             name map.uncovered))
+    [labels_en; labels_ru];
+  List.iter
     (fun (id, state) ->
       if not (List.exists (fun (claim : claim) -> claim.id = id) spec.claims) then
         fail (Printf.sprintf "the map reports an unknown claim %s" id))
@@ -547,7 +582,18 @@ let check root dist map_path =
         (fun name ->
           let path = Filename.concat (Filename.concat dist "claims") name in
           if not (Sys.file_exists path) then
-            fail (Printf.sprintf "the claim page %s is missing" name))
+            fail (Printf.sprintf "the claim page %s is missing" name)
+          else
+            let state = state_of map.states claim.id in
+            let pill =
+              Printf.sprintf "<span class=\"v-pill %s\">%s</span>"
+                (pill_class state) (escape state)
+            in
+            let page = Io.read_file path in
+            if not (contains pill page) then
+              fail
+                (Printf.sprintf "the claim page %s does not show state %s" name
+                   state))
         [ Printf.sprintf "%s.html" claim.id; Printf.sprintf "%s.ru.html" claim.id ])
     spec.claims;
   List.iter
