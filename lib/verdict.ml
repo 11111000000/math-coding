@@ -1,16 +1,16 @@
 open Domain
 
 (* The reason names the cause of a state. The vocabulary is closed: the map
-   reports one of these reasons for every claim and nothing else. The reason
-   never changes the state, it only says why the state is what it is. Current
-   means fresh evidence and a passed check; never-checked means the requirement
-   was never executed; source-changed means the bound source changed; the four
-   *-changed reasons name the freshness binding that does not hold; expired
-   means the record does not apply now; not-run means the check did not start;
+   reports one of these reasons and nothing else, and the reason never changes
+   the state - it only says why the state is what it is. Current means fresh
+   evidence and a passed check; the *-changed reasons name the freshness
+   binding that does not hold; not-run means the check did not start;
    inconclusive means the observation is indeterminate; infrastructure-error
    means the run failed for infrastructural reasons; refuted means the check
    rejected the claim; waived means an accepted risk is in force; tool-changed
-   means the tool that produced the evidence is not the tool that reads it. *)
+   means the tool that wrote the evidence is not the tool that reads it;
+   copy-failed means the check could not run in the copy of the control, so the
+   control proves nothing. *)
 type reason =
   | Why_current | Why_never_checked | Why_source_changed | Why_materials_changed
   | Why_definition_changed | Why_verifier_changed | Why_environment_changed | Why_expired
@@ -142,9 +142,7 @@ let explain_record ~requirement_first ~unmet ~now ?materials ?environment ?tool 
               | Not_run -> (Inconclusive, Why_not_run)
               | Infrastructure_error -> (Inconclusive, Why_infrastructure_error)
               | Inconclusive ->
-                  (* A copy that fails on its own names itself: the control
-                     proved nothing, and the map must say so instead of a
-                     bare "inconclusive". *)
+                  (* A copy that fails on its own names itself. *)
                   (Inconclusive,
                    (match evidence.control_reach with
                     | Some "copy-failed" -> Why_copy_failed

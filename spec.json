@@ -502,6 +502,39 @@
       "environment": "nix develop -c"
     },
     {
+      "id": "golden-corpus",
+      "text": "the frozen corpus gives the same map on every build",
+      "scope": [
+        "test/golden_corpus.ml",
+        "test/golden_corpus/p-green/spec.json",
+        "test/golden_corpus/p-green/subject.txt",
+        "test/golden_corpus/p-green/evidence.jsonl",
+        "test/golden_corpus/p-green/expected.json",
+        "test/golden_corpus/p-mixed/spec.json",
+        "test/golden_corpus/p-mixed/keeps.txt",
+        "test/golden_corpus/p-mixed/breaks.txt",
+        "test/golden_corpus/p-mixed/gapped.txt",
+        "test/golden_corpus/p-mixed/evidence.jsonl",
+        "test/golden_corpus/p-mixed/expected.json",
+        "test/golden_corpus/p-empty/spec.json",
+        "test/golden_corpus/p-empty/subject.txt",
+        "test/golden_corpus/p-empty/expected.json"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/golden_corpus.exe"
+        }
+      ],
+      "falsifier": "a build moves the verdict or the state of a frozen project, and the corpus does not notice",
+      "register": "fact",
+      "control": "sed -i 's/\"verdict\": \"green\"/\"verdict\": \"red\"/' test/golden_corpus/p-green/expected.json",
+      "waiver": null,
+      "environment": "nix develop -c"
+    },
+    {
       "id": "format-migration",
       "text": "a project of the previous version of the format is moved to this version, and no record of the journal is lost or invented",
       "scope": [
