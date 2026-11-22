@@ -75,7 +75,7 @@ let report_failure label (result : Process.result) =
 (* The result of a check that was stopped: no observation, no reach. The
    constructor is named with its type, because the domain has a state of the
    same name and the reader of the code must not guess. *)
-let interrupted_result : outcome * string option = (Inconclusive, None)
+let interrupted_result : Domain.outcome * string option = (Inconclusive, None)
 
 (* An observation enters the journal the moment it is made, so an interrupted
    run keeps everything it has already proven. The journal stays append-only
@@ -100,44 +100,99 @@ let rec execute_leaf ?files ?(quiet = false) ~environment ~cancel root claim emi
           emit evidence;
           Inconclusive
       | Some _ ->
-          let result = Process.run ~timeout:verifier_timeout ~cancel ~root (command_in_environment environment command) in
-          if result.interrupted then (
-            if not quiet then Printf.printf "%s: the check was stopped\n" claim.id;
-            Inconclusive)
-          else (
-            report_failure command result;
-            let outcome = if result.truncated then Infrastructure_error else result.outcome in
-            let outcome, reach =
-              match outcome, claim.control with
-              | Pass, Some control -> (
-                  match Isolated_run.with_copy root (fun copy ->
-                      let before = Git.digest_of_scope copy ~scope:claim.scope in
-                      let mutation = Process.run ~timeout:control_timeout ~cancel ~root:copy (command_in_environment environment control) in
-                      let after = Git.digest_of_scope copy ~scope:claim.scope in
-                      if mutation.interrupted then interrupted_result
-                      else (
-                        report_failure ("negative control: " ^ control) mutation;
-                        let reach = if before = after then "nothing" else "subject" in
-                        let check = Process.run ~timeout:verifier_timeout ~cancel ~root:copy (command_in_environment environment command) in
-                        if check.interrupted then interrupted_result
-                        else (
-                          report_failure ("verifier after negative control: " ^ command) check;
-                          if reach = "subject" && check.code = 1 then (Pass, Some reach)
-                          else (Inconclusive, Some reach)))) with
-                  | Error error ->
-                      Printf.eprintf "mathc: control setup failed: %s\n" error;
-                      Infrastructure_error, None
-                  | Ok (outcome, reach) -> outcome, reach)
-              | Pass, None -> Not_run, None
-              | outcome, _ -> outcome, None
+          (* The check on the subject, in the working tree. *)
+          (* `None` is a check that was stopped: it is not an observation, and
+             the claim keeps the observation it had. *)
+          let live () : Domain.outcome option =
+            let result = Process.run ~timeout:verifier_timeout ~cancel ~root
+                (command_in_environment environment command)
             in
-            let evidence = evidence_for ?files root claim requirement command outcome reach in
-            emit evidence;
-            if not quiet then (
-              Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
-              if outcome = Pass && reach = Some "subject" then
-                Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
-            outcome))
+            if result.interrupted then None
+            else (
+              report_failure command result;
+              Some (if result.truncated then Domain.Infrastructure_error else result.outcome))
+          in
+          (* The control phase. The copy is taken before the check runs in the
+             working tree, so that it is the subject as it was and not the
+             subject with the traces of the check. The check must be able to
+             run in that copy at all: a copy that cannot run the check proves
+             nothing by failing, and every control over it looks proven. This
+             is the field case of a project whose dependencies are not in the
+             repository - there every check fails, and every control looks
+             proven. *)
+          (* `None` is a check that was stopped: it is not an observation, and
+             the claim keeps the observation it had. *)
+          let observed : (Domain.outcome * string option) option =
+            match claim.control with
+            | None ->
+                (* A check without a control is never confirmed: the machine
+                   proof is not available. *)
+                (match live () with
+                 | None -> None
+                 | Some Domain.Pass -> Some (Domain.Not_run, None)
+                 | Some outcome -> Some (outcome, None))
+            | Some control ->
+                (match Isolated_run.with_copy root (fun copy ->
+                    (* The control phase. The copy is taken before the check
+                       runs in the working tree, so that it is the subject as
+                       it was and not the subject with the traces of the
+                       check. *)
+                    let control_phase () =
+                      (* The check must be able to run in the copy at all: a
+                         copy that cannot run it proves nothing by failing,
+                         and every control over it looks proven. This is the
+                         field case of a project whose dependencies are not in
+                         the repository - there every check fails, and every
+                         control looks proven. *)
+                      let unmodified =
+                        Process.run ~timeout:verifier_timeout ~cancel ~root:copy
+                          (command_in_environment environment command)
+                      in
+                      if unmodified.interrupted then None
+                      else if unmodified.code <> 0 then (
+                        report_failure ("verifier on the unmodified copy: " ^ command) unmodified;
+                        Some ((Domain.Inconclusive : Domain.outcome), Some "copy-failed"))
+                      else (
+                        let before = Git.digest_of_scope copy ~scope:claim.scope in
+                        let mutation = Process.run ~timeout:control_timeout ~cancel ~root:copy
+                            (command_in_environment environment control)
+                        in
+                        let after = Git.digest_of_scope copy ~scope:claim.scope in
+                        if mutation.interrupted then None
+                        else (
+                          report_failure ("negative control: " ^ control) mutation;
+                          let reach = if before = after then "nothing" else "subject" in
+                          let check = Process.run ~timeout:verifier_timeout ~cancel ~root:copy
+                              (command_in_environment environment command)
+                          in
+                          if check.interrupted then None
+                          else (
+                            report_failure ("verifier after negative control: " ^ command) check;
+                            if reach = "subject" && check.code = 1 then Some (Domain.Pass, Some reach)
+                            else Some ((Domain.Inconclusive : Domain.outcome), Some reach))))
+                    in
+                    match live () with
+                    | None -> None
+                    | Some Domain.Pass -> control_phase ()
+                    | Some outcome -> Some (outcome, None))
+                  with
+                | Error error ->
+                    Printf.eprintf "mathc: control setup failed: %s\n" error;
+                    Some (Domain.Infrastructure_error, None)
+                | Ok result -> result)
+          in
+          match observed with
+          | None ->
+              if not quiet then Printf.printf "%s: the check was stopped\n" claim.id;
+              Domain.Inconclusive
+          | Some (outcome, reach) ->
+              let evidence = evidence_for ?files root claim requirement command outcome reach in
+              emit evidence;
+              if not quiet then (
+                Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
+                if outcome = Domain.Pass && reach = Some "subject" then
+                  Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
+              outcome)
   | All requirements | Any requirements ->
       (* The order of the work and the point at which the run stops belong to
          the method, not to this arm: the price arm of the measurer shares

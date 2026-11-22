@@ -100,7 +100,7 @@ let () =
     [ Why_current; Why_never_checked; Why_source_changed; Why_materials_changed;
       Why_definition_changed; Why_verifier_changed; Why_environment_changed; Why_expired;
       Why_not_run; Why_inconclusive; Why_infrastructure_error; Why_refuted; Why_waived;
-      Why_tool_changed ]
+      Why_tool_changed; Why_copy_failed ]
   in
   (* The vocabulary is closed: every reason has a token, every token names one
      reason, and no two reasons share a token. *)

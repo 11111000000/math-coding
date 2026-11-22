@@ -1053,3 +1053,87 @@ let () =
       check "the approval keeps the earlier decision"
         (contains (Io.read_file approval) "the release checks");
       print_endline "approve: PASS")
+
+(* A control is a proof only when the check passes on the copy before the
+   control breaks it. A check that needs something outside the repository —
+   a dependency, a service, a local file — passes in the working tree and
+   fails in the copy, and such a copy must name itself instead of turning
+   every control into a false proof. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      (* The check needs a file that the repository does not carry: the file
+         is ignored by git, so the copy of the control has no such file and
+         the check cannot pass there. *)
+      write root ".gitignore" "local-only.txt\n";
+      write root "local-only.txt" "present\n";
+      expect root
+        "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt && test -f local-only.txt\" --control \"printf broken > subject.txt\""
+        0;
+      let result = run root "run" in
+      check "the run of a check that cannot pass in the copy is not a green one"
+        (result.code = 3);
+      let map = run root "map" in
+      check "the map names the broken copy"
+        (contains map.stdout "copy failed");
+      check "the claim is not held"
+        (contains map.stdout "inconclusive");
+      (* The same claim without the file outside the repository holds, with a
+         proven control: the copy can run the check. *)
+      with_repo (fun plain ->
+          expect plain "init" 0;
+          expect plain "goal \"the subject is expected\" subject.txt owner" 0;
+          write plain "subject.txt" "expected\n";
+          expect plain
+            "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\""
+            0;
+          let result = run plain "run" in
+          check "a check that runs in the copy passes"
+            (result.code = 0);
+          check "the proven control is named"
+            (contains result.stdout "negative control proven");
+          let map = run plain "map" in
+          check "a check that runs in the copy holds"
+            (contains map.stdout "holds")));
+  print_endline "control-cause: PASS"
+
+(* The page for agents names the verbs of the method, and the help of the tool
+   names them too. A verb that the tool accepts and the page does not mention
+   leaves the instruction of the project incomplete, and nothing else notices:
+   the page drifts from the tool one verb at a time. *)
+let verbs_of_help text =
+  let words = String.split_on_char ' ' text in
+  let rec collect acc = function
+    | "mathc" :: next :: rest ->
+        let verb =
+          String.trim (String.map (fun ch -> if ch = '"' || ch = ',' || ch = '|' then ' ' else ch) next)
+        in
+        let acc =
+          if verb <> "" && String.for_all (fun ch -> (ch >= 'a' && ch <= 'z') || ch = '-') verb
+             && String.length verb > 1
+             && verb.[0] >= 'a' && verb.[0] <= 'z'
+          then verb :: acc
+          else acc
+        in
+        collect acc rest
+    | _ :: rest -> collect acc rest
+    | [] -> List.sort_uniq String.compare acc
+  in
+  collect [] words
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      expect root "install" 0;
+      let help = run root "--help" in
+      let page = Io.read_file (Filename.concat root "AGENTS.md") in
+      let missing =
+        verbs_of_help help.stdout
+        |> List.filter (fun verb -> not (contains page ("mathc " ^ verb)))
+      in
+      check ("the page names every verb of the help: " ^ String.concat ", " missing)
+        (missing = []));
+  print_endline "page-verbs: PASS"

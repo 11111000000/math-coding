@@ -15,7 +15,7 @@ type reason =
   | Why_current | Why_never_checked | Why_source_changed | Why_materials_changed
   | Why_definition_changed | Why_verifier_changed | Why_environment_changed | Why_expired
   | Why_not_run | Why_inconclusive | Why_infrastructure_error | Why_refuted | Why_waived
-  | Why_tool_changed
+  | Why_tool_changed | Why_copy_failed
 
 (* The token of every reason. The table is exhaustive, so the two directions
    cannot drift apart. *)
@@ -25,7 +25,7 @@ let reason_tokens =
     "verifier-changed", Why_verifier_changed; "environment-changed", Why_environment_changed;
     "expired", Why_expired; "not-run", Why_not_run; "inconclusive", Why_inconclusive;
     "infrastructure-error", Why_infrastructure_error; "refuted", Why_refuted; "waived", Why_waived;
-    "tool-changed", Why_tool_changed ]
+    "tool-changed", Why_tool_changed; "copy-failed", Why_copy_failed ]
 
 let reason_to_string reason = fst (List.find (fun (_, value) -> value = reason) reason_tokens)
 let reason_of_string token = Option.map snd (List.find_opt (fun (name, _) -> name = token) reason_tokens)
@@ -60,7 +60,7 @@ let explains reason state =
   | Why_never_checked -> state = NeverChecked || state = Inconclusive
   | Why_source_changed | Why_materials_changed | Why_definition_changed | Why_verifier_changed
   | Why_environment_changed | Why_expired -> state = Outdated || state = Inconclusive
-  | Why_not_run | Why_inconclusive | Why_infrastructure_error -> state = Inconclusive
+  | Why_not_run | Why_inconclusive | Why_infrastructure_error | Why_copy_failed -> state = Inconclusive
   | Why_refuted -> state = Refuted
   | Why_waived -> state = Waived
   | Why_tool_changed -> state = Holds
@@ -74,8 +74,8 @@ let explains reason state =
 let priority =
   [ Why_refuted; Why_source_changed; Why_materials_changed; Why_definition_changed;
     Why_verifier_changed; Why_environment_changed; Why_expired; Why_tool_changed;
-    Why_infrastructure_error; Why_not_run; Why_inconclusive; Why_never_checked; Why_waived;
-    Why_current ]
+    Why_copy_failed; Why_infrastructure_error; Why_not_run; Why_inconclusive;
+    Why_never_checked; Why_waived; Why_current ]
 
 (* The reason of a state when no branch explains it. *)
 let generic state =
@@ -141,7 +141,14 @@ let explain_record ~requirement_first ~unmet ~now ?materials ?environment ?tool 
               | Fail -> (Refuted, Why_refuted)
               | Not_run -> (Inconclusive, Why_not_run)
               | Infrastructure_error -> (Inconclusive, Why_infrastructure_error)
-              | Inconclusive -> (Inconclusive, Why_inconclusive)
+              | Inconclusive ->
+                  (* A copy that fails on its own names itself: the control
+                     proved nothing, and the map must say so instead of a
+                     bare "inconclusive". *)
+                  (Inconclusive,
+                   (match evidence.control_reach with
+                    | Some "copy-failed" -> Why_copy_failed
+                    | _ -> Why_inconclusive))
               | Pass ->
                   if Freshness.requirement_fresh ?materials ?environment claim requirement evidence
                   then (Holds, why_current ?tool evidence) else unmet
