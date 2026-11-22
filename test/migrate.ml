@@ -113,3 +113,39 @@ let () =
         (contains result.stderr "no standing specification"));
 
   print_endline "migrate: PASS"
+
+(* The gate of the project must read the migrated specification. The page for
+   agents is part of that gate: after the migration it must name the verbs of
+   this version, and the migration must say that the tool of the project has
+   to be this one before the migration lands in the tree. *)
+let () =
+  with_repo (fun root ->
+      write root "spec.json" v5_spec;
+      write root ".math/v5/evidence.jsonl" (v5_record ^ "\n");
+      write root "AGENTS.md"
+        "# Project\n\n<!-- math-coding:begin -->\n## math-coding in this project\n\nstale\n<!-- math-coding:end -->\n";
+      let result = run root "migrate" in
+      check "the migration succeeds" (result.code = 0);
+      check "the migration names the gate of the project"
+        (contains result.stdout "the gate of the project must read the migrated specification");
+      check "the migration says which tool the project needs"
+        (contains result.stdout "must be this version BEFORE the migration lands in the tree");
+      let page = Io.read_file (Filename.concat root "AGENTS.md") in
+      check "the page for agents names the verbs of this version"
+        (contains page "mathc migrate" && contains page "mathc review-decision");
+      check "the page for agents names the claims of the project"
+        (contains page "1 claim(s).");
+      check "the text of the project around the block is kept"
+        (contains page "# Project");
+      (* A dry run changes nothing: neither the journals nor the page. *)
+      with_repo (fun dry ->
+          write dry "spec.json" v5_spec;
+          write dry ".math/v5/evidence.jsonl" (v5_record ^ "\n");
+          write dry "AGENTS.md" "<!-- math-coding:begin -->\nstale\n<!-- math-coding:end -->\n";
+          let answer = run dry "migrate --dry-run" in
+          check "the dry run succeeds" (answer.code = 0);
+          check "the dry run leaves the page alone"
+            (contains (Io.read_file (Filename.concat dry "AGENTS.md")) "stale");
+          check "the dry run says that it would migrate"
+            (contains answer.stdout "would be migrated")));
+  print_endline "migrate-gate: PASS"

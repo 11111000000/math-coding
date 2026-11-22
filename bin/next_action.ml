@@ -101,6 +101,13 @@ let next_of_reason (item : Evaluation.evaluated_state) =
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
        | None -> "next: check the claim " ^ item.id ^ checks_words item)
+  | Why_copy_failed ->
+      (match human with
+       | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
+       | None ->
+           "next: the check for " ^ item.id
+           ^ " fails on the unmodified copy, so its control proves nothing"
+           ^ checks_words item)
 
 (* What the journal could not say, in words a human can act on. *)
 let damage_words (damages : Trail.damage list) =

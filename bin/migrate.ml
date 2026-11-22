@@ -112,6 +112,12 @@ let report spec journals claims old dry_run =
         "version hashed and this one does not read were never part of what the method reads";
         "- so the migrated records are bound to the definition of the migrated claim";
         "";
+        "the gate of the project must read the migrated specification: the previous version";
+        "cannot read schema_version 6, so the tool the project uses - the one its CI calls and";
+        "the one it installs - must be this version BEFORE the migration lands in the tree;";
+        "otherwise the project's own gate fails on the migrated specification";
+        "the page for agents was rewritten with the verbs of this version";
+        "";
         "next: " ^ claims ^ ": the environment of the record no longer matches the environment";
         "of this method - the binary is no longer part of it";
         "next: mathc run" ])
@@ -131,6 +137,20 @@ let write_journals root spec journals =
   (match Run_log.write root journals.runs with
    | Ok _ -> ()
    | Error error -> failwith ("run log: " ^ error))
+
+(* The page for agents is part of the gate of the project: it names the verbs
+   of the method and the claims of the project, and the doctor checks it. A
+   migration that leaves it naming the verbs of the previous version leaves
+   the instruction of the project wrong, so the migration rewrites it. *)
+let refresh_agent_page root spec =
+  let path = Filename.concat root "AGENTS.md" in
+  let existing = if Sys.file_exists path then Io.read_file path else "" in
+  let block =
+    Agent_page.block_begin ^ "\n" ^ Agent_page.entry_page spec ^ Agent_page.block_end ^ "\n"
+  in
+  let updated = Agent_page.with_block existing block in
+  if updated <> existing then Io.write_atomic path updated;
+  updated <> existing
 
 let migrate root dry_run =
   let path = Project.spec_path root in
@@ -164,7 +184,10 @@ let migrate root dry_run =
                 let written =
                   if dry_run then Ok ()
                   else
-                    try Ok (write_journals root spec journals)
+                    try
+                      write_journals root spec journals;
+                      ignore (refresh_agent_page root spec);
+                      Ok ()
                     with error -> Error (Printexc.to_string error)
                 in
                 (match written with
