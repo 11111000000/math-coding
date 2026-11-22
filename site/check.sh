@@ -10,3 +10,4 @@ ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 sh "$ROOT/site/build.sh" >/dev/null
 "$ROOT/_build/default/site/render.exe" check "$ROOT" "$ROOT/site/dist" \
   "$ROOT/site/dist/map.json"
+sh "$ROOT/site/negative-controls.sh"
