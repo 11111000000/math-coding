@@ -10,7 +10,8 @@
     "serve": "tsx src/server.ts",
     "start": "npm run build && npm run serve",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test test/*.test.ts"
+    "test": "tsx --test test/*.test.ts",
+    "test:negative": "sh scripts/negative-controls.sh"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.11",
