@@ -122,11 +122,11 @@ Scope и source paths не могут быть absolute, traversal или symlin
 
 v5 keeps evidence linked, fresh, and independent
 
-29 claim(s).
+30 claim(s).
 
 ```sh
 mathc run
 ```
 
-Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc approve mathc re-evaluate mathc review-source mathc migrate mathc mcp
+Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc approve mathc re-evaluate mathc review-source mathc review-decision mathc migrate mathc mcp
 <!-- math-coding:end -->
