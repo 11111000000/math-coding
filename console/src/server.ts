@@ -128,9 +128,11 @@ function allowedHost(header: string | undefined): boolean {
   return host === "127.0.0.1" || host === "localhost";
 }
 
-/** A browser may only post from the page the server itself served. */
+/** A browser may only post from the page the server itself served. A
+ * request that carries no origin at all is not a browser page: it does not
+ * get the benefit of the doubt. */
 function allowedOrigin(origin: string | undefined, port: number): boolean {
-  if (origin === undefined) return true;
+  if (origin === undefined) return false;
   let url: URL;
   try {
     url = new URL(origin);

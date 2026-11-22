@@ -6,6 +6,7 @@ import { HostProvider } from "../../plugin/math-coding-console/client/host/conte
 import { LocaleProvider, useT } from "../../plugin/math-coding-console/client/i18n";
 import { SettingsScreen } from "../../plugin/math-coding-console/client/settings";
 import { createBrowserHost } from "./browser-host";
+import { ErrorBoundary } from "./error-boundary";
 import { ToastProvider } from "./toast";
 import { applyTheme, useSystemTheme } from "./theme";
 
@@ -94,10 +95,12 @@ if (!container) throw new Error("The Math Coding console page needs a root eleme
 
 createRoot(container).render(
   <StrictMode>
-    <ToastProvider>
-      <QueryClientProvider client={queryClient}>
-        <ConsoleRoot />
-      </QueryClientProvider>
-    </ToastProvider>
+    <ErrorBoundary>
+      <ToastProvider>
+        <QueryClientProvider client={queryClient}>
+          <ConsoleRoot />
+        </QueryClientProvider>
+      </ToastProvider>
+    </ErrorBoundary>
   </StrictMode>,
 );

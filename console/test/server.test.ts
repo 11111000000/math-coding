@@ -28,10 +28,18 @@ function ask(options: {
   path?: string;
   body?: unknown;
   headers?: Record<string, string>;
+  /** `false` sends no Origin at all, like a non-browser caller. */
+  origin?: string | false;
 }): Promise<Answer> {
   const method = options.method ?? "GET";
   const path = options.path ?? "/";
-  const headers: Record<string, string> = { ...options.headers };
+  const headers = { ...options.headers };
+  const origin = options.origin;
+  if (method === "POST" && origin !== false) {
+    headers.Origin = origin ?? headers.Origin ?? `http://127.0.0.1:${handle.port}`;
+  } else if (method === "POST") {
+    delete headers.Origin;
+  }
   let payload: string | undefined;
   if (options.body !== undefined) {
     payload = JSON.stringify(options.body);
@@ -175,6 +183,37 @@ test("a foreign origin is refused", async () => {
   });
   assert.equal(answer.status, 403);
   assert.equal(typeof answer.body.error, "string");
+});
+
+test("a write without an origin header is refused", async () => {
+  const answer = await ask({
+    method: "POST",
+    path: "/api/mathcoding.snapshot",
+    origin: false,
+    body: { workspaceId: "local" },
+  });
+  assert.equal(answer.status, 403);
+  assert.equal(typeof answer.body.error, "string");
+});
+
+test("a write from a foreign port is refused", async () => {
+  const answer = await ask({
+    method: "POST",
+    path: "/api/mathcoding.snapshot",
+    origin: "http://127.0.0.1:1",
+    body: { workspaceId: "local" },
+  });
+  assert.equal(answer.status, 403);
+});
+
+test("a write from its own page on localhost is accepted", async () => {
+  const answer = await ask({
+    method: "POST",
+    path: "/api/mathcoding.snapshot",
+    origin: `http://localhost:${handle.port}`,
+    body: { workspaceId: "local" },
+  });
+  assert.equal(answer.status, 200);
 });
 
 test("a foreign host is refused", async () => {

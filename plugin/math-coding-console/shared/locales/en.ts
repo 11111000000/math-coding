@@ -48,7 +48,7 @@ export const en = {
     retry_snapshot: "Retry read-only snapshot",
     not_initialized_title: "Math Coding is not initialized here",
     not_initialized_body: "A spec.json is required before the plugin can show a canonical map. The empty state is not presented as a verdict.",
-    refresh_failed: "Refresh failed. The visible data is the last successful snapshot from {{time}}: {{error}}",
+    refresh_failed: "Refresh failed. The previous snapshot is not shown: {{error}}",
     run_modal_title: "Run project checks?",
     decision_modal_title: "Record a decision of the method",
     claims_count: "{{count}} claims",

@@ -46,7 +46,7 @@ export const ru = {
     retry_snapshot: "Повторить снимок только для чтения",
     not_initialized_title: "Math Coding здесь не инициализирован",
     not_initialized_body: "Нужен spec.json, прежде чем плагин сможет показать каноническую карту. Пустое состояние не выдаётся за вердикт.",
-    refresh_failed: "Не удалось обновить. На экране последний успешный снимок от {{time}}: {{error}}",
+    refresh_failed: "Не удалось обновить. Прежний снимок на экран не выводится: {{error}}",
     run_modal_title: "Выполнить проверки проекта?",
     decision_modal_title: "Записать решение метода",
     claims_count: "{{count}} утверждений",

@@ -38,6 +38,7 @@ const { SettingsScreen } = await import("../../plugin/math-coding-console/client
 const { rpcSchemas } = await import("../../plugin/math-coding-console/shared/schemas");
 const { preferencesDefinition } = await import("../../plugin/math-coding-console/shared/schemas");
 const { createBrowserHost } = await import("../src/browser-host");
+const { ErrorBoundary } = await import("../src/error-boundary");
 const { ToastProvider } = await import("../src/toast");
 const { lightTheme } = await import("../src/theme");
 const { snapshot } = await import("../../plugin/math-coding-console/test/fixtures");
@@ -313,4 +314,42 @@ test("the settings of the browser host are read, written and reset", async () =>
   } finally {
     globalThis.fetch = original;
   }
+});
+
+test("the error boundary keeps the page alive when the interface throws", () => {
+  // Static rendering does not run the boundary machinery itself, so the test
+  // holds the boundary to its contract: what React receives from a throw,
+  // what it draws instead of the children, and what it draws when healthy.
+  const caught = ErrorBoundary.getDerivedStateFromError(new Error("the interface exploded"));
+  assert.ok(caught.error instanceof Error, "the boundary did not catch the throw");
+  const boundary = new ErrorBoundary({ children: createElement("p", null, "the page is fine") });
+  boundary.state = caught;
+  const broken = renderToStaticMarkup(createElement(() => boundary.render()));
+  assert.ok(broken.includes("the interface exploded"), "the boundary hid the error");
+  assert.ok(broken.includes("Reload the page"), "the boundary offers no way back");
+  const healthy = new ErrorBoundary({ children: createElement("p", null, "the page is fine") });
+  const calm = renderToStaticMarkup(createElement(() => healthy.render()));
+  assert.ok(calm.includes("the page is fine"), "the boundary broke a healthy page");
+});
+
+test("a failed refresh replaces the snapshot with the error", () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, enabled: false } } });
+  const data = snapshot();
+  data.map.claims = 3;
+  data.map.states = data.claims.map((item) => ({ id: item.id, state: "holds" as const, source_changed: false }));
+  const query = queryClient.getQueryCache().build(queryClient, { queryKey: ["mathcoding-snapshot", "local"] });
+  query.setState({
+    status: "error",
+    error: new Error("the map is unreadable"),
+    data,
+    dataUpdatedAt: 1,
+    fetchStatus: "idle",
+  });
+  const markup = render(
+    createElement(Panel, { theme: lightTheme, layout: { compact: false }, workspaceId: "local" }),
+    queryClient,
+  );
+  assert.ok(markup.includes("the map is unreadable"), "the refresh error is not shown");
+  assert.ok(markup.includes("not shown"), "the panel does not say the snapshot is withheld");
+  assert.ok(!markup.includes("test the plugin"), "the stale snapshot is still rendered");
 });
