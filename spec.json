@@ -1,7 +1,7 @@
 {
-  "schema_version": 5,
+  "schema_version": 6,
   "goal": {
-    "text": "v5 keeps evidence linked, fresh, and independent",
+    "text": "v6 keeps evidence linked, fresh, and independent",
     "scope": [
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
@@ -9,8 +9,8 @@
       ".github/", "site/", "plugin/", "console/", "scripts/"
     ],
     "by": "owner",
-    "at": 1794829339,
-    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it; the three-arm measurement of the method has never been run, and until it is, the project carries a debt of honesty that the protocol names and the claim of the field measurement keeps in view"
+    "at": 1795387670,
+    "reason": "the release of the format version 6 makes the aim name the version it holds"
   },
   "claims": [
     {
@@ -18,10 +18,7 @@
       "text": "pure verdict laws and freshness",
       "scope": [ "lib/", "test/laws.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -39,10 +36,7 @@
       "text": "strict versioned JSON codecs",
       "scope": [ "format/", "test/spec_format.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -60,10 +54,7 @@
       "text": "the CLI produces fresh independent evidence",
       "scope": [ "bin/", "adapter/", "test/cli.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -72,7 +63,7 @@
       ],
       "falsifier": "a claim holds without current independent evidence",
       "register": "fact",
-      "control": "grep -rl 'check.code = 1' bin/ | xargs -r sed -i 's/check.code = 1/check.code = 0/'",
+      "control": "grep -rl 'check.code = 1' bin/ | xargs -r sed -i 's/check.code = 1/check.code = 0/'; sed -i 's/unmodified.code <> 0/false/' bin/execution.ml",
       "waiver": null,
       "environment": "nix develop -c"
     },
@@ -81,10 +72,7 @@
       "text": "ADR and JUnit are imported read-only with provenance",
       "scope": [ "adapter/adr.ml", "adapter/junit.ml", "test/adr_junit.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -102,10 +90,7 @@
       "text": "MCP returns typed JSON-RPC results and actionable errors",
       "scope": [ "bin/mcp.ml", "test/mcp.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -126,10 +111,7 @@
         "test/stand.ml"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -147,10 +129,7 @@
       "text": "installed mathc and stand work together",
       "scope": [ "flake.nix", "test/package_smoke.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/package_smoke.sh" }
       ],
@@ -164,10 +143,7 @@
       "text": "portable mathc and stand run outside the Nix store",
       "scope": [ "flake.nix", "test/package_smoke.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/package_smoke.sh portable" }
       ],
@@ -185,10 +161,7 @@
         "test/repository_lints.ml", "test/repository_control.ml"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -204,9 +177,7 @@
     {
       "id": "style-bounds",
       "text": "the size of the code stays within the bounds of the practices: the core, the format layer and the split CLI",
-      "scope": [
-        "lib/", "format/", "bin/", "test/style_bounds.sh"
-      ],
+      "scope": [ "lib/", "format/", "bin/", "test/style_bounds.sh" ],
       "source": null,
       "owner": "owner",
       "requirements": [
@@ -222,10 +193,7 @@
       "text": "local binaries, agent skill, and canonical methodology install cleanly",
       "scope": [ "install.sh", "skills/", "test/agent_installer.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -243,10 +211,7 @@
       "text": "an installed agent can integrate no-ADR and MADR projects",
       "scope": [ "test/agent_onboarding.sh" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -264,10 +229,7 @@
       "text": "the delivery workflow is valid",
       "scope": [ ".github/workflows/ci.yml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -285,10 +247,7 @@
       "text": "the site is generated from spec.json and the live map and shows every claim with its current state",
       "scope": [ "site/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [ { "kind": "verifier", "spec": "sh site/check.sh" } ],
       "falsifier": "a claim is missing from the rendered map or shows a state that mathc map does not report",
       "register": "fact",
@@ -301,10 +260,7 @@
       "text": "the navigation keeps every item and every frame on a phone screen, and the English and the Russian pages are drawn by the same typefaces",
       "scope": [ "site/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh site/check-ui.sh" }
       ],
@@ -321,10 +277,7 @@
         "docs/measurements/", "test/measurement_ledger.ml", "test/dune"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -346,10 +299,7 @@
       "text": "the Math Coding console shows the canonical map only, keeps the host boundary explicit and refuses to invent a reason",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -366,10 +316,7 @@
       "text": "the development shell keeps stdout free of prose, so the machine interface stays machine readable",
       "scope": [ "test/shell_output.ml", "flake.nix" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -387,10 +334,7 @@
       "text": "the runner notices a finished child at once and never adds a delay of its own",
       "scope": [ "adapter/process.ml", "test/process.ml" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -408,10 +352,7 @@
       "text": "the console opens with the queue of the human: the expectations, the checks, the evidence and the state come from the canonical map, and the queue never computes a state of its own",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -428,10 +369,7 @@
       "text": "the console shows the files of the subject inside the repository and reads no file outside it",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -450,10 +388,7 @@
         "flake.nix", "scripts/keep-dev-shell.sh", "test/dev_shell_smoke.sh"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/dev_shell_smoke.sh" }
       ],
@@ -467,10 +402,7 @@
       "text": "the local browser page is one interface: the bundle holds one copy of the shared interface and one copy of the data layer, and the page renders the queue of the human",
       "scope": [ "console/", "plugin/math-coding-console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh console/scripts/check-page.sh" }
       ],
@@ -484,10 +416,7 @@
       "text": "the console shows the manual steps of the method and performs them through the program itself: the human decides, the program records",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -504,10 +433,7 @@
       "text": "the console opens the sheet of the host with the surface of the host inside it: the claim detail of the queue, the confirmation of a run, the decision of the method and the preview of a file stay readable in the host",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -523,14 +449,10 @@
       "id": "i18n-report",
       "text": "the report of the bilingual console is in step with the work it describes: it keeps the sections it promises, names the catalogue of every language the console ships, and states the number of claims the project has",
       "scope": [
-        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md",
-        "test/i18n_report.sh"
+        "docs/PLUGIN-I18N-REPORT-AND-PLAN.md", "test/i18n_report.sh"
       ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         { "kind": "verifier", "spec": "sh test/i18n_report.sh" }
       ],
@@ -544,10 +466,7 @@
       "text": "the console names the permission that is closed and opens the settings of the host, so a closed button is never a button without a reason",
       "scope": [ "plugin/math-coding-console/", "console/" ],
       "source": null,
-      "kind": "acceptance",
-      "phase": "pre-merge",
       "owner": "owner",
-      "review_on": [],
       "requirements": [
         {
           "kind": "verifier",
@@ -564,18 +483,73 @@
       "text": "the canonical documents of the method are intact: their numbered lists run from one to the last without a gap and without a repeat, and every document the canon names is there",
       "scope": [
         "AXIOMS.md", "PHILOSOPHY.md", "GOAL.md", "AGENTS.md", "spec.json",
-        "skills/math-coding/references/METHODOLOGY.md", "skills/math-coding/SKILL.md",
-        "docs/ENGINEERING-PRACTICES.md", "docs/V5-DEFECT-CATALOG.md",
-        "test/canon.ml", "test/dune"
+        "skills/math-coding/references/METHODOLOGY.md",
+        "skills/math-coding/SKILL.md", "docs/ENGINEERING-PRACTICES.md",
+        "docs/V5-DEFECT-CATALOG.md", "test/canon.ml", "test/dune"
       ],
       "source": null,
       "owner": "owner",
       "requirements": [
-        { "kind": "verifier", "spec": "dune runtest --root . --force test/canon.exe" }
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/canon.exe"
+        }
       ],
       "falsifier": "a canonical document is renumbered wrongly, loses a required document or is missing",
       "register": "fact",
       "control": "sed -i 's/^1\\. /2. /' AXIOMS.md",
+      "waiver": null,
+      "environment": "nix develop -c"
+    },
+    {
+      "id": "golden-corpus",
+      "text": "the frozen corpus gives the same map on every build",
+      "scope": [
+        "test/golden_corpus.ml", "test/golden_corpus/p-green/spec.json",
+        "test/golden_corpus/p-green/subject.txt",
+        "test/golden_corpus/p-green/evidence.jsonl",
+        "test/golden_corpus/p-green/expected.json",
+        "test/golden_corpus/p-mixed/spec.json",
+        "test/golden_corpus/p-mixed/keeps.txt",
+        "test/golden_corpus/p-mixed/breaks.txt",
+        "test/golden_corpus/p-mixed/gapped.txt",
+        "test/golden_corpus/p-mixed/evidence.jsonl",
+        "test/golden_corpus/p-mixed/expected.json",
+        "test/golden_corpus/p-empty/spec.json",
+        "test/golden_corpus/p-empty/subject.txt",
+        "test/golden_corpus/p-empty/expected.json"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/golden_corpus.exe"
+        }
+      ],
+      "falsifier": "a build moves the verdict or the state of a frozen project, and the corpus does not notice",
+      "register": "fact",
+      "control": "sed -i 's/\"verdict\": \"green\"/\"verdict\": \"red\"/' test/golden_corpus/p-green/expected.json",
+      "waiver": null,
+      "environment": "nix develop -c"
+    },
+    {
+      "id": "format-migration",
+      "text": "a project of the previous version of the format is moved to this version, and no record of the journal is lost or invented",
+      "scope": [
+        "adapter/migration.ml", "bin/migrate.ml", "test/migrate.ml"
+      ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "dune runtest --root . --force test/migrate.exe"
+        }
+      ],
+      "falsifier": "a project of the previous version cannot be moved, or the move loses a record or claims a record it did not read",
+      "register": "fact",
+      "control": "sed -i \"s/let evidence = Migration.rebind_definitions spec journals.evidence in/let evidence = [] in/\" bin/migrate.ml",
       "waiver": null,
       "environment": "nix develop -c"
     }

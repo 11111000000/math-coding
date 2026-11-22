@@ -8,7 +8,6 @@ let state_of_text = function
   | "holds" -> Some Holds
   | "refuted" -> Some Refuted
   | "inconclusive" -> Some Inconclusive
-  | "not-checkable" -> Some NotCheckable
   | "outdated" -> Some Outdated
   | "never-checked" -> Some NeverChecked
   | "waived" -> Some Waived
@@ -25,7 +24,7 @@ let bool_field name item =
 
 (* The journal of evidence is a JSONL file: every record is one line. *)
 let trail_records root =
-  let path = Filename.concat root ".math/v5/evidence.jsonl" in
+  let path = Filename.concat root ".math/v6/evidence.jsonl" in
   if not (Sys.file_exists path) then []
   else String.split_on_char '\n' (Io.read_file path) |> List.filter (fun line -> line <> "")
 
@@ -104,12 +103,25 @@ let () =
       write root "subject.txt" "expected\n";
       write root "outside.txt" "outside\n";
       expect root "add mixed \"outside scope\" subject.txt,outside.txt \"accepted\" fact --requirement \"verifier:true\"" 2;
+      (* The environment a verifier runs in is a part of the claim. The tool
+         that writes the claim checks the rule of the format: an empty
+         environment and an environment with a line break are refused, and the
+         refusal leaves the project without the claim. *)
+      expect root "add with-environment \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:true\" --environment \"LC_ALL=C\"" 0;
+      let with_environment = Io.read_file (Filename.concat root "spec.json") in
+      check "the claim carries the environment its verifier runs in"
+        (contains with_environment "\"id\": \"with-environment\""
+        && contains with_environment "\"environment\": \"LC_ALL=C\"");
+      expect root "add broken-environment \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:true\" --environment \"$(printf 'a\\nb')\"" 2;
+      let broken = Io.read_file (Filename.concat root "spec.json") in
+      check "the refused claim is not written"
+        (not (contains broken "broken-environment"));
       expect root "map --unknown-option" 2;
       expect root "waive sample --by owner --reason reason --valid-for nope --recovery rerun" 2;
       expect root "add reviewed \"human review\" subject.txt \"review refutes it\" fact --requirement \"review:owner\"" 0;
       expect root "record reviewed owner --by owner --outcome invented" 2;
       expect root "record reviewed owner --by owner --outcome pass --valid-for -1" 2;
-      write root ".math/v5/evidence.jsonl" "not-json\n";
+      write root ".math/v6/evidence.jsonl" "not-json\n";
       (* A damaged record does not take the project with it: the records that
          can be read still stand, the damage is named, and the run repairs the
          journal and keeps the damaged original beside it. *)
@@ -126,18 +138,18 @@ let () =
         (contains repaired.stdout "the evidence trail had 1 record(s) that could not be read"
         && contains repaired.stdout "the damaged original is kept at");
       let kept =
-        Sys.readdir (Filename.concat root ".math/v5")
+        Sys.readdir (Filename.concat root ".math/v6")
         |> Array.to_list
         |> List.filter (fun name -> String.starts_with ~prefix:"evidence.damaged." name)
       in
       check "the damaged original is kept beside the journal"
         (kept <> []
-        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v5") (List.hd kept))) "not-json");
+        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v6") (List.hd kept))) "not-json");
       let healed = run root "map" in
       check "the repaired journal is whole"
         (not (contains healed.stdout "damaged records")
         && contains healed.stdout "never-checked");
-      write root ".math/v5/evidence.jsonl" "not-json\n";
+      write root ".math/v6/evidence.jsonl" "not-json\n";
       let corrupted_json = run root "run --json" in
       check "structured run keeps the repair notice out of the json"
         (corrupted_json.code = 3
@@ -380,12 +392,13 @@ let () =
       check "a recorded review settles the claim"
         (contains (run root "map").stdout "holds"
         && contains (run root "next").stdout "nothing to do");
+      (* A decision is bound to the decision, not to the bytes of the document
+         that carries it: the claim stays settled when the document grows. *)
       write root "subject.txt" "changed\n";
-      let stale = run root "next" in
-      check "a stale human claim names the record command and not the checks"
-        (contains stale.stdout "the evidence of judged is stale (materials-changed)"
-        && contains stale.stdout "mathc record judged owner --by WHO --outcome OUTCOME"
-        && not (contains stale.stdout "re-run the checks"));
+      let grown = run root "next" in
+      check "a growing document does not make the decision stale"
+        (contains grown.stdout "nothing to do"
+        && not (contains grown.stdout "materials-changed"));
       print_endline "next-names-the-human-review: PASS")
 
 (* A claim that asks for both a machine check and a human review waits for the
@@ -654,15 +667,72 @@ let () =
       check "the other claim keeps its own environment" (state_of_map wrong_map "inherited" = "holds");
       (* A garbage environment of a claim is refused before anything is run. *)
       let garbage =
-        `Assoc [ "schema_version", `Int 5; "goal", `Null; "environment", `Null;
+        `Assoc [ "schema_version", `Int 6; "goal", `Null; "environment", `Null;
                  "claims", `List [ `Assoc [ "id", `String "own"; "text", `String "text"; "scope", `List [];
                                            "requirements", `List []; "falsifier", `String "x";
                                            "register", `String "fact"; "environment", `String "" ] ] ] in
       write root "spec.json" (Yojson.Safe.pretty_to_string garbage);
       let refused = run root "map" in
       check "an empty environment of a claim is refused"
-        (refused.code = 3 && contains refused.stderr "claim.environment");
+        (refused.code = 5 && contains refused.stderr "claim.environment");
       print_endline "claim-environment: PASS")
+
+(* The tool that could not answer says so with its own code. A broken
+   specification is not an unknown verdict: the verdict is the answer, and
+   here there is no answer at all. A consumer that cannot tell the two apart
+   reads a broken tool as an unfinished project. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"measure\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      write root "spec.json" "this is not a specification";
+      let map = run root "map" in
+      check "a broken specification is not an unknown verdict"
+        (map.code = 5 && contains map.stderr "the standing specification is not readable");
+      let stopped = run root "run" in
+      check "a broken specification stops the run"
+        (stopped.code = 5);
+      let next_failed = run root "next" in
+      check "a broken specification stops the next action"
+        (next_failed.code = 5);
+      let context_failed = run root "context" in
+      check "a broken specification stops the context"
+        (context_failed.code = 5);
+      print_endline "internal-error: PASS")
+
+(* An absent specification is not a broken tool: the project is vacant, and
+   the tool answered that there is nothing here. That answer has its own code,
+   and it is not the code of a failure. *)
+let () =
+  with_repo (fun root ->
+      let vacant = run root "approve --by owner --reason \"nothing\"" in
+      check "an absent specification is vacant, not broken"
+        (vacant.code = 3 && contains vacant.stderr "no standing specification");
+      print_endline "vacant-project: PASS")
+
+(* The help names the codes the tool returns. The number is a contract with
+   the consumer: the table of the help and the exit status of the command
+   cannot say different things about the same kind of outcome. *)
+let () =
+  with_repo (fun root ->
+      let help = run root "help" in
+      let code_named text =
+        help.stdout
+        |> String.split_on_char '\n'
+        |> List.find_opt (fun line -> contains line text)
+        |> Option.map (fun line ->
+               let words = String.split_on_char ' ' (String.trim line) |> List.filter (fun word -> word <> "") in
+               match List.rev words with
+               | number :: _ -> int_of_string_opt number
+               | [] -> None)
+        |> Option.join
+      in
+      check "the help names the code of a vacant project"
+        (code_named "unknown/vacant" = Some 3);
+      check "the help names the code of a tool that could not answer"
+        (code_named "the tool could not answer" = Some 5);
+      print_endline "exit-code-table: PASS")
 
 (* The journal receives every observation as soon as it is made. The second
    claim reads the journal of the first one while the run is still working. *)
@@ -675,7 +745,7 @@ let () =
                     requirements = [ Verifier "grep -q expected subject.txt" ];
                     control = Some "printf broken > subject.txt" } in
       let second = { claim with id = "second";
-                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v5/evidence.jsonl && grep -q expected subject.txt" ];
+                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v6/evidence.jsonl && grep -q expected subject.txt" ];
                      control = Some "printf broken > subject.txt" } in
       let goal = Some { text = "the journal grows while the run works";
                         scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
@@ -734,7 +804,9 @@ let () =
       done;
       check "the finished claim is in the journal before the run ends" (recorded "\"claim_id\":\"first\"");
       Unix.kill pid Sys.sigterm;
-      ignore (Unix.waitpid [] pid);
+      let _, status = Unix.waitpid [] pid in
+      check "the interrupted run hands over the map instead of vanishing"
+        (status = Unix.WEXITED 4);
       check "the interrupted run keeps the observation of the finished claim"
         (recorded "\"claim_id\":\"first\"");
       check "the interrupted run leaves no record of the unfinished claim"
@@ -745,6 +817,201 @@ let () =
         (state_of_map map "second" = "never-checked");
       print_endline "interrupted-run: PASS")
 
+(* A partial run executes the claims whose evidence no longer holds and leaves
+   the rest alone. The rule is the rule of freshness the map uses. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt,other.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      write root "other.txt" "other\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "add other \"the other is expected\" other.txt \"not expected\" fact --requirement \"verifier:grep -q other other.txt\" --control \"printf broken > other.txt\"" 0;
+      expect root "run" 0;
+      let records_of id =
+        trail_records root |> List.filter (fun record -> contains record ("\"claim_id\":\"" ^ id ^ "\""))
+      in
+      let sample_before = List.length (records_of "sample") in
+      write root "other.txt" "changed\n";
+      let partial = run root "run --changed" in
+      check "a partial run says how much it executed"
+        (contains partial.stdout "partial run: 1 of 2 claim(s) executed");
+      check "a partial run leaves the current claim alone"
+        (contains partial.stdout "sample                       holds (current)");
+      check "a partial run does not rewrite the evidence of the current claim"
+        (List.length (records_of "sample") = sample_before);
+      check "a partial run executes the claim whose materials changed"
+        (List.length (records_of "other") = 2);
+      let json = run root "run --changed --json" in
+      check "a partial run keeps the json clean"
+        (contains json.stderr "partial run:"
+        && (match Yojson.Safe.from_string json.stdout with
+            | exception Yojson.Json_error _ -> false
+            | _ -> true));
+      print_endline "partial-run: PASS")
+
+(* A claim the run cannot see is executed anyway: the method does not skip a
+   claim it cannot see, and the map does not stay green for it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 0;
+      Sys.rename (Filename.concat root "subject.txt") (Filename.concat root "gone.txt");
+      let partial = run root "run --changed" in
+      check "a partial run executes the claim it cannot see"
+        (contains partial.stdout "the subject of 1 claim(s) cannot be seen"
+        && contains partial.stdout "the subject is not whole or does not exist");
+      let map = run root "map" in
+      check "a claim without a subject is not green"
+        (map.code = 3 && contains map.stdout "inconclusive");
+      print_endline "partial-run-blind: PASS")
+
+(* The price of a run: the machine time is named in the report of the run and
+   kept in the journal of runs. A record of the journal that cannot be read
+   does not take the price of the other runs with it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let report = run root "run" in
+      check "the report names the price of the run"
+        (contains report.stdout "machine time:");
+      check "the report names the claim that was slow"
+        (contains report.stdout "sample");
+      let journal = Filename.concat root ".math/v6/runs.jsonl" in
+      check "the journal of runs exists" (Sys.file_exists journal);
+      let lines =
+        String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
+      in
+      check "the journal of runs keeps one record of the run"
+        (List.length lines = 1);
+      let record = Yojson.Safe.from_string (List.hd lines) in
+      check "the record names the machine time of the run"
+        (match field "machine_seconds" record with
+         | Some (`Float seconds) -> seconds >= 0.0
+         | Some (`Int seconds) -> seconds >= 0
+         | _ -> false);
+      check "the record names the claim it measured"
+        (match field "durations" record with
+         | Some (`List [ item ]) -> (
+             match item with
+             | `Assoc pairs -> (
+                 match List.assoc_opt "claim_id" pairs with
+                 | Some (`String id) -> id = "sample"
+                 | _ -> false)
+             | _ -> false)
+         | _ -> false);
+      (* A record that cannot be read does not take the price of the other runs
+         with it. *)
+      write root ".math/v6/runs.jsonl"
+        ("{\"schema_version\": 4, \"started_at\": 0}\n" ^ String.concat "\n" lines ^ "\n");
+      let doctor = run root "doctor" in
+      check "the doctor still names the price of the last run"
+        (contains doctor.stdout "of machine time in 1 claim(s)");
+      print_endline "run-price: PASS")
+
+(* A run that is stopped says so and hands over the map over what was
+   observed. An empty report after a stopped run is a lie: the reader cannot
+   tell a run that proved nothing from a run that was never finished. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      let stopped = run root "run --limit 0" in
+      check "a stopped run says that it was stopped"
+        (contains stopped.stdout "the run was stopped after 0 of 1 claim(s)");
+      check "a stopped run hands over the map over what was observed"
+        (contains stopped.stdout "never-checked");
+      check "a stopped run does not pass the gate" (stopped.code = 4);
+      let journal = Filename.concat root ".math/v6/runs.jsonl" in
+      let lines =
+        String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
+      in
+      let record = Yojson.Safe.from_string (List.hd lines) in
+      check "the journal of runs keeps the stop"
+        (match field "stopped" record with Some (`Bool true) -> true | _ -> false);
+      check "the journal of runs keeps the reason of the stop"
+        (match field "stop_reason" record with
+         | Some (`String reason) -> contains reason "the limit of the run"
+         | _ -> false);
+      (* A run that finishes is not a stopped run. *)
+      let finished = run root "run" in
+      check "a run that finishes does not say that it was stopped"
+        (not (contains finished.stdout "the run was stopped"));
+      check "a run that finished gives the verdict of the map" (finished.code = 0);
+      print_endline "stopped-run: PASS")
+
+(* A decision of a person is bound to the decision, not to the bytes of the
+   document that carries it. A document that keeps growing does not make the
+   decision stale, and the person revises the decision explicitly when it
+   changes: the revision records the author, the reason and the time, and the
+   previous decision stays in the journal. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the owner decides the order of the waves\" plan.md owner" 0;
+      write root "plan.md" "wave 1, wave 2\n";
+      expect root "add decided \"the owner decided the order of the waves\" plan.md \"the order is not the owner's\" judgment --requirement \"review:owner\"" 0;
+      expect root "record decided owner --by owner --outcome pass" 0;
+      check "a decision settles the claim" (contains (run root "map").stdout "holds");
+      (* The carrier keeps growing: the decision does not become stale. *)
+      write root "plan.md" "wave 1, wave 2, wave 3\n";
+      let grown = run root "map" in
+      check "a growing document does not make the decision stale"
+        (grown.code = 0 && contains grown.stdout "holds"
+        && not (contains grown.stdout "materials-changed"));
+      check "the owner is not asked to decide again"
+        (contains (run root "next").stdout "nothing to do");
+      (* The revision carries the author, the reason and the time. *)
+      expect root "review-decision decided --by owner --reason \"the order changed on 2026-11-19\"" 0;
+      let records = trail_records root in
+      check "the journal keeps the previous decision and the revision"
+        (List.length records = 2);
+      check "the revision carries the reason of the person"
+        (List.exists (fun line -> contains line "the order changed on 2026-11-19") records);
+      check "the revision settles the claim" (contains (run root "map").stdout "holds");
+      (* A revision is a decision of a person: it needs an author, a reason and
+         a decision to revise. *)
+      expect root "review-decision decided --reason \"no author\"" 2;
+      expect root "review-decision decided --by owner" 2;
+      expect root "review-decision decided --by stranger --reason \"not my decision\"" 2;
+      expect root "review-decision absent --by owner --reason \"there is no such claim\"" 2;
+      expect root "review-decision decided --by owner --reason \"why\" --outcome nonsense" 2;
+      (* A claim that a machine check settles has no decision to revise. *)
+      expect root "add checked \"the plan holds the order\" plan.md \"the order is not in the plan\" fact --requirement \"verifier:grep -q wave plan.md\" --control \"printf broken > plan.md\"" 0;
+      expect root "review-decision checked --by owner --reason \"there is no decision here\"" 2;
+      print_endline "decision-revision: PASS")
+
+(* The decision is bound to the definition of the claim: when the claim says
+   something else, the old decision does not apply to it. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the owner decides the order of the waves\" plan.md owner" 0;
+      write root "plan.md" "wave 1, wave 2\n";
+      expect root "add decided \"the owner decided the order of the waves\" plan.md \"the order is not the owner's\" judgment --requirement \"review:owner\"" 0;
+      expect root "record decided owner --by owner --outcome pass" 0;
+      check "a decision settles the claim" (contains (run root "map").stdout "holds");
+      (* The claim now says something else: the decision does not apply. *)
+      let goal = Some { text = "the owner decides the order of the waves"; scope = [ "plan.md" ];
+                        by = "owner"; at = 1; reason = None } in
+      let decided = { claim with id = "decided"; text = "the owner decided the order of the waves twice";
+                      scope = [ "plan.md" ]; register = Judgment; owner = Some "owner";
+                      requirements = [ Review { authority = "owner"; minimum_independence = External } ];
+                      falsifier = "the order is not the owner's"; control = None } in
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims = [ decided ]; environment = None }));
+      let redefined = run root "map" in
+      check "a decision does not apply to a claim that says something else"
+        (redefined.code = 3 && contains redefined.stdout "definition-changed");
+      print_endline "decision-binding: PASS")
 (* The approval of the human: the commands the agent surface may execute in the
    project. The approval is bound to the commands themselves, so a command that
    nobody approved cannot travel under the approval of another one. *)
@@ -775,7 +1042,7 @@ let () =
       let approved = run root "approve --by owner --reason \"the release checks\"" in
       check "the approval covers the commands of the project"
         (approved.code = 0 && contains approved.stdout "approved 2 command(s)");
-      let approval = Filename.concat root ".math/v5/approval.json" in
+      let approval = Filename.concat root ".math/v6/approval.json" in
       check "the approval is kept in the project"
         (Sys.file_exists approval && contains (Io.read_file approval) "the release checks");
       (* A named command can be approved on its own. *)
@@ -786,3 +1053,87 @@ let () =
       check "the approval keeps the earlier decision"
         (contains (Io.read_file approval) "the release checks");
       print_endline "approve: PASS")
+
+(* A control is a proof only when the check passes on the copy before the
+   control breaks it. A check that needs something outside the repository —
+   a dependency, a service, a local file — passes in the working tree and
+   fails in the copy, and such a copy must name itself instead of turning
+   every control into a false proof. *)
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      (* The check needs a file that the repository does not carry: the file
+         is ignored by git, so the copy of the control has no such file and
+         the check cannot pass there. *)
+      write root ".gitignore" "local-only.txt\n";
+      write root "local-only.txt" "present\n";
+      expect root
+        "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt && test -f local-only.txt\" --control \"printf broken > subject.txt\""
+        0;
+      let result = run root "run" in
+      check "the run of a check that cannot pass in the copy is not a green one"
+        (result.code = 3);
+      let map = run root "map" in
+      check "the map names the broken copy"
+        (contains map.stdout "copy failed");
+      check "the claim is not held"
+        (contains map.stdout "inconclusive");
+      (* The same claim without the file outside the repository holds, with a
+         proven control: the copy can run the check. *)
+      with_repo (fun plain ->
+          expect plain "init" 0;
+          expect plain "goal \"the subject is expected\" subject.txt owner" 0;
+          write plain "subject.txt" "expected\n";
+          expect plain
+            "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\""
+            0;
+          let result = run plain "run" in
+          check "a check that runs in the copy passes"
+            (result.code = 0);
+          check "the proven control is named"
+            (contains result.stdout "negative control proven");
+          let map = run plain "map" in
+          check "a check that runs in the copy holds"
+            (contains map.stdout "holds")));
+  print_endline "control-cause: PASS"
+
+(* The page for agents names the verbs of the method, and the help of the tool
+   names them too. A verb that the tool accepts and the page does not mention
+   leaves the instruction of the project incomplete, and nothing else notices:
+   the page drifts from the tool one verb at a time. *)
+let verbs_of_help text =
+  let words = String.split_on_char ' ' text in
+  let rec collect acc = function
+    | "mathc" :: next :: rest ->
+        let verb =
+          String.trim (String.map (fun ch -> if ch = '"' || ch = ',' || ch = '|' then ' ' else ch) next)
+        in
+        let acc =
+          if verb <> "" && String.for_all (fun ch -> (ch >= 'a' && ch <= 'z') || ch = '-') verb
+             && String.length verb > 1
+             && verb.[0] >= 'a' && verb.[0] <= 'z'
+          then verb :: acc
+          else acc
+        in
+        collect acc rest
+    | _ :: rest -> collect acc rest
+    | [] -> List.sort_uniq String.compare acc
+  in
+  collect [] words
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the subject is expected\" subject.txt owner" 0;
+      expect root "install" 0;
+      let help = run root "--help" in
+      let page = Io.read_file (Filename.concat root "AGENTS.md") in
+      let missing =
+        verbs_of_help help.stdout
+        |> List.filter (fun verb -> not (contains page ("mathc " ^ verb)))
+      in
+      check ("the page names every verb of the help: " ^ String.concat ", " missing)
+        (missing = []));
+  print_endline "page-verbs: PASS"

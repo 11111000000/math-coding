@@ -21,16 +21,14 @@ export function DecisionBoundary({ theme, compact, claim, state, sourceChanged }
     ? t("boundary.agent_may_source_changed")
     : state === "refuted"
       ? t("boundary.agent_may_refuted")
-      : state === "not-checkable"
-        ? t("boundary.agent_may_not_checkable")
-        : t("boundary.agent_may_default");
+      : t("boundary.agent_may_default");
   return (
     <Card theme={theme} compact={compact} title={t("boundary.title")} subtitle={t("boundary.subtitle")}>
       <View style={{ gap: 8 }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
           <Badge theme={theme} label={claim.register} />
           {state && <Badge theme={theme} label={t("boundary.claim_state", { state: t(claimStateKey(state)) })} />}
-          {claim.kind === "judgment" && <Badge theme={theme} label={t("boundary.human_judgment")} tone="warn" icon="UserRoundCheck" />}
+          {claim.register === "judgment" && <Badge theme={theme} label={t("boundary.human_judgment")} tone="warn" icon="UserRoundCheck" />}
         </View>
         <BoundaryRow theme={theme} label={t("boundary.machine_checks")}>
           {verifiers.length === 0

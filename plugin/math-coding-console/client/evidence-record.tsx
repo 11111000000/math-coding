@@ -37,6 +37,7 @@ export function EvidenceRecordCard({ theme, record, claimState, latest = false, 
           <KeyValue theme={theme} label={t("evidence.field_definition_digest")} value={record.definition_digest} />
           <KeyValue theme={theme} label={t("evidence.field_verifier_digest")} value={record.verifier_digest} />
           <KeyValue theme={theme} label={t("evidence.environment")} value={`${record.environment.class} · ${record.environment.fingerprint}`} />
+          <KeyValue theme={theme} label={t("evidence.tool")} value={`${record.tool.class} · ${record.tool.fingerprint || t("common.unknown")}`} />
           <KeyValue theme={theme} label={t("evidence.field_producer_run")} value={record.producer.run ?? t("common.none")} />
           <KeyValue theme={theme} label={t("evidence.field_valid_until")} value={record.valid_until === null ? t("evidence.field_no_expiry") : formatTime(record.valid_until)} />
           <KeyValue theme={theme} label={t("evidence.field_control_reach")} value={record.control_reach ?? t("evidence.field_not_recorded")} />

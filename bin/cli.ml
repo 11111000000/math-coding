@@ -15,12 +15,18 @@ type options = {
   mutable version : bool;
   mutable help : bool;
   mutable source : string;
+  mutable environment : string;
+  mutable changed : bool;
+  mutable dry_run : bool;
+  mutable limit : float;
 }
 
 let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; commands = [];
-    write = false; version = false; help = false; source = "" }
+    write = false; version = false; help = false; source = ""; environment = "";
+    changed = false;
+    dry_run = false; limit = Commands.default_limit }
 
 let parse_requirement text = Requirements.parse text
 
@@ -39,9 +45,17 @@ let parse_flags o arguments =
     | "--recovery" :: value :: rest -> o.recovery <- value; loop acc rest
     | "--control" :: value :: rest -> o.control <- value; loop acc rest
     | "--source" :: value :: rest -> o.source <- value; loop acc rest
+    | "--environment" :: value :: rest -> o.environment <- value; loop acc rest
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--command" :: value :: rest -> o.commands <- o.commands @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
+    | "--changed" :: rest -> o.changed <- true; loop acc rest
+    | "--dry-run" :: rest -> o.dry_run <- true; loop acc rest
+    | "--limit" :: value :: rest -> (
+        match float_of_string_opt value with
+        | Some seconds when seconds >= 0.0 -> o.limit <- seconds; loop acc rest
+        | Some _ -> failwith "--limit expects a number of seconds that is not negative"
+        | None -> failwith "--limit expects a number of seconds")
     | "--version" :: rest -> o.version <- true; loop acc rest
     | ("--help" | "-h") :: rest -> o.help <- true; loop acc rest
     | option :: _ when String.length option > 0 && option.[0] = '-' -> failwith ("unknown option: " ^ option)
@@ -70,7 +84,7 @@ let main () =
   let positional =
     match parse_flags o arguments with
     | positional -> positional
-    | exception Failure message -> exit (fail 2 message)
+    | exception Failure message -> exit (fail Exit_code.usage message)
   in
   let code =
     let topic = match positional with verb :: _ -> Some verb | [] -> None in
@@ -85,14 +99,17 @@ let main () =
     | "goal" :: text :: scope :: by :: _ -> Commands.goal o.root text (split_scope scope) by o.reason
     | "add" :: id :: text :: scope :: falsifier :: register :: _ -> (
         match parse_all o.requirements with
-        | Error error -> fail 2 error
-        | Ok requirements -> Commands.add o.root id text (split_scope scope) falsifier register requirements o.control o.source)
-    | [ "run" ] -> Commands.run o.root o.json
+        | Error error -> fail Exit_code.usage error
+        | Ok requirements ->
+            Commands.add o.root id text (split_scope scope) falsifier register requirements o.control
+              o.source o.environment)
+    | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed ~limit:o.limit
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root
     | [ "context" ] -> Commands.context o.root
     | "waive" :: id :: _ -> Commands.waive o.root id o.by o.reason (Option.value ~default:0 o.valid_for) o.recovery
     | "record" :: id :: authority :: _ -> Commands.record o.root id authority o.by o.outcome o.valid_for None
+    | "review-decision" :: id :: _ -> Commands.review_decision o.root id o.by o.reason o.outcome o.valid_for
     | [ "install" ] -> Commands.install o.root
     | [ "doctor" ] -> Doctor.doctor o.root
     | [ "adopt" ] -> Adopt.run o.root
@@ -103,6 +120,7 @@ let main () =
     | "import-adr" :: path :: _ -> Adr.import_file o.root path
     | "import-junit" :: path :: _ -> Junit.import_file path
     | [ "mcp" ] -> Mcp.loop ~root:o.root
-    | verb :: _ -> fail 2 ("unknown verb: " ^ verb)
+    | [ "migrate" ] -> Commands.migrate o.root o.dry_run
+    | verb :: _ -> fail Exit_code.usage ("unknown verb: " ^ verb)
   in
   exit code

@@ -20,6 +20,7 @@ type labels = {
   definition_word : string;
   verifier_digest_word : string;
   environment_word : string;
+  tool_word : string;
   producer_word : string;
   independence_word : string;
   outcome_word : string;
@@ -49,6 +50,7 @@ let labels_en = {
   definition_word = "definition digest";
   verifier_digest_word = "verifier digest";
   environment_word = "environment";
+  tool_word = "tool";
   producer_word = "producer";
   independence_word = "independence";
   outcome_word = "outcome";
@@ -78,6 +80,7 @@ let labels_ru = {
   definition_word = "digest определения";
   verifier_digest_word = "digest проверки";
   environment_word = "среда";
+  tool_word = "инструмент";
   producer_word = "производитель";
   independence_word = "независимость";
   outcome_word = "исход";
@@ -139,6 +142,10 @@ type map = {
   verdict : string;
   states : (string * string) list;
   uncovered : int;
+  (* The fingerprint of the tool: the class of the build and its fingerprint.
+     The binary is not part of the environment fingerprint, so the tool is
+     read from its own field and never from the environment. *)
+  tool : (string * string) option;
 }
 
 let pill_class = function
@@ -147,7 +154,6 @@ let pill_class = function
   | "outdated" -> "v-outdated"
   | "waived" -> "v-waived"
   | "inconclusive" -> "v-inconclusive"
-  | "not-checkable" -> "v-not-checkable"
   | "never-checked" -> "v-never-checked"
   | "vacant" -> "v-vacant"
   | "green" -> "v-green"
@@ -164,20 +170,16 @@ let read_map path =
           (* The site renders the map of this version of the method. A map of
              another version is not a map with fewer fields: it is a document
              the site cannot read, and it says so instead of rendering an
-             empty page. The version of the format lives in `format/spec.ml`;
-             the site names it here because the format layer of this line does
-             not export it, and a change of the format must come with a change
-             of this number. *)
-          let schema_version = 5 in
+             empty page. *)
           let schema =
             match List.assoc_opt "schema_version" fields with
             | Some (`Int version) -> version
             | _ -> failwith "the map does not declare the version of its schema"
           in
-          if schema <> schema_version then
+          if schema <> Spec.version then
             failwith
               (Printf.sprintf "the map declares the schema version %d, the site reads the version %d"
-                 schema schema_version);
+                 schema Spec.version);
           let verdict =
             match List.assoc_opt "verdict" fields with
             | Some (`String value) -> value
@@ -210,7 +212,18 @@ let read_map path =
             | Some (`List items) -> List.length items
             | _ -> failwith "the map does not declare the uncovered files"
           in
-          { verdict; states; uncovered })
+          let tool =
+            match List.assoc_opt "tool" fields with
+            | Some (`Assoc pairs) ->
+                let field_text name =
+                  match List.assoc_opt name pairs with
+                  | Some (`String value) -> value
+                  | _ -> ""
+                in
+                Some (field_text "class", field_text "fingerprint")
+            | _ -> None
+          in
+          { verdict; states; uncovered; tool })
       | _ -> failwith "the map is not a JSON object")
 
 let state_of states id =
@@ -263,9 +276,17 @@ let count_state states wanted =
   List.length (List.filter (fun (_, state) -> state = wanted) states)
 
 let fragment labels map claims =
+  let tool =
+    match map.tool with
+    | None -> []
+    | Some (class_, fingerprint) ->
+        [ Printf.sprintf "<span>%s: %s &middot; <code>%s</code></span>"
+            (escape labels.tool_word) (escape class_) (escape fingerprint) ]
+  in
   let summary =
     [Printf.sprintf "<span>%s: <span class=\"v-pill %s\">%s</span></span>"
        (escape labels.verdict_word) (pill_class map.verdict) (escape map.verdict)]
+    @ tool
     @ List.concat_map
         (fun state ->
           let count = count_state map.states state in
@@ -274,8 +295,8 @@ let fragment labels map claims =
             [Printf.sprintf
                "<span><span class=\"v-pill %s\">%s</span> &times;%d</span>"
                (pill_class state) (escape state) count])
-        [ "holds"; "refuted"; "inconclusive"; "not-checkable"; "outdated";
-          "never-checked"; "waived" ]
+        [ "holds"; "refuted"; "inconclusive"; "outdated"; "never-checked";
+          "waived" ]
     @ [Printf.sprintf "<span>%d %s &middot; %d %s</span>" (List.length claims)
          (escape labels.claims_word) map.uncovered (escape labels.uncovered)]
   in
@@ -407,6 +428,10 @@ let evidence_block labels records =
                (Printf.sprintf "%s &middot; <code>%s</code>"
                   (escape latest.environment.class_)
                   (escape latest.environment.fingerprint));
+             field labels.tool_word
+               (Printf.sprintf "%s &middot; <code>%s</code>"
+                  (escape latest.tool.class_)
+                  (escape latest.tool.fingerprint));
              field labels.producer_word producer_run;
              field labels.independence_word
                (escape (independence_to_string latest.independence));

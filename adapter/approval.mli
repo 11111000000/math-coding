@@ -4,7 +4,14 @@
 
 type record = { by : string; reason : string; at : int; commands : string list }
 
+(* The version of the format of the journal. *)
+val version : int
+
+(* The journal of this version of the format. *)
 val path : string -> string
+
+(* The journal of the previous version. It stays where it is. *)
+val previous_path : string -> string
 
 val digest_of_command : string -> string
 
@@ -15,6 +22,16 @@ val commands_of_claim : Domain.claim -> string list
 val commands_of_spec : Domain.spec -> string list
 
 val load : string -> (record list, string) result
+
+(* The journal of the previous version, read as it was written. *)
+val read_previous : string -> (record list, string) result
+
+(* The journal of this version is written with the records it holds. *)
+val write : string -> record list -> (int, string) result
+
+(* The journal of the previous version is moved to the journal of this one. The
+   old journal stays where it is. *)
+val migrate : string -> (int, string) result
 
 (* The approval of the human adds a record and never removes one. *)
 val approve : string -> by:string -> reason:string -> commands:string list -> (int, string) result

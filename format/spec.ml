@@ -57,7 +57,7 @@ let source_of_json json =
   let* review =
     match List.assoc_opt "review" pairs with
     | None | Some `Null -> Ok None
-    | Some json -> (match review_of_json json with Ok review -> Ok (Some review) | Error error -> Error error)
+    | Some json -> Result.map (fun review -> Some review) (review_of_json json)
   in
   match source_kind_of_string kind with
   | Some kind -> Ok { kind; path; section; digest; review }
@@ -110,12 +110,11 @@ let waiver_to_json waiver =
           "expires_at", `Int waiver.expires_at;
           "reason", json_string waiver.reason;
           "compensating_controls", json_strings waiver.compensating_controls;
-          "recovery", json_string waiver.recovery;
-          "review_on", json_strings waiver.review_on ]
+          "recovery", json_string waiver.recovery ]
 
 let waiver_of_json json =
   let* pairs = object_ "waiver" [ "gap"; "scope"; "issuer"; "issued_at"; "expires_at"; "reason";
-                                  "compensating_controls"; "recovery"; "review_on" ] json in
+                                  "compensating_controls"; "recovery" ] json in
   let* gap = string "gap" pairs in
   let* scope = string_list "scope" pairs in
   let* issuer = string "issuer" pairs in
@@ -124,9 +123,8 @@ let waiver_of_json json =
   let* reason = string "reason" pairs in
   let* compensating_controls = string_list "compensating_controls" pairs in
   let* recovery = string "recovery" pairs in
-  let* review_on = string_list "review_on" pairs in
   Ok { gap; scope; issuer; issued_at; expires_at; reason;
-       compensating_controls; recovery; review_on }
+       compensating_controls; recovery }
 
 (* The declared environment is a prefix for the whole command: the command runs
    as <environment> sh -c <command>. It is optional and additive - without it
@@ -150,10 +148,7 @@ let environment_value label = function
 let environment_of_json label pairs =
   match List.assoc_opt "environment" pairs with
   | None | Some `Null -> Ok None
-  | Some value -> (
-      match environment_value label value with
-      | Ok text -> Ok (Some text)
-      | Error error -> Error error)
+  | Some value -> Result.map (fun text -> Some text) (environment_value label value)
 
 let claim_to_json claim =
   `Assoc
@@ -161,10 +156,7 @@ let claim_to_json claim =
       "text", json_string claim.text;
       "scope", json_strings claim.scope;
       "source", (match claim.source with None -> `Null | Some source -> source_to_json source);
-      "kind", json_string (obligation_kind_to_string claim.kind);
-      "phase", json_string (phase_to_string claim.phase);
       "owner", json_string_opt claim.owner;
-      "review_on", json_strings claim.review_on;
       "requirements", `List (List.map requirement_to_json claim.requirements);
       "falsifier", json_string claim.falsifier;
       "register", json_string (register_to_string claim.register);
@@ -173,8 +165,8 @@ let claim_to_json claim =
      @ environment_to_json claim.environment)
 
 let claim_of_json json =
-  let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "kind"; "phase"; "owner";
-                                 "review_on"; "requirements"; "falsifier"; "register"; "control";
+  let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "owner";
+                                 "requirements"; "falsifier"; "register"; "control";
                                  "waiver"; "environment" ] json in
   let* id = string "id" pairs in
   let* text = string "text" pairs in
@@ -184,24 +176,6 @@ let claim_of_json json =
     match List.assoc_opt "source" pairs with
     | Some `Null | None -> Ok None
     | Some json -> (match source_of_json json with Ok source -> Ok (Some source) | Error error -> Error error)
-  in
-  let* kind_name = string_opt "kind" pairs in
-  let* kind =
-    match kind_name with
-    | None -> Ok Invariant
-    | Some value -> (
-        match obligation_kind_of_string value with
-        | Some kind -> Ok kind
-        | None -> Error ("claim.kind: unsupported " ^ value))
-  in
-  let* phase_name = string_opt "phase" pairs in
-  let* phase =
-    match phase_name with
-    | None -> Ok Pre_merge
-    | Some value -> (
-        match phase_of_string value with
-        | Some phase -> Ok phase
-        | None -> Error ("claim.phase: unsupported " ^ value))
   in
   let* requirements =
     match List.assoc_opt "requirements" pairs with
@@ -217,11 +191,6 @@ let claim_of_json json =
     | Some value -> Ok value
     | None -> Error ("claim.register: unsupported " ^ register_name)
   in
-  let* review_on =
-    match List.assoc_opt "review_on" pairs with
-    | None -> Ok []
-    | Some _ -> string_list "review_on" pairs
-  in
   let* waiver =
     match List.assoc_opt "waiver" pairs with
     | Some `Null | None -> Ok None
@@ -230,8 +199,8 @@ let claim_of_json json =
   let* owner = string_opt "owner" pairs in
   let* control = string_opt "control" pairs in
   let* environment = environment_of_json "claim.environment" pairs in
-  Ok { id; text; scope; source; kind; phase; owner;
-       review_on; requirements; falsifier; register; control; waiver; environment }
+  Ok { id; text; scope; source; owner;
+       requirements; falsifier; register; control; waiver; environment }
 
 let goal_to_json goal =
   `Assoc [ "text", json_string goal.text;
@@ -255,30 +224,52 @@ let goal_of_json json =
   let* reason = string_opt "reason" pairs in
   Ok { text; scope; by; at; reason }
 
+(* The version of the format of the specification. The dead fields of the
+   previous version are gone: the codec does not accept them. *)
+let version = 6
+
 let to_json spec =
   `Assoc
-    ([ "schema_version", `Int 5;
+    ([ "schema_version", `Int version;
        "goal", (match spec.goal with None -> `Null | Some goal -> goal_to_json goal);
        "claims", `List (List.map claim_to_json spec.claims) ]
      @ environment_to_json spec.environment)
 
+(* The version of a specification, read without reading the rest of it: the
+   tool has to tell a project of the previous version from a broken one. *)
+let version_of_json json =
+  match json with
+  | `Assoc fields -> (
+      match List.assoc_opt "schema_version" fields with
+      | Some (`Int value) -> Ok value
+      | Some _ -> Error "schema_version must be an integer"
+      | None -> Error "schema_version is required")
+  | _ -> Error "expected an object"
+
+let version_of_string text =
+  match Yojson.Safe.from_string text with
+  | exception Yojson.Json_error error -> Error error
+  | json -> version_of_json json
+
+let parse_json json =
+  let* pairs = object_ "spec" [ "schema_version"; "goal"; "environment"; "claims" ] json in
+  let* found = int "schema_version" pairs in
+  let* () = if found = version then Ok () else Error ("unsupported schema_version " ^ string_of_int found) in
+  let* goal =
+    match List.assoc_opt "goal" pairs with
+    | Some `Null | None -> Ok None
+    | Some json -> (match goal_of_json json with Ok goal -> Ok (Some goal) | Error error -> Error error)
+  in
+  let* environment = environment_of_json "environment" pairs in
+  let* claims =
+    match List.assoc_opt "claims" pairs with
+    | Some (`List items) -> collect claim_of_json items
+    | Some _ -> Error "claims must be a list"
+    | None -> Error "claims is required"
+  in
+  Ok { goal; claims; environment }
+
 let parse_string text =
   match Yojson.Safe.from_string text with
   | exception Yojson.Json_error error -> Error error
-  | json -> (
-      let* pairs = object_ "spec" [ "schema_version"; "goal"; "environment"; "uncertainty_budget"; "closed_waves"; "claims" ] json in
-      let* version = int "schema_version" pairs in
-      let* () = if version = 5 then Ok () else Error ("unsupported schema_version " ^ string_of_int version) in
-      let* goal =
-        match List.assoc_opt "goal" pairs with
-        | Some `Null | None -> Ok None
-        | Some json -> (match goal_of_json json with Ok goal -> Ok (Some goal) | Error error -> Error error)
-      in
-      let* environment = environment_of_json "environment" pairs in
-      let* claims =
-        match List.assoc_opt "claims" pairs with
-        | Some (`List items) -> collect claim_of_json items
-        | Some _ -> Error "claims must be a list"
-        | None -> Error "claims is required"
-      in
-      Ok { goal; claims; environment })
+  | json -> parse_json json

@@ -5,7 +5,7 @@
 let block_begin = "<!-- math-coding:begin -->"
 let block_end = "<!-- math-coding:end -->"
 
-let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "approve"; "re-evaluate"; "review-source"; "mcp" ]
+let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "approve"; "re-evaluate"; "review-source"; "review-decision"; "migrate"; "mcp" ]
 
 (* The text of the block: the aim of the project, the number of its claims and
    the verbs of the method. *)

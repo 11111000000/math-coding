@@ -84,6 +84,13 @@ let digest_of_scope ?files root ~scope =
         if List.exists (fun line -> line = None) lines then None
         else Some (Domain.digest_string (String.concat "\n" (List.filter_map (fun x -> x) lines) ^ "\n")))
 
+(* The digest of the subject as it is now, or the word that says the subject
+   is not there. A record with an empty field cannot be read back, so the
+   field always says something true: "absent" is a digest of no subject, and
+   it never matches the digest of a subject that exists. *)
+let binding_of_scope ?files root ~scope =
+  Option.value ~default:"absent" (digest_of_scope ?files root ~scope)
+
 let method_files = [
   ".gitignore"; "AGENTS.md"; "AXIOMS.md"; "GOAL.md"; "PHILOSOPHY.md";
   "README.md"; "dune-project"; "flake.lock"; "spec.json";

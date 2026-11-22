@@ -23,7 +23,7 @@ let doctor root =
   let report ok message = if not ok then incr broken; Printf.printf "  %s %s\n" (if ok then "ok" else "wrong") message in
   let note message = Printf.printf "  note %s\n" message in
   report (Git.is_repository root) "this is a git repository";
-  report (Sys.file_exists (Filename.concat root "spec.json")) "the standing specification is there";
+  report (Sys.file_exists (Project.spec_path root)) "the standing specification is there";
   let spec =
     match Project.load_spec root with
     | Ok spec -> spec
@@ -42,7 +42,7 @@ let doctor root =
   (* The state of the evidence, not only the shape of the repository. The tool
      can be in place and the evidence stale; the doctor has to tell the two
      apart, and it has to name what is wrong with the evidence. *)
-  (match Project.evaluate root spec with
+  (match Evaluation.evaluate root spec with
    | Error error -> report false ("the evidence can be read: " ^ error)
    | Ok evaluation ->
        report true "the evidence trail can be read";
@@ -51,13 +51,13 @@ let doctor root =
         | damages ->
             report false
               (Printf.sprintf "the evidence trail is not whole: %d record(s) cannot be read (%s)"
-                 (List.length damages) (Project.damage_words damages)));
-       let states = List.map (fun (item : Project.evaluated_state) -> item.state) evaluation.states in
+                 (List.length damages) (Next_action.damage_words damages)));
+       let states = List.map (fun (item : Evaluation.evaluated_state) -> item.state) evaluation.states in
        let count state = List.length (List.filter (fun value -> value = state) states) in
        note
          (Printf.sprintf "the evidence is fresh for %d of %d claim(s) (%d outdated, %d never checked, %d inconclusive)"
             (count Holds) (List.length states) (count Outdated) (count NeverChecked) (count Inconclusive));
-       (match Project.uncovered root spec with
+       (match Evaluation.uncovered root spec with
         | Error error -> report false ("the coverage of the aim can be read: " ^ error)
         | Ok files ->
             if files = [] then note "every file inside the aim is covered by a claim"
@@ -70,5 +70,17 @@ let doctor root =
               List.length (List.filter (fun (_, (record : evidence)) -> record.control_reach = Some "nothing") latest)
             in
             if nothing = 0 then note "every negative control of the last run reaches the subject"
-            else report false (Printf.sprintf "%d negative control(s) of the last run reach nothing" nothing)));
+            else report false (Printf.sprintf "%d negative control(s) of the last run reach nothing" nothing));
+       (* The price of the last run. It is not evidence and it does not change
+          the verdict; it is the number that tells an owner which check to look
+          at first. *)
+       (match Run_log.read root with
+        | Error error -> note ("the price of the last run can be read: " ^ error)
+        | Ok runs -> (
+            match List.rev runs with
+            | [] -> note "no run of this project has been priced yet"
+            | (last : Run_log.run_record) :: _ ->
+                note
+                  (Printf.sprintf "the last run spent %.1f s of machine time in %d claim(s)"
+                     last.machine_seconds last.executed))));
   if !broken = 0 then 0 else 1

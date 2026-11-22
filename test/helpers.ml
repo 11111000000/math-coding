@@ -39,11 +39,15 @@ let expect root arguments code =
 
 let claim = {
   id = "sample"; text = "the subject is expected"; scope = [ "subject.txt" ];
-  source = None; kind = Acceptance; phase = Pre_merge; owner = None; review_on = [];
+  source = None; owner = None;
   requirements = [ Verifier "grep -q expected subject.txt" ];
   falsifier = "the subject is not expected"; register = Fact;
   control = Some "printf broken > subject.txt"; waiver = None; environment = None;
 }
+
+(* The tool that wrote the record down. It is a sibling of the environment, not
+   a part of it: the record says which build observed the subject. *)
+let tool = { class_ = "mathc"; fingerprint = "tool" }
 
 let evidence claim =
   { claim_id = claim.id;
@@ -51,6 +55,7 @@ let evidence claim =
     candidate_tree = "tree"; materials_digest = "materials";
     definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
     environment = { class_ = "local"; fingerprint = "environment" };
+    tool;
     producer = { class_ = "mathc"; identity = "runner"; run = Some "true" };
     independence = Fresh_context; outcome = Pass; issued_at = 1; valid_until = None;
     evidence_ref = None; control_reach = Some "subject" }

@@ -12,7 +12,7 @@ import { useHost } from "./host/context";
 import { HostModalContent } from "./host/sheet";
 import { useT } from "./i18n";
 import { Badge, Body, Button, Card, Empty, KeyValue, Mono, Note, ReasonBlock } from "./parts";
-import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonKey } from "./vocabulary";
+import { claimStateColor, claimStateIcon, claimStateKey, formatTime, stateReasonIcon, stateReasonKey, stateReasonTone } from "./vocabulary";
 
 export function ClaimDetailView({ theme, compact, snapshot, selection, onClose, onSelect, onRefresh, onOpenFile }: {
   theme: ConsoleTheme;
@@ -84,7 +84,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
           <View style={{ flex: 1, gap: 5 }}>
             <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
               {state && <Badge theme={theme} label={t(claimStateKey(state.state))} color={claimStateColor(theme, state.state)} icon={claimStateIcon(state.state)} />}
-              {state?.reason && <Badge theme={theme} label={t(stateReasonKey(state.reason))} icon="CircleHelp" />}
+              {state?.reason && <Badge theme={theme} label={t(stateReasonKey(state.reason))} tone={stateReasonTone(state.reason)} icon={stateReasonIcon(state.reason)} />}
               <Badge theme={theme} label={claim.register} />
               {state?.source_changed && <Badge theme={theme} label={t("state.source_changed")} tone="warn" />}
             </View>
@@ -95,8 +95,6 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
           <Button theme={theme} compact label={t("detail.close")} icon="X" onPress={onClose} />
         </View>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 5 }}>
-          <Badge theme={theme} label={claim.kind} />
-          <Badge theme={theme} label={claim.phase} />
           <Badge theme={theme} label={claim.owner ?? t("state.no_owner")} icon="User" />
         </View>
       </Card>
@@ -217,7 +215,6 @@ function ClaimFacts({ theme, compact, claim, onOpenFile }: {
           {claim.source.review && <KeyValue theme={theme} label={t("detail.source_review")} value={`${claim.source.review.by} · ${formatTime(claim.source.review.at)} · ${claim.source.review.reason}`} />}
         </>
       )}
-      {claim.review_on.length > 0 && <KeyValue theme={theme} label={t("detail.review_triggers")} value={claim.review_on.join(", ")} />}
       {claim.waiver && (
         <View style={{ gap: 8, borderTopWidth: 1, borderTopColor: theme.colors.border, paddingTop: 9 }}>
           <Badge theme={theme} label={t("state.waiver_recorded")} tone="warn" icon="ShieldAlert" />

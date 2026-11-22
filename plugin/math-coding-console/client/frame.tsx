@@ -63,6 +63,7 @@ export function InstrumentFrame({ theme, compact, snapshot, attention, onRefresh
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
         <Mono theme={theme}>{t("panel.snapshot_line", { time: snapshot.generatedAt, revision: snapshot.revision.slice(0, 12) })}</Mono>
         <Mono theme={theme}>{t("panel.binary_line", { path: snapshot.binary.path, version: snapshot.binary.version })}</Mono>
+        <Mono theme={theme}>{t("panel.tool_line", { class: snapshot.map.tool.class, fingerprint: snapshot.map.tool.fingerprint.slice(0, 12) })}</Mono>
       </View>
     </Card>
   );

@@ -75,7 +75,7 @@ test("a missing workspace is an explicit error", async (t) => {
 
 test("a relative binary override is rejected before execution", async (t) => {
   const root = await temp(t);
-  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
+  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 6, goal: map([claim()]).goal, claims: [claim()] }));
   const service = consoleService(settings("relative/mathc") as never);
   await assert.rejects(service.snapshot(paseoFor(root), "workspace-1"), coded("binary_path_not_absolute"));
 });
@@ -91,7 +91,7 @@ test("run requires explicit confirmation", async (t) => {
 
 test("run remains disabled until the host setting is enabled", async (t) => {
   const root = await temp(t);
-  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
+  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 6, goal: map([claim()]).goal, claims: [claim()] }));
   const service = consoleService(settings("", false) as never);
   await assert.rejects(
     service.run(paseoFor(root), { workspaceId: "workspace-1", confirmation: "RUN_CHECKS" }),
@@ -101,7 +101,7 @@ test("run remains disabled until the host setting is enabled", async (t) => {
 
 test("map and run are serialized for one workspace and the queue is bounded", async (t) => {
   const root = await temp(t);
-  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 5, goal: map([claim()]).goal, claims: [claim()] }));
+  await writeFile(join(root, "spec.json"), JSON.stringify({ schema_version: 6, goal: map([claim()]).goal, claims: [claim()] }));
   const green = map([claim()], "holds");
   const red = map([claim()], "refuted");
   const log = join(root, "operations.log");

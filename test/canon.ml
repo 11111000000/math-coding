@@ -141,6 +141,52 @@ let repeat_number target =
 (* A document of the canon is gone. *)
 let lose_document target = Sys.remove (Filename.concat target "GOAL.md")
 
+(* The method text is the subject of the claim that reads it: a change of the
+   text changes the materials of that claim, and the evidence that relied on the
+   old text becomes stale. The binding runs through the scope of the claim, not
+   through the fingerprint of the tool: the tool is the observer, the text is
+   what was checked. A change of the text that left every evidence in force
+   would change the behaviour of the agent in silence. *)
+let method_text = "skills/math-coding/references/METHODOLOGY.md"
+
+(* The scope of a claim of the specification. *)
+let scope_of_claim root id =
+  match Yojson.Safe.from_string (read root "spec.json") with
+  | `Assoc fields -> (
+      match List.assoc_opt "claims" fields with
+      | Some (`List claims) ->
+          List.find_map
+            (fun claim ->
+              match claim with
+              | `Assoc pairs ->
+                  (match List.assoc_opt "id" pairs with
+                  | Some (`String name) when name = id ->
+                      (match List.assoc_opt "scope" pairs with
+                      | Some (`List scope) ->
+                          Some (List.filter_map (function `String path -> Some path | _ -> None) scope)
+                      | _ -> None)
+                  | _ -> None)
+              | _ -> None)
+            claims
+      | _ -> None)
+  | _ -> None
+
+(* The files a scope names, as the repository holds them. *)
+let files_of_scope root scope =
+  match Git.repository_files root with
+  | Ok files -> Git.files_under files ~scope
+  | Error _ -> []
+
+(* A copy of a scope in a temporary repository: the same documents, so the
+   materials of the claim are computed the same way. *)
+let copy_scope root target scope =
+  List.iter
+    (fun file ->
+      let destination = Filename.concat target file in
+      Io.mkdir_p (Filename.dirname destination);
+      Io.copy_file (Filename.concat root file) destination)
+    (files_of_scope root scope)
+
 let () =
   (* The live canon. *)
   check_canon (in_repo "");
@@ -162,5 +208,27 @@ let () =
     (with_broken_canon repeat_number refuses);
   check "the canon is refused when a document is lost"
     (with_broken_canon lose_document refuses);
+
+  (* The method text is a material of the claim that reads it: a change of the
+     text changes the materials of that claim, and the evidence that relied on
+     the old text becomes stale. *)
+  let scope =
+    match scope_of_claim (in_repo "") "canon-integrity" with
+    | Some scope -> scope
+    | None -> failwith "the canon claim has no scope"
+  in
+  check "the method text is a material of the canon claim"
+    (List.exists
+       (fun prefix -> prefix = method_text || Git.path_contains ~dir:prefix ~path:method_text)
+       scope);
+  with_repo (fun target ->
+      copy_scope (in_repo "") target scope;
+      let before = Git.digest_of_scope target ~scope in
+      check "the scope of the claim has materials to compare" (before <> None);
+      let path = Filename.concat target method_text in
+      Io.write_atomic path (Io.read_file path ^ "\nA sentence the method did not have.\n");
+      let after = Git.digest_of_scope target ~scope in
+      check "a change of the method text changes the materials of the claim"
+        (before <> after));
 
   print_endline "canon: PASS"

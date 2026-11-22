@@ -30,8 +30,15 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 # --- the packages of both projects are needed for the build ----------------
 
-(cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
-(cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+# The packages are installed only when they are missing: an installed tree is
+# not touched again while a check runs, and the check does not spend the
+# network on every run.
+if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
+  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+fi
+if [ ! -x "$PAGE/node_modules/.bin/tsx" ]; then
+  (cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
+fi
 
 (cd "$PAGE" && npm run build >/dev/null)
 
@@ -55,18 +62,27 @@ for candidate in chromium chromium-browser google-chrome google-chrome-stable ch
   fi
 done
 
+# The check exercises the code of this tree, so the binary of this tree comes
+# first. The shared channel changes when the ritual of the build runs, and a
+# check of the tree must not depend on what the host happens to have
+# installed: the binary of the tree and the binary of the channel speak
+# different versions of the format.
+#
+# The copy of the control has no binary of the tree, and the binary of the
+# channel speaks another version of the format: it cannot read the
+# specification of the tree. The page then shows an error instead of the
+# queue, and the check would report a defect that the tree does not have. So
+# the browser part of the check runs only where the binary of the tree is, and
+# elsewhere the copies of the packages are the only evidence.
 mathc=""
-for candidate in mathc "$ROOT/_build/default/bin/mathc.exe"; do
-  if command -v "$candidate" >/dev/null 2>&1; then
-    mathc=$(command -v "$candidate")
-    break
-  fi
-done
+if [ -x "$ROOT/_build/default/bin/mathc.exe" ]; then
+  mathc="$ROOT/_build/default/bin/mathc.exe"
+fi
 
 if [ -z "$browser" ]; then
   printf 'check-page: no browser on this machine, the copies are the only evidence\n'
 elif [ -z "$mathc" ]; then
-  printf 'check-page: no mathc on this machine, the copies are the only evidence\n'
+  printf 'check-page: the binary of this tree is not here, the copies are the only evidence\n'
 else
   mkdir -p "$work/project" "$work/bin" "$work/config"
   ln -s "$mathc" "$work/bin/mathc"

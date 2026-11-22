@@ -1,14 +1,23 @@
 open Domain
+open Run_log
 
 let fail code message = Printf.eprintf "mathc: %s\n" message; exit code
-let now () = int_of_float (Unix.time ())
+
+(* The specification of the project. Two failures look alike and are not the
+   same: an absent specification is a vacant project - the tool answered that
+   there is nothing here, and that is an answer - while a specification that
+   cannot be read is an internal failure: the tool cannot answer the question
+   it was asked. The vocabulary of the codes lives in Exit_code. *)
 let load root =
   match Project.load_spec root with
   | Ok spec -> spec
-  | Error error -> Printf.eprintf "mathc: %s\n" error; exit 3
+  | Error error ->
+      Printf.eprintf "mathc: %s\n" error;
+      if Sys.file_exists (Project.spec_path root) then exit Exit_code.internal_failure
+      else exit Exit_code.vacant
 
 let init root =
-  if Sys.file_exists (Filename.concat root "spec.json") then fail 2 "there is already a standing specification"
+  if Sys.file_exists (Project.spec_path root) then fail Exit_code.usage "there is already a standing specification"
   else (
     Project.save_spec root { goal = None; claims = []; environment = None };
     print_endline "the standing specification is created\nnext: state the aim (mathc goal TEXT SCOPE BY)";
@@ -16,10 +25,10 @@ let init root =
 
 let goal root text scope by reason =
   let spec = load root in
-  if text = "" || scope = [] || by = "" then fail 2 "goal needs TEXT SCOPE BY"
-  else if spec.goal <> None && reason = "" then fail 2 "replacing the aim needs --reason"
+  if text = "" || scope = [] || by = "" then fail Exit_code.usage "goal needs TEXT SCOPE BY"
+  else if spec.goal <> None && reason = "" then fail Exit_code.usage "replacing the aim needs --reason"
   else (
-    Project.save_spec root { spec with goal = Some { text; scope; by; at = now (); reason = (if reason = "" then None else Some reason) } };
+    Project.save_spec root { spec with goal = Some { text; scope; by; at = Execution.now (); reason = (if reason = "" then None else Some reason) } };
     print_endline "the aim is set";
     0)
 
@@ -33,7 +42,7 @@ let rec has_review = function
   | Review _ -> true
   | All requirements | Any requirements -> List.exists has_review requirements
 
-let add root id text scope falsifier register requirements control source_path =
+let add root id text scope falsifier register requirements control source_path environment =
   let spec = load root in
   let inside_aim goal_scope prefix =
     List.exists (fun allowed -> Git.path_contains ~dir:allowed ~path:prefix) goal_scope
@@ -51,135 +60,44 @@ let add root id text scope falsifier register requirements control source_path =
         else None
   in
   match problem with
-  | Some error -> fail 2 error
+  | Some error -> fail Exit_code.usage error
   | None ->
       let register =
         match register_of_string register with
         | Some value -> value
-        | None -> fail 2 "register must be fact, hypothesis, judgment or unknown"
+        | None -> fail Exit_code.usage "register must be fact, hypothesis, judgment or unknown"
       in
       (if register = Judgment && List.exists has_verifier requirements then
-         fail 2 "a judgment cannot be established by a machine verifier"
+         fail Exit_code.usage "a judgment cannot be established by a machine verifier"
        else if register = Judgment && not (List.exists has_review requirements) then
-         fail 2 "a judgment needs a human review requirement");
+         fail Exit_code.usage "a judgment needs a human review requirement");
       let source =
         if source_path = "" then None
-        else if not (Spec.valid_path source_path) then fail 2 "source path must stay inside the project"
+        else if not (Spec.valid_path source_path) then fail Exit_code.usage "source path must stay inside the project"
         else
           match Git.digest_of_repo_file root source_path with
           | Some digest -> Some { kind = Madr; path = source_path; section = None; digest; review = None }
-          | None -> fail 2 ("source file not found or not a regular project file: " ^ source_path)
+          | None -> fail Exit_code.usage ("source file not found or not a regular project file: " ^ source_path)
+      in
+      (* The environment a verifier runs in is a part of the claim: a check that
+         needs the toolchain of the project says so, and the run reads it from
+         here. The rule is the rule of the format, so the format checks it. *)
+      let environment =
+        if environment = "" then None
+        else
+          match Spec.environment_value "claim.environment" (`String environment) with
+          | Ok value -> Some value
+          | Error error -> fail Exit_code.usage error
       in
       let claim = {
-        id; text; scope; source; kind = Acceptance; phase = Pre_merge;
-        owner = Option.map (fun goal -> goal.by) spec.goal; review_on = [];
+        id; text; scope; source;
+        owner = Option.map (fun goal -> goal.by) spec.goal;
         requirements; falsifier; register; control = (if control = "" then None else Some control);
-        waiver = None; environment = None;
+        waiver = None; environment;
       } in
       Project.save_spec root { spec with claims = spec.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;
       0
-
-let evidence_for ?files root (claim : claim) requirement command outcome control_reach =
-  let binding = Option.value ~default:"" (Git.digest_of_scope ?files root ~scope:claim.scope) in
-  { claim_id = claim.id; requirement;
-    candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-    materials_digest = binding;
-    definition_digest = definition_digest claim;
-    verifier_digest = verifier_digest claim;
-    environment = Project.environment root;
-    producer = { class_ = "mathc"; identity = Sys.executable_name; run = Some command };
-    independence = Fresh_context; outcome; issued_at = now (); valid_until = None;
-    evidence_ref = None; control_reach }
-
-let report_failure label (result : Process.result) =
-  if result.code <> 0 || result.truncated then (
-    Printf.eprintf "mathc: %s exited %d%s\n%s%s" label result.code
-      (if result.truncated then " (output truncated)" else "") result.stdout result.stderr;
-    if result.stdout = "" && result.stderr = "" then prerr_newline ())
-
-(* A declared environment is a prefix for the whole command: the command runs as
-   <environment> sh -c <command>, so every part of it is inside the
-   environment and not only its first word. Without a declared environment the
-   command runs exactly as it is declared. *)
-let command_in_environment environment command =
-  match environment with
-  | None -> command
-  | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
-
-(* The time a check is allowed to take. The protocol and the price arm of the
-   measurer run the same check, so they share one limit: a check that the
-   protocol lets finish must not be cut short by the measurer, or the measured
-   price is not the price of the work. *)
-let verifier_timeout = 600.0
-
-(* The time a negative control is allowed to take. *)
-let control_timeout = 300.0
-
-(* The time the whole protocol run of a specification may take: for every claim
-   it runs the check, the control and the check once more, and no check may
-   outlast its own limit. The measurer uses this as its limit, so it never cuts
-   a legitimate run short and reports a limit as if it were a measurement. *)
-let protocol_timeout claims =
-  60.0 +. float_of_int claims *. (2.0 *. verifier_timeout +. control_timeout)
-
-(* An observation enters the journal the moment it is made, so an interrupted
-   run keeps everything it has already proven. The journal stays append-only
-   and the last observation of a claim and requirement is the one that counts. *)
-let rec execute_leaf ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
-  match requirement with
-  | Review { authority; _ } ->
-      if not quiet then Printf.printf "%s: review by %s is not the method's to do\n" claim.id authority;
-      Inconclusive
-  | Verifier command -> (
-      match Git.digest_of_scope ?files root ~scope:claim.scope with
-      | None ->
-          if not quiet then Printf.printf "%s: the subject is not whole or does not exist\n" claim.id;
-          Inconclusive
-      | Some _ ->
-          let result = Process.run ~timeout:verifier_timeout ~root (command_in_environment environment command) in
-          report_failure command result;
-          let outcome = if result.truncated then Infrastructure_error else result.outcome in
-          let outcome, reach =
-            match outcome, claim.control with
-            | Pass, Some control -> (
-                match Isolated_run.with_copy root (fun copy ->
-                    let before = Git.digest_of_scope copy ~scope:claim.scope in
-                    let mutation = Process.run ~timeout:control_timeout ~root:copy (command_in_environment environment control) in
-                    report_failure ("negative control: " ^ control) mutation;
-                    let after = Git.digest_of_scope copy ~scope:claim.scope in
-                    let reach = if before = after then "nothing" else "subject" in
-                    let check = Process.run ~timeout:verifier_timeout ~root:copy (command_in_environment environment command) in
-                    report_failure ("verifier after negative control: " ^ command) check;
-                    if reach = "subject" && check.code = 1 then Pass, Some reach
-                    else Inconclusive, Some reach) with
-                | Error error ->
-                    Printf.eprintf "mathc: control setup failed: %s\n" error;
-                    Infrastructure_error, None
-                | Ok (outcome, reach) -> outcome, reach)
-            | Pass, None -> Not_run, None
-            | outcome, _ -> outcome, None
-          in
-          let evidence = evidence_for ?files root claim requirement command outcome reach in
-          emit evidence;
-          if not quiet then (
-            Printf.printf "%s: %s\n" claim.id (outcome_to_string outcome);
-            if outcome = Pass && reach = Some "subject" then
-              Printf.printf "%s: negative control proven (subject changed; verifier failed)\n" claim.id);
-          outcome)
-  | All requirements | Any requirements ->
-      (* The order of the work and the point at which the run stops belong to
-         the method, not to this arm: the price arm of the measurer shares
-         them, so the two arms cannot disagree about the work the protocol
-         does. *)
-      Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
-
-(* The requirements of a claim ask for work in an order, and the protocol stops
-   at a certain point: the alternatives of a claim stop at the first confirmed
-   one, the conjunction stops at the first rejected one and goes on after an
-   inconclusive or a failed start, so that a later rejection is not lost. *)
-let execute_requirement ?files ?(quiet = false) ~environment root claim emit requirement : Domain.outcome =
-  Requirements.run ~leaf:(execute_leaf ?files ~quiet ~environment root claim emit) requirement
 
 (* A journal with a damaged record is not whole. The records that can be read
    still stand, so the run rewrites the journal with them and keeps the damaged
@@ -189,18 +107,42 @@ let repair_trail root =
   match Trail.read root with
   | Error error -> Error error
   | Ok journal -> (
-      match Trail.rewrite root journal (now ()) with
+      match Trail.rewrite root journal (Execution.now ()) with
       | Error error -> Error error
       | Ok None -> Ok None
       | Ok (Some backup) -> Ok (Some (List.length journal.damaged, backup)))
 
-let run root json =
-  (match Policy.check root with Ok () -> () | Error error -> fail 1 error);
+(* The run has a limit of its own: the consumer does not have to impose one,
+   and a run that is stopped says so instead of falling silent. *)
+let default_limit = 3600.0
+
+(* The name of a signal, for the report of a stopped run. *)
+let signal_name signal =
+  if signal = Sys.sigterm then "SIGTERM"
+  else if signal = Sys.sigint then "SIGINT"
+  else Printf.sprintf "signal %d" signal
+
+(* A signal from outside is a request to stop, not a reason to vanish. The run
+   keeps what it has proven, says that it was stopped and hands over the map
+   over what was observed. *)
+let install_stop_handler stop reason =
+  let handler signal =
+    stop := true;
+    reason := Some (Printf.sprintf "a signal (%s) asked the run to stop" (signal_name signal))
+  in
+  (Sys.signal Sys.sigterm (Sys.Signal_handle handler),
+   Sys.signal Sys.sigint (Sys.Signal_handle handler))
+
+let run ?(changed = false) ?(limit = default_limit) root json =
+  (* The specification is read before anything else: a project of the previous
+     version of the format is refused with the instruction to migrate it, and
+     nothing of that project is touched. *)
   let spec = load root in
+  (match Policy.check root with Ok () -> () | Error error -> fail Exit_code.red_or_protected error);
   (* The journal is repaired before the run: a record that cannot be read
      cannot be kept either, and the records that can be read still stand. *)
   (match repair_trail root with
-   | Error error -> fail 3 error
+   | Error error -> fail Exit_code.internal_failure error
    | Ok None -> ()
    | Ok (Some (count, backup)) ->
        let message =
@@ -209,28 +151,103 @@ let run root json =
            count backup
        in
        if json then prerr_endline ("mathc: " ^ message) else print_endline ("mathc: " ^ message));
-  let files = match Git.repository_files root with Error error -> fail 3 error | Ok files -> files in
+  let files = match Git.repository_files root with Error error -> fail Exit_code.internal_failure error | Ok files -> files in
+  (* A partial run takes the claims whose evidence no longer holds. The
+     selection is made before the run: the state of a claim is the state of
+     the evidence that is in the journal now. *)
+  let selection =
+    if changed then
+      match Evaluation.selection root spec with
+      | Error error -> fail Exit_code.internal_failure error
+      | Ok selection -> Some selection
+    else None
+  in
+  let claims =
+    match selection with None -> spec.claims | Some selection -> selection.to_execute
+  in
   let emit = Trail.append root in
-  List.iter
-    (fun claim ->
-      (* The environment of the claim is its own when it declares one, and the
-         environment of the specification otherwise. It covers the check and
-         its negative control alike. *)
-      let environment = effective_environment spec claim in
-      List.iter
-        (fun requirement -> ignore (execute_requirement ~files ~quiet:json ~environment root claim emit requirement))
-        claim.requirements)
-    spec.claims;
+  let started_at = Execution.now () in
+  let started = Unix.gettimeofday () in
+  let durations = ref [] in
+  let stop = ref false in
+  let stop_reason = ref None in
+  let previous_term, previous_int = install_stop_handler stop stop_reason in
+  (* The work of the run goes claim by claim. The run stops between the claims
+     when it is asked to or when its own limit is reached; the claim in flight
+     is stopped with it. *)
+  let rec work remaining =
+    match remaining with
+    | [] -> ()
+    | claim :: rest ->
+        if !stop then ()
+        else if Unix.gettimeofday () -. started > limit then (
+          stop := true;
+          stop_reason :=
+            Some (Printf.sprintf "the limit of the run (%d s) was reached" (int_of_float limit)))
+        else (
+          (* The environment of the claim is its own when it declares one, and the
+             environment of the specification otherwise. It covers the check and
+             its negative control alike. *)
+          let environment = effective_environment spec claim in
+          let claim_started = Unix.gettimeofday () in
+          List.iter
+            (fun requirement ->
+              ignore (Execution.execute_requirement ~files ~quiet:json ~environment ~cancel:stop root claim emit requirement))
+            claim.requirements;
+          (* The price of the claim is measured around all of its work: the check,
+             its negative control and the check once more. *)
+          let seconds = Unix.gettimeofday () -. claim_started in
+          let cost = { scale = Wall_clock_seconds; value = seconds;
+                        observed_at = Execution.now (); observed_by = "mathc" } in
+          durations := { claim_id = claim.id; cost } :: !durations;
+          work rest)
+  in
+  work claims;
+  ignore (Sys.signal Sys.sigterm previous_term);
+  ignore (Sys.signal Sys.sigint previous_int);
+  let durations = List.rev !durations in
+  let machine_seconds =
+    List.fold_left (fun sum (priced : Run_log.priced_claim) -> sum +. priced.cost.value) 0.0 durations
+  in
+  let stopped = !stop in
+  let record : run_record =
+    { started_at; finished_at = Execution.now ();
+      wall_seconds = Unix.gettimeofday () -. started; machine_seconds;
+      claims = List.length spec.claims; executed = List.length durations;
+      stopped; stop_reason = !stop_reason; durations }
+  in
+  Run_log.append root record;
+  (match selection with
+   | None -> ()
+   | Some selection ->
+       let words = Evaluation.selection_words selection in
+       let blind = match Evaluation.blind_words selection with Some words -> words | None -> "" in
+       let report =
+         if blind = "" then words else words ^ "; " ^ blind
+       in
+       if json then prerr_endline ("mathc: " ^ report) else print_endline report);
+  let cost = Execution.cost_words durations in
+  if json then prerr_endline ("mathc: " ^ cost) else print_endline cost;
+  (* A stopped run says so. The map below is over what was observed, and the
+     code of the exit says that the run did not finish. *)
+  if stopped then (
+    let reason = match !stop_reason with Some reason -> reason | None -> "the run was asked to stop" in
+    let words =
+      Printf.sprintf
+        "the run was stopped after %d of %d claim(s): %s; the map below is over what was observed"
+        (List.length durations) (List.length claims) reason
+    in
+    if json then prerr_endline ("mathc: " ^ words) else print_endline words);
   match Project.map_output root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok output ->
       if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
-      output.exit_code
+      if stopped then Exit_code.stopped else output.exit_code
 
 let map root json =
   let spec = load root in
   match Project.map_output root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok output ->
       if json then print_endline (Yojson.Safe.pretty_to_string output.json) else print_string output.text;
       output.exit_code
@@ -238,31 +255,31 @@ let map root json =
 let next root =
   let spec = load root in
   match Project.next_text root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok text -> print_endline text; 0
 
 let context root =
   let spec = load root in
   match Project.map_json root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok value -> print_endline (Yojson.Safe.pretty_to_string value); 0
 
 let waive root id by reason valid_for recovery =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim -> (
-      match Project.states root spec with
-      | Error error -> fail 3 error
+      match Evaluation.states root spec with
+      | Error error -> fail Exit_code.internal_failure error
       | Ok states ->
           if by = "" || reason = "" || recovery = "" || valid_for <= 0 then
-            fail 2 "waive needs --by, --reason, --valid-for DAYS and --recovery"
-          else if List.assoc_opt id states = Some Refuted then fail 2 "a refuted claim cannot be waived"
+            fail Exit_code.usage "waive needs --by, --reason, --valid-for DAYS and --recovery"
+          else if List.assoc_opt id states = Some Refuted then fail Exit_code.usage "a refuted claim cannot be waived"
           else
             let waiver = {
-              gap = id; scope = claim.scope; issuer = by; issued_at = now ();
-              expires_at = now () + (valid_for * 86400); reason;
-              compensating_controls = []; recovery; review_on = [];
+              gap = id; scope = claim.scope; issuer = by; issued_at = Execution.now ();
+              expires_at = Execution.now () + (valid_for * 86400); reason;
+              compensating_controls = []; recovery;
             } in
             let claims = List.map (fun current -> if current.id = id then { current with waiver = Some waiver } else current) spec.claims in
             Project.save_spec root { spec with claims };
@@ -279,36 +296,53 @@ let rec review_of_authority authority = function
 let record root id authority by outcome valid_for run_ref =
   let spec = load root in
   match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
   | Some claim ->
       (* The record answers the requirement as the claim declares it: the
          journal finds the evidence by the requirement it belongs to. A record
          is an external attestation, so it satisfies any independence the
          claim asks for. *)
       (match List.find_map (review_of_authority authority) claim.requirements with
-       | None -> fail 2 "the claim has no such review requirement"
+       | None -> fail Exit_code.usage "the claim has no such review requirement"
        | Some requirement ->
-           if by = "" then fail 2 "record needs --by"
+           if by = "" then fail Exit_code.usage "record needs --by"
            else if Option.exists (fun days -> days <= 0) valid_for then
-             fail 2 "record --valid-for must be a positive number of days"
+             fail Exit_code.usage "record --valid-for must be a positive number of days"
            else
              match outcome_of_string outcome with
-             | None -> fail 2 "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+             | None -> fail Exit_code.usage "record --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
              | Some outcome ->
-                 let evidence = {
-                   claim_id = id; requirement;
-                   candidate_tree = Option.value ~default:"unborn" (Git.head_commit root);
-                   materials_digest = Option.value ~default:"" (Git.digest_of_scope root ~scope:claim.scope);
-                   definition_digest = definition_digest claim; verifier_digest = verifier_digest claim;
-                   environment = Project.environment root;
-                   producer = { class_ = "human"; identity = by; run = run_ref };
-                   independence = External; outcome; issued_at = now ();
-                   valid_until = Option.map (fun days -> now () + (days * 86400)) valid_for;
-                   evidence_ref = run_ref; control_reach = None;
-                 } in
+                 let evidence =
+                   Decision.human_evidence ~root ~claim ~requirement ~by ~outcome ~valid_for
+                     ~run:run_ref ~evidence_ref:run_ref
+                 in
                  Trail.append root evidence;
                  print_endline "recorded";
                  0)
+
+(* The revision of a human decision. The decision is bound to the decision, not
+   to the bytes of the document that carries it, so a growing document does not
+   make it stale; the revision is how the person says that the decision
+   changed. It carries the form of §12: the author, the reason and the time,
+   and the previous decision stays in the journal. *)
+let review_decision root id by reason outcome valid_for =
+  let spec = load root in
+  match List.find_opt (fun claim -> claim.id = id) spec.claims with
+  | None -> fail Exit_code.usage ("there is no claim " ^ id)
+  | Some claim ->
+      if by = "" || reason = "" then fail Exit_code.usage "review-decision needs --by and --reason"
+      else if Option.exists (fun days -> days <= 0) valid_for then
+        fail Exit_code.usage "review-decision --valid-for must be a positive number of days"
+      else
+        match outcome_of_string outcome with
+        | None -> fail Exit_code.usage "review-decision --outcome must be pass, fail, inconclusive, infrastructure-error or not-run"
+        | Some outcome ->
+            match Trail.read root with
+            | Error error -> fail Exit_code.internal_failure error
+            | Ok journal ->
+                (match Decision.revise ~root ~claim ~records:journal.records ~by ~reason ~outcome ~valid_for with
+                 | Ok () -> Printf.printf "claim %s: decision revised by %s\n" id by; 0
+                 | Error error -> fail Exit_code.usage error)
 
 let install root =
   let path = Filename.concat root "AGENTS.md" in
@@ -325,8 +359,8 @@ let version () =
 
 let authorize root by reason =
   match Policy.load root with
-  | Error error -> fail 2 error
-  | Ok None -> fail 2 "there is no policy.json; protected transitions are not configured"
+  | Error error -> fail Exit_code.usage error
+  | Ok None -> fail Exit_code.usage "there is no policy.json; protected transitions are not configured"
   | Ok (Some policy) -> Policy.authorize root policy by reason
 
 (* The approval of the human: the commands that the agent surface may execute
@@ -337,34 +371,20 @@ let approve root by reason commands =
   let commands = if commands <> [] then commands else Approval.commands_of_spec (load root) in
   match Approval.approve root ~by ~reason ~commands with
   | Ok count -> Printf.printf "approved %d command(s)\n" count; 0
-  | Error error -> fail 2 error
+  | Error error -> fail Exit_code.usage error
 
 let re_evaluate root =
   let spec = load root in
   match Re_evaluation.pending root spec with
-  | Error error -> fail 3 error
+  | Error error -> fail Exit_code.internal_failure error
   | Ok pending -> print_endline (Yojson.Safe.pretty_to_string (`Assoc [ "needs_re_evaluation", `List (List.map (fun id -> `String id) pending) ])); 0
 
 let review_source root id by reason =
   let spec = load root in
-  match List.find_opt (fun claim -> claim.id = id) spec.claims with
-  | None -> fail 2 ("there is no claim " ^ id)
-  | Some claim -> (
-      match claim.source with
-      | None -> fail 2 "the claim has no source to review"
-      | Some source ->
-          if by = "" || reason = "" then fail 2 "review-source needs --by and --reason"
-          else if claim.owner <> Some by then fail 2 "only the claim owner can review its source"
-          else
-            match Git.digest_of_repo_file root source.path with
-            | None -> fail 2 ("source file not found: " ^ source.path)
-            | Some digest when digest = source.digest -> fail 2 "the source has not changed"
-            | Some digest ->
-                let previous_digest = source.digest in
-                let review = Some { by; reason; at = now (); previous_digest } in
-                let source = { source with digest; review } in
-                let claims = List.map (fun current ->
-                  if current.id = id then { current with source = Some source; waiver = None } else current) spec.claims in
-                Project.save_spec root { spec with claims };
-                Printf.printf "claim %s source review recorded; next: mathc run\n" id;
-                0)
+  match Decision.review_source ~root ~spec ~id ~by ~reason with
+  | Ok () -> 0
+  | Error error -> fail Exit_code.usage error
+
+(* The migration of a project of the previous version of the format. It is a
+   human action: the agent surface does not move the journals of a project. *)
+let migrate root dry_run = Migrate.run root dry_run

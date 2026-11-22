@@ -9,7 +9,6 @@ export type HumanAttentionKind =
   | "source-review"
   | "refutation"
   | "human-review"
-  | "acceptance-criterion"
   | "expired-waiver";
 
 export type AgentAttentionKind = "refresh-evidence" | "investigate-unknown" | "coverage";
@@ -181,16 +180,6 @@ function humanItemForClaim(
       suggestedAction: { key: "attention.refutation_suggested" },
     });
   }
-  if (state === "not-checkable") {
-    return humanItem("acceptance-criterion", claim, mapState, {
-      title: { key: "attention.criterion_title", args: { claim: claim.id } },
-      why: { key: "attention.criterion_why" },
-      humanQuestion: { key: "attention.criterion_question", args: { claim: claim.text } },
-      agentMay: { key: "attention.criterion_agent_may" },
-      agentMustNot: { key: "attention.criterion_agent_must_not" },
-      suggestedAction: { key: "attention.criterion_suggested" },
-    });
-  }
   const reviews = reviewRequirements(claim);
   if (reviews.length > 0 && state !== "holds" && state !== "waived") {
     const authorities = reviews.map((review) => `${review.spec} (${review.minimum_independence})`).join(", ");
@@ -222,7 +211,6 @@ function humanItemForClaim(
 function agentBlocked(claim: Claim, state: ClaimState, sourceChanged: boolean): boolean {
   return sourceChanged ||
     state === "refuted" ||
-    state === "not-checkable" ||
     state === "waived" ||
     machineRequirements(claim).length === 0;
 }
@@ -369,8 +357,7 @@ export function buildAttentionModel(snapshot: SnapshotReady, nowSeconds = snapsh
     "source-review": 0,
     refutation: 1,
     "human-review": 2,
-    "acceptance-criterion": 3,
-    "expired-waiver": 4,
+    "expired-waiver": 3,
   };
   needsHuman.sort((a, b) => priority[a.kind] - priority[b.kind] || a.claimIds[0]!.localeCompare(b.claimIds[0]!));
   acceptedRisks.sort((a, b) => a.expiresAt - b.expiresAt || a.claimId.localeCompare(b.claimId));

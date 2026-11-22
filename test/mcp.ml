@@ -142,5 +142,5 @@ let () =
       let specification = Io.read_file (Filename.concat root "spec.json") in
       check "the refused claim is not in the specification" (not (contains specification "\"other\""));
       check "the refused run writes no evidence"
-        (not (Sys.file_exists (Filename.concat root ".math/v5/evidence.jsonl")));
+        (not (Sys.file_exists (Filename.concat root ".math/v6/evidence.jsonl")));
       print_endline "mcp-approval: PASS")

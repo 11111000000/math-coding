@@ -30,8 +30,6 @@ type source_ref = {
   review : source_review option;
 }
 
-type obligation_kind = Invariant | Acceptance | Recovery | Operational | Judgment
-type phase = Pre_merge | Pre_release | Post_release
 type register = Fact | Hypothesis | Judgment | Undeclared
 
 type requirement =
@@ -49,7 +47,6 @@ type waiver = {
   reason : string;
   compensating_controls : string list;
   recovery : string;
-  review_on : string list;
 }
 
 type claim = {
@@ -57,10 +54,7 @@ type claim = {
   text : string;
   scope : string list;
   source : source_ref option;
-  kind : obligation_kind;
-  phase : phase;
   owner : string option;
-  review_on : string list;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -72,6 +66,12 @@ type claim = {
 type environment = { class_ : string; fingerprint : string }
 type producer = { class_ : string; identity : string; run : string option }
 
+(* The tool that produced a record: the binary that wrote it. It is not a
+   freshness binding - the evidence stays applicable when the tool changes -
+   but the map names the difference, so the reader knows that the observer of
+   the evidence is not the observer of the map. *)
+type tool = { class_ : string; fingerprint : string }
+
 type evidence = {
   claim_id : string;
   requirement : requirement;
@@ -80,6 +80,7 @@ type evidence = {
   definition_digest : string;
   verifier_digest : string;
   environment : environment;
+  tool : tool;
   producer : producer;
   independence : independence;
   outcome : outcome;
@@ -97,7 +98,7 @@ type execution_log = {
   observed_by : string;
 }
 
-type state = Holds | Refuted | Inconclusive | NotCheckable | Outdated | NeverChecked | Waived
+type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
@@ -147,32 +148,6 @@ let source_kind_of_string = function
   | "specification" -> Some Specification
   | _ -> None
 
-let obligation_kind_to_string = function
-  | Invariant -> "invariant"
-  | Acceptance -> "acceptance"
-  | Recovery -> "recovery"
-  | Operational -> "operational"
-  | Judgment -> "judgment"
-
-let obligation_kind_of_string = function
-  | "invariant" -> Some Invariant
-  | "acceptance" -> Some Acceptance
-  | "recovery" -> Some Recovery
-  | "operational" -> Some Operational
-  | "judgment" -> Some Judgment
-  | _ -> None
-
-let phase_to_string = function
-  | Pre_merge -> "pre-merge"
-  | Pre_release -> "pre-release"
-  | Post_release -> "post-release"
-
-let phase_of_string = function
-  | "pre-merge" -> Some Pre_merge
-  | "pre-release" -> Some Pre_release
-  | "post-release" -> Some Post_release
-  | _ -> None
-
 let register_to_string = function
   | Fact -> "fact"
   | Hypothesis -> "hypothesis"
@@ -190,7 +165,6 @@ let state_to_string = function
   | Holds -> "holds"
   | Refuted -> "refuted"
   | Inconclusive -> "inconclusive"
-  | NotCheckable -> "not-checkable"
   | Outdated -> "outdated"
   | NeverChecked -> "never-checked"
   | Waived -> "waived"
@@ -230,9 +204,7 @@ let definition_digest c =
         [ source_kind_to_string s.kind; s.path; Option.value ~default:"" s.section; s.digest ] @ review
   in
   let requirements = List.map requirement_repr c.requirements |> List.sort_uniq String.compare in
-  [ c.id; c.text; String.concat "," c.scope; obligation_kind_to_string c.kind;
-    phase_to_string c.phase; Option.value ~default:"" c.owner;
-    String.concat "," (List.sort_uniq String.compare c.review_on);
+  [ c.id; c.text; String.concat "," c.scope; Option.value ~default:"" c.owner;
     String.concat ";" requirements; c.falsifier; register_to_string c.register ]
   @ source
   |> String.concat "\n"

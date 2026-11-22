@@ -79,7 +79,7 @@ async function attempt(
   includeTrail: boolean,
 ): Promise<ProjectSnapshot> {
   const specPath = join(root, "spec.json");
-  const trailPath = join(root, ".math", "v5", "evidence.jsonl");
+  const trailPath = join(root, ".math", "v6", "evidence.jsonl");
   const beforeSpec = await readBounded(specPath, MAX_SPEC_BYTES);
   const compareTrail = includeTrail && operation === "map";
   const beforeTrail = compareTrail ? await readOptionalBounded(trailPath, MAX_TRAIL_BYTES) : null;

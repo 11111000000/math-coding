@@ -13,8 +13,12 @@ PLUGIN="$ROOT/plugin/math-coding-console"
 cd "$PLUGIN"
 
 # The check needs the packages of the plugin. Without them it cannot start,
-# and the control of the claim would look like a caught break.
-npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null
+# and the control of the claim would look like a caught break. They are
+# installed only when they are missing: an installed tree is not touched again
+# while a check runs.
+if [ ! -x node_modules/.bin/tsx ]; then
+  npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null
+fi
 
 ./node_modules/.bin/tsx --test test/host-sheet.test.ts
 ./node_modules/.bin/tsx scripts/render-check.tsx
