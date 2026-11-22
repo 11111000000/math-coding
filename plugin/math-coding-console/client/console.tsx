@@ -214,10 +214,10 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
     <View style={{ flex: 1, backgroundColor: theme.colors.surface0 }}>
       {snapshotQuery.isPending ? (
         <Empty theme={theme} title={t("panel.loading_map")} detail={t("panel.loading_map_detail")} icon="Workflow" />
-      ) : snapshotQuery.isError && !snapshotQuery.data ? (
+      ) : snapshotQuery.isError ? (
         <View style={{ padding: compact ? 14 : 22, gap: 12 }}>
           <Empty theme={theme} title={workspaceBusy ? t("panel.busy_title") : t("panel.unavailable_title")} detail={workspaceBusy ? t("panel.busy_detail") : t("panel.unavailable_detail")} icon={workspaceBusy ? "Clock3" : "ShieldX"} />
-          <Note theme={theme} tone="bad">{snapshotError}</Note>
+          <Note theme={theme} tone="bad">{t("panel.refresh_failed", { error: snapshotError ?? "" })}</Note>
           <Button theme={theme} label={t("panel.retry_snapshot")} icon="RefreshCw" onPress={refresh} />
         </View>
       ) : snapshotQuery.data?.status === "not-initialized" ? (
@@ -232,9 +232,6 @@ export function ConsolePanel({ theme, layout, workspaceId }: ConsolePanelProps) 
         <View style={{ flex: 1, flexDirection: compact ? "column" : "row" }}>
           <View style={{ flex: 1 }}>
             <ScrollView nestedScrollEnabled contentContainerStyle={{ padding: compact ? 10 : 16, gap: 10 }}>
-              {snapshotQuery.isError && (
-                <Note theme={theme} tone="bad">{t("panel.refresh_failed", { time: snapshot.generatedAt, error: String(snapshotQuery.error) })}</Note>
-              )}
               <InstrumentFrame theme={theme} compact={compact} snapshot={snapshot} attention={attention} onRefresh={refresh} refreshing={snapshotQuery.isFetching} onRun={() => setConfirmRun(true)} running={run.isPending} runEnabled={runEnabled} />
               <PermissionsCard theme={theme} compact={compact} runEnabled={runEnabled} decisionsEnabled={decisionsEnabled} onOpenSettings={openSettings} />
               <Segmented theme={theme} options={views} value={view} onChange={(value) => { setView(value); if (value !== "explore") setShowScopeGraph(false); }} />
