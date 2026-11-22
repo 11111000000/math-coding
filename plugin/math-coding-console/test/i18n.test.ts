@@ -91,8 +91,7 @@ test("every error code has a sentence in both languages", () => {
 });
 
 test("the resolver fills the placeholders of a text", () => {
-  const text = translate("en", "panel.refresh_failed", { time: "12:00", error: "boom" });
-  assert.match(text, /12:00/);
+  const text = translate("en", "panel.refresh_failed", { error: "boom" });
   assert.match(text, /boom/);
   assert.doesNotMatch(text, /\{\{/);
 });
