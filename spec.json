@@ -1,7 +1,7 @@
 {
   "schema_version": 6,
   "goal": {
-    "text": "v5 keeps evidence linked, fresh, and independent",
+    "text": "v6 keeps evidence linked, fresh, and independent",
     "scope": [
       "lib/", "format/", "adapter/", "bin/", "test/", "spec.json",
       "flake.nix", "GOAL.md", "PHILOSOPHY.md", "AXIOMS.md", "README.md",
@@ -9,8 +9,8 @@
       ".github/", "site/", "plugin/", "console/", "scripts/"
     ],
     "by": "owner",
-    "at": 1794829339,
-    "reason": "the console, its local browser page and the scripts of the project are part of the method, not exempt from it; the three-arm measurement of the method has never been run, and until it is, the project carries a debt of honesty that the protocol names and the claim of the field measurement keeps in view"
+    "at": 1795387670,
+    "reason": "the release of the format version 6 makes the aim name the version it holds"
   },
   "claims": [
     {
@@ -505,8 +505,7 @@
       "id": "golden-corpus",
       "text": "the frozen corpus gives the same map on every build",
       "scope": [
-        "test/golden_corpus.ml",
-        "test/golden_corpus/p-green/spec.json",
+        "test/golden_corpus.ml", "test/golden_corpus/p-green/spec.json",
         "test/golden_corpus/p-green/subject.txt",
         "test/golden_corpus/p-green/evidence.jsonl",
         "test/golden_corpus/p-green/expected.json",
