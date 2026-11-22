@@ -4,4 +4,5 @@ val mkdir_p : string -> unit
 val temp_dir : string -> string
 val copy_file : string -> string -> unit
 val remove_tree : string -> unit
+val sweep_stale : ?now:float -> unit -> unit
 val with_temp_dir : (string -> 'a) -> 'a

@@ -1,3 +1,4 @@
+open Unix
 open Helpers
 
 (* The runner waits for a child without adding a delay of its own. The pause
@@ -48,3 +49,22 @@ let () =
   check "a child that runs a while is still a pass" (result.code = 0);
   check "a child that runs a while is waited for" (elapsed >= 0.2 && elapsed < 2.0);
   print_endline "process-wait: PASS"
+
+(* The sweep removes the copies of killed runs by age. A directory that
+   pretends to be two days old is a leftover: it goes. A fresh directory
+   belongs to a live run: it stays. *)
+let () =
+  let root = Filename.get_temp_dir_name () in
+  let old_dir = Filename.concat root "mathc-v5-swept-dead-run" in
+  let fresh_dir = Filename.concat root "mathc-v5-swept-live-run" in
+  Io.remove_tree old_dir;
+  Io.remove_tree fresh_dir;
+  Unix.mkdir old_dir 0o700;
+  Unix.mkdir fresh_dir 0o700;
+  let now = Unix.gettimeofday () in
+  Unix.utimes old_dir now (now -. (48.0 *. 60.0 *. 60.0));
+  Io.sweep_stale ();
+  check "a leftover copy of a killed run is swept" (not (Sys.file_exists old_dir));
+  check "a fresh copy of a live run is kept" (Sys.file_exists fresh_dir);
+  Io.remove_tree fresh_dir;
+  print_endline "process-sweep: PASS"

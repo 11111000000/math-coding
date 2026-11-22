@@ -48,6 +48,38 @@ let rec remove_tree path =
     else
       try Sys.remove path with _ -> ())
 
+(* A run killed outright leaves its control copy behind: the cleanup runs in
+   a protected handler, and SIGKILL runs no handler. The sweep removes the
+   leftovers of dead runs by age and never touches a fresh directory, so a
+   concurrent run keeps its own copy. The sweep is hygiene, not evidence: a
+   failure to clean must never fail the run, so every error is ignored. *)
+let stale_prefixes = [ "mathc-v5"; "mathc-package-smoke." ]
+
+let stale_after_seconds = 24.0 *. 60.0 *. 60.0
+
+let sweep_stale ?(now = Unix.gettimeofday ()) () =
+  let root = Filename.get_temp_dir_name () in
+  match Sys.readdir root with
+  | exception _ -> ()
+  | entries ->
+      Array.iter
+        (fun entry ->
+          if
+            List.exists
+              (fun prefix -> String.length entry >= String.length prefix
+                             && String.sub entry 0 (String.length prefix) = prefix)
+              stale_prefixes
+          then (
+            let path = Filename.concat root entry in
+            match Unix.stat path with
+            | exception _ -> ()
+            | stat ->
+                if stat.Unix.st_kind = Unix.S_DIR
+                   && now -. stat.Unix.st_mtime > stale_after_seconds
+                then (try remove_tree path with _ -> ())))
+        entries
+
 let with_temp_dir f =
+  sweep_stale ();
   let directory = temp_dir "mathc-v5" in
   Fun.protect ~finally:(fun () -> remove_tree directory) (fun () -> f directory)
