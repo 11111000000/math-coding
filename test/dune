@@ -91,3 +91,22 @@
  (deps ../docs/measurements/task-ledger.py
   ../docs/measurements/dry-run.jsonl
   ../docs/measurements/BENCHMARK-PROTOCOL.md))
+
+(test
+ (name golden_corpus)
+ (modules golden_corpus)
+ (libraries mathc_test_helpers mathcoding_adapter yojson)
+ (deps %{exe:../bin/mathc.exe}
+  golden_corpus/p-green/spec.json
+  golden_corpus/p-green/expected.json
+  golden_corpus/p-green/subject.txt
+  golden_corpus/p-green/evidence.jsonl
+  golden_corpus/p-mixed/spec.json
+  golden_corpus/p-mixed/expected.json
+  golden_corpus/p-mixed/keeps.txt
+  golden_corpus/p-mixed/breaks.txt
+  golden_corpus/p-mixed/gapped.txt
+  golden_corpus/p-mixed/evidence.jsonl
+  golden_corpus/p-empty/spec.json
+  golden_corpus/p-empty/expected.json
+  golden_corpus/p-empty/subject.txt))

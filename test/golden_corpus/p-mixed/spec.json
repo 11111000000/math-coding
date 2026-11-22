@@ -1,0 +1,61 @@
+{
+  "schema_version": 6,
+  "goal": {
+    "text": "mixed states for the corpus",
+    "scope": [ "keeps.txt", "breaks.txt", "gapped.txt" ],
+    "by": "owner",
+    "at": 1795319829,
+    "reason": null
+  },
+  "claims": [
+    {
+      "id": "holds",
+      "text": "keeps is expected",
+      "scope": [ "keeps.txt" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "grep -q expected keeps.txt" }
+      ],
+      "falsifier": "keeps is not expected",
+      "register": "fact",
+      "control": "printf broken > keeps.txt",
+      "waiver": null
+    },
+    {
+      "id": "refuted",
+      "text": "breaks is expected",
+      "scope": [ "breaks.txt" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "grep -q expected breaks.txt" }
+      ],
+      "falsifier": "breaks is not expected",
+      "register": "fact",
+      "control": null,
+      "waiver": null
+    },
+    {
+      "id": "gapped",
+      "text": "gapped is expected",
+      "scope": [ "gapped.txt" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [ { "kind": "verifier", "spec": "sh -c 'exit 2'" } ],
+      "falsifier": "gapped is not expected",
+      "register": "fact",
+      "control": null,
+      "waiver": {
+        "gap": "gapped",
+        "scope": [ "gapped.txt" ],
+        "issuer": "owner",
+        "issued_at": 1795319829,
+        "expires_at": 1797911829,
+        "reason": "accepted for the corpus",
+        "compensating_controls": [],
+        "recovery": "revisit the corpus"
+      }
+    }
+  ]
+}

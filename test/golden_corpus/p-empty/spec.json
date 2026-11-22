@@ -1,0 +1,26 @@
+{
+  "schema_version": 6,
+  "goal": {
+    "text": "the subject is expected",
+    "scope": [ "subject.txt" ],
+    "by": "owner",
+    "at": 1795319804,
+    "reason": null
+  },
+  "claims": [
+    {
+      "id": "never",
+      "text": "the subject is expected",
+      "scope": [ "subject.txt" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        { "kind": "verifier", "spec": "grep -q expected subject.txt" }
+      ],
+      "falsifier": "the subject is not expected",
+      "register": "fact",
+      "control": null,
+      "waiver": null
+    }
+  ]
+}
