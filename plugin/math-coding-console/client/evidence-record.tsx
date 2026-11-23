@@ -33,10 +33,10 @@ export function EvidenceRecordCard({ theme, record, claimState, latest = false, 
         <View style={{ borderTopWidth: 1, borderTopColor: theme.colors.border, padding: 11, gap: 10 }}>
           <KeyValue theme={theme} label={t("evidence.field_requirement_paths")} value={record.requirementPaths.length ? record.requirementPaths.join(", ") : t("evidence.field_requirement_absent")} />
           <KeyValue theme={theme} label={t("evidence.field_candidate_tree")} value={record.candidate_tree} />
-          <KeyValue theme={theme} label={t("evidence.field_materials_digest")} value={record.materials_digest} />
-          <KeyValue theme={theme} label={t("evidence.field_definition_digest")} value={record.definition_digest} />
-          <KeyValue theme={theme} label={t("evidence.field_verifier_digest")} value={record.verifier_digest} />
-          <KeyValue theme={theme} label={t("evidence.environment")} value={`${record.environment.class} · ${record.environment.fingerprint}`} />
+          <KeyValue theme={theme} label={t("evidence.field_materials_digest")} value={record.materials_digest || t("common.unknown")} />
+          <KeyValue theme={theme} label={t("evidence.field_definition_digest")} value={record.definition_digest || t("common.unknown")} />
+          <KeyValue theme={theme} label={t("evidence.field_verifier_digest")} value={record.verifier_digest || t("common.unknown")} />
+          <KeyValue theme={theme} label={t("evidence.environment")} value={record.environment === null ? t("common.unknown") : `${record.environment.class} · ${record.environment.fingerprint || t("common.unknown")}`} />
           <KeyValue theme={theme} label={t("evidence.tool")} value={`${record.tool.class} · ${record.tool.fingerprint || t("common.unknown")}`} />
           <KeyValue theme={theme} label={t("evidence.field_producer_run")} value={record.producer.run ?? t("common.none")} />
           <KeyValue theme={theme} label={t("evidence.field_valid_until")} value={record.valid_until === null ? t("evidence.field_no_expiry") : formatTime(record.valid_until)} />

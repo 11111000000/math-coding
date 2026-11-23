@@ -141,7 +141,7 @@ start_control \
 
 start_control \
   control_check \
-  "an unsupported schema cannot be accepted" \
+  "the canonical schema must name the current generation" \
   "shared/domain.ts" \
   's/z.literal(6)/z.literal(5)/g' \
   "test/contracts.test.ts"
@@ -149,9 +149,38 @@ start_control \
 start_control \
   control_check \
   "a map without the digest of the program cannot be read" \
-  "shared/domain.ts" \
-  's|tool: mapToolSchema,|tool: mapToolSchema.optional(),|' \
-  "test/tool.test.ts"
+  "shared/schema.ts" \
+  's|tool: z.strictObject({ class: z.string().min(1), fingerprint: z.string().min(1) })|tool: z.strictObject({ class: z.string().min(1), fingerprint: z.string() })|' \
+  "test/contracts.test.ts"
+
+# The console reads the generations that exist and refuses the ones it does
+# not know. A reader that accepts a generation it does not know turns a map
+# of another release into a fresh conclusion of this one.
+start_control \
+  control_check \
+  "a generation the console does not know cannot be accepted" \
+  "shared/schema.ts" \
+  's/schema_version: z.literal(6)/schema_version: z.number().int()/; s/if (version === 6) return { generation: 6, value: parseWith(specFileV6, json, "spec.json") };/if (version === 6 || version === 7) return { generation: 6, value: parseWith(specFileV6, json, "spec.json") };/' \
+  "test/generations.test.ts"
+
+# The map of a previous generation names no observer. The console says that
+# it does not know which build wrote it; it never names a build of its own.
+start_control \
+  control_check \
+  "the observer of a map of a previous generation cannot be invented" \
+  "shared/schema.ts" \
+  's/fingerprint: "" } as const;/fingerprint: "a".repeat(64) } as const;/' \
+  "test/generations.test.ts"
+
+# The journal of a project lies in the place of its own generation. A console
+# that looks in the place of another generation reads an empty journal and
+# shows a project as if nothing had ever been observed in it.
+start_control \
+  control_check \
+  "the journal of a previous generation is read in the place of that generation" \
+  "shared/schema.ts" \
+  's|if (generation === 5) return `${root}/.math/v5/evidence.jsonl`;|if (generation === 5) return `${root}/.math/v6/evidence.jsonl`;|' \
+  "test/project.test.ts"
 
 start_control \
   control_check \

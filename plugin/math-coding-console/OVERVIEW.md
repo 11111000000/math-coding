@@ -1,8 +1,10 @@
-# Math Coding v5 attention desk
+# Math Coding attention desk
 
-Math Coding v5 attention desk turns a project's Math Coding specification into a focused queue for people working with coding agents. Its first screen says what only the owner can decide, what an agent can safely do now, and which risks the owner has already accepted.
+Math Coding attention desk turns a project's Math Coding specification into a focused queue for people working with coding agents. Its first screen says what only the owner can decide, what an agent can safely do now, and which risks the owner has already accepted.
 
-The plugin is a view over Math Coding v5. It does not calculate a second verdict. Verdict and claim states always come from the project's `mathc` command, while claim definitions and evidence provide the context needed to understand them.
+The plugin is a view over Math Coding. It does not calculate a second verdict. Verdict and claim states always come from the project's `mathc` command, while claim definitions and evidence provide the context needed to understand them.
+
+The plugin reads the project in the schema its own generation wrote it in: the current one, the previous release line, and the two generations before that, which did not number their files. The frame names the generation it read. What a generation does not carry stays unknown: a map without the digest of the program that wrote it is read as a map of an unknown observer, a record without an environment is read as a record of an unknown environment, and the words of a state the current method does not have are kept as that generation wrote them.
 
 ## What it shows
 
@@ -28,9 +30,9 @@ The console is written once and hosted twice. The plugin and the local browser p
 
 ## Setup and permissions
 
-The plugin needs Math Coding v5 installed as `mathc` on the daemon machine. An absolute path to a different binary can be configured in the plugin settings. The selected binary must report `mathc 5`.
+The plugin needs Math Coding installed as `mathc` on the daemon machine. An absolute path to a different binary can be configured in the plugin settings. For a project of the current generation the selected binary must report `mathc 5`. A project of an earlier generation is read by the program of its own line, which reports no version at all and answers with a map instead.
 
-The daemon reads the workspace's `spec.json` and `.math/v6/evidence.jsonl` in the format `schema_version: 6`, and executes `mathc` in the workspace. A file of another format is refused with an explicit error instead of being read as a green one. It does not send project data to an external service.
+The daemon reads the workspace's `spec.json` and the journal of the generation the project is written in, and executes `mathc` in the workspace. A generation the daemon does not know is refused with an explicit error instead of being read as a green one. It does not send project data to an external service.
 
 A closed action says so. The panel names the switch that opens it and offers the way to the settings of the host, so a grey button is never a button without a reason.
 

@@ -87,6 +87,7 @@ function DetailBody({ theme, compact, snapshot, selection, onClose, onSelect, on
               {state?.reason && <Badge theme={theme} label={t(stateReasonKey(state.reason))} tone={stateReasonTone(state.reason)} icon={stateReasonIcon(state.reason)} />}
               <Badge theme={theme} label={claim.register} />
               {state?.source_changed && <Badge theme={theme} label={t("state.source_changed")} tone="warn" />}
+              {state && state.source_changed === null && <Badge theme={theme} label={t("state.source_not_reported")} tone="neutral" icon="CircleHelp" />}
             </View>
             <Text style={{ color: theme.colors.foreground, fontSize: 20, fontWeight: "700" }}>{claim.id}</Text>
             <Body theme={theme}>{claim.text}</Body>

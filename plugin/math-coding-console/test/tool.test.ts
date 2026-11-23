@@ -54,9 +54,33 @@ test("the evidence record names the program that produced it", async () => {
     markup.includes(`${record.tool.class} · ${record.tool.fingerprint}`),
     "the evidence record does not name the program that produced it",
   );
+  const environment = record.environment;
+  assert.ok(environment, "the record of the current generation names its environment");
   assert.ok(
-    markup.includes(`${record.environment.class} · ${record.environment.fingerprint}`),
+    markup.includes(`${environment.class} · ${environment.fingerprint}`),
     "the evidence record does not show the environment it was produced in",
+  );
+});
+
+/**
+ * A record of a generation that names no environment says so.
+ *
+ * The journal of the generations before the fifth does not bind a record to
+ * the environment it was produced in. The card says that it does not know,
+ * instead of showing a digest of its own.
+ */
+test("a record of a generation that names no environment says so", async () => {
+  const { EvidenceRecordCard } = await import("../client/evidence-record");
+  const record = evidence({ environment: null, independence: null });
+  const markup = renderWithHost(createElement(EvidenceRecordCard, {
+    theme,
+    record,
+    expanded: true,
+    onToggle: () => undefined,
+  }));
+  assert.ok(
+    markup.includes("unknown"),
+    "the evidence record does not say that the environment is unknown",
   );
 });
 

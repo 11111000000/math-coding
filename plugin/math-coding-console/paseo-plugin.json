@@ -1,7 +1,7 @@
 {
   "id": "math-coding-console",
-  "name": "Math Coding v5 attention desk",
-  "description": "Focus on Math Coding v5 decisions for people and safe work for agents",
+  "name": "Math Coding attention desk",
+  "description": "Focus on Math Coding decisions for people and safe work for agents",
   "media": [],
   "requirements": {
     "paseo": ">=0.15.2"

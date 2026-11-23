@@ -552,6 +552,23 @@
       "control": "sed -i \"s/let evidence = Migration.rebind_definitions spec journals.evidence in/let evidence = [] in/\" bin/migrate.ml",
       "waiver": null,
       "environment": "nix develop -c"
+    },
+    {
+      "id": "console-generations",
+      "text": "the console reads the project in the schema of its own generation, names the generation it read, and fills nothing that the generation did not write",
+      "scope": [ "plugin/math-coding-console/", "console/" ],
+      "source": null,
+      "owner": "owner",
+      "requirements": [
+        {
+          "kind": "verifier",
+          "spec": "sh plugin/math-coding-console/scripts/verify-console-claim.sh"
+        }
+      ],
+      "falsifier": "the console refuses a project of a generation it knows, or it names what that generation did not name",
+      "register": "fact",
+      "control": "sed -i 's/fingerprint: \"\" } as const;/fingerprint: \"a\".repeat(64) } as const;/' plugin/math-coding-console/shared/schema.ts",
+      "waiver": null
     }
   ]
 }
