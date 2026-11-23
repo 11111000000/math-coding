@@ -155,7 +155,7 @@ function humanItem(
 function humanItemForClaim(
   claim: Claim,
   mapState: MapState,
-  sourceChanged: boolean,
+  sourceChanged: boolean | null,
   nowSeconds: number,
 ): HumanAttentionItem | null {
   const state = mapState.state;
@@ -179,6 +179,12 @@ function humanItemForClaim(
       agentMustNot: { key: "attention.refutation_agent_must_not" },
       suggestedAction: { key: "attention.refutation_suggested" },
     });
+  }
+  if (state === "accepted-by-a-person") {
+    // A claim a person accepted is settled. The generations before the
+    // current one knew that state, and the console does not turn it into a
+    // decision it knows better.
+    return null;
   }
   const reviews = reviewRequirements(claim);
   if (reviews.length > 0 && state !== "holds" && state !== "waived") {
@@ -208,10 +214,12 @@ function humanItemForClaim(
   return null;
 }
 
-function agentBlocked(claim: Claim, state: ClaimState, sourceChanged: boolean): boolean {
+function agentBlocked(claim: Claim, state: ClaimState, sourceChanged: boolean | null): boolean {
   return sourceChanged ||
     state === "refuted" ||
     state === "waived" ||
+    state === "not-checkable" ||
+    state === "accepted-by-a-person" ||
     machineRequirements(claim).length === 0;
 }
 

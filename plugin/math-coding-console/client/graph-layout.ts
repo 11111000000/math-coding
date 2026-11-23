@@ -104,7 +104,7 @@ export function buildProofGraph(
       depth,
       claimId: claim.id,
       state: states.get(claim.id),
-      sourceChanged: snapshot.map.states.find((state) => state.id === claim.id)?.source_changed,
+      sourceChanged: snapshot.map.states.find((state) => state.id === claim.id)?.source_changed ?? undefined,
     });
     edges.push({ id: `${parent}→${claimId}`, from: parent, to: claimId, kind: "proof", claimId: claim.id });
     if (expanded.has(claim.id)) {

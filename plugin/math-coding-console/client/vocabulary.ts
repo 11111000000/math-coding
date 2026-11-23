@@ -27,9 +27,11 @@ export function claimStateColor(theme: ConsoleTheme, state: ClaimState): string 
     case "holds": return theme.colors.statusSuccess;
     case "refuted": return theme.colors.statusDanger;
     case "outdated":
-    case "waived": return theme.colors.statusWarning;
+    case "waived":
+    case "not-checkable": return theme.colors.statusWarning;
     case "inconclusive": return theme.colors.accent;
     case "never-checked": return theme.colors.foregroundMuted;
+    case "accepted-by-a-person": return theme.colors.foregroundMuted;
   }
 }
 
@@ -51,6 +53,8 @@ export function claimStateIcon(state: ClaimState): string {
     case "outdated": return "Clock3";
     case "never-checked": return "CircleDashed";
     case "waived": return "ShieldAlert";
+    case "not-checkable": return "TriangleAlert";
+    case "accepted-by-a-person": return "ShieldCheck";
   }
 }
 
@@ -69,9 +73,11 @@ export function stateOrder(state: ClaimState): number {
     case "refuted": return 0;
     case "outdated": return 1;
     case "inconclusive": return 2;
-    case "never-checked": return 3;
-    case "waived": return 4;
-    case "holds": return 5;
+    case "not-checkable": return 3;
+    case "never-checked": return 4;
+    case "waived": return 5;
+    case "accepted-by-a-person": return 6;
+    case "holds": return 7;
   }
 }
 
@@ -98,6 +104,7 @@ const REASON_KEYS: Record<StateReason, MessageKey> = {
   refuted: "state.reason_refuted",
   waived: "state.reason_waived",
   "tool-changed": "state.reason_tool_changed",
+  "not-checkable": "state.reason_not_checkable",
 };
 
 /** The key of the catalogue that holds the reason of a state. */
@@ -146,6 +153,8 @@ const CLAIM_STATE_KEYS: Record<ClaimState, MessageKey> = {
   outdated: "state.claim_outdated",
   "never-checked": "state.claim_never_checked",
   waived: "state.claim_waived",
+  "not-checkable": "state.claim_not_checkable",
+  "accepted-by-a-person": "state.claim_accepted_by_person",
 };
 
 const OUTCOME_KEYS: Record<EvidenceOutcome, MessageKey> = {
@@ -184,8 +193,14 @@ const INDEPENDENCE_KEYS: Record<IndependenceLevel, MessageKey> = {
   external: "state.independence_external",
 };
 
-/** The key of the catalogue that holds the name of an independence level. */
-export function independenceKey(level: IndependenceLevel): MessageKey {
+/**
+ * The key of the catalogue that holds the name of an independence level.
+ *
+ * A record of a generation that did not name the independence of the
+ * observation carries an unknown one, and the catalogue holds a word for it.
+ */
+export function independenceKey(level: IndependenceLevel | null): MessageKey {
+  if (level === null) return "state.independence_unknown";
   return INDEPENDENCE_KEYS[level];
 }
 

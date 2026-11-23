@@ -5,7 +5,17 @@ import { join } from "node:path";
 import { test, type TestContext } from "node:test";
 import { loadProject } from "../server/project";
 import { coded } from "./coded";
-import { claim, map, rawEvidence } from "./fixtures";
+import {
+  claim,
+  claimLegacyV4,
+  evidenceV5,
+  map,
+  mapLegacy,
+  mapV5,
+  rawEvidence,
+  specLegacy,
+  specV5,
+} from "./fixtures";
 import type { MathMap } from "../shared/domain";
 
 async function fixture(t: TestContext, initial = map([claim()])) {
@@ -18,15 +28,45 @@ async function fixture(t: TestContext, initial = map([claim()])) {
   return { root, binary };
 }
 
-async function setMap(binary: string, root: string, value: MathMap | null, version = "mathc 5") {
+/**
+ * A project of a generation of its own.
+ *
+ * The specification, the map and the program are written the way that
+ * generation writes them, so the reader of the generation is checked against
+ * the files that exist in the world.
+ */
+async function fixtureOf(
+  t: TestContext,
+  spec: Record<string, unknown>,
+  value: unknown,
+  version = "mathc 5",
+  stderr = "invalid trail\n",
+  code = 3,
+) {
+  const root = await mkdtemp(join(tmpdir(), "mathc-plugin-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  await writeFile(join(root, "spec.json"), JSON.stringify(spec));
+  const binary = join(root, "fake-mathc.js");
+  await setMap(binary, root, value, version, stderr, code);
+  return { root, binary };
+}
+
+async function setMap(
+  binary: string,
+  root: string,
+  value: unknown,
+  version = "mathc 5",
+  stderr = "invalid trail\n",
+  code = 3,
+) {
   const marker = join(root, "run-marker");
   const source = `#!/usr/bin/env node
 const fs = require("fs");
 if (process.argv[2] === "--version") { process.stdout.write(${JSON.stringify(`${version}\n`)}); process.exit(0); }
 if (process.argv[4] === "run") { fs.mkdirSync(${JSON.stringify(join(root, ".math", "v6"))}, { recursive: true }); fs.appendFileSync(${JSON.stringify(join(root, ".math", "v6", "evidence.jsonl"))}, JSON.stringify(${JSON.stringify(rawEvidence())}) + "\\n"); fs.appendFileSync(${JSON.stringify(marker)}, "run\\n"); }
-if (${JSON.stringify(value)} === null) { process.stderr.write("invalid trail\\n"); process.exit(3); }
+if (${JSON.stringify(value)} === null) { process.stderr.write(${JSON.stringify(stderr)}); process.exit(${code}); }
 process.stdout.write(JSON.stringify(${JSON.stringify(value)}));
-process.exit(${value?.exit ?? 3});
+process.exit(${(value as { exit?: number } | null)?.exit ?? 3});
 `;
   await writeFile(binary, source, { mode: 0o755 });
 }
@@ -57,9 +97,9 @@ test("rejects invocation errors, missing maps, malformed maps and wrong versions
   await setMap(binary, root, { ...current, exit: 2 });
   await assert.rejects(loadProject(root, binary), /exit 2/);
   await setMap(binary, root, { ...current, schema_version: 4 } as unknown as MathMap);
-  await assert.rejects(loadProject(root, binary), /validation/);
-  await setMap(binary, root, { ...current, schema_version: 5 } as unknown as MathMap);
   await assert.rejects(loadProject(root, binary), /schema_version/);
+  await setMap(binary, root, { ...current, schema_version: 5 } as unknown as MathMap);
+  await assert.rejects(loadProject(root, binary), /validation/);
   await setMap(binary, root, current, "mathc 4");
   await assert.rejects(loadProject(root, binary), coded("binary_not_mathc5"));
 });
@@ -101,4 +141,90 @@ test("run returns the post-run evidence trail instead of treating it as a concur
   const project = await loadProject(root, binary, "run", true);
   assert.equal(project.records?.length, 1);
   assert.equal(project.records?.[0]?.outcome, "pass");
+});
+
+/**
+ * A project of the previous line is read by the newest console.
+ *
+ * The project is written in the fifth generation: the specification names
+ * the version, the map names no observer and the journal lies in the place
+ * of that generation. The console reads all three and says which generation
+ * it read.
+ */
+test("a project of the fifth generation is read", async (t) => {
+  const { root, binary } = await fixtureOf(t, specV5(), mapV5());
+  const project = await loadProject(root, binary, "map", true);
+  assert.equal(project.map.schema_version, 5);
+  assert.equal(project.map.tool.fingerprint, "");
+  assert.equal(project.claims.length, 1);
+  assert.equal(project.claims[0]?.text, "the command prints hello");
+  assert.deepEqual(project.records, []);
+});
+
+test("the journal of the fifth generation is read from the place of that generation", async (t) => {
+  const { root, binary } = await fixtureOf(t, specV5(), mapV5());
+  const trail = join(root, ".math", "v5", "evidence.jsonl");
+  await mkdir(join(root, ".math", "v5"), { recursive: true });
+  await writeFile(trail, JSON.stringify(evidenceV5()) + "\n");
+  const project = await loadProject(root, binary, "map", true);
+  assert.equal(project.records?.length, 1);
+  assert.equal(project.records?.[0]?.tool.fingerprint, "");
+  assert.equal(project.records?.[0]?.schema_version, 5);
+});
+
+/**
+ * A project of the generations before the fifth is read as well.
+ *
+ * Those generations did not number their files. The console reads the
+ * specification and the map of such a project, keeps the words of that
+ * generation and says that it does not know which program wrote the map.
+ */
+test("a project of the generations before the fifth is read", async (t) => {
+  const { root, binary } = await fixtureOf(t, specLegacy([claimLegacyV4()]), mapLegacy());
+  const project = await loadProject(root, binary, "map", true);
+  assert.equal(project.map.schema_version, 4);
+  assert.equal(project.map.tool.fingerprint, "");
+  assert.equal(project.claims.length, 1);
+  assert.equal(project.claims[0]?.text, "the command prints hello");
+});
+
+/**
+ * A program that cannot map the project says so, and names the schema.
+ *
+ * The program of the current line refuses a project of a previous
+ * generation. The console does not turn that refusal into a green map: it
+ * names the generation of the project and repeats what the program said.
+ */
+test("a program that cannot map the project names the schema of the project", async (t) => {
+  const refusal = "mathc: the standing specification is not readable\n";
+  const { root, binary } = await fixtureOf(t, specV5(), null, "mathc 5", refusal, 2);
+  await assert.rejects(loadProject(root, binary), coded("program_cannot_map_project"));
+  await assert.rejects(loadProject(root, binary), /schema v5/);
+});
+
+/**
+ * The program of a previous generation is allowed to answer.
+ *
+ * The programs of the generations before the current one do not report a
+ * version at all. The console asks the program for the map and reads what it
+ * says, instead of refusing a program that never promised a version.
+ */
+test("the program of a previous generation is allowed to answer", async (t) => {
+  const { root, binary } = await fixtureOf(t, specLegacy([claimLegacyV4()]), mapLegacy(), "");
+  const project = await loadProject(root, binary);
+  assert.equal(project.map.schema_version, 4);
+  assert.equal(project.binary.version, "");
+});
+
+/**
+ * The program of the current line is still required to name itself.
+ *
+ * A project of the current generation is read by the program of that
+ * generation, and that program reports its version. A program that does not
+ * report it is refused before it runs against the project.
+ */
+test("the program of the current line is still required to name itself", async (t) => {
+  const spec = { schema_version: 6, goal: null, claims: [claim()] };
+  const { root, binary } = await fixtureOf(t, spec, map([claim()]), "mathc 4");
+  await assert.rejects(loadProject(root, binary), coded("binary_not_mathc5"));
 });

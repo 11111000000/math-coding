@@ -1,6 +1,7 @@
 import type { ConsoleTheme } from "../shared/theme";
 import { Text, View } from "react-native";
 import type { SnapshotReady } from "../shared/schemas";
+import { generationName } from "../shared/schema";
 import type { AttentionModel } from "./attention";
 import { useT } from "./i18n";
 import { Badge, Body, Button, Card, Mono } from "./parts";
@@ -62,8 +63,9 @@ export function InstrumentFrame({ theme, compact, snapshot, attention, onRefresh
       </View>
       <View style={{ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: 8 }}>
         <Mono theme={theme}>{t("panel.snapshot_line", { time: snapshot.generatedAt, revision: snapshot.revision.slice(0, 12) })}</Mono>
-        <Mono theme={theme}>{t("panel.binary_line", { path: snapshot.binary.path, version: snapshot.binary.version })}</Mono>
-        <Mono theme={theme}>{t("panel.tool_line", { class: snapshot.map.tool.class, fingerprint: snapshot.map.tool.fingerprint.slice(0, 12) })}</Mono>
+        <Mono theme={theme}>{t("panel.binary_line", { path: snapshot.binary.path, version: snapshot.binary.version || t("common.unknown") })}</Mono>
+        <Mono theme={theme}>{t("panel.tool_line", { class: snapshot.map.tool.class, fingerprint: snapshot.map.tool.fingerprint.slice(0, 12) || t("common.unknown") })}</Mono>
+        <Mono theme={theme}>{t("panel.schema_line", { generation: generationName(snapshot.map.schema_version) })}</Mono>
       </View>
     </Card>
   );

@@ -31,7 +31,15 @@ export const workspaceSchema = z.strictObject({
   directory: z.string().min(1),
 });
 
-export const binarySchema = z.strictObject({ path: z.string().min(1), version: z.literal("mathc 5") });
+/**
+ * The program the console reads the project with.
+ *
+ * The programs of the generations before the current one do not report a
+ * version, so the version is empty when the program says nothing. The
+ * console shows that it does not know, instead of naming a version the
+ * program never said.
+ */
+export const binarySchema = z.strictObject({ path: z.string().min(1), version: z.string() });
 
 export const snapshotReadySchema = z.strictObject({
   status: z.literal("ready"),

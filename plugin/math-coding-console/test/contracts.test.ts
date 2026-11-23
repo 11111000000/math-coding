@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { claimSchema, evidenceSchema, mapSchema, specSchema } from "../shared/domain";
 import { preferences, snapshotRpc } from "../shared/contracts";
+import { readMap, readSpec } from "../shared/schema";
 import { linkEvidence, parseTrail } from "../server/evidence";
 import { claim, evidence, map, nestedClaim, rawEvidence, unknownTool } from "./fixtures";
 
@@ -37,35 +38,36 @@ test("accepts the v6 requirement tree and codec defaults", () => {
 });
 
 test("rejects unknown fields and unsupported schema versions", () => {
-  assert.throws(() => specSchema.parse({ schema_version: 4, goal: null, claims: [] }));
   assert.throws(() => specSchema.parse({ schema_version: 6, goal: null, claims: [], unexpected: true }));
   assert.throws(() => mapSchema.parse({ ...map([claim()]), extra: "laundering" }));
 });
 
 /**
- * The map of the previous format is not read as a green one.
+ * A generation the console does not know is refused.
  *
- * The format version is the contract between the program and its readers. A
- * reader that accepts an older version without saying so turns a stale map
- * into a fresh conclusion, and nothing else in the checks would notice.
+ * The format version is the contract between the program and its readers. The
+ * console reads the generations that exist and refuses the ones it does not
+ * know: a reader that accepts an unknown version without saying so turns a
+ * stale map into a fresh conclusion, and nothing else in the checks would
+ * notice.
  */
-test("a map of the previous format is refused instead of read as a green one", () => {
-  assert.equal(mapSchema.safeParse({ ...map([claim()]), schema_version: 5 }).success, false);
-  assert.equal(specSchema.safeParse({ schema_version: 5, goal: null, claims: [] }).success, false);
-  assert.equal(evidenceSchema.safeParse({ ...rawEvidence(), schema_version: 5 }).success, false);
+test("a generation the console does not know is refused", () => {
+  assert.throws(() => readMap({ ...map([claim()]), schema_version: 7 }), /unsupported schema_version 7/);
+  assert.throws(() => readSpec({ schema_version: 7, goal: null, claims: [] }), /unsupported schema_version 7/);
 });
 
 /**
- * The map of the current format is read.
+ * The map of a previous generation is read, and its observer is unknown.
  *
- * The version is the contract between the program and its readers. The reader
- * accepts the format it was written for and refuses every other one, so the
- * map it shows is a map it understands and not a map of another release that
- * happens to look the same.
+ * The map of the fifth generation names no observer. The console reads the map
+ * and says that it does not know which build wrote it, instead of refusing
+ * the project or naming a build of its own.
  */
-test("the map of the current format is read", () => {
-  const parsed = mapSchema.parse({ ...map([claim()]), schema_version: 6 });
-  assert.equal(parsed.schema_version, 6);
+test("the map of a previous generation is read with an unknown observer", () => {
+  const { tool: _tool, ...withoutTool } = map([claim()]);
+  const parsed = readMap({ ...withoutTool, schema_version: 5 });
+  assert.equal(parsed.generation, 5);
+  assert.equal(parsed.value.tool.fingerprint, "");
 });
 
 /**
@@ -89,14 +91,16 @@ test("the fields the specification no longer carries are refused", () => {
 /**
  * The map names the program that produced it.
  *
- * The digest tells the reader which observer wrote the map. A map without it
- * cannot be compared with the evidence it carries, so the field is required.
+ * The digest tells the reader which observer wrote the map. A map of the
+ * current generation without it cannot be compared with the evidence it
+ * carries, so the reader of that generation refuses it.
  */
 test("the map names the program that produced it", () => {
   const parsed = mapSchema.parse(map([claim()]));
   assert.equal(parsed.tool.class, "mathc");
   assert.equal(parsed.tool.fingerprint.length, 64);
   assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: undefined }).success, false);
+  assert.throws(() => readMap({ ...map([claim()]), tool: undefined }), /validation/);
 });
 
 /**
@@ -135,14 +139,16 @@ test("a record carried over from the previous format names an unknown program", 
 });
 
 /**
- * The map always names the program that wrote it.
+ * The map of the current generation always names the program that wrote it.
  *
  * A map is written by the program that reads it, so it knows its own digest.
- * An empty digest there would name nothing, and the consumer refuses it.
+ * An empty digest there would name nothing, and the reader of that generation
+ * refuses it. The maps of the previous generations carry no digest at all,
+ * and the reader of those carries an unknown observer.
  */
 test("the map refuses a digest of the program that names nothing", () => {
-  assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: unknownTool }).success, false);
-  assert.equal(mapSchema.safeParse({ ...map([claim()]), tool: { class: "", fingerprint: "e".repeat(64) } }).success, false);
+  assert.throws(() => readMap({ ...map([claim()]), tool: unknownTool }), /validation/);
+  assert.throws(() => readMap({ ...map([claim()]), tool: { class: "", fingerprint: "e".repeat(64) } }), /validation/);
 });
 
 test("carries the declared environment of the specification", () => {
