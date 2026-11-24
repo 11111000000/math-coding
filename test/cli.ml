@@ -787,8 +787,16 @@ let () =
       let first = { claim with id = "first";
                     requirements = [ Verifier "grep -q expected subject.txt" ];
                     control = Some "printf broken > subject.txt" } in
+      (* The second check waits for a mark of the test and only then starts to
+         sleep. The interruption is then aimed at a check that is certainly
+         running, instead of at a second of wall clock: on a slow machine the
+         old shape signalled a run that had already finished, and the test
+         measured the speed of the machine instead of the behaviour of the
+         method. *)
       let second = { claim with id = "second";
-                     requirements = [ Verifier "sleep 30" ]; control = None } in
+                     requirements = [ Verifier
+                                       "sh -c 'while [ ! -f signal-me ]; do sleep 0.05; done; sleep 30'" ];
+                     control = None } in
       let goal = Some { text = "an interrupted run keeps its evidence";
                         scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
       write root "spec.json"
@@ -803,9 +811,18 @@ let () =
         Unix.sleepf 0.1
       done;
       check "the finished claim is in the journal before the run ends" (recorded "\"claim_id\":\"first\"");
+      (* Let the second check leave its wait and fall into its sleep. *)
+      write root "signal-me" "now\n";
+      Unix.sleepf 0.5;
       Unix.kill pid Sys.sigterm;
       let _, status = Unix.waitpid [] pid in
-      check "the interrupted run hands over the map instead of vanishing"
+      check
+        (Printf.sprintf
+           "the interrupted run hands over the map instead of vanishing (exit %d)"
+           (match status with
+            | Unix.WEXITED code -> code
+            | Unix.WSIGNALED signal -> 128 + signal
+            | _ -> -1))
         (status = Unix.WEXITED 4);
       check "the interrupted run keeps the observation of the finished claim"
         (recorded "\"claim_id\":\"first\"");
