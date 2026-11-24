@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-labelledby="og-title og-desc">
+  <title id="og-title">math-coding — linked, fresh, independent evidence</title>
+  <desc id="og-desc">The link preview of the math-coding site: the oxblood brackets of the mark, the name, and the line that names the format version and the tool.</desc>
+  <rect width="1200" height="630" fill="#fbfaf6"/>
+  <g fill="none" stroke="#8b3a3a" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M150 214 L96 258 L150 302"/>
+    <path d="M330 214 L384 258 L330 302"/>
+    <path d="M196 300 L258 232"/>
+  </g>
+  <text x="440" y="300" font-family="Source Serif 4, Georgia, serif" font-size="96" fill="#1a1a1a">math-coding</text>
+  <text x="440" y="356" font-family="JetBrains Mono, ui-monospace, monospace" font-size="30" fill="#5a5a5a">linked, fresh, independent evidence</text>
+  <g font-family="JetBrains Mono, ui-monospace, monospace" font-size="26">
+    <rect x="96" y="430" width="330" height="52" rx="26" fill="#f1ede5" stroke="#d4d0c8"/>
+    <text x="126" y="464" fill="#5a5a5a">format version 6</text>
+    <rect x="446" y="430" width="330" height="52" rx="26" fill="#f1ede5" stroke="#d4d0c8"/>
+    <text x="476" y="464" fill="#5a5a5a">tool: mathc 5</text>
+    <rect x="796" y="430" width="308" height="52" rx="26" fill="#f5e9d8" stroke="#c49859"/>
+    <text x="826" y="464" fill="#5a5a5a">evidence, not claims</text>
+  </g>
+  <text x="96" y="560" font-family="Source Serif 4, Georgia, serif" font-size="30" fill="#8a8a8a">A checking layer between requirements, decisions, code and evidence.</text>
+</svg>
