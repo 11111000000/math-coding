@@ -138,16 +138,42 @@ for page in $(find "$DIST" -name '*.html' | sort); do
 done
 
 # --- the rendered pages, measured in a phone viewport ---------------------
+#
+# Every static page of the site is measured, in both languages: the pages
+# differ in size and in shape, and a page that is not measured is a page
+# that nobody looked at. The 404 page stays out: it is not a page of the
+# site, it is the answer of the server.
 
 if ! command -v python3 >/dev/null 2>&1; then
   printf 'check-ui: python3 is required to measure the layout\n' >&2
   exit 3
 fi
 
+PAGES="index.html,index.ru.html,methodology.html,methodology.ru.html,\
+workflow.html,workflow.ru.html,interfaces.html,interfaces.ru.html,\
+measurements.html,measurements.ru.html,claims/core-laws.html"
+
+# The published theme is read as it is: its text must read as the normal
+# text reads, and its pills are held to the threshold of the large text,
+# because the amber pill of the published palette reads 3.7:1.
 set +e
-python3 "$ROOT/site/ui-probe.py" --dist "$DIST" \
-  --pages index.html,index.ru.html,interfaces.html,interfaces.ru.html,claims/core-laws.html \
-  --width 360 --verify
+python3 "$ROOT/site/ui-probe.py" --dist "$DIST" --pages "$PAGES" \
+  --width 360 --scheme light --min-contrast 4.5 --min-pill-contrast 3.0 \
+  --verify
+measured=$?
+set -e
+
+if [ "$measured" -ne 0 ]; then
+  exit "$measured"
+fi
+
+# The dark theme is measured the same way. The browser is told to prefer
+# the dark scheme, and the probe refuses to report a measurement it did
+# not take: if the browser ignores the scheme, the run is not evidence.
+set +e
+python3 "$ROOT/site/ui-probe.py" --dist "$DIST" --pages "$PAGES" \
+  --width 360 --scheme dark --min-contrast 4.5 --min-pill-contrast 4.5 \
+  --verify
 measured=$?
 set -e
 
