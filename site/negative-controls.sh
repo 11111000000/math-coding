@@ -111,7 +111,8 @@ patch(os.path.join(ru, "index.ru.html"), r"<h2>.*?</h2>", "")
 
 # The home page loses the tool of the map.
 tool = copy("no-tool")
-patch(os.path.join(tool, "index.html"), r"<span>tool:.*?</span>", "")
+patch(os.path.join(tool, "index.html"),
+      r"<span>[^<>]{1,40}: mathc &middot; <code>[0-9a-f]{8,}</code></span>", "")
 
 # The legend loses the reason of one state.
 legend = copy("no-reason")
