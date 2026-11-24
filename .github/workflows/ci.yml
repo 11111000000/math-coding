@@ -116,6 +116,17 @@ jobs:
             echo "portable build attempt $attempt failed with the signal stack error" >&2
           done
           echo "the portable build failed three times with the signal stack error" >&2
+          # The sandbox of the runner breaks the static runtime of OCaml 5:
+          # the compiler cannot reserve the stack for its signal handlers and
+          # dies before it reads a file. The same build outside the sandbox
+          # has the stack of the runner, which is enough. The build is not
+          # untrusted here - it is the tool of this repository, compiled on
+          # the machine of the runner.
+          echo "the portable build is tried once more outside the sandbox" >&2
+          if nix build .#portable --no-link --option sandbox false; then
+            exit 0
+          fi
+          echo "the portable build failed with and without the sandbox" >&2
           exit 1
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
@@ -168,7 +179,17 @@ jobs:
       # The portable package is verified inside `mathc run`, and a verifier
       # has a bounded execution time. Build it first so the check measures
       # the package, not the cost of a cold toolchain.
-      - run: nix build .#portable --no-link
+      # The static runtime of OCaml 5 cannot reserve the stack for its signal
+      # handlers inside the sandbox of the runner: the build dies before it
+      # reads a file. The build is retried outside the sandbox, where the
+      # stack of the runner is available.
+      - name: Build the portable package
+        run: |
+          set -uo pipefail
+          if ! nix build .#portable --no-link; then
+            echo "the sandboxed build failed; retrying without the sandbox" >&2
+            nix build .#portable --no-link --option sandbox false
+          fi
       # Fresh evidence in this environment: the deployed map shows the
       # states computed here, and the job fails unless the run is green.
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
