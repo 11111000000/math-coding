@@ -97,6 +97,15 @@
             (minimalOcamlDeps staticOcamlPackages);
           NIX_LDFLAGS = "-static";
           dontPatchElf = true;
+          # The static runtime of OCaml 5 reserves the stack for its signal
+          # handlers, and the sandbox of the builder offers less than it
+          # needs: the compiler dies with "Failed to allocate signal stack"
+          # before it reads a file. The limit of the shell that starts the
+          # build does not reach the builder, so the bigger stack is asked
+          # for here, where the compiler actually runs.
+          shellHook = ''
+            ulimit -s 65536 || true
+          '';
           buildPhase = ''
             runHook preBuild
             dune build --root . bin/mathc.exe bin/stand.exe

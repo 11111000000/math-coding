@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Measurements — math-coding v5</title>
-<meta name="description" content="What the math-coding v5 project has measured so far, and what it has not. The acceptance criterion and the honest boundary of the claim.">
+<title>Measurements — math-coding · format version 6 · tool mathc 5</title>
+<meta name="description" content="What the math-coding project has measured so far, and what it has not. Format version 6, tool mathc 5. The acceptance criterion and the honest boundary of the claim.">
+<link rel="canonical" href="https://11111000000.github.io/math-coding/measurements.html">
+<link rel="alternate" hreflang="en" href="https://11111000000.github.io/math-coding/measurements.html">
+<link rel="alternate" hreflang="ru" href="https://11111000000.github.io/math-coding/measurements.ru.html">
+<link rel="alternate" hreflang="x-default" href="https://11111000000.github.io/math-coding/measurements.html">
+<meta property="og:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="theme-color" content="#fbfaf6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -39,8 +48,48 @@ is still only a criterion.</p>
 <tr><td>Every claim of this repository, with a negative control that must break the subject</td><td><span class="done">done</span> &mdash; the live map on the home page is the current result</td><td><a href="index.html">live map</a></td></tr>
 <tr><td>Delivery: clean clone, full build, forced tests, portable static binary, install and doctor</td><td><span class="done">done</span> &mdash; every push</td><td><a href="https://github.com/11111000000/math-coding/actions">CI</a></td></tr>
 <tr><td>The console as a view over the tool: the plugin for Paseo and the local page draw one interface, and the bundle carries one copy of the interface and one copy of the data layer</td><td><span class="done">done</span> &mdash; the page check builds the bundle, counts the copies through the source map and loads the page in a browser</td><td><a href="interfaces.html">interfaces</a></td></tr>
+<tr><td>Three arms on equal tasks: plain work, a short checklist, the full protocol</td><td><span class="done">run</span> &mdash; 2026-11-22, nine runs in the ledger; the hypothesis did not hold and the window of the observation is still open</td><td><a href="#three-arms">the comparison</a></td></tr>
 </tbody>
 </table>
+</section>
+
+<section id="three-arms">
+<h2>The three-arm comparison of 2026-11-22</h2>
+<p class="lede">The comparison was run on 2026-11-22. It did not confirm the
+hypothesis of the project, and the numbers are given here as they stand.</p>
+<p>Three real tasks in three projects: a change with a handoff in
+<code>yeah</code>, a weak existing verification in <code>Genium-clean</code>, a
+decision without an ADR in <code>agents-writing-skills</code>. Three arms
+&mdash; plain work, a short checklist, the full protocol &mdash; one repeat
+each, one model. The observer was blind to the arm, but came from the same
+culture.</p>
+<table>
+<thead><tr><th>Measurement</th><th>Plain work</th><th>Short checklist</th><th>Full protocol</th></tr></thead>
+<tbody>
+<tr><td>Accepted</td><td>2 of 3</td><td>3 of 3</td><td>3 of 3</td></tr>
+<tr><td>Executor time</td><td>4380 s</td><td>6360 s</td><td>4840 s</td></tr>
+<tr><td>Machine time of the gate</td><td>&mdash;</td><td>&mdash;</td><td>5001 s</td></tr>
+<tr><td>Handoff median</td><td>1500 s</td><td>1560 s</td><td>1380 s</td></tr>
+<tr><td>Defects after acceptance</td><td>8</td><td>13</td><td>17</td></tr>
+<tr><td>False &ldquo;everything is verified&rdquo;</td><td>1</td><td>0</td><td>2</td></tr>
+</tbody>
+</table>
+<p>Nine runs in all, every one of them written into the ledger. The protocol
+arm also paid 5001 s of the machine time of the method&rsquo;s own gate &mdash;
+83 minutes on top of the work of the executor.</p>
+<p><strong>The hypothesis did not hold.</strong> The checklist was no worse
+than the protocol on acceptance, on cost or on the defects found after
+acceptance, and the protocol paid 83 minutes of machine gate on top. The plain
+arm was accepted twice of three, so it had fewer accepted results in which a
+defect could still be found. What did show up is the qualitative advantage of
+the method: a negative control catches a broken verifier that an exit code
+cannot.</p>
+<p>The observation window of seven days is still open, so this is a direction
+and not an effect; the sample is three tasks and one model. The honest
+statement is therefore: the method is verified to work mechanically, its
+benefit is still unproven, and the first comparison points at the checklist.
+The protocol of the comparison lives in this repository:
+<a href="https://github.com/11111000000/math-coding/blob/main/docs/measurements/BENCHMARK-PROTOCOL.md">docs/measurements/BENCHMARK-PROTOCOL.md</a>.</p>
 </section>
 
 <section>
@@ -48,7 +97,6 @@ is still only a criterion.</p>
 <table class="status-table">
 <thead><tr><th>Claim under test</th><th>State</th><th>Why it matters</th></tr></thead>
 <tbody>
-<tr><td>Three arms on equal tasks: plain agent, short checklist, math-coding v5</td><td><span class="pending">not run</span></td><td>the only comparison that can show the method is worth its cost</td></tr>
 <tr><td>Escaped defects and returns reduced by at least 30%</td><td><span class="pending">criterion</span></td><td>the acceptance target of the project, not a result</td></tr>
 <tr><td>Total cost growth within 10&ndash;15%</td><td><span class="pending">criterion</span></td><td>the method must pay for itself</td></tr>
 <tr><td>Full dependency graph between ADRs</td><td><span class="pending">partial</span></td><td>re-evaluation follows changed sources, claims and evidence; the full graph is separate work</td></tr>
@@ -56,9 +104,10 @@ is still only a criterion.</p>
 </tbody>
 </table>
 <p>Unit, integration and package checks do not prove a gain in development
-speed. Until the three-arm benchmark is executed and reviewed independently,
-the honest statement is: the method is verified to work, and its benefit is
-still an open question.</p>
+speed. The three-arm comparison was executed on 2026-11-22 and it did not
+confirm the hypothesis; the window of its observation is still open. The honest
+statement is: the method is verified to work mechanically, its benefit is
+still unproven, and the first comparison points at the checklist.</p>
 </section>
 
 <section>
@@ -79,12 +128,13 @@ removed &mdash; not extended.</li>
 </section>
 
 <p class="callout">A green map says the declared claims hold. It says
-nothing about whether the method is worth its cost &mdash; that question has
-its own experiment, and it is still open.</p>
+nothing about whether the method is worth its cost &mdash; the first
+comparison of the method did not confirm the hypothesis, and its window is
+still open.</p>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
 &middot; <a href="index.html">home</a> &middot;
 <a href="methodology.html">methodology</a> &middot;
 <a href="workflow.html">workflow</a> &middot;

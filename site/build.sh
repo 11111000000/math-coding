@@ -32,4 +32,41 @@ esac
 
 META="generated from spec.json @ $(git -C "$ROOT" rev-parse --short HEAD) on $(date -u +%Y-%m-%d) UTC"
 "$ROOT/_build/default/site/render.exe" build "$ROOT" "$DIST" "$META" "$MAP"
+
+# The sitemap is written from the files the build has actually produced, so it
+# names every published page of the site and nothing else: it cannot drift
+# from the pages it names. The error page is not a page of the site - it
+# answers an address that is not there - so it stays out of the sitemap.
+ORIGIN="https://11111000000.github.io/math-coding/"
+sitemap_url() {
+  if [ "$1" = "index.html" ]; then
+    printf '%s' "$ORIGIN"
+  else
+    printf '%s%s' "$ORIGIN" "$1"
+  fi
+}
+{
+  printf '<?xml version="1.0" encoding="UTF-8"?>\n'
+  printf '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+  # the home page comes first, the rest follows in a stable order
+  printf '  <url>\n    <loc>%s</loc>\n  </url>\n' "$(sitemap_url index.html)"
+  for page in $(cd "$DIST" && find . -name '*.html' ! -name '404.html' -print \
+    | sed 's|^\./||' | LC_ALL=C sort)
+  do
+    if [ "$page" = "index.html" ]; then
+      continue
+    fi
+    printf '  <url>\n    <loc>%s</loc>\n  </url>\n' "$(sitemap_url "$page")"
+  done
+  printf '</urlset>\n'
+} > "$DIST/sitemap.xml"
+
+# The robots file allows the site and points at the sitemap above.
+{
+  printf 'User-agent: *\n'
+  printf 'Allow: /\n'
+  printf '\n'
+  printf 'Sitemap: %ssitemap.xml\n' "$ORIGIN"
+} > "$DIST/robots.txt"
+
 printf 'site: built %s\n' "$DIST"

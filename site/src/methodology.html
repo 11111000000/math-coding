@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Methodology — math-coding v5</title>
-<meta name="description" content="Claims, observations, negative controls, freshness, independence and honest verdicts in Math Coding.">
+<title>Methodology — math-coding: format version 6, tool mathc 5</title>
+<meta name="description" content="Claims, observations, negative controls, freshness, independence and honest verdicts in Math Coding. Format version 6, tool mathc 5.">
+<link rel="canonical" href="https://11111000000.github.io/math-coding/methodology.html">
+<link rel="alternate" hreflang="en" href="https://11111000000.github.io/math-coding/methodology.html">
+<link rel="alternate" hreflang="ru" href="https://11111000000.github.io/math-coding/methodology.ru.html">
+<link rel="alternate" hreflang="x-default" href="https://11111000000.github.io/math-coding/methodology.html">
+<meta property="og:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="theme-color" content="#fbfaf6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -26,7 +35,9 @@
 <main>
 
 <h1>Methodology</h1>
-<p>Math Coding manages claims about a result and records of observations.
+<p>The format of specifications and evidence is version 6; the tool is
+<code>mathc 5</code> &mdash; the product version did not change. Math Coding
+manages claims about a result and records of observations.
 Its unit of work is a <strong>claim</strong> with a subject, boundaries, a
 falsifier and explicit acceptance conditions. It does not replace requirements,
 ADRs, tests or the development process: it links them and shows what is
@@ -44,27 +55,47 @@ requirements. A decision source can be linked by digest.</li>
 <code>fail</code>, <code>inconclusive</code>, <code>infrastructure-error</code>
 or <code>not-run</code>.</li>
 <li>An <strong>evidence record</strong> binds that observation to the subject,
-definition, verifier, environment, producer and time.</li>
+definition, verifier, environment, producer and time; the fingerprint of the
+tool is written separately from the environment.</li>
 <li><strong>States and verdicts</strong> are computed from applicable records.
 A successful process alone does not establish <code>holds</code>.</li>
 </ol>
 
 <h2>The control checks the check</h2>
-<p>After an initial <code>pass</code>, the control changes the subject in an
-isolated copy. The same verifier runs again and must return an ordinary
-<code>fail</code>. This proves sensitivity to that particular violation only.
-A control that changes nothing, changes unrelated files or fails to break the
-verifier yields <code>inconclusive</code>, not <code>refuted</code>. The live
-tree is left untouched.</p>
+<p>The control proves that a check can reject one concrete violation, and for that
+the check has to run in the copy before the control is applied. The protocol: the
+same check must first <code>pass</code> on an untouched copy of the subject; only
+then is the control applied and the check repeated, and it must return an ordinary
+<code>fail</code>. A copy that cannot run the check at all &mdash; missing
+dependencies, no toolchain &mdash; proves nothing by failing: the observation
+becomes <code>inconclusive</code> with the reason <code>copy-failed</code>, and a
+machine <code>holds</code> is then impossible.</p>
+<p>Only the combination &mdash; the subject changed and the check rejected the
+change &mdash; proves that the control reaches the subject, and it proves
+sensitivity to that particular violation only. A control that changes nothing,
+changes unrelated files or fails to break the check yields
+<code>inconclusive</code>, not <code>refuted</code>. The live tree is left
+untouched.</p>
+<p>A check that needs the dependencies of the project declares the environment it
+runs in: the <code>environment</code> prefix prepares that environment before the
+check runs. Without the declaration the copy cannot run the check, and the reason
+<code>copy-failed</code> says so instead of a false proof.</p>
 
 <h2>Freshness and independence have limits</h2>
 <p>Evidence is current only while the materials, definition, verifier/control
-and environment fingerprints match and its validity window is open. The tool
+and environment fingerprints match and its validity window is open. The
+environment is the operating system and the pinned toolchain (the lock file);
+the build of the tool is written separately, next to the environment. The tool
 fingerprint is not part of that comparison: a new build does not make an
-observation outdated, the map names the reason <code>tool-changed</code>. The
-actual working contents, including untracked files and modes, matter more than
+observation outdated, the map names the reason <code>tool-changed</code>, and the
+result is not revoked &mdash; the check was the same and the subject was the same.
+The actual working contents, including untracked files and modes, matter more than
 HEAD alone. A changed source requires human review and a fresh
 <code>run</code>.</p>
+<p>In format 5 the binary was inside the fingerprint of the environment, so
+rebuilding the tool made every piece of evidence everywhere stale at once: in one
+project 151 confirmations went stale although none of them had become
+false.</p>
 <p><code>self</code> means a self-declaration, <code>fresh-context</code> means
 a separate verifier execution with a recorded producer, and
 <code>external</code> means an external system or human review. These levels
@@ -116,6 +147,12 @@ same evidence rules: the register describes the kind of claim and does not lower
 the standard. <code>judgment</code> is established only by an external human
 review. A review record has an author and an outcome; a source review has an
 author, a reason and the previous digest.</p>
+<p>A human decision is bound to the decision, not to the bytes of the document that
+carries it: a document that keeps growing (a plan, a wave journal) does not make
+the decision stale. The decision stays applicable while the definition of the
+claim, the review condition, the term and the required independence are unchanged.
+A decision that changed in substance is revised explicitly &mdash;
+<code>mathc review-decision</code>.</p>
 <p>A waiver is bounded by its gap, issuer, reason, expiry and recovery plan. The
 schema also carries compensating controls and review triggers; the standard CLI
 leaves those two lists empty. Reviews, waivers, source reviews and authorizations
@@ -135,10 +172,9 @@ green one. <a href="interfaces.html">The console, piece by piece</a>.</p>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
-&middot; <a href="index.html">home</a> &middot;
-<a href="workflow.html">workflow</a> &middot;
-<a href="METHODOLOGY.md">canonical text (RU)</a> &middot;
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
+&middot; format version 6 &middot; tool mathc 5 &middot; <a href="index.html">home</a> &middot;
+<a href="workflow.html">workflow</a> &middot; <a href="METHODOLOGY.md">canonical text (RU)</a> &middot;
 <a href="methodology.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
 <p class="meta"><!-- @META@ --></p>
 </footer>

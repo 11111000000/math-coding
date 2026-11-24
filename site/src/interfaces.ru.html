@@ -3,8 +3,21 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Интерфейсы — math-coding v5</title>
-<meta name="description" content="Консоль Math Coding v5: плагин для Paseo и локальная страница в браузере — два хоста над одним интерфейсом. Экраны очереди, утверждений, графа доказательств и наблюдений по частям.">
+<title>Интерфейсы — math-coding: версия формата 6, инструмент mathc 5</title>
+<meta name="description" content="Консоль Math Coding: плагин для Paseo и локальная страница в браузере — два хоста над одним интерфейсом. Версия формата 6, инструмент mathc 5. Экраны очереди, утверждений, графа доказательств и наблюдений по частям.">
+<link rel="canonical" href="https://11111000000.github.io/math-coding/interfaces.ru.html">
+<link rel="alternate" hreflang="en" href="https://11111000000.github.io/math-coding/interfaces.html">
+<link rel="alternate" hreflang="ru" href="https://11111000000.github.io/math-coding/interfaces.ru.html">
+<link rel="alternate" hreflang="x-default" href="https://11111000000.github.io/math-coding/interfaces.html">
+<meta property="og:title" content="Интерфейсы — math-coding: версия формата 6, инструмент mathc 5">
+<meta property="og:description" content="Консоль Math Coding: плагин для Paseo и локальная страница в браузере — два хоста над одним интерфейсом. Экраны очереди, утверждений, графа доказательств и наблюдений по частям.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://11111000000.github.io/math-coding/interfaces.ru.html">
+<meta property="og:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="theme-color" content="#fbfaf6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
@@ -120,7 +133,7 @@ Paseo &mdash; вместе с оболочкой Paseo. Сам интерфей�
 
 <figure class="shot">
 <p class="shot-title">начало страницы консоли</p>
-<a href="assets/shots/frame.png"><img src="assets/shots/frame.png" alt="Начало страницы консоли: вердикт, число утверждений, счётчики решений и принятых рисков, цель с владельцем, непокрытые пути и каноническое следующее действие."></a>
+<a href="assets/shots/frame.png"><img src="assets/shots/frame.png" width="1408" height="266" alt="Начало страницы консоли: вердикт, число утверждений, счётчики решений и принятых рисков, цель с владельцем, непокрытые пути и каноническое следующее действие."></a>
 <figcaption><strong>Начало страницы консоли.</strong> Вердикт, счётчики, цель
 с владельцем, непокрытые пути и каноническое следующее действие. Каждое число
 здесь &mdash; поле карты инструмента.</figcaption>
@@ -128,7 +141,7 @@ Paseo &mdash; вместе с оболочкой Paseo. Сам интерфей�
 
 <figure class="shot">
 <p class="shot-title">очередь человека &mdash; изменённый источник</p>
-<a href="assets/shots/queue-source.png"><img src="assets/shots/queue-source.png" alt="Карточка очереди человека: изменённый источник утверждения retry-policy, причина внимания, решение, остающееся за человеком, что может сделать агент, и файл предмета."></a>
+<a href="assets/shots/queue-source.png"><img src="assets/shots/queue-source.png" width="1374" height="476" loading="lazy" alt="Карточка очереди человека: изменённый источник утверждения retry-policy, причина внимания, решение, остающееся за человеком, что может сделать агент, и файл предмета."></a>
 <figcaption><strong>Изменённый источник.</strong> Прежнее решение больше не
 свежее, поэтому человек должен посмотреть на него снова. Агент может собрать
 diff и подготовить контекст, но не может записать review или подтвердить
@@ -137,7 +150,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">очередь человека &mdash; опровержение</p>
-<a href="assets/shots/queue-refuted.png"><img src="assets/shots/queue-refuted.png" alt="Карточка очереди человека: опровергнутое утверждение refund-ceiling, записанное наблюдение, решение, остающееся за человеком, и исправление, которое может сделать агент."></a>
+<a href="assets/shots/queue-refuted.png"><img src="assets/shots/queue-refuted.png" width="1374" height="476" loading="lazy" alt="Карточка очереди человека: опровергнутое утверждение refund-ceiling, записанное наблюдение, решение, остающееся за человеком, и исправление, которое может сделать агент."></a>
 <figcaption><strong>Опровержение.</strong> Агент может воспроизвести
 сбой и починить реализацию, но человек решает, остаются ли утверждение, его
 опровержитель и его контроль правильным контрактом.</figcaption>
@@ -145,7 +158,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">очередь человека &mdash; открытое ревью</p>
-<a href="assets/shots/queue-review.png"><img src="assets/shots/queue-review.png" alt="Карточка очереди человека: открытое человеческое ревью утверждения payout-review, authority, который может его закрыть, и машинная часть, остающаяся доступной агенту."></a>
+<a href="assets/shots/queue-review.png"><img src="assets/shots/queue-review.png" width="1374" height="476" loading="lazy" alt="Карточка очереди человека: открытое человеческое ревью утверждения payout-review, authority, который может его закрыть, и машинная часть, остающаяся доступной агенту."></a>
 <figcaption><strong>Открытое ревью.</strong> Закрыть его может только человек с
 указанной authority и independence. Если в утверждении есть и машинная, и
 человеческая часть, машинная остаётся доступной агенту.</figcaption>
@@ -153,7 +166,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">постоянные обязанности</p>
-<a href="assets/shots/obligations.png"><img src="assets/shots/obligations.png" alt="Постоянные обязанности цели: каждое утверждение с каноническим состоянием, условиями приёмки и файлами предмета."></a>
+<a href="assets/shots/obligations.png"><img src="assets/shots/obligations.png" width="1408" height="758" loading="lazy" alt="Постоянные обязанности цели: каждое утверждение с каноническим состоянием, условиями приёмки и файлами предмета."></a>
 <figcaption><strong>Постоянные обязанности.</strong> Каждое утверждение цели с
 его каноническим состоянием, условиями и файлами. Панель никогда не печатает
 состояние, взятое из журнала наблюдений вместо карты.</figcaption>
@@ -161,7 +174,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">принятие результата</p>
-<a href="assets/shots/accept-result.png"><img src="assets/shots/accept-result.png" alt="Блок принятия результата: утверждения подтверждены, объявленная область закрыта или нет, и кто владелец."></a>
+<a href="assets/shots/accept-result.png"><img src="assets/shots/accept-result.png" width="1408" height="126" loading="lazy" alt="Блок принятия результата: утверждения подтверждены, объявленная область закрыта или нет, и кто владелец."></a>
 <figcaption><strong>Принятие результата.</strong> Третий исход метода:
 утверждения подтверждены, объявленная область покрыта или нет, и кто
 владелец. Инструмент не хранит принятие результата, поэтому панель называет
@@ -170,7 +183,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">что может сделать агент</p>
-<a href="assets/shots/agent-can-act.png"><img src="assets/shots/agent-can-act.png" alt="Блок работы, доступной агенту: устаревшее без изменения источника, никогда не проверенное, неопределённое и непокрытое."></a>
+<a href="assets/shots/agent-can-act.png"><img src="assets/shots/agent-can-act.png" width="1408" height="217" loading="lazy" alt="Блок работы, доступной агенту: устаревшее без изменения источника, никогда не проверенное, неопределённое и непокрытое."></a>
 <figcaption><strong>Что агент может сделать сам.</strong> Устаревшее без
 изменения источника, никогда не проверенное, неопределённое и непокрытое.
 Одинаковые пункты группируются: пятнадцать устаревших утверждений &mdash; это
@@ -179,14 +192,14 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">исследование &mdash; утверждения</p>
-<a href="assets/shots/explore-claims.png"><img src="assets/shots/explore-claims.png" alt="Представление Explore на вкладке Claims: распределение всех состояний утверждений и список утверждений проекта."></a>
+<a href="assets/shots/explore-claims.png"><img src="assets/shots/explore-claims.png" width="1440" height="1000" loading="lazy" alt="Представление Explore на вкладке Claims: распределение всех состояний утверждений и список утверждений проекта."></a>
 <figcaption><strong>Исследование &rarr; Утверждения.</strong> Распределение всех
 состояний и сами утверждения. Полный граф доказательств остаётся мощным инструментом исследования, но не занимает место первого экрана.</figcaption>
 </figure>
 
 <figure class="shot">
 <p class="shot-title">исследование &mdash; граф доказательств</p>
-<a href="assets/shots/explore-proof.png"><img src="assets/shots/explore-proof.png" alt="Представление Explore на вкладке Proof graph: источник, утверждение, требование и доказательство нарисованы одной цепочкой со стрелками."></a>
+<a href="assets/shots/explore-proof.png"><img src="assets/shots/explore-proof.png" width="1440" height="1000" loading="lazy" alt="Представление Explore на вкладке Proof graph: источник, утверждение, требование и доказательство нарисованы одной цепочкой со стрелками."></a>
 <figcaption><strong>Исследование &rarr; Граф доказательств.</strong> Источник,
 утверждение, требование и доказательство одной цепочкой: что объявлено, что
 проверено и что говорит наблюдение.</figcaption>
@@ -194,14 +207,14 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">исследование &mdash; область</p>
-<a href="assets/shots/explore-scope.png"><img src="assets/shots/explore-scope.png" alt="Представление Explore на вкладке Scope: пути области цели и утверждение, покрывающее каждый из них."></a>
+<a href="assets/shots/explore-scope.png"><img src="assets/shots/explore-scope.png" width="1440" height="1000" loading="lazy" alt="Представление Explore на вкладке Scope: пути области цели и утверждение, покрывающее каждый из них."></a>
 <figcaption><strong>Исследование &rarr; Область.</strong> Какие пути цели
 покрыты каким утверждением и где в покрытии ещё дыра.</figcaption>
 </figure>
 
 <figure class="shot">
 <p class="shot-title">карточка утверждения</p>
-<a href="assets/shots/claim-detail.png"><img src="assets/shots/claim-detail.png" alt="Карточка утверждения retry-policy: состояние, причина состояния, цепочка доказательств и граница решения между машинными проверками и человеческим ревью."></a>
+<a href="assets/shots/claim-detail.png"><img src="assets/shots/claim-detail.png" width="389" height="954" loading="lazy" alt="Карточка утверждения retry-policy: состояние, причина состояния, цепочка доказательств и граница решения между машинными проверками и человеческим ревью."></a>
 <figcaption><strong>Карточка утверждения.</strong> Состояние, причина этого
 состояния, цепочка доказательств и <em>граница решения</em>: что проверяет
 машина, где нужен человек, какой waiver действует и что агент может сделать
@@ -210,7 +223,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">файл предмета</p>
-<a href="assets/shots/file-preview.png"><img src="assets/shots/file-preview.png" alt="Превью файла docs/adr/0001-retry-policy.md &mdash; записи решения, изменившейся после того, как было записано доказательство."></a>
+<a href="assets/shots/file-preview.png"><img src="assets/shots/file-preview.png" width="1440" height="1000" loading="lazy" alt="Превью файла docs/adr/0001-retry-policy.md &mdash; записи решения, изменившейся после того, как было записано доказательство."></a>
 <figcaption><strong>Файл предмета.</strong> Запись решения, изменившаяся после
 того, как было записано доказательство: открывается из объявленной области или
 связанного источника, поэтому человек читает ровно то, что названо в
@@ -219,7 +232,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">журнал наблюдений</p>
-<a href="assets/shots/evidence.png"><img src="assets/shots/evidence.png" alt="Представление Evidence: история наблюдений с их производителем, временем и исходом."></a>
+<a href="assets/shots/evidence.png"><img src="assets/shots/evidence.png" width="1440" height="1000" loading="lazy" alt="Представление Evidence: история наблюдений с их производителем, временем и исходом."></a>
 <figcaption><strong>Журнал наблюдений.</strong> История вместе с
 происхождением: что наблюдали, кто произвёл, когда и с каким исходом.
 Состояния утверждений отсюда не читаются.</figcaption>
@@ -227,7 +240,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">настройки хоста</p>
-<a href="assets/shots/settings.png"><img src="assets/shots/settings.png" alt="Настройки хоста: бинарь mathc, только чтение при обновлении и выключенный переключатель Allow Run checks."></a>
+<a href="assets/shots/settings.png"><img src="assets/shots/settings.png" width="1464" height="537" loading="lazy" alt="Настройки хоста: бинарь mathc, только чтение при обновлении и выключенный переключатель Allow Run checks."></a>
 <figcaption><strong>Настройки хоста.</strong> Бинарь, обновление только на
 чтение и переключатель, разрешающий запуск проверок. Переключатель выключен по
 умолчанию; автоматическое обновление только читает карту и никогда ничего не
@@ -236,7 +249,7 @@ diff и подготовить контекст, но не может запис
 
 <figure class="shot">
 <p class="shot-title">подтверждение перед запуском</p>
-<a href="assets/shots/run-confirmation.png"><img src="assets/shots/run-confirmation.png" alt="Подтверждение перед запуском: названа величина запуска &mdash; пять утверждений и восемь команд проверки &mdash; и предупреждено, что verifier'ы исполняют код проекта."></a>
+<a href="assets/shots/run-confirmation.png"><img src="assets/shots/run-confirmation.png" width="706" height="268" loading="lazy" alt="Подтверждение перед запуском: названа величина запуска &mdash; пять утверждений и восемь команд проверки &mdash; и предупреждено, что verifier'ы исполняют код проекта."></a>
 <figcaption><strong>Подтверждение перед запуском.</strong> Величина запуска
 названа до того, как что-либо исполнится: пять утверждений и восемь команд
 проверки. Контроли работают в изолированных копиях; verifier'ы всё же
@@ -249,8 +262,9 @@ diff и подготовить контекст, но не может запис
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
-&middot; <a href="index.ru.html">главная</a> &middot;
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
+&middot; версия формата 6 &middot; инструмент mathc 5 &middot;
+<a href="index.ru.html">главная</a> &middot;
 <a href="workflow.ru.html">цикл</a> &middot;
 <a href="interfaces.ru.html">интерфейсы</a> &middot;
 <a href="interfaces.html">english</a></p>

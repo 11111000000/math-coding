@@ -3,8 +3,17 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Измерения — math-coding v5</title>
-<meta name="description" content="Что в проекте math-coding v5 уже измерено, а что пока остаётся критерием. Граница честного утверждения.">
+<title>Измерения — math-coding · версия формата 6 · инструмент mathc 5</title>
+<meta name="description" content="Что в проекте math-coding уже измерено, а что пока остаётся критерием. Версия формата 6, инструмент mathc 5. Граница честного утверждения.">
+<link rel="canonical" href="https://11111000000.github.io/math-coding/measurements.ru.html">
+<link rel="alternate" hreflang="en" href="https://11111000000.github.io/math-coding/measurements.ru.html">
+<link rel="alternate" hreflang="ru" href="https://11111000000.github.io/math-coding/measurements.html">
+<link rel="alternate" hreflang="x-default" href="https://11111000000.github.io/math-coding/measurements.ru.html">
+<meta property="og:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://11111000000.github.io/math-coding/assets/og-image.png">
+<meta name="theme-color" content="#fbfaf6">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#1a1a1a">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
@@ -39,8 +48,48 @@
 <tr><td>Каждое обязательство этого репозитория, с отрицательным контролем, обязанным сломать предмет</td><td><span class="done">проведено</span> &mdash; живая карта на главной и есть текущий результат</td><td><a href="index.ru.html">живая карта</a></td></tr>
 <tr><td>Поставка: чистый clone, полная сборка, принудительные тесты, статический portable-бинарь, установка и doctor</td><td><span class="done">проведено</span> &mdash; на каждом пуше</td><td><a href="https://github.com/11111000000/math-coding/actions">CI</a></td></tr>
 <tr><td>Консоль как представление над инструментом: плагин для Paseo и локальная страница рисуют один интерфейс, а в бандле лежит одна копия интерфейса и одна копия слоя данных</td><td><span class="done">проведено</span> &mdash; проверка страницы собирает бандл, считает копии по sourcemap и открывает страницу в браузере</td><td><a href="interfaces.ru.html">интерфейсы</a></td></tr>
+<tr><td>Три руки на одинаковых задачах: обычная работа, короткий чек-лист, полный протокол</td><td><span class="done">выполнено</span> &mdash; 2026-11-22, девять прогонов в ledger; гипотеза не подтвердилась, окно наблюдения ещё открыто</td><td><a href="#three-arms">сравнение</a></td></tr>
 </tbody>
 </table>
+</section>
+
+<section id="three-arms">
+<h2>Трёхрукое сравнение 2026-11-22</h2>
+<p class="lede">Сравнение выполнено 2026-11-22. Оно не подтвердило гипотезу
+проекта, и числа приведены здесь такими, какие они есть.</p>
+<p>Три настоящие задачи в трёх проектах: изменение с передачей работы в
+<code>yeah</code>, слабая существующая проверка в <code>Genium-clean</code>,
+решение без ADR в <code>agents-writing-skills</code>. Три руки &mdash;
+обычная работа, короткий чек-лист, полный протокол &mdash; по одному
+повторению каждая, одна модель. Наблюдатель не знал, в какой руке идёт
+прогон, но был из той же культуры.</p>
+<table>
+<thead><tr><th>Измерение</th><th>Обычная работа</th><th>Короткий чек-лист</th><th>Полный протокол</th></tr></thead>
+<tbody>
+<tr><td>Принято</td><td>2 из 3</td><td>3 из 3</td><td>3 из 3</td></tr>
+<tr><td>Время исполнителя</td><td>4380 s</td><td>6360 s</td><td>4840 s</td></tr>
+<tr><td>Машинное время гейта</td><td>&mdash;</td><td>&mdash;</td><td>5001 s</td></tr>
+<tr><td>Медиана передачи работы</td><td>1500 s</td><td>1560 s</td><td>1380 s</td></tr>
+<tr><td>Дефекты после приёмки</td><td>8</td><td>13</td><td>17</td></tr>
+<tr><td>Ложное &laquo;всё проверено&raquo;</td><td>1</td><td>0</td><td>2</td></tr>
+</tbody>
+</table>
+<p>Девять прогонов, и все они записаны в ledger. Рука полного протокола
+заплатила ещё 5001 s машинного времени собственного гейта метода &mdash; 83
+минуты сверх работы исполнителя.</p>
+<p><strong>Гипотеза не подтвердилась.</strong> Чек-лист ничем не хуже
+протокола ни по приёмке, ни по стоимости, ни по дефектам, найденным после
+приёмки, а протокол заплатил сверху 83 минуты машинного гейта. Обычная
+работа была принята два раза из трёх, поэтому принятых результатов, в
+которых дефект ещё можно было найти, у неё меньше. Качественное
+преимущество метода всё же проявилось: отрицательный контроль ловит
+сломанную проверку, которую код возврата не поймает.</p>
+<p>Окно наблюдения в семь дней ещё открыто, поэтому это направление, а не
+эффект; выборка &mdash; три задачи и одна модель. Честная формулировка
+такова: метод проверен как работающий механически, его польза всё ещё не
+доказана, а первое сравнение указывает на чек-лист. Протокол сравнения
+лежит в этом репозитории:
+<a href="https://github.com/11111000000/math-coding/blob/main/docs/measurements/BENCHMARK-PROTOCOL.md">docs/measurements/BENCHMARK-PROTOCOL.md</a>.</p>
 </section>
 
 <section>
@@ -48,7 +97,6 @@
 <table class="status-table">
 <thead><tr><th>Проверяемое утверждение</th><th>Состояние</th><th>Почему это важно</th></tr></thead>
 <tbody>
-<tr><td>Три руки на одинаковых задачах: обычный агент, короткий чек-лист, math-coding v5</td><td><span class="pending">не выполнено</span></td><td>единственное сравнение, способное показать, что метод стоит своих затрат</td></tr>
 <tr><td>Снижение escaped defects и возвратов не менее чем на 30%</td><td><span class="pending">критерий</span></td><td>это цель приёмки проекта, а не результат</td></tr>
 <tr><td>Рост полной стоимости не более 10&ndash;15%</td><td><span class="pending">критерий</span></td><td>метод должен окупать себя</td></tr>
 <tr><td>Полный граф зависимостей между ADR</td><td><span class="pending">частично</span></td><td>переоценка следует за изменёнными источниками, обязательствами и evidence; полный граф &mdash; отдельная работа</td></tr>
@@ -56,9 +104,10 @@
 </tbody>
 </table>
 <p>Unit, integration и package-проверки не доказывают рост эффективности
-разработки. Пока трёхрукий benchmark не выполнен и не оценён независимо,
-честная формулировка такая: метод проверен как работающий, а его польза
-остаётся открытым вопросом.</p>
+разработки. Трёхрукое сравнение выполнено 2026-11-22 и не подтвердило
+гипотезу; окно его наблюдения ещё открыто. Честная формулировка такая:
+метод проверен как работающий механически, его польза всё ещё не доказана,
+а первое сравнение указывает на чек-лист.</p>
 </section>
 
 <section>
@@ -79,12 +128,12 @@
 </section>
 
 <p class="callout">Зелёная карта говорит, что объявленные обязательства
-holds. Она ничего не говорит о том, стоит ли метод своих затрат &mdash; у
-этого вопроса свой эксперимент, и он ещё открыт.</p>
+holds. Она ничего не говорит о том, стоит ли метод своих затрат &mdash;
+первое сравнение метода не подтвердило гипотезу, и его окно ещё открыто.</p>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
 &middot; <a href="index.ru.html">главная</a> &middot;
 <a href="methodology.ru.html">методология</a> &middot;
 <a href="workflow.ru.html">цикл</a> &middot;
