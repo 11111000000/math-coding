@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Workflow — math-coding v5</title>
-<meta name="description" content="The math-coding v5 working loop: init, goal, add, run, map, next — and the human decisions around it.">
+<title>Workflow — math-coding: format version 6, tool mathc 5</title>
+<meta name="description" content="The math-coding working loop: init, goal, add, run, map, next — and the human decisions around it. Format version 6, tool mathc 5.">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin>
@@ -26,7 +26,9 @@
 <main>
 
 <h1>Workflow</h1>
-<p>The main loop is <code>init</code>, <code>goal</code>, <code>add</code>,
+<p>The format of specifications and evidence is version 6; the tool is
+<code>mathc 5</code> &mdash; the product version did not change. The main loop is
+<code>init</code>, <code>goal</code>, <code>add</code>,
 <code>run</code> and <code>map</code>; <code>next</code> names one concrete next
 action. Reading verbs never modify the working
 tree; controls run in isolated copies; human decisions are recorded
@@ -60,6 +62,44 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <tr><td><code>map</code> / <code>next</code> / <code>context</code></td><td>compute states, name the next action, hand a capsule to an agent</td><td>read-only</td></tr>
 </tbody>
 </table>
+
+<h2>What a run of format 6 can do</h2>
+<p>A run of format 5 executed every declared check and wrote the evidence down.
+A run of format 6 does more and says more.</p>
+<table>
+<thead><tr><th>what</th><th>how</th></tr></thead>
+<tbody>
+<tr><td>partial run</td><td><code>mathc run --changed</code> executes only the claims whose evidence no longer holds and leaves the rest as they are</td></tr>
+<tr><td>price</td><td>every run writes what it cost into the journal of the runs: machine seconds per claim, the slowest first (<code>.math/v6/runs.jsonl</code>)</td></tr>
+<tr><td>limit</td><td><code>mathc run --limit SECONDS</code> bounds the run; 3600 seconds by default</td></tr>
+<tr><td>a stopped run</td><td>it says that it was stopped, hands over the map over what it observed, and exits with code 4</td></tr>
+</tbody>
+</table>
+
+<h2>The control must be the cause</h2>
+<p>The control proves that a check can reject one concrete violation, and for that
+the check has to run in the copy before the control is applied. The protocol: the
+same check must first <code>pass</code> on an untouched copy of the subject; only
+then is the control applied and the check repeated, and it must return an ordinary
+<code>fail</code>. A copy that cannot run the check at all &mdash; missing
+dependencies, no toolchain &mdash; proves nothing by failing: the observation
+becomes <code>inconclusive</code> with the reason <code>copy-failed</code>, and a
+machine <code>holds</code> is then impossible.</p>
+<p>A check that needs the dependencies of the project declares the environment it
+runs in: the <code>environment</code> prefix (<code>--environment ENV</code> on
+<code>add</code>) prepares that environment before the check runs. Without the
+declaration the copy cannot run the check, and the reason
+<code>copy-failed</code> says so instead of a false proof.</p>
+
+<h2>The environment and the build of the tool</h2>
+<p>In format 5 the fingerprint of the environment included the digest of the
+binary, so rebuilding the tool made every piece of evidence everywhere stale at
+once: in one project 151 confirmations went stale although none of them had
+become false. In format 6 the environment is the operating system and the
+pinned toolchain (the lock file), and the build of the tool is written
+separately, next to the environment. A tool change is named
+<code>tool-changed</code> and does not revoke the result: the check was the same
+and the subject was the same.</p>
 
 <h2>Linking an ADR</h2>
 <p>ADRs keep motivation and history; math-coding never writes into them.
@@ -126,22 +166,38 @@ project, and none of them changes the working tree unless it says so.</p>
 <table>
 <thead><tr><th>verb</th><th>what it does</th></tr></thead>
 <tbody>
+<tr><td><code>help COMMAND</code></td><td>describe one verb; it works before any specification exists</td></tr>
 <tr><td><code>context</code></td><td>print the bounded task context as JSON &mdash; the capsule an agent receives</td></tr>
 <tr><td><code>adopt</code></td><td>detect the ADR and the specification source directories, read-only</td></tr>
 <tr><td><code>import-adr PATH</code></td><td>read a MADR or adr-tools document and print a draft claim; neither the source nor <code>spec.json</code> is changed</td></tr>
 <tr><td><code>import-junit PATH</code></td><td>parse a JUnit XML report and print the exact counts of tests and failures</td></tr>
 <tr><td><code>re-evaluate</code></td><td>list the claims whose source, definition or evidence requires a review</td></tr>
 <tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>bind a changed source after a human review; it records the previous digest, clears the waiver and still requires a fresh <code>run</code></td></tr>
+<tr><td><code>review-decision ID --by WHO --reason WHY</code></td><td>revise the human decision about a claim; the decision is bound to the decision and not to the bytes of the document that carries it, so a growing document does not make it stale</td></tr>
 <tr><td><code>authorize --by WHO --reason WHY</code></td><td>record an authorization for the current protected changes when <code>policy.json</code> exists; it is a journal, not authentication</td></tr>
 <tr><td><code>approve --by WHO --reason WHY [--command CMD]</code></td><td>approve the commands the agent surface may execute; the approval is bound to the commands themselves, and the surface refuses an unapproved command</td></tr>
 <tr><td><code>doctor</code></td><td>check git, the specification, the aim, the protected policy and the agent page without changing them</td></tr>
 <tr><td><code>install</code></td><td>update only the math-coding block in the <code>AGENTS.md</code> of the project; it installs no binaries</td></tr>
+<tr><td><code>migrate</code></td><td>move a project of format 5 to format 6: the journals move to <code>.math/v6/</code>, and the files of format 5 stay on disk</td></tr>
 <tr><td><code>mcp</code></td><td>serve the JSON-RPC tool surface over stdio</td></tr>
 </tbody>
 </table>
 <p>A claim with the register <code>judgment</code> is established only by an
 external human review: <code>add</code> requires <code>review:WHO</code> for it
 and refuses machine verifiers.</p>
+
+<h2>Upgrading a project of format 5</h2>
+<ol>
+<li>Update the tool of the project first &mdash; its installed binary and its
+CI. The tool that reads a project must understand format 6 before the migration
+lands in the tree: the previous version cannot read a specification of version 6,
+and the gate of the project fails with <code>unsupported schema_version 6</code>.</li>
+<li>Then <code>mathc migrate</code> &mdash; the journals move to
+<code>.math/v6/</code>, and the old files stay on disk.</li>
+<li>Then <code>mathc run</code> again &mdash; the evidence is written anew.</li>
+</ol>
+<p>The order was found by the field measurement of 2026-11-22 and corrected in the
+plan of the architecture.</p>
 
 <h2>Reading the map without the terminal</h2>
 <p>The map can also be read in a browser. The console shows the same map, the
@@ -156,7 +212,7 @@ state of its own. <a href="interfaces.html">The interfaces, piece by piece</a>.<
 <tr><td><code>1</code></td><td>red, or a protected transition was refused</td></tr>
 <tr><td><code>2</code></td><td>invocation error</td></tr>
 <tr><td><code>3</code></td><td>unknown or vacant &mdash; the state is not established</td></tr>
-<tr><td><code>4</code></td><td>the run was stopped before it finished</td></tr>
+<tr><td><code>4</code></td><td>the run was stopped &mdash; it says so and hands over the map over what it observed</td></tr>
 <tr><td><code>5</code></td><td>the tool could not answer &mdash; a broken specification or a broken repository</td></tr>
 </tbody>
 </table>
@@ -173,8 +229,8 @@ exists.</p>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
-&middot; <a href="index.html">home</a> &middot;
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
+&middot; format version 6 &middot; tool mathc 5 &middot; <a href="index.html">home</a> &middot;
 <a href="methodology.html">methodology</a> &middot;
 <a href="workflow.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>
 <p class="meta"><!-- @META@ --></p>
