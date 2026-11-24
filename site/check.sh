@@ -231,6 +231,39 @@ def legend_problems(dist):
     return problems
 
 
+def metadata_problems(dist):
+    """Every published page must name itself and the two languages.
+
+    The pages are found in the sitemap: a page that is not published is
+    not checked, and a page that is published without its metadata is a
+    defect a reader of a search result would never see.
+    """
+    sitemap = os.path.join(dist, "sitemap.xml")
+    if not os.path.isfile(sitemap):
+        return ["the site has no sitemap to check the metadata against"]
+    problems = []
+    for line in open(sitemap, encoding="utf-8"):
+        match = re.search(r"<loc>https://11111000000.github.io/math-coding/(.*?)</loc>", line)
+        if not match:
+            continue
+        path = match.group(1) or "index.html"
+        page = os.path.join(dist, path)
+        if not os.path.isfile(page):
+            problems.append("the sitemap names %s, which is not published" % path)
+            continue
+        text = read(dist, path)
+        for needle, what in (
+            ('rel="canonical"', "no canonical address"),
+            ('hreflang="en"', "no English alternate"),
+            ('hreflang="ru"', "no Russian alternate"),
+            ('property="og:image"', "no preview image"),
+            ('name="twitter:card"', "no card of the preview"),
+            ('name="theme-color"', "no theme colour"),
+        ):
+            if needle not in text:
+                problems.append("the page %s has %s" % (path, what))
+    return problems
+
 def main():
     dist = sys.argv[1]
     problems = []
@@ -249,6 +282,7 @@ def main():
     else:
         problems.append("the site has no map to show")
     problems.extend(legend_problems(dist))
+    problems.extend(metadata_problems(dist))
     for problem in problems:
         print("check: %s" % problem)
     if problems:
