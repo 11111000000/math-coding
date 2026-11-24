@@ -244,12 +244,12 @@
     },
     {
       "id": "site-render",
-      "text": "the site is generated from spec.json and the live map and shows every claim with its current state",
+      "text": "the published pages show the map of the tool - the verdict, the states, the coverage, the build that computed them and the legend of the reasons - and every published page names itself, both languages and the preview",
       "scope": [ "site/" ],
       "source": null,
       "owner": "owner",
       "requirements": [ { "kind": "verifier", "spec": "sh site/check.sh" } ],
-      "falsifier": "a claim is missing from the rendered map or shows a state that mathc map does not report",
+      "falsifier": "a claim is missing from the rendered map, a page shows a state that mathc map does not report, or a published page lacks its address, its alternates or its preview",
       "register": "fact",
       "control": "sed -i 's/(escape claim.id)/(escape \"tampered\")/' site/render.ml",
       "waiver": null,
@@ -257,14 +257,14 @@
     },
     {
       "id": "site-interface",
-      "text": "the navigation keeps every item and every frame on a phone screen, and the English and the Russian pages are drawn by the same typefaces",
+      "text": "on a phone screen the navigation keeps every item and every frame in both themes, the text and the state pills keep their measured contrast, and the English and the Russian pages are drawn by the same typefaces",
       "scope": [ "site/" ],
       "source": null,
       "owner": "owner",
       "requirements": [
         { "kind": "verifier", "spec": "sh site/check-ui.sh" }
       ],
-      "falsifier": "a navigation item or a button is cut off on a phone screen, or the English and the Russian pages are drawn by different typefaces",
+      "falsifier": "a navigation item or a button is cut off on a phone screen, the text or a pill in one of the themes falls below the measured contrast, or the English and the Russian pages are drawn by different typefaces",
       "register": "fact",
       "control": "printf '\\nnav.site-nav .nav-inner { overflow: hidden; max-height: 26px; }\\n' >> site/src/assets/style.css",
       "waiver": null,
