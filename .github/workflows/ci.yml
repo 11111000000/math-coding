@@ -117,6 +117,14 @@ jobs:
           done
           echo "the portable build failed three times with the signal stack error" >&2
           exit 1
+      # A failed build leaves lock files in the store that the runner user
+      # cannot read. The cache action archives the store with tar, and tar
+      # refuses to continue on them: the cache is then never saved, and the
+      # next job builds the whole static toolchain again - and dies on it
+      # again. The toolchain of the static build is not in any public cache,
+      # so this job is the only place where it can be saved.
+      - name: Drop the store locks a failed build left behind
+        run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor
@@ -131,7 +139,9 @@ jobs:
     needs: portable
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # The job runs the whole battery of the project before it publishes the
+    # pages, and the battery takes about half an hour on a runner.
+    timeout-minutes: 75
     permissions:
       pages: write
       id-token: write
