@@ -123,6 +123,7 @@ jobs:
           # untrusted here - it is the tool of this repository, compiled on
           # the machine of the runner.
           echo "the portable build is tried once more outside the sandbox" >&2
+          ulimit -s unlimited || true
           if nix build .#portable --no-link --option sandbox false; then
             exit 0
           fi
@@ -188,6 +189,7 @@ jobs:
           set -uo pipefail
           if ! nix build .#portable --no-link; then
             echo "the sandboxed build failed; retrying without the sandbox" >&2
+            ulimit -s unlimited || true
             nix build .#portable --no-link --option sandbox false
           fi
       # Fresh evidence in this environment: the deployed map shows the
