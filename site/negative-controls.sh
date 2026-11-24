@@ -114,6 +114,10 @@ tool = copy("no-tool")
 patch(os.path.join(tool, "index.html"),
       r"<span>[^<>]{1,40}: mathc &middot; <code>[0-9a-f]{8,}</code></span>", "")
 
+# A published page loses its canonical address.
+meta = copy("no-canonical")
+patch(os.path.join(meta, "index.html"), r'<link rel="canonical"[^>]*>\n', "")
+
 # The legend loses the reason of one state.
 legend = copy("no-reason")
 patch(os.path.join(legend, "methodology.html"),
