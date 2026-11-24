@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>math-coding v5 — linked, fresh, independent evidence</title>
-<meta name="description" content="math-coding v5 is a checking layer between requirements, decisions, code and evidence. It shows what is confirmed, what is stale, and what is still unknown.">
-<meta property="og:title" content="math-coding v5 — linked, fresh, independent evidence">
+<title>math-coding — format version 6 · tool mathc 5 — linked, fresh, independent evidence</title>
+<meta name="description" content="A checking layer between requirements, decisions, code and evidence — format version 6, tool mathc 5. What is confirmed, what is stale, what is still unknown.">
+<meta property="og:title" content="math-coding — format version 6 · tool mathc 5 — linked, fresh, independent evidence">
 <meta property="og:description" content="A checking layer between requirements, decisions, code and evidence: what is confirmed, what is stale, what is still unknown.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://11111000000.github.io/math-coding/">
@@ -32,7 +32,7 @@
 <section class="hero">
 <img class="hero-logo" src="assets/logo.svg" alt="" aria-hidden="true">
 <h1>math-coding</h1>
-<p class="version">v5 &middot; one active model &middot; OCaml kernel</p>
+<p class="version">format version 6 &middot; tool mathc 5 &middot; one active model &middot; OCaml kernel</p>
 <p class="tagline">A checking layer between requirements, decisions, code and
 evidence. It answers four questions: what must be true, what proves it and
 how independently, what changed and must be re-checked, and what is still
@@ -50,7 +50,7 @@ and control; a source is linked when present. Evidence records the subject,
 definition, verifier and environment digests &mdash; so the map below is
 computed, not declared.</p>
 <figure class="figure">
-<svg viewBox="0 0 760 205" role="img" aria-label="The v5 chain: source, claim, code, evidence, verdict, with a gap arc back">
+<svg viewBox="0 0 760 205" role="img" aria-label="The chain of format version 6: source, claim, code, evidence, verdict, with a gap arc back">
 <defs>
 <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
 <path d="M0,0 L10,5 L0,10 z" fill="#5a5a5a"/>
@@ -115,6 +115,9 @@ uncovered: 0 file(s)</div>
 <p>This is the output of a project whose declared claims are all confirmed.
 The live map below shows the actual state of this repository, not an
 example.</p>
+<p>A project of the previous format is moved by <code>mathc migrate</code>. The
+journals of a current project live in <code>.math/v6/</code>, and the
+specification and the evidence carry the schema version 6.</p>
 </section>
 
 <section>
@@ -137,7 +140,7 @@ neither of them computes a state.</p>
 </section>
 
 <section>
-<h2>What v5 refuses to do</h2>
+<h2>What math-coding refuses to do</h2>
 <ul>
 <li><code>Unknown</code> is never shown as success; a waiver is never a pass.</li>
 <li>Machine evidence never installs a <code>judgment</code> &mdash; only an
@@ -156,7 +159,7 @@ methodology.</p>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
 &middot; <a href="methodology.html">methodology</a> &middot;
 <a href="workflow.html">workflow</a> &middot;
 <a href="index.ru.html">&#1088;&#1091;&#1089;&#1089;&#1082;&#1080;&#1081;</a></p>

@@ -28,7 +28,48 @@ type labels = {
   valid_until_word : string;
   control_reach_word : string;
   requirement_word : string;
+  map_tool_before : string;
+  map_tool_after : string;
+  reasons_heading : string;
+  reason_clauses : (string * string) list;
 }
+
+(* The clause of every reason the map can name. The vocabulary itself is not
+   written here: it is the table of the tool, so a reason the tool prints and a
+   reason the legend does not explain cannot drift apart. *)
+let reason_clauses_en =
+  [ "current", "fresh evidence and a passed check";
+    "never-checked", "no evidence has been recorded for this claim yet";
+    "source-changed", "the linked source changed after the evidence was recorded";
+    "materials-changed", "the materials of the subject changed";
+    "definition-changed", "the definition of the claim changed";
+    "verifier-changed", "the verifier that produced the evidence changed";
+    "environment-changed", "the environment of the run changed";
+    "expired", "the validity window of the evidence has passed";
+    "not-run", "the check did not start";
+    "inconclusive", "the observation is indeterminate";
+    "infrastructure-error", "the run failed for infrastructural reasons";
+    "refuted", "the check rejected the claim";
+    "waived", "an accepted risk is in force";
+    "tool-changed", "the tool that wrote the evidence is not the tool that reads it";
+    "copy-failed", "the check could not run in the copy of the control" ]
+
+let reason_clauses_ru =
+  [ "current", "свежее доказательство и пройденная проверка";
+    "never-checked", "доказательств для этого обязательства ещё нет";
+    "source-changed", "связанный источник изменился после записи доказательства";
+    "materials-changed", "материалы предмета изменились";
+    "definition-changed", "определение обязательства изменилось";
+    "verifier-changed", "проверка, записавшая доказательство, изменилась";
+    "environment-changed", "среда прогона изменилась";
+    "expired", "срок действия доказательства истёк";
+    "not-run", "проверка не началась";
+    "inconclusive", "наблюдение неопределённо";
+    "infrastructure-error", "прогон упал по инфраструктурным причинам";
+    "refuted", "проверка отвергла обязательство";
+    "waived", "действует принятый риск";
+    "tool-changed", "инструмент, записавший доказательство, не тот, который читает";
+    "copy-failed", "проверка не прошла в копии контроля" ]
 
 let labels_en = {
   lang = "en";
@@ -58,6 +99,10 @@ let labels_en = {
   valid_until_word = "valid until";
   control_reach_word = "control reach";
   requirement_word = "requirement";
+  map_tool_before = "The map above was computed by the";
+  map_tool_after = ".";
+  reasons_heading = "What the reasons of the map mean";
+  reason_clauses = reason_clauses_en;
 }
 
 let labels_ru = {
@@ -88,6 +133,10 @@ let labels_ru = {
   valid_until_word = "действует до";
   control_reach_word = "контроль достиг";
   requirement_word = "условие подтверждения";
+  map_tool_before = "Карту выше вычислил";
+  map_tool_after = ".";
+  reasons_heading = "Что значат причины карты";
+  reason_clauses = reason_clauses_ru;
 }
 
 let escape text =
@@ -275,18 +324,43 @@ let claim_fragment labels states claim =
 let count_state states wanted =
   List.length (List.filter (fun (_, state) -> state = wanted) states)
 
+let clause_of labels token =
+  match List.assoc_opt token labels.reason_clauses with
+  | Some clause -> clause
+  | None ->
+      failwith
+        (Printf.sprintf "the site has no clause for the reason %s" token)
+
+(* The legend of the reasons. The map prints the reason in words beside the
+   state it explains, so the legend names the same words and the token that
+   the machine map carries. *)
+let reasons_legend labels =
+  let items =
+    List.map
+      (fun (token, reason) ->
+        Printf.sprintf "<dt><code>%s</code></dt><dd>%s &mdash; %s</dd>"
+          (escape token) (escape (Verdict.reason_to_words reason))
+          (escape (clause_of labels token)))
+      Verdict.reason_tokens
+  in
+  Printf.sprintf
+    "<aside class=\"law\">\n<h3>%s</h3>\n<dl class=\"evidence\">%s</dl>\n</aside>"
+    (escape labels.reasons_heading) (String.concat "" items)
+
 let fragment labels map claims =
-  let tool =
+  (* The tool that produced the map is named under it: the reader has to know
+     which build computed the states, and the map carries that name itself. *)
+  let tool_line =
     match map.tool with
     | None -> []
     | Some (class_, fingerprint) ->
-        [ Printf.sprintf "<span>%s: %s &middot; <code>%s</code></span>"
-            (escape labels.tool_word) (escape class_) (escape fingerprint) ]
+        [ Printf.sprintf "<p class=\"muted\">%s %s <code>%s %s</code>%s</p>"
+            (escape labels.map_tool_before) (escape labels.tool_word)
+            (escape class_) (escape fingerprint) (escape labels.map_tool_after) ]
   in
   let summary =
     [Printf.sprintf "<span>%s: <span class=\"v-pill %s\">%s</span></span>"
        (escape labels.verdict_word) (pill_class map.verdict) (escape map.verdict)]
-    @ tool
     @ List.concat_map
         (fun state ->
           let count = count_state map.states state in
@@ -302,9 +376,11 @@ let fragment labels map claims =
   in
   String.concat "\n"
     ("<div class=\"map-summary\">" :: summary
-    @ ["</div>"; "<div class=\"claims-grid\">"]
+    @ ["</div>"]
+    @ tool_line
+    @ ["<div class=\"claims-grid\">"]
     @ List.map (claim_fragment labels map.states) claims
-    @ ["</div>"])
+    @ ["</div>"; reasons_legend labels])
 
 let timestamp seconds =
   let tm = Unix.gmtime (float_of_int seconds) in
@@ -490,6 +566,31 @@ let html_files dist =
   |> List.filter (fun name -> Filename.check_suffix name ".html")
   |> List.map (Filename.concat dist)
 
+(* The canonical origin of the published site. The pages carry it in their
+   og:url, and the sitemap and the robots file are written from it. *)
+let origin = "https://11111000000.github.io/math-coding/"
+
+(* Every page the site publishes, as a path relative to the built site. The
+   error page is not a page of the site: it answers an address that is not
+   there. *)
+let rec published_pages prefix dir =
+  Sys.readdir dir |> Array.to_list |> List.sort compare
+  |> List.concat_map (fun name ->
+         let path = Filename.concat dir name in
+         let relative = if prefix = "" then name else prefix ^ "/" ^ name in
+         if Sys.is_directory path then published_pages relative path
+         else if Filename.check_suffix name ".html" && name <> "404.html" then
+           [ relative ]
+         else [])
+
+let count_of needle text =
+  let rec scan from count =
+    match Links.index_of_sub_from needle text from with
+    | None -> count
+    | Some at -> scan (at + String.length needle) (count + 1)
+  in
+  scan 0 0
+
 let build root dist meta map_path =
   let spec = load_spec root in
   let map = read_map map_path in
@@ -578,7 +679,30 @@ let check root dist map_path =
         fail
           (Printf.sprintf
              "the page %s does not show the coverage of the map (%d uncovered)"
-             name map.uncovered))
+             name map.uncovered);
+      (* The tool that produced the map is named under it: the reader has to
+         know which build computed the states. *)
+      (match map.tool with
+       | None -> fail (Printf.sprintf "the map behind %s names no tool" name)
+       | Some (class_, fingerprint) ->
+           let tool =
+             Printf.sprintf "<code>%s %s</code>" (escape class_)
+               (escape fingerprint)
+           in
+           if not (contains tool page) then
+             fail
+               (Printf.sprintf
+                  "the page %s does not name the tool that produced the map (%s)"
+                  name class_));
+      (* The legend names every reason the map can print: a vocabulary with a
+         hole would leave the reader without a name for a state. *)
+      List.iter
+        (fun (token, _) ->
+          let needle = Printf.sprintf "<dt><code>%s</code></dt>" token in
+          if not (contains needle page) then
+            fail (Printf.sprintf "the page %s does not name the reason %s" name
+                   token))
+        Verdict.reason_tokens)
     [labels_en; labels_ru];
   List.iter
     (fun (id, state) ->
@@ -674,10 +798,42 @@ let check root dist map_path =
             fail (Printf.sprintf "%s has no anchor for %s" name claim.id))
         [ ("index.html", ".html"); ("index.ru.html", ".ru.html") ])
     spec.claims;
+  (* The sitemap is written from the files of the built site, so it names every
+     published page once and nothing else: it cannot drift from the pages it
+     names. The robots file allows the site and points at that sitemap. *)
+  let sitemap_path = Filename.concat dist "sitemap.xml" in
+  let robots_path = Filename.concat dist "robots.txt" in
+  if not (Sys.file_exists sitemap_path) then
+    fail "the sitemap is missing from the built site"
+  else if not (Sys.file_exists robots_path) then
+    fail "the robots file is missing from the built site"
+  else (
+    let sitemap = Io.read_file sitemap_path in
+    let robots = Io.read_file robots_path in
+    let pages = published_pages "" dist in
+    List.iter
+      (fun page ->
+        let loc =
+          Printf.sprintf "<loc>%s</loc>"
+            (if page = "index.html" then origin else origin ^ page)
+        in
+        let named = count_of loc sitemap in
+        if named <> 1 then
+          fail
+            (Printf.sprintf "the sitemap names the page %s %d times, once is enough"
+               page named))
+      pages;
+    if count_of "<loc>" sitemap <> List.length pages then
+      fail "the sitemap names a page that the site does not publish";
+    if not (contains "Allow: /" robots) then
+      fail "the robots file does not allow the site";
+    if not (contains (Printf.sprintf "Sitemap: %ssitemap.xml" origin) robots) then
+      fail "the robots file does not point at the sitemap");
   if !failures > 0 then exit 1;
   Printf.printf "check: the site renders the map of the tool for %d claims\n"
     (List.length spec.claims);
-  Printf.printf "check: canonical methodology and local links are in place\n"
+  Printf.printf "check: canonical methodology and local links are in place\n";
+  Printf.printf "check: the sitemap names the published pages and the robots file points at it\n"
 
 let () =
   match Array.to_list Sys.argv with
