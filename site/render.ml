@@ -99,7 +99,7 @@ let labels_en = {
   valid_until_word = "valid until";
   control_reach_word = "control reach";
   requirement_word = "requirement";
-  map_tool_before = "The map above was computed by the";
+  map_tool_before = "The map above was computed by the tool";
   map_tool_after = ".";
   reasons_heading = "What the reasons of the map mean";
   reason_clauses = reason_clauses_en;
@@ -133,7 +133,7 @@ let labels_ru = {
   valid_until_word = "действует до";
   control_reach_word = "контроль достиг";
   requirement_word = "условие подтверждения";
-  map_tool_before = "Карту выше вычислил";
+  map_tool_before = "Карту выше вычислил инструмент";
   map_tool_after = ".";
   reasons_heading = "Что значат причины карты";
   reason_clauses = reason_clauses_ru;
@@ -354,9 +354,10 @@ let fragment labels map claims =
     match map.tool with
     | None -> []
     | Some (class_, fingerprint) ->
-        [ Printf.sprintf "<p class=\"muted\">%s %s <code>%s %s</code>%s</p>"
-            (escape labels.map_tool_before) (escape labels.tool_word)
-            (escape class_) (escape fingerprint) (escape labels.map_tool_after) ]
+        [ Printf.sprintf
+            "<p class=\"muted\"><span>%s: %s &middot; <code>%s</code></span></p>"
+            (escape labels.map_tool_before) (escape class_)
+            (escape fingerprint) ]
   in
   let summary =
     [Printf.sprintf "<span>%s: <span class=\"v-pill %s\">%s</span></span>"
@@ -685,8 +686,11 @@ let check root dist map_path =
       (match map.tool with
        | None -> fail (Printf.sprintf "the map behind %s names no tool" name)
        | Some (class_, fingerprint) ->
+           (* The line of the tool is drawn like the rest of the summary: the
+              name of the build, the class of the tool and its fingerprint. *)
            let tool =
-             Printf.sprintf "<code>%s %s</code>" (escape class_)
+             Printf.sprintf "%s: %s &middot; <code>%s</code>"
+               (escape labels.map_tool_before) (escape class_)
                (escape fingerprint)
            in
            if not (contains tool page) then
