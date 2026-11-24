@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Рабочий цикл — math-coding v5</title>
-<meta name="description" content="Рабочий цикл math-coding v5: init, goal, add, run, map, next — и человеческие решения вокруг него.">
+<title>Рабочий цикл — math-coding: версия формата 6, инструмент mathc 5</title>
+<meta name="description" content="Рабочий цикл math-coding: init, goal, add, run, map, next — и человеческие решения вокруг него. Версия формата 6, инструмент mathc 5.">
 <link rel="stylesheet" href="assets/style.css">
 <link rel="preload" href="assets/fonts/source-serif-4-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/jetbrains-mono-cyrillic.woff2" as="font" type="font/woff2" crossorigin>
@@ -26,7 +26,8 @@
 <main>
 
 <h1>Рабочий цикл</h1>
-<p>Основной цикл: <code>init</code>, <code>goal</code>, <code>add</code>,
+<p>Формат спецификации и формат доказательств — версия 6; инструмент —
+<code>mathc 5</code>: версия продукта не изменилась. Основной цикл: <code>init</code>, <code>goal</code>, <code>add</code>,
 <code>run</code> и <code>map</code>; <code>next</code> называет одно конкретное
 следующее действие. Читающие глаголы не изменяют рабочее
 дерево; контроли исполняются в изолированных копиях; человеческие решения
@@ -60,6 +61,44 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <tr><td><code>map</code> / <code>next</code> / <code>context</code></td><td>вычисляют состояния, называют следующее действие, отдают капсулу агенту</td><td>read-only</td></tr>
 </tbody>
 </table>
+
+<h2>Что может прогон формата 6</h2>
+<p>Прогон формата 5 исполнил все объявленные проверки и записал доказательства.
+Прогон формата 6 делает больше и говорит больше.</p>
+<table>
+<thead><tr><th>что</th><th>как</th></tr></thead>
+<tbody>
+<tr><td>частичный прогон</td><td><code>mathc run --changed</code> исполняет только те утверждения, чьё доказательство перестало держаться, и оставляет остальные как есть</td></tr>
+<tr><td>цена</td><td>каждый прогон пишет свою цену в журнал прогонов: машинные секунды по утверждениям, самые дорогие первыми (<code>.math/v6/runs.jsonl</code>)</td></tr>
+<tr><td>предел</td><td><code>mathc run --limit SECONDS</code> ограничивает прогон; по умолчанию 3600 секунд</td></tr>
+<tr><td>остановленный прогон</td><td>он говорит, что остановлен, отдаёт карту по уже наблюдённому и выходит с кодом 4</td></tr>
+</tbody>
+</table>
+
+<h2>Контроль должен быть причиной</h2>
+<p>Контроль доказывает, что проверка способна отклонить одно конкретное
+нарушение, и для этого проверка обязана пройти в копии до того, как контроль
+применён. Протокол: та же проверка сначала должна дать <code>pass</code> на
+неизменённой копии предмета, и только затем контроль применяется, проверка
+повторяется и обязана вернуть обычный <code>fail</code>. Копия, которая не
+может выполнить проверку сама по себе &mdash; нет зависимостей, нет
+toolchain, &mdash; своим отказом ничего не доказывает: наблюдение становится
+<code>inconclusive</code> с причиной <code>copy-failed</code>, и машинное
+<code>holds</code> недостижимо.</p>
+<p>Проверка, которой нужны зависимости проекта, объявляет среду, в которой она
+выполняется: префикс среды (<code>--environment ENV</code> в <code>add</code>)
+готовит среду перед проверкой. Без этого объявления копия не может выполнить
+проверку, и причина <code>copy-failed</code> говорит об этом вместо ложного
+доказательства.</p>
+
+<h2>Среда и сборка инструмента</h2>
+<p>В формате 5 в fingerprint среды входил digest бинаря, поэтому пересборка
+инструмента обесценивала каждое доказательство разом: в одном проекте 151
+подтверждение стали устаревшими, хотя ни одно из них не стало ложным. В формате 6
+среда &mdash; это операционная система и зафиксированный toolchain (lock file), а
+сборка инструмента пишется отдельно, рядом со средой. Смена инструмента
+называется <code>tool-changed</code> и не отзывает результат: проверка была та же
+и предмет был тот же.</p>
 
 <h2>Привязка ADR</h2>
 <p>ADR хранит мотивацию и историю; math-coding ничего в него не пишет.
@@ -129,22 +168,38 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <table>
 <thead><tr><th>глагол</th><th>что делает</th></tr></thead>
 <tbody>
+<tr><td><code>help COMMAND</code></td><td>описывает один глагол; работает до создания спецификации</td></tr>
 <tr><td><code>context</code></td><td>печатает ограниченный контекст задачи в JSON &mdash; капсулу, которую получает агент</td></tr>
 <tr><td><code>adopt</code></td><td>находит каталоги ADR и источников спецификации, только на чтение</td></tr>
 <tr><td><code>import-adr PATH</code></td><td>читает документ MADR или adr-tools и печатает черновик утверждения; ни источник, ни <code>spec.json</code> не меняются</td></tr>
 <tr><td><code>import-junit PATH</code></td><td>разбирает JUnit XML и печатает точные числа тестов и падений</td></tr>
 <tr><td><code>re-evaluate</code></td><td>перечисляет утверждения, чей источник, определение или доказательства требуют ревью</td></tr>
 <tr><td><code>review-source ID --by OWNER --reason WHY</code></td><td>связывает изменённый источник после человеческого ревью; сохраняет прежний digest, очищает waiver и всё равно требует свежего <code>run</code></td></tr>
+<tr><td><code>review-decision ID --by WHO --reason WHY</code></td><td>пересматривает решение человека по утверждению; решение привязано к решению, а не к байтам документа, который его несёт, поэтому растущий документ не делает решение устаревшим</td></tr>
 <tr><td><code>authorize --by WHO --reason WHY</code></td><td>записывает разрешение на текущие защищённые изменения при наличии <code>policy.json</code>; это журнал, а не аутентификация</td></tr>
 <tr><td><code>approve --by WHO --reason WHY [--command CMD]</code></td><td>одобряет команды, которые может исполнять поверхность агента; одобрение привязано к самим командам, а неодобренная команда не проходит</td></tr>
 <tr><td><code>doctor</code></td><td>проверяет git, спецификацию, цель, защищённую политику и страницу агента, ничего не меняя</td></tr>
 <tr><td><code>install</code></td><td>обновляет только блок math-coding в <code>AGENTS.md</code> проекта; бинари он не ставит</td></tr>
+<tr><td><code>migrate</code></td><td>переводит проект формата 5 на формат 6: журналы переезжают в <code>.math/v6/</code>, а файлы формата 5 остаются на диске</td></tr>
 <tr><td><code>mcp</code></td><td>отдаёт поверхность инструментов JSON-RPC через stdio</td></tr>
 </tbody>
 </table>
 <p>Утверждение с регистром <code>judgment</code> устанавливается только внешним
 человеческим ревью: для него <code>add</code> требует <code>review:WHO</code> и
 не принимает машинные verifier'ы.</p>
+
+<h2>Обновление проекта с форматом 5</h2>
+<ol>
+<li>Сначала обновить инструмент проекта &mdash; его установленный бинарь и его
+CI. Инструмент, который читает проект, должен понимать формат 6 раньше, чем
+миграция ляжет в дерево: прежняя версия не читает спецификацию версии 6, и
+гейт проекта падает с <code>unsupported schema_version 6</code>.</li>
+<li>Затем <code>mathc migrate</code> &mdash; журналы переезжают в
+<code>.math/v6/</code>, а старые файлы остаются на диске.</li>
+<li>Затем снова <code>mathc run</code> &mdash; доказательства пишутся заново.</li>
+</ol>
+<p>Порядок найден полевым измерением 2026-11-22 и исправлен в плане
+архитектуры.</p>
 
 <h2>Читать карту без терминала</h2>
 <p>Карту можно читать и в браузере. Консоль показывает ту же карту, очередь
@@ -159,7 +214,7 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 <tr><td><code>1</code></td><td>red, либо отказ защищённого перехода</td></tr>
 <tr><td><code>2</code></td><td>ошибка вызова</td></tr>
 <tr><td><code>3</code></td><td>unknown или vacant &mdash; состояние не установлено</td></tr>
-<tr><td><code>4</code></td><td>прогон остановлен до того, как закончился</td></tr>
+<tr><td><code>4</code></td><td>прогон остановлен &mdash; он говорит об этом и отдаёт карту по уже наблюдённому</td></tr>
 <tr><td><code>5</code></td><td>инструмент не смог ответить &mdash; битая спецификация или битый репозиторий</td></tr>
 </tbody>
 </table>
@@ -177,8 +232,8 @@ next: nothing to do - declared evidence is current and the tree is covered</div>
 
 </main>
 <footer class="site-footer">
-<p><a href="https://github.com/11111000000/math-coding">math-coding v5</a>
-&middot; <a href="index.ru.html">главная</a> &middot;
+<p><a href="https://github.com/11111000000/math-coding">math-coding</a>
+&middot; версия формата 6 &middot; инструмент mathc 5 &middot; <a href="index.ru.html">главная</a> &middot;
 <a href="methodology.ru.html">методология</a> &middot;
 <a href="workflow.html">english</a></p>
 <p class="meta"><!-- @META@ --></p>
