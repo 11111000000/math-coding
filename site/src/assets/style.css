@@ -127,6 +127,42 @@
                   "Times New Roman", serif;
   --mono-stack:   "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono",
                   Menlo, Consolas, "Liberation Mono", monospace;
+
+  /* The parts that do not follow the paper: the bar, the terminal, the
+     pills, the mark. Their colours live here as well, so that the dark
+     theme is one block of variables and not a hunt through the rules.
+     Every colour of the pages comes from a variable. */
+  --nav-bg:        #1a1a1a;
+  --nav-fg:        #fbfaf6;
+  --nav-grid:      rgba(255, 255, 255, 0.035);
+  --nav-rule:      rgba(255, 255, 255, 0.3);
+  --nav-link-rule: rgba(255, 255, 255, 0.26);
+  --nav-wash:      rgba(139, 58, 58, 0.22);
+  --on-dark:       #ffffff;
+  --cta-ink:       #ffffff;
+  --cta-hover-bg:  #6f2b2b;
+  --accent-wash:   rgba(139, 58, 58, 0.07);
+  --terminal-bg:   #1a1a1a;
+  --terminal-fg:   #d4d0c8;
+  --terminal-rule: #2a2724;
+  --terminal-green: #7fb069;
+  --terminal-amber: #d4a857;
+  --terminal-dim:  #8a8578;
+  --lamp-red:      #9a2929;
+  --lamp-amber:    #b07a1a;
+  --lamp-green:    #2f7a3a;
+  --pill-ink:      #ffffff;
+  --pill-rule:     rgba(255, 255, 255, 0.3);
+  --hero-grid:     rgba(26, 26, 26, 0.09);
+  --shot-bg:       #ffffff;
+  --print-bg:      #ffffff;
+  --print-fg:      #000000;
+  --print-rule:    #999999;
+
+  /* The mark is drawn in oxblood on a transparent ground. On dark paper
+     it needs a little light of its own. */
+  --logo-brightness: 1;
+  --logo-saturate:   1;
 }
 
 * { box-sizing: border-box; }
@@ -152,6 +188,9 @@ body {
   font-variant-numeric: oldstyle-nums;
   font-synthesis: none;
   overflow-wrap: break-word;
+  /* The site already moves its colours (the links, the claims, the
+     buttons), so the paper and the ink may move with them. */
+  transition: background-color 0.15s, color 0.15s;
 }
 
 ::selection { background: var(--selection); color: var(--fg); }
@@ -217,8 +256,8 @@ nav.site-nav {
   align-items: center;
   column-gap: 1.75rem;
   row-gap: 0.55rem;
-  background: #1a1a1a;
-  color: var(--bg);
+  background: var(--nav-bg);
+  color: var(--nav-fg);
   padding: 0.8rem 1.5rem;
   border-bottom: 1px solid var(--accent);
 }
@@ -229,8 +268,8 @@ nav.site-nav::before {
   position: absolute;
   inset: 0;
   background-image:
-    linear-gradient(to right, rgba(255, 255, 255, 0.035) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+    linear-gradient(to right, var(--nav-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--nav-grid) 1px, transparent 1px);
   background-size: 30px 30px;
   pointer-events: none;
 }
@@ -244,7 +283,7 @@ nav.site-nav .brand {
   font-size: 1.02rem;
   font-weight: 700;
   letter-spacing: 0.01em;
-  color: var(--bg);
+  color: var(--nav-fg);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -256,7 +295,7 @@ nav.site-nav .brand-logo {
   flex-shrink: 0;
 }
 nav.site-nav .brand:hover .brand-logo { filter: brightness(1.2); }
-nav.site-nav .brand:hover { color: #fff; }
+nav.site-nav .brand:hover { color: var(--on-dark); }
 
 nav.site-nav .nav-inner {
   grid-area: links;
@@ -277,7 +316,7 @@ nav.site-nav a.nav-link {
   letter-spacing: 0.07em;
   text-transform: lowercase;
   white-space: nowrap;
-  color: var(--bg);
+  color: var(--nav-fg);
   opacity: 0.75;
   border: 1px solid transparent;
   border-bottom: 2px solid transparent;
@@ -287,13 +326,13 @@ nav.site-nav a.nav-link {
 
 nav.site-nav a.nav-link:hover {
   opacity: 1;
-  color: #fff;
-  border-color: rgba(255, 255, 255, 0.26);
+  color: var(--on-dark);
+  border-color: var(--nav-link-rule);
 }
 
 nav.site-nav a.nav-link.active {
   opacity: 1;
-  color: #fff;
+  color: var(--on-dark);
   border-color: var(--accent-soft);
   border-bottom-color: var(--accent);
 }
@@ -309,14 +348,14 @@ nav.site-nav .lang-toggle {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   white-space: nowrap;
-  color: var(--bg);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--nav-fg);
+  border: 1px solid var(--nav-rule);
   border-radius: 3px;
 }
 nav.site-nav .lang-toggle:hover {
-  color: #fff;
+  color: var(--on-dark);
   border-color: var(--accent-soft);
-  background: rgba(139, 58, 58, 0.22);
+  background: var(--nav-wash);
 }
 
 /* --- typography --- */
@@ -412,7 +451,7 @@ tbody tr:last-child td { border-bottom: 0; }
   position: absolute;
   inset: 0;
   z-index: 0;
-  background-image: radial-gradient(circle at 1px 1px, rgba(26, 26, 26, 0.09) 1px, transparent 0);
+  background-image: radial-gradient(circle at 1px 1px, var(--hero-grid) 1px, transparent 0);
   background-size: 22px 22px;
   background-position: center top;
   -webkit-mask-image: linear-gradient(to bottom, #000 0, #000 55%, transparent 92%);
@@ -466,13 +505,13 @@ tbody tr:last-child td { border-bottom: 0; }
 }
 .cta a.cta-primary, a.cta-button.cta-primary {
   background: var(--accent);
-  color: #fff;
+  color: var(--cta-ink);
   border-color: var(--accent);
 }
 .cta a.cta-primary:hover, a.cta-button.cta-primary:hover {
-  background: #6f2b2b;
-  border-color: #6f2b2b;
-  color: #fff;
+  background: var(--cta-hover-bg);
+  border-color: var(--cta-hover-bg);
+  color: var(--cta-ink);
 }
 .cta a.cta-secondary, a.cta-button.cta-secondary {
   background: transparent;
@@ -480,7 +519,7 @@ tbody tr:last-child td { border-bottom: 0; }
   border-color: var(--accent-soft);
 }
 .cta a.cta-secondary:hover, a.cta-button.cta-secondary:hover {
-  background: rgba(139, 58, 58, 0.07);
+  background: var(--accent-wash);
   color: var(--accent);
   border-color: var(--accent);
 }
@@ -529,11 +568,11 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
 /* terminal transcript */
 .terminal {
   position: relative;
-  background: #1a1a1a;
-  color: #d4d0c8;
+  background: var(--terminal-bg);
+  color: var(--terminal-fg);
   padding: 2.4rem 1.4rem 1.2rem;
   border-radius: 4px;
-  border: 1px solid #2a2724;
+  border: 1px solid var(--terminal-rule);
   font-family: var(--mono-stack);
   font-size: 0.85rem;
   line-height: 1.55;
@@ -550,12 +589,12 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  background: #9a2929;
-  box-shadow: 14px 0 0 #b07a1a, 28px 0 0 #2f7a3a;
+  background: var(--lamp-red);
+  box-shadow: 14px 0 0 var(--lamp-amber), 28px 0 0 var(--lamp-green);
 }
-.terminal .t-green { color: #7fb069; }
-.terminal .t-amber { color: #d4a857; }
-.terminal .t-dim { color: #8a8578; }
+.terminal .t-green { color: var(--terminal-green); }
+.terminal .t-amber { color: var(--terminal-amber); }
+.terminal .t-dim { color: var(--terminal-dim); }
 
 /* --- figures (inline SVG diagrams) --- */
 
@@ -594,7 +633,7 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
   height: auto;
   border: 1px solid var(--rule);
   border-radius: 2px;
-  background: #ffffff;
+  background: var(--shot-bg);
 }
 /* The picture opens in its own size: the text of the interface must be
    readable, and the page shows it scaled down. */
@@ -636,8 +675,8 @@ section > .lede { font-size: 1.05rem; color: var(--fg-muted); margin: 0 0 1.5rem
   letter-spacing: 0.06em;
   padding: 0.12em 0.55em;
   border-radius: 2px;
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--pill-ink);
+  border: 1px solid var(--pill-rule);
   vertical-align: middle;
 }
 .v-holds    { background: var(--holds); }
@@ -852,16 +891,99 @@ footer.site-footer a:hover { color: var(--accent); border-bottom-color: var(--ac
 
   .claims-grid { grid-template-columns: 1fr; }
   .cta a, a.cta-button { font-size: 0.76rem; padding: 0.7em 1.1em; }
+
+  /* A table of four columns of words has no room for four columns on a
+     phone. The type gets a little smaller and the padding gets tighter,
+     so that the words of a cell find room and the cell does not have to
+     split them. The rule "anywhere" stays: a value the method itself
+     uses is one long word, and the table must still be able to shrink
+     under it instead of pushing the page sideways. */
+  table { font-size: 0.86em; }
+  th, td { padding: 0.45em 0.5em; }
+  th {
+    font-size: 0.72em;
+    letter-spacing: 0.03em;
+  }
 }
 
 /* --- print --- */
 
 @media print {
-  body { background: #fff; color: #000; font-size: 11pt; }
+  body { background: var(--print-bg); color: var(--print-fg); font-size: 11pt; }
   nav.site-nav, footer.site-footer { display: none; }
   main, .container { max-width: 100%; padding: 0.5cm 1cm 1cm; }
-  a { color: #000; border-bottom: 0; text-decoration: underline; }
+  a { color: var(--print-fg); border-bottom: 0; text-decoration: underline; }
   h2, h3, pre { page-break-after: avoid; }
-  pre { border: 1px solid #999; white-space: pre-wrap; }
+  pre { border: 1px solid var(--print-rule); white-space: pre-wrap; }
   .claim, .law, .figure { page-break-inside: avoid; }
+}
+
+/* --- the dark theme ---
+ *
+ * The paper turns dark, the ink turns light, and the colours of the
+ * states are lightened until they can be read on it. Nothing else moves:
+ * the type, the grid and the rules are the same, because every colour of
+ * the pages comes from a variable above and the theme is this one block.
+ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:           #141310;
+    --bg-card:      #1e1d19;
+    --fg:           #ece7de;
+    --fg-muted:     #b3ada1;
+    --fg-faint:     #8c867a;
+    --accent:       #e39a92;
+    --accent-soft:  #d08b83;
+    --rule:         #33302a;
+    --rule-strong:  #4b463d;
+    --code-bg:      #24221e;
+    --theorem-bg:   #2b2419;
+    --theorem-rule: #b98b45;
+    --link:         #e6a49c;
+    --selection:    #4b3f1c;
+    --holds:        #7fd08c;
+    --refuted:      #f08d8d;
+    --outdated:     #e5b45f;
+    --waived:       #c5a6ef;
+    --unknown:      #a9a49a;
+
+    --nav-bg:        #0e0d0b;
+    --nav-fg:        #ece7de;
+    --nav-rule:      rgba(255, 255, 255, 0.34);
+    --nav-link-rule: rgba(255, 255, 255, 0.28);
+    --nav-wash:      rgba(227, 154, 146, 0.22);
+    --cta-ink:       #141310;
+    --cta-hover-bg:  #efb0a8;
+    --accent-wash:   rgba(227, 154, 146, 0.10);
+    --pill-ink:      #141310;
+    --pill-rule:     rgba(0, 0, 0, 0.30);
+    --hero-grid:     rgba(236, 231, 222, 0.07);
+
+    /* The mark is oxblood: on the dark bar it needs light of its own. */
+    --logo-brightness: 1.45;
+    --logo-saturate:   1.05;
+
+    nav.site-nav .brand-logo,
+    .hero .hero-logo {
+      filter: brightness(var(--logo-brightness)) saturate(var(--logo-saturate));
+    }
+    nav.site-nav .brand:hover .brand-logo {
+      filter: brightness(calc(var(--logo-brightness) * 1.2))
+              saturate(var(--logo-saturate));
+    }
+
+    /* The diagrams of the pages carry the colours of the light theme in
+       their own markup. The dark theme repaints them here, so that the
+       whole page belongs to one theme. */
+    .figure svg [fill="#ffffff"] { fill: var(--bg-card); }
+    .figure svg [fill="#1a1a1a"] { fill: var(--fg); }
+    .figure svg [fill="#5a5a5a"] { fill: var(--fg-muted); }
+    .figure svg [fill="#8a8a8a"] { fill: var(--fg-faint); }
+    .figure svg [fill="#8b3a3a"] { fill: var(--accent); }
+    .figure svg [fill="#f5e9d8"] { fill: var(--theorem-bg); }
+    .figure svg [fill="#b07a1a"] { fill: var(--outdated); }
+    .figure svg [stroke="#1a1a1a"] { stroke: var(--fg); }
+    .figure svg [stroke="#5a5a5a"] { stroke: var(--fg-muted); }
+    .figure svg [stroke="#8b3a3a"] { stroke: var(--accent); }
+  }
 }
