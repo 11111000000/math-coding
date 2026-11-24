@@ -90,6 +90,12 @@ jobs:
       - name: Build and check the portable package
         run: |
           set -uo pipefail
+          # The static build of OCaml 5 reserves the stack for its signal
+          # handlers, and the default limit of the runner is too small: the
+          # binary dies before it starts, and the retry loop below only
+          # repeats the same death. A bigger stack is the fix; the retries
+          # stay for the build itself, which is slow and cold.
+          ulimit -s 65536 || true
           for attempt in 1 2 3; do
             log="$(mktemp)"
             nix develop -c sh test/package_smoke.sh portable >"$log" 2>&1
