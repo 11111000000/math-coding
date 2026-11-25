@@ -42,7 +42,7 @@ let rec has_review = function
   | Review _ -> true
   | All requirements | Any requirements -> List.exists has_review requirements
 
-let add root id text scope falsifier register requirements control source_path environment =
+let add root id text scope falsifier register requirements control source_path environment risk =
   let spec = load root in
   let inside_aim goal_scope prefix =
     List.exists (fun allowed -> Git.path_contains ~dir:allowed ~path:prefix) goal_scope
@@ -55,6 +55,8 @@ let add root id text scope falsifier register requirements control source_path e
         else if scope = [] then Some "the scope is empty"
         else if requirements = [] then Some "at least one requirement is required"
         else if List.exists (fun claim -> claim.id = id) spec.claims then Some "the claim id is already used"
+        else if risk <> "low" && risk <> "medium" && risk <> "high" then Some "risk must be low, medium or high"
+        else if risk = "high" && control = "" then Some "a high-risk claim needs a negative control"
         else if not (List.for_all Spec.valid_path scope) then Some "scope contains an invalid path"
         else if not (List.for_all (inside_aim goal.scope) scope) then Some "the scope is outside the aim"
         else None
@@ -92,12 +94,31 @@ let add root id text scope falsifier register requirements control source_path e
       let claim = {
         id; text; scope; source;
         owner = Option.map (fun goal -> goal.by) spec.goal;
+        risk = (match risk_of_string risk with Some value -> value | None -> Medium);
+        archived = false;
         requirements; falsifier; register; control = (if control = "" then None else Some control);
         waiver = None; environment;
       } in
       Project.save_spec root { spec with claims = spec.claims @ [ claim ] };
       Printf.printf "claim %s declared\n" id;
       0
+
+(* A claim that has served its change is archived: it leaves the active map and
+   the run, but it stays in the specification as history. *)
+let archive root id by reason =
+  let spec = load root in
+  if by = "" || reason = "" then fail Exit_code.usage "archive needs --by and --reason"
+  else
+    match List.find_opt (fun claim -> claim.id = id) spec.claims with
+    | None -> fail Exit_code.usage ("there is no claim " ^ id)
+    | Some claim when claim.archived -> fail Exit_code.usage ("the claim " ^ id ^ " is already archived")
+    | Some _ ->
+        let claims =
+          List.map (fun current -> if current.id = id then { current with archived = true } else current) spec.claims
+        in
+        Project.save_spec root { spec with claims };
+        Printf.printf "claim %s archived by %s: %s\n" id by reason;
+        0
 
 (* A journal with a damaged record is not whole. The records that can be read
    still stand, so the run rewrites the journal with them and keeps the damaged
@@ -163,7 +184,7 @@ let run ?(changed = false) ?(limit = default_limit) root json =
     else None
   in
   let claims =
-    match selection with None -> spec.claims | Some selection -> selection.to_execute
+    match selection with None -> active_claims spec | Some selection -> selection.to_execute
   in
   let emit = Trail.append root in
   let started_at = Execution.now () in
@@ -213,7 +234,7 @@ let run ?(changed = false) ?(limit = default_limit) root json =
   let record : run_record =
     { started_at; finished_at = Execution.now ();
       wall_seconds = Unix.gettimeofday () -. started; machine_seconds;
-      claims = List.length spec.claims; executed = List.length durations;
+      claims = List.length (active_claims spec); executed = List.length durations;
       stopped; stop_reason = !stop_reason; durations }
   in
   Run_log.append root record;
@@ -388,3 +409,55 @@ let review_source root id by reason =
 (* The migration of a project of the previous version of the format. It is a
    human action: the agent surface does not move the journals of a project. *)
 let migrate root dry_run = Migrate.run root dry_run
+
+(* A bundle is the portable form of a project's evidence: the specification,
+   the evidence trail, and the environment and tool that produced it. It is
+   enough to move a project's evidence between machines; it is not a proof
+   that the environment is the same, and the map still says when it is not. *)
+let bundle root path import_bundle =
+  if import_bundle then
+    let text = Io.read_file path in
+    match Yojson.Safe.from_string text with
+    | exception Yojson.Json_error error -> fail Exit_code.usage ("the bundle is not readable: " ^ error)
+    | json -> (
+        match json with
+        | `Assoc fields ->
+            let version = match List.assoc_opt "schema_version" fields with Some (`Int v) -> v | _ -> 0 in
+            if version <> Spec.version then
+              fail Exit_code.usage "the bundle is not of the version of this method"
+            else
+              let spec_json = match List.assoc_opt "spec" fields with Some json -> json | None -> `Null in
+              let evidence_json = match List.assoc_opt "evidence" fields with Some (`List items) -> items | _ -> [] in
+              (match Spec.parse_json spec_json, evidence_json with
+               | Error error, _ -> fail Exit_code.usage ("the bundle specification is not readable: " ^ error)
+               | Ok spec, items ->
+                   let rec read_evidence acc = function
+                     | [] -> Ok (List.rev acc)
+                     | item :: rest -> (
+                         match Evidence.of_json item with
+                         | Ok record -> read_evidence (record :: acc) rest
+                         | Error error -> Error error)
+                   in
+                   (match read_evidence [] items with
+                    | Error error -> fail Exit_code.usage ("the bundle evidence is not readable: " ^ error)
+                    | Ok evidence ->
+                        Project.save_spec root spec;
+                        Trail.write root evidence;
+                        Printf.printf "bundle imported: %d record(s)\n" (List.length evidence);
+                        0))
+        | _ -> fail Exit_code.usage "the bundle is not an object")
+  else (
+    let spec = load root in
+    match Trail.read root with
+    | Error error -> fail Exit_code.internal_failure error
+    | Ok journal ->
+        let json =
+          `Assoc
+            [ "schema_version", `Int Spec.version;
+              "spec", Spec.to_json spec;
+              "evidence", `List (List.map (fun record -> Evidence.to_json record) journal.records);
+              "generated_at", `Int (Execution.now ()) ]
+        in
+        Io.write_atomic path (Yojson.Safe.pretty_to_string json ^ "\n");
+        Printf.printf "bundle written: %s\n" path;
+        0)

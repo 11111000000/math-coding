@@ -8,8 +8,8 @@
 
 - `SourceRef`: вид источника, путь, необязательный раздел, digest и
   необязательная запись пересмотра: автор, причина, время, прежний digest.
-- `Claim`: текст, scope, источник, род, фаза, владелец, события пересмотра,
-  условия подтверждения, falsifier, register, control и необязательный waiver.
+- `Claim`: текст, scope, источник, владелец, риск, archived, условия
+  подтверждения, falsifier, register, control и необязательный waiver.
 - `Evidence`: claim, requirement, candidate tree, materials/definition/verifier
   digests, environment, producer, independence, outcome, issue/expiry, evidence
   reference и control reach.
@@ -22,11 +22,11 @@
 
 ## Границы текущего профиля
 
-- `mathc add` создаёт `acceptance/pre-merge`, назначает владельца из цели и
-  оставляет `review_on` пустым. `import-adr` создаёт неактивный черновик с
-  пустыми scope и requirements и регистром `unknown`.
-- `kind`, `phase` и `review_on` входят в definition digest, но текущий CLI не
-  использует их для расписания или автоматического пересмотра.
+- `mathc add` создаёт claim с риском `medium` по умолчанию, назначает владельца
+  из цели и оставляет claim активным. `import-adr` создаёт неактивный черновик
+  с пустыми scope и requirements и регистром `unknown`.
+- `risk` и `archived` входят в definition digest: изменение риска или lifecycle
+  делает прежнее evidence неприменимым.
 - `fact`, `hypothesis` и `unknown` используют одни правила evidence. Регистр
   фиксирует характер утверждения и не снижает требования. `judgment`
   рассматривает только review requirements.
@@ -39,7 +39,7 @@
 - `execution_log` создаётся прогоном: цена каждого claim'а пишется в журнал
   прогонов как отдельное наблюдение стоимости. Измеритель стоимости не
   превращает свои наблюдения в `Evidence`.
-- `mathc migrate` переводит спецификацию и журналы на версию 6, переписывает
+- `mathc migrate` переводит спецификацию и журналы на версию 7, переписывает
   страницу для агентов и называет инструмент, который проекту теперь нужен:
   прежняя версия не читает новую спецификацию, и гейт проекта падает, пока
   инструмент не обновлён. Миграция без обновлённого инструмента оставляет
@@ -75,9 +75,12 @@
    кто написал наблюдение; его расхождение с отпечатком читающего называется
    причиной `tool-changed`, а состояние остаётся `Holds`. Текущий fingerprint
    среды должен точно совпадать с evidence.
+6a. Approval агента покрывает не только verifier и control, но и environment
+    prefix, из которого команда исполняется; текст одобренной команды пишется
+    в журнал рядом с digest.
 7. Машинное `Holds` требует свежего `pass`, control reach `subject` и
-   independence не ниже `fresh-context`. Недостаток control/independence при
-   `pass` даёт `Inconclusive`.
+   independence не ниже `fresh-context`. Отсутствие control при `pass` даёт
+   `Observed`; недостаток independence при `pass` даёт `Inconclusive`.
 8. Control доказывает чувствительность только если проверка проходит на
    неизменённой копии: копия, которая не может выполнить проверку, даёт
    `Inconclusive` с причиной `copy-failed`, и `Holds` недостижим. Проверка,
@@ -97,12 +100,12 @@
     `Inconclusive`. Отсутствие evidence для одной ветви не скрывает `Refuted`
     другой.
 14. Состояния claim: `Holds`, `Refuted`, `Inconclusive`, `Outdated`,
-    `NeverChecked`, `Waived`.
+    `NeverChecked`, `Observed`, `Waived`.
 15. Последняя evidence для requirement выбирается по `issued_at`, при равном
     timestamp — по более поздней позиции в trail.
 16. Пустой набор claims даёт `Vacant`. Непустой набор даёт `Red`, если хотя бы
     один claim `Refuted`; `Green`, если все `Holds`; иначе `Unknown`.
-17. `Inconclusive`, `Outdated`, `NeverChecked` и `Waived`
+17. `Inconclusive`, `Outdated`, `NeverChecked`, `Observed` и `Waived`
     отображаются в `Unknown`, не в `Green` и не автоматически в `Red`.
 18. Waiver действует только в `[issued_at, expires_at)`, помечает подходящий
     неопределённый gap как `Waived` и не покрывает `Refuted`.

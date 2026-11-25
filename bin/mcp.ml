@@ -98,7 +98,9 @@ let tools =
            "register", `Assoc [ "type", `String "string" ];
            "requirement", `Assoc [ "type", `String "string" ];
            "control", `Assoc [ "type", `String "string" ];
-           "source", `Assoc [ "type", `String "string" ] ]);
+           "source", `Assoc [ "type", `String "string" ];
+           "environment", `Assoc [ "type", `String "string" ];
+           "risk", `Assoc [ "type", `String "string" ] ]);
     tool "doctor" "Check repository setup without changing it." (schema []) ]
 
 let field name json =
@@ -110,7 +112,8 @@ let string_arg name args =
 let argument_rules = function
   | "add" ->
       [ "id", true; "text", true; "scope", true; "falsifier", true;
-        "register", false; "requirement", true; "control", false; "source", false ]
+        "register", false; "requirement", true; "control", false; "source", false;
+        "environment", false; "risk", false ]
   | "import-adr" -> [ "path", true ]
   | "map" | "next" | "context" | "run" | "adopt" | "doctor" -> []
   | _ -> []
@@ -165,11 +168,14 @@ let call ~root name args =
          execute, so they are the commands the human has to approve. *)
       let requirement = string_arg "requirement" args in
       let control = string_arg "control" args in
+      let environment = string_arg "environment" args in
+      let wrap command = Execution.command_in_environment (if environment = "" then None else Some environment) command in
       let commands =
         (match Requirements.parse requirement with
          | Ok parsed -> Domain.verifier_commands parsed
          | Error _ -> [])
         @ (if control = "" then [] else [ control ])
+        |> List.map wrap
       in
       (match approved_or_error ~root ~commands with
        | Error message -> refused message
@@ -180,7 +186,9 @@ let call ~root name args =
                (match string_arg "register" args with "" -> "unknown" | value -> value);
                "--requirement"; requirement;
                "--control"; control;
-               "--source"; string_arg "source" args ]
+               "--source"; string_arg "source" args;
+               "--environment"; environment;
+               "--risk"; (match string_arg "risk" args with "" -> "medium" | value -> value) ]
            in
            parsed ~root arguments)
   | _ -> `Assoc [ "ok", `Bool false; "text", `String ("unknown tool: " ^ name); "next", next_step ~root ]

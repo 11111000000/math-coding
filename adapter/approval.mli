@@ -2,7 +2,7 @@
    in this project. The agent surface asks the program, the program asks the
    human, and the approval is bound to the commands themselves. *)
 
-type record = { by : string; reason : string; at : int; commands : string list }
+type record = { by : string; reason : string; at : int; command_texts : string list; command_digests : string list }
 
 (* The version of the format of the journal. *)
 val version : int
@@ -15,8 +15,8 @@ val previous_path : string -> string
 
 val digest_of_command : string -> string
 
-(* The commands a claim declares: its checks and its control. *)
-val commands_of_claim : Domain.claim -> string list
+(* The commands a claim declares: its environment, checks and control. *)
+val commands_of_claim : environment:string option -> Domain.claim -> string list
 
 (* The commands a specification declares: the commands of every claim. *)
 val commands_of_spec : Domain.spec -> string list

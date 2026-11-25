@@ -58,7 +58,8 @@ let next_text root spec =
    has to know which build produced the evidence and which build reads it. A
    change of the tool does not change the verdict: it names the difference and
    nothing more. *)
-let text_of verdict (states : Evaluation.evaluated_state list) goal_scope uncovered next damaged tool =
+let text_of verdict (states : Evaluation.evaluated_state list) goal_scope uncovered next damaged tool
+    ~low ~medium ~high ~high_open =
   String.concat ""
     ([ Printf.sprintf "verdict: %s\n" (verdict_to_string verdict) ]
     @ List.map
@@ -73,6 +74,8 @@ let text_of verdict (states : Evaluation.evaluated_state list) goal_scope uncove
     @ [ Printf.sprintf "goal scope: %s\n" goal_scope ]
     @ [ Printf.sprintf "uncovered: %d file(s)\n" (List.length uncovered) ]
     @ List.map (fun file -> Printf.sprintf "  %s\n" file) uncovered
+    @ [ Printf.sprintf "risk coverage: low %d, medium %d, high %d; high-risk open %d\n"
+           low medium high high_open ]
     @ (match damaged with
       | [] -> []
       | _ -> [ Printf.sprintf "damaged records: %s\n" (Next_action.damage_words damaged) ])
@@ -95,6 +98,19 @@ let map_output root spec =
         | _ -> (match verdict with Green -> Unknown | other -> other)
       in
       let tool = Evaluation.tool () in
+      let active = active_claims spec in
+      let archived = List.length spec.claims - List.length active in
+      let risk_count risk =
+        List.length (List.filter (fun (claim : claim) -> claim.risk = risk) active)
+      in
+      let high_risk_open =
+        List.filter_map
+          (fun (item : Evaluation.evaluated_state) ->
+            match List.find_opt (fun (claim : claim) -> claim.id = item.id) active with
+            | Some claim when claim.risk = High && item.state <> Holds -> Some (`String item.id)
+            | _ -> None)
+          evaluation.states
+      in
       let states_json =
         List.map
           (fun (item : Evaluation.evaluated_state) ->
@@ -107,19 +123,27 @@ let map_output root spec =
       in
       let json =
         `Assoc
-          [ "schema_version", `Int 6;
+          [ "schema_version", `Int 7;
             "verdict", `String (verdict_to_string verdict);
             "exit", `Int (verdict_to_exit verdict);
-            "claims", `Int (List.length spec.claims);
+            "claims", `Int (List.length active);
+            "archived_claims", `Int archived;
             "tool", `Assoc [ "class", `String tool.class_; "fingerprint", `String tool.fingerprint ];
             "goal", (match spec.goal with None -> `Null | Some goal ->
               `Assoc [ "text", `String goal.text; "scope", `List (List.map (fun p -> `String p) goal.scope);
                        "by", `String goal.by; "at", `Int goal.at; "reason", match goal.reason with Some r -> `String r | None -> `Null ]);
             "states", `List states_json;
             "uncovered", `List (List.map (fun file -> `String file) uncovered);
+            "risk_coverage", `Assoc
+              [ "low", `Int (risk_count Low);
+                "medium", `Int (risk_count Medium);
+                "high", `Int (risk_count High);
+                "high_risk_open", `List high_risk_open ];
             "next", `String next ]
       in
-      Ok { json; text = text_of verdict evaluation.states (goal_scope_words spec) uncovered next evaluation.damaged tool;
+      Ok { json; text = text_of verdict evaluation.states (goal_scope_words spec) uncovered next evaluation.damaged tool
+                       ~low:(risk_count Low) ~medium:(risk_count Medium) ~high:(risk_count High)
+                       ~high_open:(List.length high_risk_open);
            exit_code = verdict_to_exit verdict }
 
 let map_json root spec =

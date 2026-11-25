@@ -16,8 +16,11 @@ type options = {
   mutable help : bool;
   mutable source : string;
   mutable environment : string;
+  mutable risk : string;
+  mutable archive : bool;
   mutable changed : bool;
   mutable dry_run : bool;
+  mutable import_bundle : bool;
   mutable limit : float;
 }
 
@@ -25,8 +28,9 @@ let options () =
   { root = "."; json = false; reason = ""; by = ""; outcome = "pass";
     valid_for = None; recovery = ""; control = ""; requirements = []; commands = [];
     write = false; version = false; help = false; source = ""; environment = "";
+    risk = "medium"; archive = false;
     changed = false;
-    dry_run = false; limit = Commands.default_limit }
+    dry_run = false; import_bundle = false; limit = Commands.default_limit }
 
 let parse_requirement text = Requirements.parse text
 
@@ -46,11 +50,14 @@ let parse_flags o arguments =
     | "--control" :: value :: rest -> o.control <- value; loop acc rest
     | "--source" :: value :: rest -> o.source <- value; loop acc rest
     | "--environment" :: value :: rest -> o.environment <- value; loop acc rest
+    | "--risk" :: value :: rest -> o.risk <- value; loop acc rest
+    | "--archive" :: rest -> o.archive <- true; loop acc rest
     | "--requirement" :: value :: rest -> o.requirements <- o.requirements @ [ value ]; loop acc rest
     | "--command" :: value :: rest -> o.commands <- o.commands @ [ value ]; loop acc rest
     | "--write" :: rest -> o.write <- true; loop acc rest
     | "--changed" :: rest -> o.changed <- true; loop acc rest
     | "--dry-run" :: rest -> o.dry_run <- true; loop acc rest
+    | "--import" :: rest -> o.import_bundle <- true; loop acc rest
     | "--limit" :: value :: rest -> (
         match float_of_string_opt value with
         | Some seconds when seconds >= 0.0 -> o.limit <- seconds; loop acc rest
@@ -102,7 +109,8 @@ let main () =
         | Error error -> fail Exit_code.usage error
         | Ok requirements ->
             Commands.add o.root id text (split_scope scope) falsifier register requirements o.control
-              o.source o.environment)
+              o.source o.environment o.risk)
+    | "archive" :: id :: _ -> Commands.archive o.root id o.by o.reason
     | [ "run" ] -> Commands.run o.root o.json ~changed:o.changed ~limit:o.limit
     | [ "map" ] -> Commands.map o.root o.json
     | [ "next" ] -> Commands.next o.root
@@ -121,6 +129,7 @@ let main () =
     | "import-junit" :: path :: _ -> Junit.import_file path
     | [ "mcp" ] -> Mcp.loop ~root:o.root
     | [ "migrate" ] -> Commands.migrate o.root o.dry_run
+    | "bundle" :: path :: _ -> Commands.bundle o.root path o.import_bundle
     | verb :: _ -> fail Exit_code.usage ("unknown verb: " ^ verb)
   in
   exit code

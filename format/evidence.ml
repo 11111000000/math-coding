@@ -4,7 +4,7 @@ open Json_helpers
 let ( let* ) result next = match result with Ok value -> next value | Error error -> Error error
 
 (* The version of the format of the record. *)
-let version = 6
+let version = 7
 
 let environment_to_json (environment : environment) =
   `Assoc [ "class", json_string environment.class_; "fingerprint", json_string environment.fingerprint ]

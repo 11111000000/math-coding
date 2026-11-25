@@ -5,7 +5,7 @@ type reason =
   | Why_current | Why_never_checked | Why_source_changed | Why_materials_changed
   | Why_definition_changed | Why_verifier_changed | Why_environment_changed | Why_expired
   | Why_not_run | Why_inconclusive | Why_infrastructure_error | Why_refuted | Why_waived
-  | Why_tool_changed | Why_copy_failed
+  | Why_tool_changed | Why_copy_failed | Why_observed
 
 val reason_to_string : reason -> string
 val reason_of_string : string -> reason option

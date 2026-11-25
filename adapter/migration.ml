@@ -15,7 +15,7 @@ open Domain
    beside them and says where the old ones stayed. *)
 
 (* The version this reader reads. *)
-let previous_version = 5
+let previous_version = 6
 
 (* The tool that produced a record of the previous version cannot be known:
    the fingerprint of the environment of that version mixed the binary into
@@ -29,15 +29,17 @@ let drop names json =
   | `Assoc fields -> `Assoc (List.filter (fun (key, _) -> not (List.mem key names)) fields)
   | value -> value
 
-(* The claim of the previous version without the fields this version dropped. *)
+(* The claim of the previous version without the fields this version dropped,
+   and with the fields this version adds. *)
 let claim_of_previous json =
   match drop [ "kind"; "phase"; "review_on" ] json with
   | `Assoc fields ->
       `Assoc
-        (List.map
-           (fun (key, value) ->
-             if key = "waiver" then (key, drop [ "review_on" ] value) else (key, value))
-           fields)
+        ((List.map
+            (fun (key, value) ->
+              if key = "waiver" then (key, drop [ "review_on" ] value) else (key, value))
+            fields)
+         @ [ "risk", `String "medium"; "archived", `Bool false ])
   | value -> value
 
 (* The specification of the previous version, read as the specification of
@@ -94,8 +96,9 @@ let rebind_definitions (spec : spec) (records : evidence list) =
       | None -> record)
     records
 
-(* A record of the previous version, read as a record of this one. The tool it
-   was produced by is unknown, and the record says so. *)
+(* A record of the previous version, read as a record of this one. The tool
+   stays the tool that wrote it: this migration adds claim metadata, not a new
+   observer. *)
 let read_evidence json =
   match Spec.version_of_json json with
   | Error error -> Error error
@@ -111,7 +114,5 @@ let read_evidence json =
                    (fun (key, value) ->
                      if key = "schema_version" then (key, `Int Evidence.version)
                      else (key, value))
-                   fields
-                 @ [ "tool", `Assoc [ "class", `String unknown_tool.class_;
-                                     "fingerprint", `String unknown_tool.fingerprint ] ])
+                   fields)
           | value -> value)

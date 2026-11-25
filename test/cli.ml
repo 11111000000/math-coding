@@ -24,7 +24,7 @@ let bool_field name item =
 
 (* The journal of evidence is a JSONL file: every record is one line. *)
 let trail_records root =
-  let path = Filename.concat root ".math/v6/evidence.jsonl" in
+  let path = Filename.concat root ".math/v7/evidence.jsonl" in
   if not (Sys.file_exists path) then []
   else String.split_on_char '\n' (Io.read_file path) |> List.filter (fun line -> line <> "")
 
@@ -37,6 +37,39 @@ let add_and_run root =
   write root "subject.txt" "expected\n";
   expect root "add sample \"the subject is expected\" subject.txt \"not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
   expect root "run" 0
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"progressive formality\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add low \"the subject is expected\" subject.txt \"the subject is not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --risk low" 0;
+      expect root "run" 3;
+      check "a low-risk claim without control is observed"
+        (contains (run root "map").stdout "observed");
+      expect root "add high \"the subject is strict\" subject.txt \"the subject is not strict\" fact --requirement \"verifier:grep -q expected subject.txt\" --risk high" 2;
+      expect root "archive low --by owner --reason \"accepted\"" 0;
+      check "an archived claim leaves the active map"
+        (not (contains (run root "map").stdout "  low"));
+      print_endline "progressive-formality: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
+      expect root "goal \"the bundle moves evidence\" subject.txt owner" 0;
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"the subject is not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
+      expect root "run" 0;
+      let bundle = Filename.concat root "bundle.json" in
+      expect root ("bundle " ^ Filename.quote bundle) 0;
+      with_repo (fun other ->
+          write other "subject.txt" "expected\n";
+          expect other ("bundle " ^ Filename.quote bundle ^ " --import") 0;
+          let map = run other "map --json" in
+          let json = Yojson.Safe.from_string map.stdout in
+          check "a bundle imports green evidence into a new clone"
+            (map.code = 0 && field "verdict" json = Some (`String "green")));
+      print_endline "bundle-import: PASS")
 
 let () =
   with_repo (fun root ->
@@ -121,7 +154,7 @@ let () =
       expect root "add reviewed \"human review\" subject.txt \"review refutes it\" fact --requirement \"review:owner\"" 0;
       expect root "record reviewed owner --by owner --outcome invented" 2;
       expect root "record reviewed owner --by owner --outcome pass --valid-for -1" 2;
-      write root ".math/v6/evidence.jsonl" "not-json\n";
+      write root ".math/v7/evidence.jsonl" "not-json\n";
       (* A damaged record does not take the project with it: the records that
          can be read still stand, the damage is named, and the run repairs the
          journal and keeps the damaged original beside it. *)
@@ -138,18 +171,18 @@ let () =
         (contains repaired.stdout "the evidence trail had 1 record(s) that could not be read"
         && contains repaired.stdout "the damaged original is kept at");
       let kept =
-        Sys.readdir (Filename.concat root ".math/v6")
+        Sys.readdir (Filename.concat root ".math/v7")
         |> Array.to_list
         |> List.filter (fun name -> String.starts_with ~prefix:"evidence.damaged." name)
       in
       check "the damaged original is kept beside the journal"
         (kept <> []
-        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v6") (List.hd kept))) "not-json");
+        && contains (Io.read_file (Filename.concat (Filename.concat root ".math/v7") (List.hd kept))) "not-json");
       let healed = run root "map" in
       check "the repaired journal is whole"
         (not (contains healed.stdout "damaged records")
         && contains healed.stdout "never-checked");
-      write root ".math/v6/evidence.jsonl" "not-json\n";
+      write root ".math/v7/evidence.jsonl" "not-json\n";
       let corrupted_json = run root "run --json" in
       check "structured run keeps the repair notice out of the json"
         (corrupted_json.code = 3
@@ -667,8 +700,9 @@ let () =
       check "the other claim keeps its own environment" (state_of_map wrong_map "inherited" = "holds");
       (* A garbage environment of a claim is refused before anything is run. *)
       let garbage =
-        `Assoc [ "schema_version", `Int 6; "goal", `Null; "environment", `Null;
+        `Assoc [ "schema_version", `Int 7; "goal", `Null; "environment", `Null;
                  "claims", `List [ `Assoc [ "id", `String "own"; "text", `String "text"; "scope", `List [];
+                                           "risk", `String "medium"; "archived", `Bool false;
                                            "requirements", `List []; "falsifier", `String "x";
                                            "register", `String "fact"; "environment", `String "" ] ] ] in
       write root "spec.json" (Yojson.Safe.pretty_to_string garbage);
@@ -745,7 +779,7 @@ let () =
                     requirements = [ Verifier "grep -q expected subject.txt" ];
                     control = Some "printf broken > subject.txt" } in
       let second = { claim with id = "second";
-                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v6/evidence.jsonl && grep -q expected subject.txt" ];
+                     requirements = [ Verifier "grep -q '\"claim_id\":\"first\"' .math/v7/evidence.jsonl && grep -q expected subject.txt" ];
                      control = Some "printf broken > subject.txt" } in
       let goal = Some { text = "the journal grows while the run works";
                         scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
@@ -900,7 +934,7 @@ let () =
         (contains report.stdout "machine time:");
       check "the report names the claim that was slow"
         (contains report.stdout "sample");
-      let journal = Filename.concat root ".math/v6/runs.jsonl" in
+      let journal = Filename.concat root ".math/v7/runs.jsonl" in
       check "the journal of runs exists" (Sys.file_exists journal);
       let lines =
         String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
@@ -925,7 +959,7 @@ let () =
          | _ -> false);
       (* A record that cannot be read does not take the price of the other runs
          with it. *)
-      write root ".math/v6/runs.jsonl"
+      write root ".math/v7/runs.jsonl"
         ("{\"schema_version\": 4, \"started_at\": 0}\n" ^ String.concat "\n" lines ^ "\n");
       let doctor = run root "doctor" in
       check "the doctor still names the price of the last run"
@@ -947,7 +981,7 @@ let () =
       check "a stopped run hands over the map over what was observed"
         (contains stopped.stdout "never-checked");
       check "a stopped run does not pass the gate" (stopped.code = 4);
-      let journal = Filename.concat root ".math/v6/runs.jsonl" in
+      let journal = Filename.concat root ".math/v7/runs.jsonl" in
       let lines =
         String.split_on_char '\n' (Io.read_file journal) |> List.filter (fun line -> line <> "")
       in
@@ -1021,6 +1055,7 @@ let () =
                         by = "owner"; at = 1; reason = None } in
       let decided = { claim with id = "decided"; text = "the owner decided the order of the waves twice";
                       scope = [ "plan.md" ]; register = Judgment; owner = Some "owner";
+                      risk = Medium; archived = false;
                       requirements = [ Review { authority = "owner"; minimum_independence = External } ];
                       falsifier = "the order is not the owner's"; control = None } in
       write root "spec.json"
@@ -1059,7 +1094,7 @@ let () =
       let approved = run root "approve --by owner --reason \"the release checks\"" in
       check "the approval covers the commands of the project"
         (approved.code = 0 && contains approved.stdout "approved 2 command(s)");
-      let approval = Filename.concat root ".math/v6/approval.json" in
+      let approval = Filename.concat root ".math/v7/approval.json" in
       check "the approval is kept in the project"
         (Sys.file_exists approval && contains (Io.read_file approval) "the release checks");
       (* A named command can be approved on its own. *)

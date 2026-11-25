@@ -35,18 +35,18 @@ type run_record = {
 }
 
 (* The version of the format of the record. *)
-let version = 6
+let version = 7
 
 (* The version the migration reads. *)
-let previous_version = 5
+let previous_version = 6
 
 (* The journal of the price of the runs of this version of the format. Every
    journal of the project lives in the directory of the same version. *)
-let path root = Filename.concat root ".math/v6/runs.jsonl"
+let path root = Filename.concat root ".math/v7/runs.jsonl"
 
 (* The journal of the previous version. It stays where it is - it is the
    evidence of what happened - and the migration reads it. *)
-let previous_path root = Filename.concat root ".math/v5/runs.jsonl"
+let previous_path root = Filename.concat root ".math/v6/runs.jsonl"
 
 let scale_to_string = function
   | Wall_clock_seconds -> "wall_clock_seconds"

@@ -1,16 +1,16 @@
 open Domain
 
 (* The journal of evidence of this version of the format. *)
-let path root = Filename.concat root ".math/v6/evidence.jsonl"
+let path root = Filename.concat root ".math/v7/evidence.jsonl"
 
 (* The journal of the previous version. It stays where it is - it is the
    evidence of what happened - and the migration reads it. *)
-let previous_path root = Filename.concat root ".math/v5/evidence.jsonl"
+let previous_path root = Filename.concat root ".math/v6/evidence.jsonl"
 
 (* The damaged original of a journal is kept beside it, so the fact of the
    damage stays visible and nothing that can be read is lost. *)
 let damaged_path root stamp =
-  Filename.concat root (Printf.sprintf ".math/v6/evidence.damaged.%d.jsonl" stamp)
+  Filename.concat root (Printf.sprintf ".math/v7/evidence.damaged.%d.jsonl" stamp)
 
 type damage = { line : int; reason : string }
 

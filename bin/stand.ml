@@ -148,7 +148,7 @@ let measure ?limit root =
       (* The limit of the protocol arm is derived from the limits of the
          protocol itself, so a legitimate run is never cut short. *)
       let limit =
-        match limit with Some value -> value | None -> Execution.protocol_timeout (List.length spec.claims)
+        match limit with Some value -> value | None -> Execution.protocol_timeout (List.length (active_claims spec))
       in
       let started = Unix.gettimeofday () in
       (* The journal before the protocol arm: the records the arm appends are
@@ -187,7 +187,7 @@ let measure ?limit root =
                 let elapsed, executed = price_claim ~root ~cut ~environment claim in
                 ( total +. elapsed,
                   work @ List.map (fun requirement -> (claim.id, requirement)) executed ))
-              (0.0, []) spec.claims
+              (0.0, []) (active_claims spec)
           in
           (* The two arms have to have done the same work: the journal says
              which checks the protocol ran, the price arm says which checks it

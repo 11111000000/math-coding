@@ -157,6 +157,8 @@ let claim_to_json claim =
       "scope", json_strings claim.scope;
       "source", (match claim.source with None -> `Null | Some source -> source_to_json source);
       "owner", json_string_opt claim.owner;
+      "risk", `String (risk_to_string claim.risk);
+      "archived", `Bool claim.archived;
       "requirements", `List (List.map requirement_to_json claim.requirements);
       "falsifier", json_string claim.falsifier;
       "register", json_string (register_to_string claim.register);
@@ -166,7 +168,7 @@ let claim_to_json claim =
 
 let claim_of_json json =
   let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "owner";
-                                 "requirements"; "falsifier"; "register"; "control";
+                                 "risk"; "archived"; "requirements"; "falsifier"; "register"; "control";
                                  "waiver"; "environment" ] json in
   let* id = string "id" pairs in
   let* text = string "text" pairs in
@@ -197,10 +199,22 @@ let claim_of_json json =
     | Some json -> (match waiver_of_json json with Ok waiver -> Ok (Some waiver) | Error error -> Error error)
   in
   let* owner = string_opt "owner" pairs in
+  let* risk_name = string "risk" pairs in
+  let* risk =
+    match risk_of_string risk_name with
+    | Some risk -> Ok risk
+    | None -> Error ("claim.risk: unsupported " ^ risk_name)
+  in
+  let* archived =
+    match List.assoc_opt "archived" pairs with
+    | Some (`Bool value) -> Ok value
+    | Some _ -> Error "claim.archived must be a boolean"
+    | None -> Error "archived is required"
+  in
   let* control = string_opt "control" pairs in
   let* environment = environment_of_json "claim.environment" pairs in
   Ok { id; text; scope; source; owner;
-       requirements; falsifier; register; control; waiver; environment }
+       risk; archived; requirements; falsifier; register; control; waiver; environment }
 
 let goal_to_json goal =
   `Assoc [ "text", json_string goal.text;
@@ -226,7 +240,7 @@ let goal_of_json json =
 
 (* The version of the format of the specification. The dead fields of the
    previous version are gone: the codec does not accept them. *)
-let version = 6
+let version = 7
 
 let to_json spec =
   `Assoc

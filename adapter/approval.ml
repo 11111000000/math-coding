@@ -15,46 +15,58 @@ open Domain
    sandbox around the tree - a process that can write the tree can go around
    it, exactly as in the console. *)
 
-type record = { by : string; reason : string; at : int; commands : string list }
+type record = { by : string; reason : string; at : int; command_texts : string list; command_digests : string list }
 
 (* The version of the format of the journal. *)
-let version = 6
+let version = 7
 
 (* The journal of the approval of this version of the format. *)
-let path root = Filename.concat root ".math/v6/approval.json"
+let path root = Filename.concat root ".math/v7/approval.json"
 
 (* The journal of the previous version. It stays where it is - it is the
    evidence of what happened - and the migration reads it. *)
-let previous_path root = Filename.concat root ".math/v5/approval.json"
+let previous_path root = Filename.concat root ".math/v6/approval.json"
 
 let digest_of_command command = Domain.digest_string command
 
-(* The commands a specification declares: the checks of every claim and the
-   control of every claim. A run executes all of them, so all of them need the
-   approval of the human. *)
-let commands_of_claim (claim : Domain.claim) =
+(* The commands a specification declares: the environment, the checks of every
+   claim and the control of every claim. A run executes all of them, so all of
+   them need the approval of the human. *)
+let commands_of_claim ~environment (claim : Domain.claim) =
+  let command command =
+    match environment with
+    | Some prefix -> prefix ^ " sh -c " ^ Filename.quote command
+    | None -> command
+  in
   List.concat_map (fun requirement -> Domain.verifier_commands requirement) claim.requirements
   @ Option.to_list claim.control
+  |> List.map command
 
 let commands_of_spec (spec : Domain.spec) =
-  List.concat_map commands_of_claim spec.claims |> List.sort_uniq String.compare
+  List.concat_map
+    (fun claim -> commands_of_claim ~environment:(Domain.effective_environment spec claim) claim)
+    (Domain.active_claims spec)
+  |> List.sort_uniq String.compare
 
 let record_to_json record =
   `Assoc
     [ "by", `String record.by;
       "reason", `String record.reason;
       "at", `Int record.at;
-      "command_digests", `List (List.map (fun digest -> `String digest) record.commands) ]
+      "commands", `List (List.map (fun command -> `String command) record.command_texts);
+      "command_digests", `List (List.map (fun digest -> `String digest) record.command_digests) ]
 
 let record_of_json json =
-  match Json_helpers.object_ "approval" [ "by"; "reason"; "at"; "command_digests" ] json with
+  match Json_helpers.object_ "approval" [ "by"; "reason"; "at"; "commands"; "command_digests" ] json with
   | Error error -> Error error
   | Ok pairs -> (
       match Json_helpers.string "by" pairs, Json_helpers.string "reason" pairs,
-            Json_helpers.int "at" pairs, Json_helpers.string_list "command_digests" pairs with
-      | Ok by, Ok reason, Ok at, Ok commands -> Ok { by; reason; at; commands }
-      | Error error, _, _, _ | _, Error error, _, _ | _, _, Error error, _ | _, _, _, Error error ->
-          Error error)
+            Json_helpers.int "at" pairs, Json_helpers.string_list "commands" pairs,
+            Json_helpers.string_list "command_digests" pairs with
+      | Ok by, Ok reason, Ok at, Ok command_texts, Ok command_digests ->
+          Ok { by; reason; at; command_texts; command_digests }
+      | Error error, _, _, _, _ | _, Error error, _, _, _ | _, _, Error error, _, _
+      | _, _, _, Error error, _ | _, _, _, _, Error error -> Error error)
 
 (* The journal is read with the version it was written in: a journal of
    another version is not read as if it were this one. *)
@@ -89,7 +101,7 @@ let load root =
 (* The journal of the previous version, read as it was written. *)
 let read_previous root =
   if not (Sys.file_exists (previous_path root)) then Ok []
-  else read_journal (previous_path root) 5
+  else read_journal (previous_path root) 6
 
 (* The approval of the human adds a record; it never removes one. The history
    of the decisions stays readable, and a command that was approved once stays
@@ -104,7 +116,8 @@ let approve root ~by ~reason ~commands =
     | Ok records ->
         let record =
           { by; reason; at = int_of_float (Unix.time ());
-            commands = commands |> List.map digest_of_command |> List.sort_uniq String.compare }
+            command_texts = commands;
+            command_digests = commands |> List.map digest_of_command |> List.sort_uniq String.compare }
         in
         let json =
           `Assoc
@@ -113,7 +126,7 @@ let approve root ~by ~reason ~commands =
         in
         (try
            Io.write_atomic (path root) (Yojson.Safe.pretty_to_string json ^ "\n");
-           Ok (List.length record.commands)
+           Ok (List.length record.command_digests)
          with Sys_error error -> Error error)
 
 (* The approval of the previous version is moved to the journal of this
@@ -137,7 +150,7 @@ let migrate root =
 (* The commands of the human's approval: the digests of every approved
    command. A command is approved when its digest is among them. *)
 let approved records =
-  List.concat_map (fun record -> record.commands) records |> List.sort_uniq String.compare
+  List.concat_map (fun record -> record.command_digests) records |> List.sort_uniq String.compare
 
 let covered records command = List.mem (digest_of_command command) (approved records)
 

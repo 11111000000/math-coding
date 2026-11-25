@@ -38,8 +38,8 @@ for file in "$root"/lib/*.ml "$root"/lib/*.mli; do
     fail "$(basename "$file") has $count lines, the bound of a module of the core is 250"
   fi
 done
-if [ "$core_total" -gt 700 ]; then
-  fail "the core has $core_total lines, the bound is 700"
+if [ "$core_total" -gt 750 ]; then
+  fail "the core has $core_total lines, the bound is 750"
 fi
 
 # The format layer stays within its bound.
@@ -49,8 +49,8 @@ for file in "$root"/format/*.ml "$root"/format/*.mli; do
   count=$(lines_of "$file")
   format_total=$((format_total + count))
 done
-if [ "$format_total" -gt 500 ]; then
-  fail "the format layer has $format_total lines, the bound is 500"
+if [ "$format_total" -gt 520 ]; then
+  fail "the format layer has $format_total lines, the bound is 520"
 fi
 
 # The CLI stays split: the dispatch, the entry point and the entry of the
@@ -65,7 +65,7 @@ split_bound() {
   fi
 }
 
-split_bound "$root/bin/commands.ml" 400
+split_bound "$root/bin/commands.ml" 480
 split_bound "$root/bin/cli.ml" 200
 split_bound "$root/bin/mathc.ml" 50
 

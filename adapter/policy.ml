@@ -13,7 +13,7 @@ type authorization = {
 }
 
 (* The version of the format of the journal. *)
-let version = 6
+let version = 7
 
 let path root = Filename.concat root "policy.json"
 
@@ -21,11 +21,11 @@ let path root = Filename.concat root "policy.json"
    lives in the same directory of the same version: a project that keeps part
    of its journals in the directory of the previous version reads as a project
    of another version. *)
-let authorization_path root = Filename.concat root ".math/v6/authorization.json"
+let authorization_path root = Filename.concat root ".math/v7/authorization.json"
 
 (* The journal of the previous version. It stays where it is - it is the
    evidence of what happened - and the migration reads it. *)
-let previous_authorization_path root = Filename.concat root ".math/v5/authorization.json"
+let previous_authorization_path root = Filename.concat root ".math/v6/authorization.json"
 
 let load root =
   if not (Sys.file_exists (path root)) then Ok None

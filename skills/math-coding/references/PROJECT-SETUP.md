@@ -13,7 +13,7 @@
 
 Устанавливаются без sudo:
 
-- `~/.local/bin/mathc` — статический бинарь v5;
+- `~/.local/bin/mathc` — статический бинарь;
 - `~/.local/bin/mathc-stand` — измеритель, который находит `mathc` рядом;
 - `~/.local/bin/mathc.build-id` — версия и SHA-256 бинаря;
 - `~/.agents/skills/math-coding/` — user-scope skill для других агентов,
@@ -140,8 +140,8 @@ review triggers остаются пустыми. Эти ограничения �
 
 - Green означает, что объявленные claims имеют текущие доказательства, а не что
   программа доказана полностью. Смотрите `uncovered` и `next`.
-- Evidence в `.math/v6/` локальны и не попадают в Git. В новом clone запустите
-  проверки заново.
+- Evidence в `.math/v7/` локальны и не попадают в Git. В новом clone запустите
+  проверки заново или перенесите их через `mathc bundle FILE --import`.
 - Не исполняйте незнакомые verifier/control-команды из чужого репозитория без
   ревизии: это shell-команды проекта.
 - `record`, `waive`, `authorize`, `review-source` — журналы решений, а не

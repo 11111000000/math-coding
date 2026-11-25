@@ -58,7 +58,8 @@ let import_file root path =
     let claim = {
       id = slugify title; text = (if decision = "" then title else decision);
       scope = []; source = Some source;
-      owner = None; requirements = []; falsifier = "";
+      owner = None; risk = Medium; archived = false;
+      requirements = []; falsifier = "";
       register = Undeclared; control = None; waiver = None; environment = None;
     } in
     print_endline (Yojson.Safe.pretty_to_string (Spec.claim_to_json claim));

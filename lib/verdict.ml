@@ -15,7 +15,7 @@ type reason =
   | Why_current | Why_never_checked | Why_source_changed | Why_materials_changed
   | Why_definition_changed | Why_verifier_changed | Why_environment_changed | Why_expired
   | Why_not_run | Why_inconclusive | Why_infrastructure_error | Why_refuted | Why_waived
-  | Why_tool_changed | Why_copy_failed
+  | Why_tool_changed | Why_copy_failed | Why_observed
 
 (* The token of every reason. The table is exhaustive, so the two directions
    cannot drift apart. *)
@@ -25,7 +25,8 @@ let reason_tokens =
     "verifier-changed", Why_verifier_changed; "environment-changed", Why_environment_changed;
     "expired", Why_expired; "not-run", Why_not_run; "inconclusive", Why_inconclusive;
     "infrastructure-error", Why_infrastructure_error; "refuted", Why_refuted; "waived", Why_waived;
-    "tool-changed", Why_tool_changed; "copy-failed", Why_copy_failed ]
+    "tool-changed", Why_tool_changed; "copy-failed", Why_copy_failed;
+    "observed", Why_observed ]
 
 let reason_to_string reason = fst (List.find (fun (_, value) -> value = reason) reason_tokens)
 let reason_of_string token = Option.map snd (List.find_opt (fun (name, _) -> name = token) reason_tokens)
@@ -44,7 +45,7 @@ let combine a b =
 let verdict_of_state = function
   | Holds -> Green
   | Refuted -> Red
-  | Inconclusive | Outdated | NeverChecked | Waived -> Unknown
+  | Inconclusive | Outdated | NeverChecked | Waived | Observed -> Unknown
 
 let verdict_of_states states =
   match states with
@@ -64,6 +65,7 @@ let explains reason state =
   | Why_refuted -> state = Refuted
   | Why_waived -> state = Waived
   | Why_tool_changed -> state = Holds
+  | Why_observed -> state = Observed
 
 (* The most specific cause wins when several branches explain one state. The
    order follows the way the method reads the map: a refutation first, a
@@ -75,13 +77,14 @@ let priority =
   [ Why_refuted; Why_source_changed; Why_materials_changed; Why_definition_changed;
     Why_verifier_changed; Why_environment_changed; Why_expired; Why_tool_changed;
     Why_copy_failed; Why_infrastructure_error; Why_not_run; Why_inconclusive;
-    Why_never_checked; Why_waived; Why_current ]
+    Why_never_checked; Why_waived; Why_current; Why_observed ]
 
 (* The reason of a state when no branch explains it. *)
 let generic state =
   match state with
   | Holds -> Why_current | Refuted -> Why_refuted | Inconclusive -> Why_inconclusive
   | Outdated -> Why_expired | NeverChecked -> Why_never_checked | Waived -> Why_waived
+  | Observed -> Why_observed
 
 let compose_reason state reasons =
   let explaining = List.filter (fun reason -> explains reason state) reasons in
@@ -149,7 +152,12 @@ let explain_record ~requirement_first ~unmet ~now ?materials ?environment ?tool 
                     | _ -> Why_inconclusive))
               | Pass ->
                   if Freshness.requirement_fresh ?materials ?environment claim requirement evidence
-                  then (Holds, why_current ?tool evidence) else unmet
+                  then (Holds, why_current ?tool evidence)
+                  else if
+                    (match requirement with Verifier _ -> evidence.control_reach = None | _ -> false)
+                    && independence_rank evidence.independence >= independence_rank Fresh_context
+                  then (Observed, Why_observed)
+                  else unmet
 
 let explain_evidence ~now ?materials ?environment ?tool claim requirement evidence =
   explain_record ~requirement_first:false ~unmet:(Inconclusive, Why_inconclusive) ~now ?materials ?environment ?tool claim requirement evidence
@@ -182,6 +190,7 @@ let explain_claim ~now ?materials ?environment ?tool ?requirements claim evidenc
     else if List.for_all (fun s -> s = Holds) states then Holds
     else if List.for_all (fun s -> s = NeverChecked) states then NeverChecked
     else if List.for_all (fun s -> s = Outdated) states then Outdated
+    else if List.for_all (fun s -> s = Observed) states then Observed
     else Inconclusive
   in
   let rec evaluate requirement =
