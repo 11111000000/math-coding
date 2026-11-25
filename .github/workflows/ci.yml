@@ -69,6 +69,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+      # The nix daemon starts with the stack of the runner: eight megabytes,
+      # hard. Its builders inherit that limit, and the static runtime of
+      # OCaml 5 needs more for its signal handlers, so the compiler of the
+      # static build dies before it reads a file. The limit is a property of
+      # the daemon, so it is raised on the daemon and not in a shell.
+      - name: Give the builders a bigger stack
+        run: |
+          sudo systemctl set-property nix-daemon.service LimitSTACK=64M:unlimited
+          sudo systemctl restart nix-daemon.service
+
         with:
           extra-conf: |
             accept-flake-config = true
@@ -166,6 +176,16 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+      # The nix daemon starts with the stack of the runner: eight megabytes,
+      # hard. Its builders inherit that limit, and the static runtime of
+      # OCaml 5 needs more for its signal handlers, so the compiler of the
+      # static build dies before it reads a file. The limit is a property of
+      # the daemon, so it is raised on the daemon and not in a shell.
+      - name: Give the builders a bigger stack
+        run: |
+          sudo systemctl set-property nix-daemon.service LimitSTACK=64M:unlimited
+          sudo systemctl restart nix-daemon.service
+
         with:
           extra-conf: |
             accept-flake-config = true
