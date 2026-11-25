@@ -69,6 +69,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+        with:
+          extra-conf: |
+            accept-flake-config = true
+            experimental-features = nix-command flakes
       # The static toolchain of the portable build is not in any public
       # cache and the runner cannot build it reliably (the static runtime of
       # OCaml 5 cannot reserve the stack for its signal handlers in the
@@ -99,11 +103,6 @@ jobs:
         run: |
           sudo systemctl set-property nix-daemon.service LimitSTACK=64M:unlimited
           sudo systemctl restart nix-daemon.service
-
-        with:
-          extra-conf: |
-            accept-flake-config = true
-            experimental-features = nix-command flakes
       # The static toolchain is not in the public binary cache: it is built
       # from source and it is the whole cost of this job. Its closure is
       # therefore cached under a key that the pages job restores as well,
@@ -197,6 +196,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+        with:
+          extra-conf: |
+            accept-flake-config = true
+            experimental-features = nix-command flakes
       # The static toolchain of the portable build is not in any public
       # cache and the runner cannot build it reliably (the static runtime of
       # OCaml 5 cannot reserve the stack for its signal handlers in the
@@ -227,11 +230,6 @@ jobs:
         run: |
           sudo systemctl set-property nix-daemon.service LimitSTACK=64M:unlimited
           sudo systemctl restart nix-daemon.service
-
-        with:
-          extra-conf: |
-            accept-flake-config = true
-            experimental-features = nix-command flakes
       # The same cache as the portable job: the static toolchain is already
       # in it, so the package here is a lookup and not a build.
       - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
