@@ -1,6 +1,6 @@
-# AGENTS.md — math-coding v6
+# AGENTS.md — math-coding v7
 
-Активная линия — v6 в `main`. Разработка ведётся в отдельных ветках и
+Активная линия — v7 в `next`. Разработка ведётся в отдельных ветках и
 worktree; после проверок изменения объединяются с той линией, которой касаются:
 дефект метода и документация — в `main`, смена контракта — в `next`. Не
 возвращай старые реализации без сценария и отрицательного контроля.
@@ -141,13 +141,13 @@ Scope и source paths не могут быть absolute, traversal или symlin
 <!-- math-coding:begin -->
 ## math-coding in this project
 
-v6 keeps evidence linked, fresh, and independent
+v7 makes evidence useful, risk-scaled, and portable
 
-31 claim(s).
+33 claim(s).
 
 ```sh
 mathc run
 ```
 
-Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc approve mathc re-evaluate mathc review-source mathc review-decision mathc migrate mathc mcp
+Every verb: mathc help mathc init mathc goal mathc add mathc run mathc map mathc next mathc context mathc waive mathc record mathc install mathc doctor mathc adopt mathc import-adr mathc import-junit mathc authorize mathc approve mathc re-evaluate mathc review-source mathc review-decision mathc migrate mathc mcp mathc archive mathc bundle
 <!-- math-coding:end -->

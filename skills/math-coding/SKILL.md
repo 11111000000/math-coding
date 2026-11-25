@@ -3,7 +3,7 @@ name: math-coding
 description: Link ADR and requirements to fresh, independently checked evidence. Use when integrating mathc into a repository, checking what is actually verified, handling a changed ADR, or reviewing an agent's completion claim.
 ---
 
-# math-coding v5
+# math-coding (format v7)
 
 Используй `mathc` как слой доказательств поверх существующих ADR, тестов и CI,
 а не как их замену. Нужен Git-репозиторий; `spec.json` создаётся один раз.
@@ -76,7 +76,7 @@ Control обязан менять предмет claim и заставлять v
 - Каждый verifier должен иметь control, который меняет его предмет и заставляет
   проверку упасть. `run` доказывает это в изолированной копии.
 - `map`, `next`, `context`, `adopt`, `import-adr` — read-only. `run` исполняет
-  проектные команды и пишет evidence в `.math/v6/`; это не read-only операция.
+  проектные команды и пишет evidence в `.math/v7/`; это не read-only операция.
 - `0` — успех/green; `1` — refuted/protected; `2` — ошибка вызова;
   `3` — unknown/vacant; `4` — прогон остановлен; `5` — инструмент не смог
   ответить. Код `3` нельзя выдавать за успех, а код `5` нельзя читать как

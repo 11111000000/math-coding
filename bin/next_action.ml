@@ -101,6 +101,8 @@ let next_of_reason (item : Evaluation.evaluated_state) =
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
        | None -> "next: check the claim " ^ item.id ^ checks_words item)
+  | Why_observed ->
+      "next: the claim " ^ item.id ^ " is observed but not proven; add a negative control or accept it as an observation"
   | Why_copy_failed ->
       (match human with
        | Some action -> "next: a human review settles " ^ item.id ^ ": " ^ action
@@ -131,7 +133,7 @@ let next_of_states (states : Evaluation.evaluated_state list) uncovered damaged 
     List.filter_map
       (fun (item : Evaluation.evaluated_state) ->
         match item.state with
-        | Outdated | Inconclusive | NeverChecked | Waived -> Some item
+        | Outdated | Inconclusive | NeverChecked | Waived | Observed -> Some item
         | Holds | Refuted -> None)
       states
   in

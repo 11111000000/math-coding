@@ -110,3 +110,9 @@
   golden_corpus/p-empty/spec.json
   golden_corpus/p-empty/expected.json
   golden_corpus/p-empty/subject.txt))
+
+(test
+ (name control_library)
+ (modules control_library)
+ (libraries mathc_test_helpers mathcoding_adapter)
+ (deps ../scripts/control-library.sh ../test/control_library.sh))

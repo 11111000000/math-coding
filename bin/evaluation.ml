@@ -109,13 +109,13 @@ let evaluate root spec =
                   { id = claim.id; state = Outdated; changed = true; reason = Why_source_changed;
                     materials; open_branches }
                 else { id = claim.id; state; changed = false; reason; materials; open_branches })
-              spec.claims
+              (Domain.active_claims spec)
           in
           Ok { states; damaged = journal.damaged })
 
 let uncovered root spec =
   let goal_scope = match spec.goal with Some goal -> goal.scope | None -> [] in
-  Git.uncovered root spec.claims ~goal_scope
+  Git.uncovered root (Domain.active_claims spec) ~goal_scope
 
 let states root spec =
   match evaluate root spec with
@@ -149,7 +149,7 @@ let selection root spec =
           | None -> ()
           | Some item ->
               let checkable = List.exists has_machine_check (requirements_of_claim claim) in
-              if item.state = Holds then
+              if item.state = Holds || item.state = Observed then
                 if checkable && item.materials = None then (
                   to_execute := claim :: !to_execute;
                   blind := claim :: !blind)
@@ -159,9 +159,10 @@ let selection root spec =
                 match item.state with
                 | Refuted | Waived -> settled := claim :: !settled
                 | Holds -> ()
+                | Observed -> current := claim :: !current
                 | Outdated | Inconclusive | NeverChecked ->
                     to_execute := claim :: !to_execute)
-        spec.claims;
+        (Domain.active_claims spec);
       Ok { to_execute = List.rev !to_execute; current = List.rev !current;
            settled = List.rev !settled; human = List.rev !human; blind = List.rev !blind }
 

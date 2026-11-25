@@ -53,10 +53,9 @@ let read_journals root =
                 | Ok runs -> Ok { evidence = journal.records; approval; authorization; runs }
 
 (* The claims that cannot keep their evidence: the definition of the claim
-   changed with the format, and the environment of the record no longer
-   matches the environment of this method - the binary left the fingerprint of
-   the environment and became the fingerprint of the tool. Either way the
-   claim has to be checked again. *)
+   changed with the format, because a claim now names its risk and its
+   lifecycle. The environment is unchanged; the claim still has to be checked
+   again, because the old record is bound to the old definition. *)
 let claims_that_need_a_run root spec records =
   let now = int_of_float (Unix.time ()) in
   let environment = Evaluation.environment root in
@@ -85,41 +84,38 @@ let report spec journals claims old dry_run =
   let authorization =
     match journals.authorization with
     | None -> "  authorization: there is none"
-    | Some _ -> "  authorization: " ^ moved ^ " to .math/v6/authorization.json"
+    | Some _ -> "  authorization: " ^ moved ^ " to .math/v7/authorization.json"
   in
   let claims =
     Printf.sprintf "%d of %d claim(s) need a new run" (List.length claims) (List.length spec.claims)
   in
   String.concat "\n"
-    ([ (if dry_run then "the project would be migrated to version 6" else "the project is migrated to version 6");
-       "  specification: spec.json (schema_version 6)";
-       Printf.sprintf "  evidence: %d record(s) %s to .math/v6/evidence.jsonl"
+    ([ (if dry_run then "the project would be migrated to version 7" else "the project is migrated to version 7");
+       "  specification: spec.json (schema_version 7)";
+       Printf.sprintf "  evidence: %d record(s) %s to .math/v7/evidence.jsonl"
          (List.length journals.evidence) moved;
-       Printf.sprintf "  approval: %d record(s) %s to .math/v6/approval.json"
+       Printf.sprintf "  approval: %d record(s) %s to .math/v7/approval.json"
          (List.length journals.approval) moved;
        authorization;
-       Printf.sprintf "  runs: %d record(s) %s to .math/v6/runs.jsonl"
+       Printf.sprintf "  runs: %d record(s) %s to .math/v7/runs.jsonl"
          (List.length journals.runs) moved;
        "the files of the previous version stayed where they were:" ]
     @ kept
     @ [ "";
-        "the migrated records keep the tool of the previous version as unknown: that version";
-        "wrote the binary into the fingerprint of the environment, so the binary cannot be";
-        "taken out of it, and the tool says that it does not know rather than guessing";
-        "which build wrote the record";
+        "the tool of a record stays the tool that wrote it: this migration does not change";
+        "the observer, only the definition of the claim";
         "";
-        "the definition of a claim did not change with the format - the fields the previous";
-        "version hashed and this one does not read were never part of what the method reads";
-        "- so the migrated records are bound to the definition of the migrated claim";
+        "the definition of a claim changed: a claim now names its risk and whether it is";
+        "archived, so the migrated records are bound to the new definition and the claims";
+        "have to be checked again";
         "";
         "the gate of the project must read the migrated specification: the previous version";
-        "cannot read schema_version 6, so the tool the project uses - the one its CI calls and";
+        "cannot read schema_version 7, so the tool the project uses - the one its CI calls and";
         "the one it installs - must be this version BEFORE the migration lands in the tree;";
         "otherwise the project's own gate fails on the migrated specification";
         "the page for agents was rewritten with the verbs of this version";
         "";
-        "next: " ^ claims ^ ": the environment of the record no longer matches the environment";
-        "of this method - the binary is no longer part of it";
+        "next: " ^ claims ^ ": the definition of the record changed with the format";
         "next: mathc run" ])
 
 let write_journals root spec journals =

@@ -142,5 +142,31 @@ let () =
       let specification = Io.read_file (Filename.concat root "spec.json") in
       check "the refused claim is not in the specification" (not (contains specification "\"other\""));
       check "the refused run writes no evidence"
-        (not (Sys.file_exists (Filename.concat root ".math/v6/evidence.jsonl")));
-      print_endline "mcp-approval: PASS")
+        (not (Sys.file_exists (Filename.concat root ".math/v7/evidence.jsonl")));
+     print_endline "mcp-approval: PASS")
+
+(* The environment prefix is a command too: an approval of the verifier and the
+   control does not authorize a different environment. *)
+let () =
+  with_repo (fun root ->
+      ignore (run root "init");
+      ignore (run root "goal \"the environment is approved\" subject.txt owner");
+      write root "subject.txt" "expected\n";
+      expect root "add sample \"the subject is expected\" subject.txt \"the subject is not expected\" fact --requirement \"verifier:true\" --control \"printf broken > subject.txt\" --environment \"touch marker &&\"" 0;
+      expect root "approve --by owner --reason \"only the commands\" --command \"true\"" 0;
+      expect root "approve --by owner --reason \"only the commands\" --command \"printf broken > subject.txt\"" 0;
+      let requests =
+        "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\"}}\n{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"name\":\"run\",\"arguments\":{}}}\n"
+      in
+      let command = Printf.sprintf "%s --root %s mcp" (Filename.quote (binary ())) (Filename.quote root) in
+      let channel = Unix.open_process_in (Printf.sprintf "%s <<'EOF'\n%sEOF" command requests) in
+      let output = In_channel.input_all channel in
+      ignore (Unix.close_process_in channel);
+      check "the unapproved environment is refused" (contains output "touch marker");
+      check "the unapproved environment is not executed" (not (Sys.file_exists (Filename.concat root "marker")));
+      expect root "approve --by owner --reason \"the environment\" --command \"touch marker && sh -c true\"" 0;
+      let answer = run root "map --json" in
+      check "the approved environment is recorded in the approval journal"
+        (contains (Io.read_file (Filename.concat root ".math/v7/approval.json")) "touch marker && sh -c true");
+      ignore answer;
+      print_endline "mcp-environment-approval: PASS")

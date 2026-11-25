@@ -5,12 +5,12 @@
 let block_begin = "<!-- math-coding:begin -->"
 let block_end = "<!-- math-coding:end -->"
 
-let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "approve"; "re-evaluate"; "review-source"; "review-decision"; "migrate"; "mcp" ]
+let usage_verbs = [ "help"; "init"; "goal"; "add"; "run"; "map"; "next"; "context"; "waive"; "record"; "install"; "doctor"; "adopt"; "import-adr"; "import-junit"; "authorize"; "approve"; "re-evaluate"; "review-source"; "review-decision"; "migrate"; "mcp"; "archive"; "bundle" ]
 
 (* The text of the block: the aim of the project, the number of its claims and
    the verbs of the method. *)
 let entry_page (spec : Domain.spec) =
-  let claims = List.length spec.claims in
+  let claims = List.length (Domain.active_claims spec) in
   let goal = match spec.goal with Some goal -> goal.text | None -> "No aim is stated yet." in
   Printf.sprintf
     "## math-coding in this project\n\n%s\n\n%d claim(s).\n\n```sh\nmathc run\n```\n\nEvery verb: %s\n"

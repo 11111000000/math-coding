@@ -1,7 +1,7 @@
 let command_help = function
   | "init" -> "init: create an empty spec.json; refuses to overwrite an existing specification."
   | "goal" -> "goal AIM SCOPE OWNER [--reason WHY]; SCOPE is comma-separated. Replacing an existing goal requires --reason."
-  | "add" -> "add ID TEXT SCOPE FALSIFIER REGISTER --requirement verifier:CMD|review:WHO [--control CMD] [--source PATH] [--environment ENV]; REGISTER is fact, hypothesis, judgment or unknown; SCOPE is comma-separated. Judgment requires review:WHO and cannot use machine verifiers. ENVIRONMENT is the prefix the verifier runs under, e.g. nix develop -c; it is the rule of the format, so an empty line or a line break is refused."
+  | "add" -> "add ID TEXT SCOPE FALSIFIER REGISTER --requirement verifier:CMD|review:WHO [--control CMD] [--source PATH] [--environment ENV] [--risk low|medium|high]; REGISTER is fact, hypothesis, judgment or unknown; SCOPE is comma-separated. Judgment requires review:WHO and cannot use machine verifiers. ENVIRONMENT is the prefix the verifier runs under, e.g. nix develop -c; it is the rule of the format, so an empty line or a line break is refused. RISK selects the protocol: low and medium may omit --control and stay observed; high requires --control."
   | "run" -> "run [--changed] [--limit SECONDS] [--json]: execute declared verifiers and negative controls, bind evidence, then show the current verdict, claim states, uncovered files and next action. --changed executes only the claims whose evidence is no longer current and leaves the rest as they are; the claims it cannot see are executed anyway. --limit is the time the run may take (3600 s by default); a run that reaches it or is stopped by a signal says that it was stopped and hands over the map over what was observed. Exit 0 green, 1 refuted/protected, 3 unknown, 4 stopped, 5 the tool could not answer."
   | "map" -> "map [--json]: show the verdict, claim states, uncovered files and next action. Exit 0 green, 1 red, 3 unknown/vacant, 5 the tool could not answer."
   | "next" -> "next: print exactly one next action. Exit 0 when an action can be printed, 5 when the tool could not answer."
@@ -19,25 +19,34 @@ let command_help = function
   | "re-evaluate" -> "re-evaluate: list claims whose source, definition or evidence requires review."
   | "review-source" -> "review-source ID --by OWNER --reason WHY: bind a changed source after human review; records the previous digest, clears waiver and still requires a fresh run."
   | "mcp" -> "mcp: serve the JSON-RPC tool surface over stdio."
-  | "migrate" -> "migrate [--dry-run]: move a project of the previous version of the format to the version of this method. It reads the specification and the journals of the previous version and writes the ones of this version; the files of the previous version stay where they are. The migrated records carry the tool as unknown, because the previous version wrote the binary into the fingerprint of the environment. The claims of a migrated project have to be checked again: mathc run. Exit 0 when the project is migrated, 2 when it cannot be migrated."
+  | "archive" -> "archive ID --by WHO --reason WHY: move a claim out of the active map and run. The claim stays in spec.json as history."
+  | "bundle" -> "bundle FILE [--import]: export the specification and evidence trail to a portable JSON bundle, or import them into a project."
+  | "migrate" -> "migrate [--dry-run]: move a project of the previous version of the format to the version of this method. It reads the specification and the journals of the previous version and writes the ones of this version; the files of the previous version stay where they are. The tool of a record stays the tool that wrote it. The claims of a migrated project have to be checked again, because the definition of a claim now names its risk and lifecycle: mathc run. Exit 0 when the project is migrated, 2 when it cannot be migrated."
   | _ -> ""
 
 let help topic =
   print_endline
     ({|mathc 5 - source-linked, fresh and independent evidence
 
+Progressive formality:
+  low and medium risk: verifier only, state observed
+  high risk: verifier + negative control, state holds
+  archived claims: leave the active map and the run
+
 Usage: mathc [--root DIR] COMMAND [ARGS]
 
-Start a project:
+Essential path:
   mathc adopt
   mathc init
   mathc goal "AIM" "SCOPE[,SCOPE]" "OWNER"
   mathc add ID "TEXT" "SCOPE" "FALSIFIER" fact \
     --requirement "verifier:CMD" --control "BREAK_SUBJECT" [--source ADR]
   mathc run
-  mathc run --changed
-  mathc run --limit 3600
   mathc map | mathc next | mathc context
+
+Lifecycle:
+  mathc archive ID --by WHO --reason WHY
+  mathc bundle FILE [--import]
 
 Sources and evidence:
   mathc import-adr PATH | mathc import-junit PATH

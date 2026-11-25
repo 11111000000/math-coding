@@ -15,37 +15,41 @@ let () =
   (match Spec.parse_string text with
    | Ok parsed -> check "roundtrip preserves claim" (List.length parsed.claims = 1 && (List.hd parsed.claims).id = claim.id)
    | Error error -> failwith error);
-  expect_error "unknown top-level field is rejected" (Spec.parse_string "{\"schema_version\":6,\"goal\":null,\"claims\":[],\"extra\":true}");
-  expect_error "duplicate field is rejected" (Spec.parse_string "{\"schema_version\":6,\"schema_version\":6,\"goal\":null,\"claims\":[]}");
-  expect_error "bad nested requirement is rejected" (Spec.parse_string "{\"schema_version\":6,\"goal\":null,\"claims\":[{\"id\":\"x\",\"text\":\"x\",\"scope\":[],\"requirements\":[{\"kind\":\"verifier\",\"spec\":1}],\"falsifier\":\"x\",\"register\":\"fact\"}]}");
-  expect_error "bad goal is rejected" (Spec.parse_string "{\"schema_version\":6,\"goal\":1,\"claims\":[]}");
+  expect_error "unknown top-level field is rejected" (Spec.parse_string "{\"schema_version\":7,\"goal\":null,\"claims\":[],\"extra\":true}");
+  expect_error "duplicate field is rejected" (Spec.parse_string "{\"schema_version\":7,\"schema_version\":7,\"goal\":null,\"claims\":[]}");
+  expect_error "bad nested requirement is rejected" (Spec.parse_string "{\"schema_version\":7,\"goal\":null,\"claims\":[{\"id\":\"x\",\"text\":\"x\",\"scope\":[],\"risk\":\"medium\",\"archived\":false,\"requirements\":[{\"kind\":\"verifier\",\"spec\":1}],\"falsifier\":\"x\",\"register\":\"fact\"}]}");
+  expect_error "bad goal is rejected" (Spec.parse_string "{\"schema_version\":7,\"goal\":1,\"claims\":[]}");
   expect_error "goal timestamp must be an integer"
-    (Spec.parse_string "{\"schema_version\":6,\"goal\":{\"text\":\"aim\",\"scope\":[],\"by\":\"owner\",\"at\":\"1\",\"reason\":null},\"claims\":[]}");
+    (Spec.parse_string "{\"schema_version\":7,\"goal\":{\"text\":\"aim\",\"scope\":[],\"by\":\"owner\",\"at\":\"1\",\"reason\":null},\"claims\":[]}");
   expect_error "an empty scope path is rejected"
     (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [ `String "" ];
+                                   "risk", `String "medium"; "archived", `Bool false;
                                    "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   check "directory scopes retain their trailing slash" (Spec.valid_path "lib/");
   check "internal empty path segments are rejected" (not (Spec.valid_path "lib//broken"));
   expect_error "traversal scope is rejected"
     (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [ `String "../outside" ];
+                                   "risk", `String "medium"; "archived", `Bool false;
                                    "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   expect_error "traversal source is rejected"
     (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
                                    "source", `Assoc [ "kind", `String "madr"; "path", `String "../outside";
                                                      "section", `Null; "digest", `String "abc"; "review", `Null ];
+                                   "risk", `String "medium"; "archived", `Bool false;
                                    "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   let any = `Assoc [ "any", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ] ] in
   (match Spec.requirement_of_json any with
    | Ok (Any [ Verifier "true" ]) -> ()
    | _ -> failwith "acceptance.any was not preserved");
   let draft = `Assoc [ "id", `String "adr"; "text", `String "draft"; "scope", `List [];
+                       "risk", `String "medium"; "archived", `Bool false;
                        "requirements", `List []; "falsifier", `String ""; "register", `String "unknown" ] in
   (match Spec.claim_of_json draft with
    | Ok claim -> check "ADR draft roundtrip accepts undecided fields" (claim.falsifier = "" && claim.requirements = [])
    | Error error -> failwith error);
   let invalid_owner = match draft with `Assoc fields -> `Assoc (fields @ [ "owner", `Int 1 ]) | value -> value in
   expect_error "an optional field has a strict type" (Spec.claim_of_json invalid_owner);
-  expect_error "schema version is not a string" (Spec.parse_string "{\"schema_version\":\"5\",\"goal\":null,\"claims\":[]}");
+  expect_error "schema version is not a string" (Spec.parse_string "{\"schema_version\":\"6\",\"goal\":null,\"claims\":[]}");
   expect_error "review independence is not silently downgraded"
     (Spec.requirement_of_json (`Assoc [ "kind", `String "review"; "spec", `String "owner";
                                         "minimum_independence", `String "invented" ]));
@@ -78,20 +82,20 @@ let () =
   expect_error "producer.run has a strict optional type"
     (Evidence.of_json (update "producer" (update "run" (fun _ -> `Int 1)) encoded));
   (* The declared environment is optional and additive. *)
-  (match Spec.parse_string "{\"schema_version\":6,\"goal\":null,\"claims\":[]}" with
+  (match Spec.parse_string "{\"schema_version\":7,\"goal\":null,\"claims\":[]}" with
    | Ok parsed -> check "the environment is optional" (parsed.environment = None)
    | Error error -> failwith error);
-  (match Spec.parse_string "{\"schema_version\":6,\"goal\":null,\"claims\":[],\"environment\":\"nix develop -c\"}" with
+  (match Spec.parse_string "{\"schema_version\":7,\"goal\":null,\"claims\":[],\"environment\":\"nix develop -c\"}" with
    | Ok parsed -> check "a declared environment is accepted" (parsed.environment = Some "nix develop -c")
    | Error error -> failwith error);
   (match Spec.parse_string
-     (Printf.sprintf "{\"schema_version\":6,\"goal\":null,\"claims\":[],\"environment\":\"%s\"}"
+     (Printf.sprintf "{\"schema_version\":7,\"goal\":null,\"claims\":[],\"environment\":\"%s\"}"
         (String.make 512 'x'))
    with
    | Ok parsed -> check "an environment of the allowed length is accepted" (parsed.environment <> None)
    | Error error -> failwith error);
   let with_environment value =
-    Spec.parse_string (Printf.sprintf "{\"schema_version\":6,\"goal\":null,\"claims\":[],\"environment\":%s}" value)
+    Spec.parse_string (Printf.sprintf "{\"schema_version\":7,\"goal\":null,\"claims\":[],\"environment\":%s}" value)
   in
   expect_error "an empty environment is rejected" (with_environment "\"\"");
   expect_error "a line break in the environment is rejected" (with_environment "\"nix develop\\nc\"");
@@ -110,6 +114,7 @@ let () =
      specification: a non-empty single line of at most 512 characters. *)
   let claim_with_environment value =
     `Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+             "risk", `String "medium"; "archived", `Bool false;
              "requirements", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ];
              "falsifier", `String "x"; "register", `String "fact"; "environment", value ]
   in
@@ -121,6 +126,7 @@ let () =
    | Error error -> failwith error);
   (match Spec.claim_of_json
      (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+               "risk", `String "medium"; "archived", `Bool false;
                "requirements", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ];
                "falsifier", `String "x"; "register", `String "fact" ]) with
    | Ok parsed -> check "a claim without the field is still accepted" (parsed.environment = None)
@@ -139,6 +145,19 @@ let () =
   (match Spec.claim_of_json (claim_with_environment (`String (String.make 512 'x'))) with
    | Ok parsed -> check "a claim environment of the allowed length is accepted" (parsed.environment <> None)
    | Error error -> failwith error);
+  (match Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                      "risk", `String "high"; "archived", `Bool true;
+                                      "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]) with
+   | Ok parsed -> check "risk and archived survive the codec" (parsed.risk = High && parsed.archived)
+   | Error error -> failwith error);
+  expect_error "an unknown risk is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                  "risk", `String "invented"; "archived", `Bool false;
+                                  "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
+  expect_error "an archived field that is not a boolean is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                  "risk", `String "low"; "archived", `Int 1;
+                                  "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   (* A claim without the field stays absent in the written specification, so an
      existing specification is not broken by the new field. *)
   check "a claim without an environment does not add the field"
@@ -162,6 +181,7 @@ let () =
   let dead_field name =
     `Assoc
       [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+        "risk", `String "medium"; "archived", `Bool false;
         "requirements", `List [ `Assoc [ "kind", `String "verifier"; "spec", `String "true" ] ];
         "falsifier", `String "x"; "register", `String "fact"; name, `String "value" ]
   in
@@ -188,12 +208,12 @@ let () =
      one, and the reader of the previous version is the only one that reads
      it. *)
   expect_error "a specification of the previous version is rejected"
-    (Spec.parse_string "{\"schema_version\":5,\"goal\":null,\"claims\":[]}");
+    (Spec.parse_string "{\"schema_version\":6,\"goal\":null,\"claims\":[]}");
   check "the version of a specification is read without the rest of it"
-    (Spec.version_of_string "{\"schema_version\":5,\"goal\":null,\"claims\":[]}" = Ok 5);
+    (Spec.version_of_string "{\"schema_version\":6,\"goal\":null,\"claims\":[]}" = Ok 6);
   let previous =
-    "{\"schema_version\":5,\"goal\":null,\"claims\":[{\"id\":\"x\",\"text\":\"x\",\"scope\":[],\
-     \"kind\":\"acceptance\",\"phase\":\"pre-merge\",\"owner\":null,\"review_on\":[],\
+    "{\"schema_version\":6,\"goal\":null,\"claims\":[{\"id\":\"x\",\"text\":\"x\",\"scope\":[],\
+     \"owner\":null,\
      \"requirements\":[{\"kind\":\"verifier\",\"spec\":\"true\"}],\"falsifier\":\"x\",\
      \"register\":\"fact\"}]}"
   in
@@ -205,5 +225,5 @@ let () =
          (List.length parsed.claims = 1 && (List.hd parsed.claims).id = "x")
    | Error error -> failwith error);
   check "the reader of the previous version rewrites the version"
-    (Spec.version_of_string (Yojson.Safe.pretty_to_string (Spec.to_json spec)) = Ok 6);
+    (Spec.version_of_string (Yojson.Safe.pretty_to_string (Spec.to_json spec)) = Ok 7);
   print_endline "spec-format: PASS"

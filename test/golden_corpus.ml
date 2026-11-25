@@ -27,10 +27,10 @@ let copy_fixture name work =
      directory, because a project's journals are its own. *)
   let frozen = Filename.concat dir "evidence.jsonl" in
   if Sys.file_exists frozen then (
-    Io.mkdir_p (Filename.concat dir ".math/v6");
+    Io.mkdir_p (Filename.concat dir ".math/v7");
     ignore
       (Process.run ~root:dir
-         (Printf.sprintf "mv %s .math/v6/evidence.jsonl" (Filename.quote frozen))));
+         (Printf.sprintf "mv %s .math/v7/evidence.jsonl" (Filename.quote frozen))));
   ignore (Process.run ~root:dir "git init -q");
   ignore (Process.run ~root:dir "git add -A -- .");
   ignore

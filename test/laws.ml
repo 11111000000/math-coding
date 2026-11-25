@@ -26,9 +26,9 @@ let () =
   check "empty is vacant" (Verdict.verdict_of_states [] = Vacant);
   let evidence = evidence claim in
   check "fresh machine evidence holds" (Verdict.state_of_evidence ~now:10 claim (Verifier "grep -q expected subject.txt") (Some evidence) = Holds);
-  check "missing control is inconclusive"
+  check "machine evidence without control is observed"
     (Verdict.state_of_evidence ~now:10 claim (Verifier "grep -q expected subject.txt")
-       (Some { evidence with control_reach = None }) = Inconclusive);
+       (Some { evidence with control_reach = None }) = Observed);
   check "elsewhere control is inconclusive"
     (Verdict.state_of_evidence ~now:10 claim (Verifier "grep -q expected subject.txt")
        (Some { evidence with control_reach = Some "elsewhere" }) = Inconclusive);
@@ -100,7 +100,7 @@ let () =
     [ Why_current; Why_never_checked; Why_source_changed; Why_materials_changed;
       Why_definition_changed; Why_verifier_changed; Why_environment_changed; Why_expired;
       Why_not_run; Why_inconclusive; Why_infrastructure_error; Why_refuted; Why_waived;
-      Why_tool_changed; Why_copy_failed ]
+      Why_tool_changed; Why_copy_failed; Why_observed ]
   in
   (* The vocabulary is closed: every reason has a token, every token names one
      reason, and no two reasons share a token. *)

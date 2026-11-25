@@ -129,7 +129,7 @@ let rec execute_leaf ?files ?(quiet = false) ~environment ~cancel root claim emi
                    proof is not available. *)
                 (match live () with
                  | None -> None
-                 | Some Domain.Pass -> Some (Domain.Not_run, None)
+                 | Some Domain.Pass -> Some (Domain.Pass, None)
                  | Some outcome -> Some (outcome, None))
             | Some control ->
                 (match Isolated_run.with_copy root (fun copy ->

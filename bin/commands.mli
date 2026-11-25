@@ -1,6 +1,7 @@
 val init : string -> int
 val goal : string -> string -> string list -> string -> string -> int
-val add : string -> string -> string -> string list -> string -> string -> Domain.requirement list -> string -> string -> string -> int
+val add : string -> string -> string -> string list -> string -> string -> Domain.requirement list -> string -> string -> string -> string -> int
+val archive : string -> string -> string -> string -> int
 val run : ?changed:bool -> ?limit:float -> string -> bool -> int
 val map : string -> bool -> int
 val next : string -> int
@@ -18,6 +19,7 @@ val version : unit -> int
 (* The migration of a project of the previous version of the format. It is a
    human action: the agent surface does not move the journals of a project. *)
 val migrate : string -> bool -> int
+val bundle : string -> string -> bool -> int
 
 (* The limit of a run in seconds: the run stops itself and says so. *)
 val default_limit : float

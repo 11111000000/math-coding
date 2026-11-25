@@ -7,6 +7,7 @@ type outcome =
 
 type verdict = Green | Red | Unknown | Vacant
 type independence = Self_attested | Fresh_context | External
+type risk = Low | Medium | High
 
 type source_kind =
   | Madr
@@ -55,6 +56,8 @@ type claim = {
   scope : string list;
   source : source_ref option;
   owner : string option;
+  risk : risk;
+  archived : bool;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -98,13 +101,15 @@ type execution_log = {
   observed_by : string;
 }
 
-type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived
+type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived | Observed
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
 (* The effective environment of a claim: its own, else the one of the spec. *)
 let effective_environment (spec : spec) (claim : claim) =
   match claim.environment with Some value -> Some value | None -> spec.environment
+
+let active_claims (spec : spec) = List.filter (fun (claim : claim) -> not claim.archived) spec.claims
 let outcome_to_string = function
   | Pass -> "pass"
   | Fail -> "fail"
@@ -168,6 +173,18 @@ let state_to_string = function
   | Outdated -> "outdated"
   | NeverChecked -> "never-checked"
   | Waived -> "waived"
+  | Observed -> "observed"
+
+let risk_to_string = function
+  | Low -> "low"
+  | Medium -> "medium"
+  | High -> "high"
+
+let risk_of_string = function
+  | "low" -> Some Low
+  | "medium" -> Some Medium
+  | "high" -> Some High
+  | _ -> None
 
 let verdict_to_string = function
   | Green -> "green"
@@ -205,7 +222,8 @@ let definition_digest c =
   in
   let requirements = List.map requirement_repr c.requirements |> List.sort_uniq String.compare in
   [ c.id; c.text; String.concat "," c.scope; Option.value ~default:"" c.owner;
-    String.concat ";" requirements; c.falsifier; register_to_string c.register ]
+    String.concat ";" requirements; c.falsifier; register_to_string c.register;
+    risk_to_string c.risk; string_of_bool c.archived ]
   @ source
   |> String.concat "\n"
   |> digest_string

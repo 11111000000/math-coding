@@ -7,6 +7,7 @@ type outcome =
 
 type verdict = Green | Red | Unknown | Vacant
 type independence = Self_attested | Fresh_context | External
+type risk = Low | Medium | High
 
 type source_kind =
   | Madr
@@ -55,6 +56,8 @@ type claim = {
   scope : string list;
   source : source_ref option;
   owner : string option;
+  risk : risk;
+  archived : bool;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -96,11 +99,12 @@ type execution_log = {
   observed_by : string;
 }
 
-type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived
+type state = Holds | Refuted | Inconclusive | Outdated | NeverChecked | Waived | Observed
 type goal = { text : string; scope : string list; by : string; at : int; reason : string option }
 type spec = { goal : goal option; claims : claim list; environment : string option }
 
 val effective_environment : spec -> claim -> string option
+val active_claims : spec -> claim list
 
 val outcome_to_string : outcome -> string
 val outcome_of_string : string -> outcome option
@@ -112,6 +116,8 @@ val source_kind_of_string : string -> source_kind option
 val register_to_string : register -> string
 val register_of_string : string -> register option
 val state_to_string : state -> string
+val risk_to_string : risk -> string
+val risk_of_string : string -> risk option
 val verdict_to_string : verdict -> string
 val verdict_to_exit : verdict -> int
 val digest_string : string -> string
