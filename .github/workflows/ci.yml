@@ -69,6 +69,27 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+      # The static toolchain of the portable build is not in any public
+      # cache and the runner cannot build it reliably (the static runtime of
+      # OCaml 5 cannot reserve the stack for its signal handlers in the
+      # sandbox). The closure was built on the machine that can and is
+      # published with the release named ci-toolchain. It is fetched and
+      # imported before any build; if it is missing, the jobs fall back to
+      # building, which is slow and intermittent.
+      - name: Fetch the toolchain of the static build
+        run: |
+          set -uo pipefail
+          lock="${{ hashFiles('flake.lock') }}"
+          url="https://github.com/11111000000/math-coding/releases/download/ci-toolchain-$lock"
+          if curl -sfL "$url/static-toolchain-store.tar.zst" -o /tmp/store.tar.zst && \
+             curl -sfL "$url/ci-toolchain-db.tar.zst" -o /tmp/db.tar.zst; then
+            tar --use-compress-program='zstd -d' -xf /tmp/store.tar.zst -C /
+            nix-store --load-db < <(zstd -dc /tmp/db.tar.zst)
+            echo "the toolchain of the static build is imported"
+          else
+            echo "the published toolchain is not there; the build falls back to the sandbox" >&2
+          fi
+
       # The nix daemon starts with the stack of the runner: eight megabytes,
       # hard. Its builders inherit that limit, and the static runtime of
       # OCaml 5 needs more for its signal handlers, so the compiler of the
@@ -176,6 +197,27 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa
+      # The static toolchain of the portable build is not in any public
+      # cache and the runner cannot build it reliably (the static runtime of
+      # OCaml 5 cannot reserve the stack for its signal handlers in the
+      # sandbox). The closure was built on the machine that can and is
+      # published with the release named ci-toolchain. It is fetched and
+      # imported before any build; if it is missing, the jobs fall back to
+      # building, which is slow and intermittent.
+      - name: Fetch the toolchain of the static build
+        run: |
+          set -uo pipefail
+          lock="${{ hashFiles('flake.lock') }}"
+          url="https://github.com/11111000000/math-coding/releases/download/ci-toolchain-$lock"
+          if curl -sfL "$url/static-toolchain-store.tar.zst" -o /tmp/store.tar.zst && \
+             curl -sfL "$url/ci-toolchain-db.tar.zst" -o /tmp/db.tar.zst; then
+            tar --use-compress-program='zstd -d' -xf /tmp/store.tar.zst -C /
+            nix-store --load-db < <(zstd -dc /tmp/db.tar.zst)
+            echo "the toolchain of the static build is imported"
+          else
+            echo "the published toolchain is not there; the build falls back to the sandbox" >&2
+          fi
+
       # The nix daemon starts with the stack of the runner: eight megabytes,
       # hard. Its builders inherit that limit, and the static runtime of
       # OCaml 5 needs more for its signal handlers, so the compiler of the
