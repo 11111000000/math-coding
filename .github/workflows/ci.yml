@@ -101,7 +101,9 @@ jobs:
       # the daemon, so it is raised on the daemon and not in a shell.
       - name: Give the builders a bigger stack
         run: |
-          sudo systemctl set-property nix-daemon.service LimitSTACK=64M
+          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+          printf '[Service]\nLimitSTACK=64M\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/limits.conf >/dev/null
+          sudo systemctl daemon-reload
           sudo systemctl restart nix-daemon.service
       # The static toolchain is not in the public binary cache: it is built
       # from source and it is the whole cost of this job. Its closure is
@@ -228,7 +230,9 @@ jobs:
       # the daemon, so it is raised on the daemon and not in a shell.
       - name: Give the builders a bigger stack
         run: |
-          sudo systemctl set-property nix-daemon.service LimitSTACK=64M
+          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+          printf '[Service]\nLimitSTACK=64M\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/limits.conf >/dev/null
+          sudo systemctl daemon-reload
           sudo systemctl restart nix-daemon.service
       # The same cache as the portable job: the static toolchain is already
       # in it, so the package here is a lookup and not a build.
