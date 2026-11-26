@@ -47,3 +47,18 @@ sh docs/measurements/pilot-kit.sh summary LEDGER.jsonl
 
 The kit never invents data, accepts a missing reviewer, or turns a dry run into
 a field result.
+
+## 5. Owner weights
+
+The owner's weights for interpreting trade-offs are:
+
+| Criterion | Weight |
+|---|---:|
+| Utility measurement | 2 |
+| Cost | 1 |
+| Risk coverage | 2 |
+| Adoption | 1 |
+
+These weights do not replace the preregistered thresholds. They decide which
+defect to fix first when the data are ambiguous: complete the measurement and
+close semantic risk before optimizing cost or simplifying adoption.

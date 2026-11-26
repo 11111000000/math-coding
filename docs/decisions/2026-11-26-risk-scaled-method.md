@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed for owner review.
+Accepted by the owner on 2026-11-26.
 
 ## Context
 
@@ -24,3 +24,17 @@ Low- and medium-risk work gets a cheaper honest loop. High-risk work keeps the
 strict gate. Active claims must stay small or be archived after acceptance. A
 human owner must separately review whether the scaled method actually helps;
 that remains `method-usefulness`, not a machine verdict.
+
+## Owner weights
+
+The owner weighs the next phase as follows:
+
+| Criterion | Weight |
+|---|---:|
+| Utility measurement | 2 |
+| Cost | 1 |
+| Risk coverage | 2 |
+| Adoption | 1 |
+
+Measurement completeness and risk coverage therefore dominate trade-offs; cost
+and adoption are tie-breakers, not reasons to weaken the gate.
