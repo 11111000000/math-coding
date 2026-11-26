@@ -122,7 +122,8 @@ let damage_words (damages : Trail.damage list) =
       Printf.sprintf "%d record(s) of the evidence trail cannot be read: %s"
         (List.length damages) (String.concat "; " names)
 
-let next_of_states (states : Evaluation.evaluated_state list) uncovered damaged =
+let next_of_states (states : Evaluation.evaluated_state list) uncovered damaged
+    ~(high_risk : Evaluation.evaluated_state list) ~(claim_excess : int) =
   let sources =
     List.filter_map (fun (item : Evaluation.evaluated_state) -> if item.changed then Some item else None) states
   in
@@ -137,17 +138,23 @@ let next_of_states (states : Evaluation.evaluated_state list) uncovered damaged 
         | Holds | Refuted -> None)
       states
   in
-  match damaged, sources, refuted, pending, uncovered with
-  | damage :: _, _, _, _, _ ->
+  match damaged, sources, refuted, high_risk, claim_excess, pending, uncovered with
+  | damage :: _, _, _, _, _, _, _ ->
       "next: the evidence trail is not whole (" ^ damage_words damaged
       ^ "); mathc run rewrites the journal with the records that can be read and keeps the damaged original"
-  | [], item :: _, _, _, _ ->
+  | [], item :: _, _, _, _, _, _ ->
       "next: review the changed source of " ^ item.id ^ " (mathc review-source " ^ item.id
       ^ " --by WHO --reason WHY)"
       ^ (match human_action item with
          | Some action -> "; then record the human review: " ^ action
          | None -> "")
-  | [], [], item :: _, _, _ -> next_of_refutation item
-  | [], [], [], item :: _, _ -> next_of_reason item
-  | [], [], [], [], file :: _ -> "next: inspect uncovered file " ^ file
-  | [], [], [], [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
+  | [], [], item :: _, _, _, _, _ -> next_of_refutation item
+  | [], [], [], item :: _, _, _, _ ->
+      "next: close the high-risk claim " ^ item.id ^ checks_words item
+  | [], [], [], [], excess, _, _ when excess > 0 ->
+      Printf.sprintf
+        "next: archive %d accepted claim(s) or split this change; active claims exceed the budget of 8"
+        excess
+  | [], [], [], [], _, [], file :: _ -> "next: inspect uncovered file " ^ file
+  | [], [], [], [], _, [], [] -> "next: nothing to do - declared evidence is current and the tree is covered"
+  | [], [], [], [], _, item :: _, _ -> next_of_reason item

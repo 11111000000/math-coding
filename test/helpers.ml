@@ -41,6 +41,7 @@ let claim = {
   id = "sample"; text = "the subject is expected"; scope = [ "subject.txt" ];
   source = None; owner = None;
   risk = Medium; archived = false;
+  risks = [];
   requirements = [ Verifier "grep -q expected subject.txt" ];
   falsifier = "the subject is not expected"; register = Fact;
   control = Some "printf broken > subject.txt"; waiver = None; environment = None;

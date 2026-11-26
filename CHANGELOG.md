@@ -4,7 +4,7 @@
 
 ### Добавлено
 
-- Claim теперь несёт `risk` и `archived`.
+- Claim теперь несёт `risk`, semantic `risks` и `archived`.
 - Состояние `Observed`: проверка прошла, но control не доказал чувствительность.
 - `mathc archive ID` выводит claim из активной карты и прогона.
 - `mathc bundle FILE [--import]` переносит spec и evidence между clone'ами.
@@ -15,7 +15,12 @@
 
 - `schema_version` спецификации и evidence — 7.
 - Журналы переезжают в `.math/v7/`.
-- `map --json` показывает risk coverage и archived claims.
+- `map --json` показывает primary `coverage`: risk coverage, semantic risks,
+  high-risk open claims, `Observed`, claim budget и advisory file coverage.
+- MCP `run` и `add` возвращают structured approval provenance и
+  structured refusal fields.
+- Появился `docs/measurements/pilot-kit.sh` для проверки preregistration,
+  ledger и отрицательных fixtures внешнего пилота.
 - `mathc migrate` переводит v6 → v7 и перепривязывает definition digest.
 
 ### Что перестало работать

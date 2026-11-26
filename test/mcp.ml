@@ -163,8 +163,25 @@ let () =
       let output = In_channel.input_all channel in
       ignore (Unix.close_process_in channel);
       check "the unapproved environment is refused" (contains output "touch marker");
+      check "the refusal names unapproved commands as data" (contains output "\"unapproved_commands\"");
+      check "the refusal names the human command as data" (contains output "\"human_command\"");
       check "the unapproved environment is not executed" (not (Sys.file_exists (Filename.concat root "marker")));
       expect root "approve --by owner --reason \"the environment\" --command \"touch marker && sh -c true\"" 0;
+      expect root "approve --by owner --reason \"the check\" --command \"touch marker && sh -c 'true'\"" 0;
+      expect root "approve --by owner --reason \"the control\" --command \"touch marker && sh -c 'printf broken > subject.txt'\"" 0;
+      let approved_requests =
+        "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\"}}\n{\"jsonrpc\":\"2.0\",\"id\":4,\"method\":\"tools/call\",\"params\":{\"name\":\"run\",\"arguments\":{}}}\n"
+      in
+      let approved_channel = Unix.open_process_in (Printf.sprintf "%s <<'EOF'\n%sEOF" command approved_requests) in
+      let approved_output = In_channel.input_all approved_channel in
+      ignore (Unix.close_process_in approved_channel);
+      let provenance =
+        contains approved_output "\"approved_by\":\"owner\""
+        && contains approved_output "\"command\":\"touch marker && sh -c 'true'\""
+        && contains approved_output "\"approved_reason\":\"the check\""
+      in
+      check "approved MCP run returns provenance for the environment"
+        provenance;
       let answer = run root "map --json" in
       check "the approved environment is recorded in the approval journal"
         (contains (Io.read_file (Filename.concat root ".math/v7/approval.json")) "touch marker && sh -c true");

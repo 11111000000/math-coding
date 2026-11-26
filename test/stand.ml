@@ -35,6 +35,7 @@ let claim_with_environment id environment command =
   { id; text = "the subject is expected"; scope = [ "subject.txt" ];
     source = None; owner = None;
     risk = Medium; archived = false;
+    risks = [];
     requirements = [ Verifier command ];
     falsifier = "the subject is not expected"; register = Fact;
     control = None; waiver = None; environment }
@@ -117,6 +118,7 @@ let alternatives id first second =
   { id; text = "the subject is expected"; scope = [ "subject.txt" ];
     source = None; owner = None;
     risk = Medium; archived = false;
+    risks = [];
     requirements = [ Any [ Verifier first; Verifier second ] ];
     falsifier = "the subject is not expected"; register = Fact;
     control = Some "printf broken > subject.txt"; waiver = None; environment = None }

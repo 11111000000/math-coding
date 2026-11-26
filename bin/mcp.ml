@@ -34,6 +34,54 @@ let next_step ~root =
   else if result.code <> 0 then `String (result.stdout ^ result.stderr)
   else `String (String.trim result.stdout)
 
+let refused_result message =
+  `Assoc [ "ok", `Bool false; "text", `String message ]
+
+let approval_json records commands =
+  let command_approval command =
+    match List.find_opt (fun record -> Approval.covered [record] command) records with
+    | Some record ->
+        `Assoc
+          [ "command", `String command;
+            "approved_by", `String record.Approval.by;
+            "approved_reason", `String record.Approval.reason;
+            "approved_at", `Int record.Approval.at;
+            "command_digest", `String (Approval.digest_of_command command) ]
+    | None ->
+        `Assoc
+          [ "command", `String command;
+            "approved_by", `Null;
+            "approved_reason", `Null;
+            "approved_at", `Null;
+            "command_digest", `String (Approval.digest_of_command command) ]
+  in
+  `Assoc
+    [ "commands", `List (List.map command_approval commands);
+      "approved",
+        `Bool (List.for_all (fun command -> Approval.covered records command) commands) ]
+
+let with_approval ~root ~commands result =
+  match Approval.load (project_root root) with
+  | Error error -> result
+  | Ok records ->
+      let fields = [ "approval", approval_json records commands ] in
+      (match result with
+       | `Assoc fields0 -> `Assoc (fields0 @ fields)
+       | other -> other)
+
+let approval_refusal ~root ~commands message =
+  match Approval.load (project_root root) with
+  | Error error -> refused_result error
+  | Ok records ->
+      let missing = Approval.unapproved records commands in
+      `Assoc
+        [ "ok", `Bool false;
+          "text", `String message;
+          "approval", approval_json records commands;
+          "unapproved_commands", `List (List.map (fun command -> `String command) missing);
+          "human_command", `String "mathc approve --by WHO --reason WHY [--command CMD]";
+          "next", next_step ~root ]
+
 (* The commands that answer with the map carry the verdict in their exit code:
    a project that is not finished yet answers with an unknown verdict and a
    non-zero code, and a refuted claim answers with a red one. The tool did its
@@ -142,7 +190,10 @@ let validate_arguments name args =
 
 let call ~root name args =
   let refused message =
-    `Assoc [ "ok", `Bool false; "text", `String message; "next", next_step ~root ]
+    let result = refused_result message in
+    match result with
+    | `Assoc fields -> `Assoc (fields @ [ "next", next_step ~root ])
+    | other -> other
   in
   match name with
   | "map" | "context" -> parsed ~verdict:true ~root [ "map"; "--json" ]
@@ -154,9 +205,10 @@ let call ~root name args =
       match Project.load_spec (project_root root) with
       | Error error -> refused error
       | Ok spec -> (
-          match approved_or_error ~root ~commands:(Approval.commands_of_spec spec) with
-          | Error message -> refused message
-          | Ok () -> parsed ~verdict:true ~root [ "run"; "--json" ]))
+          let commands = Approval.commands_of_spec spec in
+          match approved_or_error ~root ~commands with
+          | Error message -> approval_refusal ~root ~commands message
+          | Ok () -> with_approval ~root ~commands (parsed ~verdict:true ~root [ "run"; "--json" ])))
   | "adopt" -> parsed ~root [ "adopt" ]
   | "import-adr" -> parsed ~root [ "import-adr"; string_arg "path" args ]
   | "doctor" -> (
@@ -164,11 +216,23 @@ let call ~root name args =
       `Assoc [ "ok", `Bool (result.code = 0); "text", `String (result.stdout ^ result.stderr);
                "next", next_step ~root ])
   | "add" ->
+      begin
       (* The command of the requirement and the control are what the tree will
          execute, so they are the commands the human has to approve. *)
       let requirement = string_arg "requirement" args in
       let control = string_arg "control" args in
       let environment = string_arg "environment" args in
+      let risk = match string_arg "risk" args with "" -> "medium" | value -> value in
+      let invalid =
+        if environment = "" then Ok ()
+        else Result.map (fun _ -> ()) (Spec.environment_value "environment" (`String environment))
+      in
+      match invalid with
+      | Error error -> refused error
+      | Ok () ->
+      if risk <> "low" && risk <> "medium" && risk <> "high" then refused "risk must be low, medium or high"
+      else if risk = "high" && control = "" then refused "a high-risk claim needs a negative control"
+      else begin
       let wrap command = Execution.command_in_environment (if environment = "" then None else Some environment) command in
       let commands =
         (match Requirements.parse requirement with
@@ -178,7 +242,7 @@ let call ~root name args =
         |> List.map wrap
       in
       (match approved_or_error ~root ~commands with
-       | Error message -> refused message
+       | Error message -> approval_refusal ~root ~commands message
        | Ok () ->
            let arguments =
              [ "add"; string_arg "id" args; string_arg "text" args;
@@ -188,10 +252,12 @@ let call ~root name args =
                "--control"; control;
                "--source"; string_arg "source" args;
                "--environment"; environment;
-               "--risk"; (match string_arg "risk" args with "" -> "medium" | value -> value) ]
+               "--risk"; risk ]
            in
-           parsed ~root arguments)
-  | _ -> `Assoc [ "ok", `Bool false; "text", `String ("unknown tool: " ^ name); "next", next_step ~root ]
+           with_approval ~root ~commands (parsed ~root arguments))
+      end
+      end
+  | other -> refused ("unknown tool: " ^ other)
 
 let handle ~root request =
   let id = field "id" request in
