@@ -58,7 +58,7 @@ let import_file root path =
     let claim = {
       id = slugify title; text = (if decision = "" then title else decision);
       scope = []; source = Some source;
-      owner = None; risk = Medium; archived = false;
+      owner = None; risk = Medium; archived = false; risks = [];
       requirements = []; falsifier = "";
       register = Undeclared; control = None; waiver = None; environment = None;
     } in

@@ -58,6 +58,7 @@ type claim = {
   owner : string option;
   risk : risk;
   archived : bool;
+  risks : string list;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -105,6 +106,8 @@ type spec = { goal : goal option; claims : claim list; environment : string opti
 
 val effective_environment : spec -> claim -> string option
 val active_claims : spec -> claim list
+val valid_risk_label : string -> bool
+val claim_risks : claim -> string list
 
 val outcome_to_string : outcome -> string
 val outcome_of_string : string -> outcome option

@@ -49,8 +49,8 @@ for file in "$root"/format/*.ml "$root"/format/*.mli; do
   count=$(lines_of "$file")
   format_total=$((format_total + count))
 done
-if [ "$format_total" -gt 520 ]; then
-  fail "the format layer has $format_total lines, the bound is 520"
+if [ "$format_total" -gt 540 ]; then
+  fail "the format layer has $format_total lines, the bound is 540"
 fi
 
 # The CLI stays split: the dispatch, the entry point and the entry of the

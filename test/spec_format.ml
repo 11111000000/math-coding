@@ -147,9 +147,33 @@ let () =
    | Error error -> failwith error);
   (match Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
                                       "risk", `String "high"; "archived", `Bool true;
+                                      "risks", `List [ `String "security"; `String "migration" ];
                                       "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]) with
-   | Ok parsed -> check "risk and archived survive the codec" (parsed.risk = High && parsed.archived)
+   | Ok parsed ->
+       check "risk, archived, and risks survive the codec"
+         (parsed.risk = High && parsed.archived
+         && parsed.risks = [ "security"; "migration" ])
    | Error error -> failwith error);
+  (match Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                      "risk", `String "medium"; "archived", `Bool false;
+                                      "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]) with
+   | Ok parsed -> check "missing risks default to unclassified" (parsed.risks = [])
+   | Error error -> failwith error);
+  expect_error "an empty risk entry is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                  "risk", `String "low"; "archived", `Bool false;
+                                  "risks", `List [ `String "" ];
+                                  "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
+  expect_error "a control character in a risk entry is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                  "risk", `String "low"; "archived", `Bool false;
+                                  "risks", `List [ `String "security\n" ];
+                                  "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
+  expect_error "an overlong risk entry is rejected"
+    (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
+                                  "risk", `String "low"; "archived", `Bool false;
+                                  "risks", `List [ `String (String.make 129 'x') ];
+                                  "requirements", `List []; "falsifier", `String "x"; "register", `String "fact" ]));
   expect_error "an unknown risk is rejected"
     (Spec.claim_of_json (`Assoc [ "id", `String "x"; "text", `String "x"; "scope", `List [];
                                   "risk", `String "invented"; "archived", `Bool false;

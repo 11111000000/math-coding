@@ -20,4 +20,6 @@ val next_of_reason : Evaluation.evaluated_state -> string
 val damage_words : Trail.damage list -> string
 
 (* The one next action over the states of the claims. *)
-val next_of_states : Evaluation.evaluated_state list -> string list -> Trail.damage list -> string
+val next_of_states :
+  Evaluation.evaluated_state list -> string list -> Trail.damage list ->
+  high_risk:Evaluation.evaluated_state list -> claim_excess:int -> string

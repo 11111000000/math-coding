@@ -150,6 +150,19 @@ let environment_of_json label pairs =
   | None | Some `Null -> Ok None
   | Some value -> Result.map (fun text -> Some text) (environment_value label value)
 
+let risks_of_json json =
+  let rec collect acc = function
+    | [] -> Ok (List.rev acc)
+    | `String value :: rest ->
+        if valid_risk_label value then collect (value :: acc) rest
+        else Error "claim.risks entries must be non-empty, at most 128 bytes, and contain no control characters"
+    | _ -> Error "claim.risks must be a list of strings"
+  in
+  match json with
+  | `Null -> Ok []
+  | `List items -> collect [] items
+  | _ -> Error "claim.risks must be a list of strings"
+
 let claim_to_json claim =
   `Assoc
     ([ "id", json_string claim.id;
@@ -159,6 +172,7 @@ let claim_to_json claim =
       "owner", json_string_opt claim.owner;
       "risk", `String (risk_to_string claim.risk);
       "archived", `Bool claim.archived;
+      "risks", json_strings claim.risks;
       "requirements", `List (List.map requirement_to_json claim.requirements);
       "falsifier", json_string claim.falsifier;
       "register", json_string (register_to_string claim.register);
@@ -169,7 +183,7 @@ let claim_to_json claim =
 let claim_of_json json =
   let* pairs = object_ "claim" [ "id"; "text"; "scope"; "source"; "owner";
                                  "risk"; "archived"; "requirements"; "falsifier"; "register"; "control";
-                                 "waiver"; "environment" ] json in
+                                 "risks"; "waiver"; "environment" ] json in
   let* id = string "id" pairs in
   let* text = string "text" pairs in
   let* scope = string_list "scope" pairs in
@@ -211,10 +225,15 @@ let claim_of_json json =
     | Some _ -> Error "claim.archived must be a boolean"
     | None -> Error "archived is required"
   in
+  let* risks =
+    match List.assoc_opt "risks" pairs with
+    | None -> Ok []
+    | Some value -> risks_of_json value
+  in
   let* control = string_opt "control" pairs in
   let* environment = environment_of_json "claim.environment" pairs in
   Ok { id; text; scope; source; owner;
-       risk; archived; requirements; falsifier; register; control; waiver; environment }
+       risk; archived; risks; requirements; falsifier; register; control; waiver; environment }
 
 let goal_to_json goal =
   `Assoc [ "text", json_string goal.text;

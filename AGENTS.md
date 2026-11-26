@@ -141,9 +141,9 @@ Scope и source paths не могут быть absolute, traversal или symlin
 <!-- math-coding:begin -->
 ## math-coding in this project
 
-v7 makes evidence useful, risk-scaled, and portable
+v7 makes evidence risk-scaled, portable, and useful for development
 
-33 claim(s).
+34 claim(s).
 
 ```sh
 mathc run

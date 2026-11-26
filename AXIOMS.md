@@ -8,8 +8,8 @@
 
 - `SourceRef`: вид источника, путь, необязательный раздел, digest и
   необязательная запись пересмотра: автор, причина, время, прежний digest.
-- `Claim`: текст, scope, источник, владелец, риск, archived, условия
-  подтверждения, falsifier, register, control и необязательный waiver.
+- `Claim`: текст, scope, источник, владелец, риск, archived, semantic risks,
+  условия подтверждения, falsifier, register, control и необязательный waiver.
 - `Evidence`: claim, requirement, candidate tree, materials/definition/verifier
   digests, environment, producer, independence, outcome, issue/expiry, evidence
   reference и control reach.
@@ -25,8 +25,10 @@
 - `mathc add` создаёт claim с риском `medium` по умолчанию, назначает владельца
   из цели и оставляет claim активным. `import-adr` создаёт неактивный черновик
   с пустыми scope и requirements и регистром `unknown`.
-- `risk` и `archived` входят в definition digest: изменение риска или lifecycle
-  делает прежнее evidence неприменимым.
+- `risk`, `risks` и `archived` входят в definition digest: изменение риска,
+  семантических рисков или lifecycle делает прежнее evidence неприменимым.
+- Пустой `risks` — не пустое покрытие: домен выводит `unclassified`, чтобы
+  несформулированный риск оставался видимым.
 - `fact`, `hypothesis` и `unknown` используют одни правила evidence. Регистр
   фиксирует характер утверждения и не снижает требования. `judgment`
   рассматривает только review requirements.
@@ -122,7 +124,7 @@
     traversal или symlink. Ошибки repository surface не становятся пустым
     доказательством или пустым coverage.
 22. `map`, `next`, `context`, `adopt` и `import-adr` read-only. `run` исполняет
-    проектные shell-команды и добавляет локальные evidence в `.math/v6/`.
+    проектные shell-команды и добавляет локальные evidence в `.math/v7/`.
 23. Controls исполняются в изолированной копии текущего дерева. Они не меняют
     живой предмет. Evidence другой схемы и повреждённый trail отклоняются без
     fallback или повышения доверия.

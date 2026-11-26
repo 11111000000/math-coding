@@ -56,6 +56,33 @@ let () =
 let () =
   with_repo (fun root ->
       expect root "init" 0;
+      let goal = Some { text = "claim budget is visible"; scope = [ "subject.txt" ]; by = "owner"; at = 1; reason = None } in
+      let claims =
+        List.init 9 (fun index ->
+          { claim with
+            id = "claim-" ^ string_of_int index;
+            risk = Low;
+            control = None;
+            requirements = [ Verifier "grep -q expected subject.txt" ] })
+      in
+      write root "subject.txt" "expected\n";
+      write root "spec.json"
+        (Yojson.Safe.pretty_to_string (Spec.to_json { goal; claims; environment = None }));
+      let map = run root "map --json" in
+      let json = Yojson.Safe.from_string map.stdout in
+      let coverage = match field "coverage" json with Some value -> value | None -> `Null in
+      let int_field name value =
+        match field name value with Some (`Int value) -> value | _ -> -1
+      in
+      check "map exposes the claim budget and excess"
+        (int_field "claim_budget" coverage = 8 && int_field "claim_excess" coverage = 1);
+      check "next action names claim-budget cleanup"
+        (contains map.stdout "active claims exceed the budget of 8");
+      print_endline "claim-budget: PASS")
+
+let () =
+  with_repo (fun root ->
+      expect root "init" 0;
       expect root "goal \"the bundle moves evidence\" subject.txt owner" 0;
       write root "subject.txt" "expected\n";
       expect root "add sample \"the subject is expected\" subject.txt \"the subject is not expected\" fact --requirement \"verifier:grep -q expected subject.txt\" --control \"printf broken > subject.txt\"" 0;
@@ -119,7 +146,7 @@ let () =
       let second = Io.read_file (Filename.concat root "AGENTS.md") in
       check "install is idempotent" (first = second);
       check "generated agent page is outside uncovered subject scope"
-        (contains (run root "map").stdout "uncovered: 0 file(s)");
+        (contains (run root "map").stdout "uncovered files (advisory): 0");
       expect root "doctor" 0;
       let doctor = run root "doctor" in
       check "the doctor tells the tool apart from the state of the evidence"
@@ -306,10 +333,10 @@ let () =
       let result = run root "run" in
       check "run keeps green separate from uncovered work"
         (result.code = 0 && contains result.stdout "verdict: green"
-        && contains result.stdout "uncovered: 1 file(s)"
+        && contains result.stdout "uncovered files (advisory): 1"
         && contains result.stdout "  extra.txt"
         && contains result.stdout "next: inspect uncovered file extra.txt"
-        && not (contains result.stdout "uncovered: 0 file(s)"));
+        && not (contains result.stdout "uncovered files (advisory): 0"));
       print_endline "run-uncovered: PASS")
 
 (* The coverage of the map is counted inside the area the aim declares. The map
@@ -325,7 +352,7 @@ let () =
       let map = run root "map" in
       check "the map names the area it counts the coverage in"
         (contains map.stdout "goal scope: subject.txt"
-        && contains map.stdout "uncovered: 0 file(s)");
+        && contains map.stdout "uncovered files (advisory): 0");
       check "a file outside the declared area is not counted as uncovered"
         (not (contains map.stdout "outside.txt"));
       (* Without an aim there is no area: the map says so instead of reporting
@@ -1055,7 +1082,7 @@ let () =
                         by = "owner"; at = 1; reason = None } in
       let decided = { claim with id = "decided"; text = "the owner decided the order of the waves twice";
                       scope = [ "plan.md" ]; register = Judgment; owner = Some "owner";
-                      risk = Medium; archived = false;
+                      risk = Medium; archived = false; risks = [];
                       requirements = [ Review { authority = "owner"; minimum_independence = External } ];
                       falsifier = "the order is not the owner's"; control = None } in
       write root "spec.json"

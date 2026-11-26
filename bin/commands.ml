@@ -96,6 +96,7 @@ let add root id text scope falsifier register requirements control source_path e
         owner = Option.map (fun goal -> goal.by) spec.goal;
         risk = (match risk_of_string risk with Some value -> value | None -> Medium);
         archived = false;
+        risks = [];
         requirements; falsifier; register; control = (if control = "" then None else Some control);
         waiver = None; environment;
       } in

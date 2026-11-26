@@ -58,6 +58,8 @@ type claim = {
   owner : string option;
   risk : risk;
   archived : bool;
+  (* Empty means "unclassified"; claim_risks always returns a semantic label. *)
+  risks : string list;
   requirements : requirement list;
   falsifier : string;
   register : register;
@@ -110,6 +112,14 @@ let effective_environment (spec : spec) (claim : claim) =
   match claim.environment with Some value -> Some value | None -> spec.environment
 
 let active_claims (spec : spec) = List.filter (fun (claim : claim) -> not claim.archived) spec.claims
+
+let valid_risk_label value =
+  value <> ""
+  && String.length value <= 128
+  && not (String.exists (fun ch -> ch < ' ' || ch = '\127') value)
+
+let claim_risks (claim : claim) =
+  if claim.risks = [] then [ "unclassified" ] else claim.risks
 let outcome_to_string = function
   | Pass -> "pass"
   | Fail -> "fail"
@@ -223,7 +233,8 @@ let definition_digest c =
   let requirements = List.map requirement_repr c.requirements |> List.sort_uniq String.compare in
   [ c.id; c.text; String.concat "," c.scope; Option.value ~default:"" c.owner;
     String.concat ";" requirements; c.falsifier; register_to_string c.register;
-    risk_to_string c.risk; string_of_bool c.archived ]
+    risk_to_string c.risk; string_of_bool c.archived;
+    String.concat "," (claim_risks c) ]
   @ source
   |> String.concat "\n"
   |> digest_string
