@@ -36,7 +36,7 @@ prereq() {
   grep -q 'не менее 30% снижения' "$protocol"
   grep -q 'снижении основного показателя не менее чем на' "$protocol"
   grep -q 'mathc_build' "$protocol"
-  printf '%s\n' '{"preregistered":true,"spec_schema_version":7,"evidence_schema_version":7,"arms":["baseline","checklist","protocol"],"status":"ready-for-owner-run"}'
+  printf '%s\n' '{"preregistered":true,"spec_schema_version":7,"evidence_schema_version":7,"arms":["baseline","checklist","protocol"],"weights":{"utility_measurement":2,"cost":1,"risk_coverage":2,"adoption":1},"status":"ready-for-owner-run"}'
 }
 
 validate() {

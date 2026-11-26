@@ -127,6 +127,12 @@ let () =
   let arms = arms_of_summary summary.stdout in
   check "the protocol declares every arm the ledger compares"
     (arms <> [] && List.for_all (fun arm -> contains arms_section (String.lowercase_ascii arm)) arms);
+  let protocol_text = Io.read_file protocol_file in
+  check "the protocol records the owner weights"
+    (contains protocol_text "Измерение полезности"
+    && contains protocol_text "Стоимость"
+    && contains protocol_text "Покрытие риска"
+    && contains protocol_text "Внедрение");
   let dry_lines = String.split_on_char '\n' (Io.read_file dry_run) in
   let protocol = List.nth dry_lines 2 |> Yojson.Safe.from_string in
   with_repo (fun root ->
