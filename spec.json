@@ -382,7 +382,8 @@
       "id": "ci-contract",
       "text": "the delivery workflow is valid",
       "scope": [
-        ".github/workflows/ci.yml"
+        ".github/workflows/ci.yml",
+        "scripts/build-package.sh"
       ],
       "source": null,
       "owner": "owner",
@@ -391,7 +392,7 @@
       "requirements": [
         {
           "kind": "verifier",
-          "spec": "nix shell github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2#actionlint -c actionlint .github/workflows/ci.yml"
+          "spec": "nix shell github:NixOS/nixpkgs/e94cb152ed51bd6e24eb4a41f1460252beb52cd2#actionlint -c actionlint .github/workflows/ci.yml && sh -n scripts/build-package.sh"
         }
       ],
       "falsifier": "an invalid workflow passes validation",

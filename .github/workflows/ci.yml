@@ -32,7 +32,22 @@ jobs:
       - run: nix develop -c dune runtest --root . --force
       - name: Check the style bounds of the code
         run: nix develop -c sh test/style_bounds.sh
+      # The packages of the project are built before they are checked. The
+      # build of a package is the one thing the runner does not always get
+      # right, and the rule of the build lives in one script: the script
+      # retries the build and tries it once outside the sandbox.
+      - name: Build the packages of the project
+        run: sh scripts/build-package.sh default
       - run: nix develop -c sh test/package_smoke.sh
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the cache afterwards. The checks of the console run in
+      # copies of the tree, and every copy installs the packages again: the
+      # cache keeps the downloads out of the copies.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - name: Verify the Paseo Math Coding plugin
         run: |
           nix develop -c bash -c '
@@ -63,7 +78,11 @@ jobs:
         run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
 
   portable:
-    needs: verify
+    # The quick gate and the battery run side by side. The quick gate says in
+    # two minutes that the tree is whole, and the battery says in twelve
+    # minutes that the claims hold. The gate of the delivery is as long as
+    # the slower of the two and not the sum of them, and a tree that is
+    # broken fails in both: the battery fails at its first build.
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -73,6 +92,38 @@ jobs:
           extra-conf: |
             accept-flake-config = true
             experimental-features = nix-command flakes
+      # The static toolchain of the portable build is not in any public
+      # cache and the runner cannot build it reliably (the static runtime of
+      # OCaml 5 cannot reserve the stack for its signal handlers in the
+      # sandbox). The closure was built on the machine that can and is
+      # published with the release named ci-toolchain. It is fetched and
+      # imported before any build; if it is missing, the jobs fall back to
+      # building, which is slow and intermittent.
+      - name: Fetch the toolchain of the static build
+        run: |
+          set -uo pipefail
+          lock="${{ hashFiles('flake.lock') }}"
+          url="https://github.com/11111000000/math-coding/releases/download/ci-toolchain-$lock"
+          if curl -sfL "$url/static-toolchain-store.tar.zst" -o /tmp/store.tar.zst && \
+             curl -sfL "$url/ci-toolchain-db.tar.zst" -o /tmp/db.tar.zst; then
+            tar --use-compress-program='zstd -d' -xf /tmp/store.tar.zst -C /
+            nix-store --load-db < <(zstd -dc /tmp/db.tar.zst)
+            echo "the toolchain of the static build is imported"
+          else
+            echo "the published toolchain is not there; the build falls back to the sandbox" >&2
+          fi
+
+      # The nix daemon starts with the stack of the runner: eight megabytes,
+      # hard. Its builders inherit that limit, and the static runtime of
+      # OCaml 5 needs more for its signal handlers, so the compiler of the
+      # static build dies before it reads a file. The limit is a property of
+      # the daemon, so it is raised on the daemon and not in a shell.
+      - name: Give the builders a bigger stack
+        run: |
+          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+          printf '[Service]\nLimitSTACK=64M\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/limits.conf >/dev/null
+          sudo systemctl daemon-reload
+          sudo systemctl restart nix-daemon.service
       # The static toolchain is not in the public binary cache: it is built
       # from source and it is the whole cost of this job. Its closure is
       # therefore cached under a key that the pages job restores as well,
@@ -85,49 +136,13 @@ jobs:
       # build compiles it inside the sandbox. That compilation intermittently
       # fails with "Failed to allocate signal stack for domain 0" from the
       # OCaml 5 runtime. The failure is in the environment, not in the
-      # change under test, and the same revision passes on a rerun. The
-      # build is therefore retried before the job is failed.
-      - name: Build and check the portable package
-        run: |
-          set -uo pipefail
-          # The static build of OCaml 5 reserves the stack for its signal
-          # handlers, and the default limit of the runner is too small: the
-          # binary dies before it starts, and the retry loop below only
-          # repeats the same death. A bigger stack is the fix; the retries
-          # stay for the build itself, which is slow and cold.
-          ulimit -s 65536 || true
-          for attempt in 1 2 3; do
-            log="$(mktemp)"
-            nix develop -c sh test/package_smoke.sh portable >"$log" 2>&1
-            status=$?
-            cat "$log"
-            if [ "$status" -eq 0 ]; then
-              rm -f "$log"
-              exit 0
-            fi
-            flaky=no
-            if grep -q "Failed to allocate signal stack" "$log"; then
-              flaky=yes
-            fi
-            rm -f "$log"
-            if [ "$flaky" != "yes" ]; then
-              exit "$status"
-            fi
-            echo "portable build attempt $attempt failed with the signal stack error" >&2
-          done
-          echo "the portable build failed three times with the signal stack error" >&2
-          # The sandbox of the runner breaks the static runtime of OCaml 5:
-          # the compiler cannot reserve the stack for its signal handlers and
-          # dies before it reads a file. The same build outside the sandbox
-          # has the stack of the runner, which is enough. The build is not
-          # untrusted here - it is the tool of this repository, compiled on
-          # the machine of the runner.
-          echo "the portable build is tried once more outside the sandbox" >&2
-          if nix build .#portable --no-link --option sandbox false; then
-            exit 0
-          fi
-          echo "the portable build failed with and without the sandbox" >&2
-          exit 1
+      # change under test, and the same revision passes on the next try. The
+      # rule of the build lives in one script, and the script retries the
+      # build and tries it once outside the sandbox.
+      - name: Build the portable package
+        run: sh scripts/build-package.sh portable
+      - name: Check the portable package
+        run: nix develop -c sh test/package_smoke.sh portable
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved, and the
@@ -136,9 +151,33 @@ jobs:
       # so this job is the only place where it can be saved.
       - name: Drop the store locks a failed build left behind
         run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the cache afterwards. The checks of the console run in
+      # copies of the tree, and every copy installs the packages again: the
+      # cache keeps the downloads out of the copies.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor
+      # The evidence of the battery travels to the job that publishes the
+      # site. The map of the published site is the map of this commit, and
+      # the run that produced it is the run of this job: the pages job reads
+      # the evidence instead of running the whole battery a second time.
+      - name: Keep the evidence of the battery
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mathc-evidence
+          path: .math
+          retention-days: 1
+          # The journal of the evidence lives in a directory whose name
+          # begins with a dot, and the upload leaves such a directory alone
+          # unless it is told otherwise: the artifact was empty, and the
+          # pages job found nothing to read.
+          include-hidden-files: true
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved and the
@@ -156,9 +195,10 @@ jobs:
     permissions:
       pages: write
       id-token: write
+      actions: read
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -169,6 +209,38 @@ jobs:
           extra-conf: |
             accept-flake-config = true
             experimental-features = nix-command flakes
+      # The static toolchain of the portable build is not in any public
+      # cache and the runner cannot build it reliably (the static runtime of
+      # OCaml 5 cannot reserve the stack for its signal handlers in the
+      # sandbox). The closure was built on the machine that can and is
+      # published with the release named ci-toolchain. It is fetched and
+      # imported before any build; if it is missing, the jobs fall back to
+      # building, which is slow and intermittent.
+      - name: Fetch the toolchain of the static build
+        run: |
+          set -uo pipefail
+          lock="${{ hashFiles('flake.lock') }}"
+          url="https://github.com/11111000000/math-coding/releases/download/ci-toolchain-$lock"
+          if curl -sfL "$url/static-toolchain-store.tar.zst" -o /tmp/store.tar.zst && \
+             curl -sfL "$url/ci-toolchain-db.tar.zst" -o /tmp/db.tar.zst; then
+            tar --use-compress-program='zstd -d' -xf /tmp/store.tar.zst -C /
+            nix-store --load-db < <(zstd -dc /tmp/db.tar.zst)
+            echo "the toolchain of the static build is imported"
+          else
+            echo "the published toolchain is not there; the build falls back to the sandbox" >&2
+          fi
+
+      # The nix daemon starts with the stack of the runner: eight megabytes,
+      # hard. Its builders inherit that limit, and the static runtime of
+      # OCaml 5 needs more for its signal handlers, so the compiler of the
+      # static build dies before it reads a file. The limit is a property of
+      # the daemon, so it is raised on the daemon and not in a shell.
+      - name: Give the builders a bigger stack
+        run: |
+          sudo mkdir -p /etc/systemd/system/nix-daemon.service.d
+          printf '[Service]\nLimitSTACK=64M\n' | sudo tee /etc/systemd/system/nix-daemon.service.d/limits.conf >/dev/null
+          sudo systemctl daemon-reload
+          sudo systemctl restart nix-daemon.service
       # The same cache as the portable job: the static toolchain is already
       # in it, so the package here is a lookup and not a build.
       - uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569
@@ -181,23 +253,46 @@ jobs:
       # the package, not the cost of a cold toolchain.
       # The static runtime of OCaml 5 cannot reserve the stack for its signal
       # handlers inside the sandbox of the runner: the build dies before it
-      # reads a file. The build is retried outside the sandbox, where the
-      # stack of the runner is available.
+      # reads a file. The build is retried by the rule of the build, which
+      # tries it once more outside the sandbox, where the stack of the runner
+      # is available.
       - name: Build the portable package
+        run: sh scripts/build-package.sh portable
+      # The battery of the project ran in the portable job, on this commit,
+      # in this environment. Its evidence travels here: the map of the
+      # published site is the map of that run, and the site is not published
+      # from a second, slower, identical run.
+      - name: Take the evidence of the battery
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mathc-evidence
+          path: .math
+      # The site shows the states of the claims, and the states come from the
+      # evidence. The battery was green - the portable job fails when it is
+      # not - and the map is read again here, so that the job fails if the
+      # evidence does not answer for this tree.
+      - name: The evidence must answer for this tree
         run: |
-          set -uo pipefail
-          if ! nix build .#portable --no-link; then
-            echo "the sandboxed build failed; retrying without the sandbox" >&2
-            nix build .#portable --no-link --option sandbox false
-          fi
-      # Fresh evidence in this environment: the deployed map shows the
-      # states computed here, and the job fails unless the run is green.
-      - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
+          nix develop -c ./_build/default/bin/mathc.exe --root . map --json > /dev/null
+          echo "the map of the evidence is green"
       - run: nix develop -c sh site/build.sh
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
           path: site/dist
+      # The deployment failed on the platform, not on the tree: the site was
+      # built and the artifact was uploaded, and the API of the platform did
+      # not see the artifact yet ("No artifacts named github-pages were
+      # found" on 2026-11-25). The deployment is tried once more, after the
+      # API has had the moment it needs. The check below reads the published
+      # page: a job that published nothing fails there.
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+      - name: Wait before the second attempt
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
       # The deployment is only finished when the published page carries the
       # commit that was deployed. Pages needs a moment to propagate, so the
