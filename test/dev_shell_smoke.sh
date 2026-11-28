@@ -70,6 +70,13 @@ for reference in $(nix-store --query --references "$drv"); do
     *.drv) ;;
     *) continue ;;
   esac
+  # A derivation with a fixed output forbids substitutes and fetches what it
+  # names: it is not compiled from the sources. The packages of the console
+  # are such a derivation, and the rule is about the tools that are compiled,
+  # not about every input of the shell.
+  if grep -q 'outputHash' "$reference" 2>/dev/null; then
+    continue
+  fi
   if grep -q 'allowSubstitutes' "$reference" 2>/dev/null; then
     fail "the derivation $reference forbids substitutes and is compiled from the sources"
   fi

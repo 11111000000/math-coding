@@ -33,12 +33,9 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 # The packages are installed only when they are missing: an installed tree is
 # not touched again while a check runs, and the check does not spend the
 # network on every run.
-if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
-  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
-fi
-if [ ! -x "$PAGE/node_modules/.bin/tsx" ]; then
-  (cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
-fi
+. "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
+console_packages_install "$PLUGIN" "${MATHC_CONSOLE_DEPS:+$MATHC_CONSOLE_DEPS/plugin}"
+console_packages_install "$PAGE" "${MATHC_CONSOLE_DEPS:+$MATHC_CONSOLE_DEPS/page}"
 
 (cd "$PAGE" && npm run build >/dev/null)
 

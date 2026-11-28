@@ -29,6 +29,33 @@
           omd = super.omd.overrideAttrs (_: { doCheck = false; });
           xmlm = super.xmlm.overrideAttrs (_: { doCheck = false; });
         });
+        # The packages of the two JavaScript projects are fetched once, by a
+        # derivation with a fixed output, and are taken from the store
+        # afterwards. The checks of the console run in copies of the tree,
+        # and every copy would otherwise download the same packages again:
+        # the battery of the project spent minutes on downloads it had
+        # already paid for.
+        #
+        # The output of the derivation is pinned by its hash. A changed
+        # package-lock needs a new hash, and the build names it: run
+        # `nix build .#console-deps` and put the hash it reports into
+        # `outputHash` below.
+        consoleDeps = pkgs.runCommand "math-coding-console-deps" {
+          nativeBuildInputs = nodePackages;
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = "sha256-Mes+CRFuh6EVeBQREDNaxcVkq4WqhFbnWLyw4hvRZPI=";
+        } ''
+          cp -r ${./plugin/math-coding-console} plugin
+          cp -r ${./console} page
+          chmod -R u+w plugin page
+          rm -rf plugin/node_modules page/node_modules
+          (cd plugin && npm ci --ignore-scripts --no-audit --no-fund)
+          (cd page && npm ci --ignore-scripts --no-audit --no-fund)
+          mkdir -p $out/plugin $out/page
+          mv plugin/node_modules $out/plugin/node_modules
+          mv page/node_modules $out/page/node_modules
+        '';
         siteLibs = packageSet: pkg: "${pkg}/lib/ocaml/${packageSet.ocaml.version}/site-lib";
         ocamlPath = pkgs.lib.concatMapStringsSep ":" (siteLibs ocamlPackages) ocamlDeps;
         mkBinary = { name, target }:
@@ -54,10 +81,15 @@
       {
         devShells.default = pkgs.mkShell {
           name = "math-coding-5-dev";
-          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused ]) ++ nodePackages;
+          packages = ocamlDeps ++ (with pkgs; [ bash git coreutils findutils gnused ]) ++ nodePackages
+            ++ [ consoleDeps ];
           shellHook = ''
             export PATH="${ocamlPackages.ocaml}/bin:$PATH"
             export OCAMLPATH="${ocamlPath}"
+            # The packages of the JavaScript projects are in the store, and
+            # the checks of the console take them from there instead of
+            # downloading them again for every copy of the tree.
+            export MATHC_CONSOLE_DEPS="${consoleDeps}"
             # The notice goes to stderr: `nix develop -c mathc map --json` must
             # produce nothing but the map on stdout, and the banner is the
             # shell's chatter, not the method's answer.
@@ -79,6 +111,7 @@
         };
 
         packages.default = mkBinary { name = "mathc"; target = "bin/mathc.exe"; };
+        packages.console-deps = consoleDeps;
         packages.stand = pkgs.symlinkJoin {
           name = "mathc-with-stand";
           paths = [
