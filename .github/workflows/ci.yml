@@ -182,6 +182,11 @@ jobs:
           name: mathc-evidence
           path: .math
           retention-days: 1
+          # The journal of the evidence lives in a directory whose name
+          # begins with a dot, and the upload leaves such a directory alone
+          # unless it is told otherwise: the artifact was empty, and the
+          # pages job found nothing to read.
+          include-hidden-files: true
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved and the
