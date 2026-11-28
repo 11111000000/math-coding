@@ -172,6 +172,16 @@ jobs:
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor
+      # The evidence of the battery travels to the job that publishes the
+      # site. The map of the published site is the map of this commit, and
+      # the run that produced it is the run of this job: the pages job reads
+      # the evidence instead of running the whole battery a second time.
+      - name: Keep the evidence of the battery
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: mathc-evidence
+          path: .math
+          retention-days: 1
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved and the
@@ -189,9 +199,10 @@ jobs:
     permissions:
       pages: write
       id-token: write
+      actions: read
     environment:
       name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+      url: ${{ steps.deployment.outputs.page_url || steps.deployment_retry.outputs.page_url }}
     concurrency:
       group: pages
       cancel-in-progress: false
@@ -256,14 +267,41 @@ jobs:
             ulimit -s unlimited || true
             nix build .#portable --no-link --option sandbox false
           fi
-      # Fresh evidence in this environment: the deployed map shows the
-      # states computed here, and the job fails unless the run is green.
-      - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
+      # The battery of the project ran in the portable job, on this commit,
+      # in this environment. Its evidence travels here: the map of the
+      # published site is the map of that run, and the site is not published
+      # from a second, slower, identical run.
+      - name: Take the evidence of the battery
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+        with:
+          name: mathc-evidence
+          path: .math
+      # The site shows the states of the claims, and the states come from the
+      # evidence. The battery was green - the portable job fails when it is
+      # not - and the map is read again here, so that the job fails if the
+      # evidence does not answer for this tree.
+      - name: The evidence must answer for this tree
+        run: |
+          nix develop -c ./_build/default/bin/mathc.exe --root . map --json > /dev/null
+          echo "the map of the evidence is green"
       - run: nix develop -c sh site/build.sh
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9
         with:
           path: site/dist
+      # The deployment failed on the platform, not on the tree: the site was
+      # built and the artifact was uploaded, and the API of the platform did
+      # not see the artifact yet ("No artifacts named github-pages were
+      # found" on 2026-11-25). The deployment is tried once more, after the
+      # API has had the moment it needs. The check below reads the published
+      # page: a job that published nothing fails there.
       - id: deployment
+        continue-on-error: true
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
+      - name: Wait before the second attempt
+        if: steps.deployment.outcome == 'failure'
+        run: sleep 60
+      - id: deployment_retry
+        if: steps.deployment.outcome == 'failure'
         uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346
       # The deployment is only finished when the published page carries the
       # commit that was deployed. Pages needs a moment to propagate, so the
