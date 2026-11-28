@@ -35,7 +35,7 @@ grep -F 'green' "$work/plain-map.txt" >/dev/null || fail "no-ADR project is not 
 grep -F 'holds' "$work/plain-map.txt" >/dev/null || fail "no-ADR claim does not hold"
 "$mathc" --root "$plain" install
 "$mathc" --root "$plain" map > "$work/plain-installed-map.txt"
-grep -F 'uncovered: 0 file(s)' "$work/plain-installed-map.txt" >/dev/null \
+grep -F 'uncovered files (advisory): 0' "$work/plain-installed-map.txt" >/dev/null \
   || fail "generated agent page was reported as uncovered"
 "$mathc" --root "$plain" doctor > "$work/plain-doctor.txt"
 "$stand" "$plain" \
