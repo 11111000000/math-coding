@@ -32,6 +32,12 @@ jobs:
       - run: nix develop -c dune runtest --root . --force
       - name: Check the style bounds of the code
         run: nix develop -c sh test/style_bounds.sh
+      # The packages of the project are built before they are checked. The
+      # build of a package is the one thing the runner does not always get
+      # right, and the rule of the build lives in one script: the script
+      # retries the build and tries it once outside the sandbox.
+      - name: Build the packages of the project
+        run: sh scripts/build-package.sh default
       - run: nix develop -c sh test/package_smoke.sh
       # The packages of the two JavaScript projects are fetched once and are
       # taken from the cache afterwards. The checks of the console run in
@@ -126,50 +132,13 @@ jobs:
       # build compiles it inside the sandbox. That compilation intermittently
       # fails with "Failed to allocate signal stack for domain 0" from the
       # OCaml 5 runtime. The failure is in the environment, not in the
-      # change under test, and the same revision passes on a rerun. The
-      # build is therefore retried before the job is failed.
-      - name: Build and check the portable package
-        run: |
-          set -uo pipefail
-          # The static build of OCaml 5 reserves the stack for its signal
-          # handlers, and the default limit of the runner is too small: the
-          # binary dies before it starts, and the retry loop below only
-          # repeats the same death. A bigger stack is the fix; the retries
-          # stay for the build itself, which is slow and cold.
-          ulimit -s 65536 || true
-          for attempt in 1 2 3; do
-            log="$(mktemp)"
-            nix develop -c sh test/package_smoke.sh portable >"$log" 2>&1
-            status=$?
-            cat "$log"
-            if [ "$status" -eq 0 ]; then
-              rm -f "$log"
-              exit 0
-            fi
-            flaky=no
-            if grep -q "Failed to allocate signal stack" "$log"; then
-              flaky=yes
-            fi
-            rm -f "$log"
-            if [ "$flaky" != "yes" ]; then
-              exit "$status"
-            fi
-            echo "portable build attempt $attempt failed with the signal stack error" >&2
-          done
-          echo "the portable build failed three times with the signal stack error" >&2
-          # The sandbox of the runner breaks the static runtime of OCaml 5:
-          # the compiler cannot reserve the stack for its signal handlers and
-          # dies before it reads a file. The same build outside the sandbox
-          # has the stack of the runner, which is enough. The build is not
-          # untrusted here - it is the tool of this repository, compiled on
-          # the machine of the runner.
-          echo "the portable build is tried once more outside the sandbox" >&2
-          ulimit -s unlimited || true
-          if nix build .#portable --no-link --option sandbox false; then
-            exit 0
-          fi
-          echo "the portable build failed with and without the sandbox" >&2
-          exit 1
+      # change under test, and the same revision passes on the next try. The
+      # rule of the build lives in one script, and the script retries the
+      # build and tries it once outside the sandbox.
+      - name: Build the portable package
+        run: sh scripts/build-package.sh portable
+      - name: Check the portable package
+        run: nix develop -c sh test/package_smoke.sh portable
       # A failed build leaves lock files in the store that the runner user
       # cannot read. The cache action archives the store with tar, and tar
       # refuses to continue on them: the cache is then never saved, and the
@@ -280,16 +249,11 @@ jobs:
       # the package, not the cost of a cold toolchain.
       # The static runtime of OCaml 5 cannot reserve the stack for its signal
       # handlers inside the sandbox of the runner: the build dies before it
-      # reads a file. The build is retried outside the sandbox, where the
-      # stack of the runner is available.
+      # reads a file. The build is retried by the rule of the build, which
+      # tries it once more outside the sandbox, where the stack of the runner
+      # is available.
       - name: Build the portable package
-        run: |
-          set -uo pipefail
-          if ! nix build .#portable --no-link; then
-            echo "the sandboxed build failed; retrying without the sandbox" >&2
-            ulimit -s unlimited || true
-            nix build .#portable --no-link --option sandbox false
-          fi
+        run: sh scripts/build-package.sh portable
       # The battery of the project ran in the portable job, on this commit,
       # in this environment. Its evidence travels here: the map of the
       # published site is the map of that run, and the site is not published
