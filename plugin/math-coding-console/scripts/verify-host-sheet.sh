@@ -16,9 +16,8 @@ cd "$PLUGIN"
 # and the control of the claim would look like a caught break. They are
 # installed only when they are missing: an installed tree is not touched again
 # while a check runs.
-if [ ! -x node_modules/.bin/tsx ]; then
-  npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null
-fi
+. "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
+console_packages_install "$PLUGIN" "${MATHC_CONSOLE_DEPS:+$MATHC_CONSOLE_DEPS/plugin}"
 
 ./node_modules/.bin/tsx --test test/host-sheet.test.ts
 ./node_modules/.bin/tsx scripts/render-check.tsx

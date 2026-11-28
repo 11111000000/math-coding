@@ -29,14 +29,12 @@ fi
 # need twice the memory, and on a small machine the installer is killed.
 # The packages are installed only when they are missing: an installed tree is
 # not touched again while a check runs, and the check does not spend the
-# network on every run.
+# network on every run. The development shell can offer the packages from the
+# store, and the install is then a link and not a download.
+. "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
 status=0
-if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
-  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
-fi
-if [ ! -x "$PAGE/node_modules/.bin/tsx" ]; then
-  (cd "$PAGE" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null) || status=1
-fi
+console_packages_install "$PLUGIN" "${MATHC_CONSOLE_DEPS:+$MATHC_CONSOLE_DEPS/plugin}" || status=1
+console_packages_install "$PAGE" "${MATHC_CONSOLE_DEPS:+$MATHC_CONSOLE_DEPS/page}" || status=1
 if [ "$status" -ne 0 ]; then
   echo "verify-console: the packages are not installed" >&2
   exit 1

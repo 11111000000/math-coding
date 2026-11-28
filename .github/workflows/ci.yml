@@ -33,6 +33,20 @@ jobs:
       - name: Check the style bounds of the code
         run: nix develop -c sh test/style_bounds.sh
       - run: nix develop -c sh test/package_smoke.sh
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the store afterwards: the checks of the console run in
+      # copies of the tree, and every copy would otherwise download the
+      # same packages again. The derivation is built here and not in the
+      # development shell - the shell of a machine whose sandbox has no
+      # network would not open at all - and the path of the store is given
+      # to the checks that follow.
+      - name: Build the packages of the console
+        run: |
+          # npm fetches the packages, and the sandbox of the runner has no
+          # network for it. The runner is a trusted user, so the build goes
+          # without the sandbox; the hash of the output names the packages.
+          nix build .#console-deps --no-link --option sandbox false
+          echo "MATHC_CONSOLE_DEPS=$(nix path-info .#console-deps)" >> "$GITHUB_ENV"
       - name: Verify the Paseo Math Coding plugin
         run: |
           nix develop -c bash -c '
@@ -169,6 +183,20 @@ jobs:
       # so this job is the only place where it can be saved.
       - name: Drop the store locks a failed build left behind
         run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the store afterwards: the checks of the console run in
+      # copies of the tree, and every copy would otherwise download the
+      # same packages again. The derivation is built here and not in the
+      # development shell - the shell of a machine whose sandbox has no
+      # network would not open at all - and the path of the store is given
+      # to the checks that follow.
+      - name: Build the packages of the console
+        run: |
+          # npm fetches the packages, and the sandbox of the runner has no
+          # network for it. The runner is a trusted user, so the build goes
+          # without the sandbox; the hash of the output names the packages.
+          nix build .#console-deps --no-link --option sandbox false
+          echo "MATHC_CONSOLE_DEPS=$(nix path-info .#console-deps)" >> "$GITHUB_ENV"
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor

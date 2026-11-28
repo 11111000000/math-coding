@@ -29,6 +29,39 @@
           omd = super.omd.overrideAttrs (_: { doCheck = false; });
           xmlm = super.xmlm.overrideAttrs (_: { doCheck = false; });
         });
+        # The packages of the two JavaScript projects are fetched once, by a
+        # derivation with a fixed output, and are taken from the store
+        # afterwards. The checks of the console run in copies of the tree,
+        # and every copy would otherwise download the same packages again:
+        # the battery of the project spent minutes on downloads it had
+        # already paid for.
+        #
+        # The output of the derivation is pinned by its hash. A changed
+        # package-lock needs a new hash, and the build names it: run
+        # `nix build .#console-deps` and put the hash it reports into
+        # `outputHash` below.
+        #
+        # The derivation is not a part of the development shell: the sandbox
+        # of a machine does not always have a network, and a shell that
+        # waits for a download would not open there. The build that needs
+        # the packages asks for the path of the store and finds the packages
+        # there; a machine that does not have them installs them as before.
+        consoleDeps = pkgs.runCommand "math-coding-console-deps" {
+          nativeBuildInputs = nodePackages;
+          outputHashAlgo = "sha256";
+          outputHashMode = "recursive";
+          outputHash = "sha256-Mes+CRFuh6EVeBQREDNaxcVkq4WqhFbnWLyw4hvRZPI=";
+        } ''
+          cp -r ${./plugin/math-coding-console} plugin
+          cp -r ${./console} page
+          chmod -R u+w plugin page
+          rm -rf plugin/node_modules page/node_modules
+          (cd plugin && npm ci --ignore-scripts --no-audit --no-fund)
+          (cd page && npm ci --ignore-scripts --no-audit --no-fund)
+          mkdir -p $out/plugin $out/page
+          mv plugin/node_modules $out/plugin/node_modules
+          mv page/node_modules $out/page/node_modules
+        '';
         siteLibs = packageSet: pkg: "${pkg}/lib/ocaml/${packageSet.ocaml.version}/site-lib";
         ocamlPath = pkgs.lib.concatMapStringsSep ":" (siteLibs ocamlPackages) ocamlDeps;
         mkBinary = { name, target }:
@@ -79,6 +112,7 @@
         };
 
         packages.default = mkBinary { name = "mathc"; target = "bin/mathc.exe"; };
+        packages.console-deps = consoleDeps;
         packages.stand = pkgs.symlinkJoin {
           name = "mathc-with-stand";
           paths = [
