@@ -78,7 +78,11 @@ jobs:
         run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
 
   portable:
-    needs: verify
+    # The quick gate and the battery run side by side. The quick gate says in
+    # two minutes that the tree is whole, and the battery says in twelve
+    # minutes that the claims hold. The gate of the delivery is as long as
+    # the slower of the two and not the sum of them, and a tree that is
+    # broken fails in both: the battery fails at its first build.
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
