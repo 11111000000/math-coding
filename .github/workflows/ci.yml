@@ -33,6 +33,15 @@ jobs:
       - name: Check the style bounds of the code
         run: nix develop -c sh test/style_bounds.sh
       - run: nix develop -c sh test/package_smoke.sh
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the cache afterwards. The checks of the console run in
+      # copies of the tree, and every copy installs the packages again: the
+      # cache keeps the downloads out of the copies.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - name: Verify the Paseo Math Coding plugin
         run: |
           nix develop -c bash -c '
@@ -169,6 +178,15 @@ jobs:
       # so this job is the only place where it can be saved.
       - name: Drop the store locks a failed build left behind
         run: sudo find /nix/store -maxdepth 1 -name '*.lock' -delete 2>/dev/null || true
+      # The packages of the two JavaScript projects are fetched once and are
+      # taken from the cache afterwards. The checks of the console run in
+      # copies of the tree, and every copy installs the packages again: the
+      # cache keeps the downloads out of the copies.
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
+        with:
+          path: ~/.npm
+          key: npm-${{ runner.os }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: npm-${{ runner.os }}-
       - run: nix develop -c dune build --root . bin/mathc.exe
       - run: nix develop -c ./_build/default/bin/mathc.exe --root . run
       - run: ./_build/default/bin/mathc.exe --root . doctor

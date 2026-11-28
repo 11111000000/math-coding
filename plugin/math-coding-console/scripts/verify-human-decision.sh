@@ -23,9 +23,8 @@ PLUGIN="$ROOT/plugin/math-coding-console"
 # The checks of the decision need the packages of the plugin. They are
 # installed only when they are missing: an installed tree is not touched again
 # while a check runs.
-if [ ! -x "$PLUGIN/node_modules/.bin/tsx" ]; then
-  (cd "$PLUGIN" && npm ci --ignore-scripts --no-audit --no-fund --prefer-offline >/dev/null)
-fi
+. "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
+console_packages_install "$PLUGIN"
 
 # The fixtures of the decision: the steps are read from the canonical map, the
 # program performs them with the arguments it declares, and the state after
