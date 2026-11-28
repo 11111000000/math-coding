@@ -24,16 +24,16 @@ if [ "$status" -ne 0 ]; then
   exit 1
 fi
 
-# The packages of both projects are installed one after another, the way
-# console/scripts/check-page.sh installs them. Two installs at the same time
-# need twice the memory, and on a small machine the installer is killed.
-# The packages are installed only when they are missing: an installed tree is
-# not touched again while a check runs, and the check does not spend the
-# network on every run.
+# The packages of both projects are taken one after another, the way
+# console/scripts/check-page.sh takes them. Two installs at the same time
+# need twice the memory, and on a small machine the installer is killed. A
+# tree that has the packages keeps them, and a copy of a tree borrows them
+# from the tree it was made of: the copy installs them only when the tree
+# cannot lend them.
 . "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
 status=0
-console_packages_install "$PLUGIN" || status=1
-console_packages_install "$PAGE" || status=1
+console_packages_install "$ROOT" "plugin/math-coding-console" || status=1
+console_packages_install "$ROOT" "console" || status=1
 if [ "$status" -ne 0 ]; then
   echo "verify-console: the packages are not installed" >&2
   exit 1

@@ -30,12 +30,12 @@ trap 'rm -rf "$work"' EXIT HUP INT TERM
 
 # --- the packages of both projects are needed for the build ----------------
 
-# The packages are installed only when they are missing: an installed tree is
-# not touched again while a check runs, and the check does not spend the
-# network on every run.
+# The packages are taken only when they are missing: an installed tree keeps
+# them while a check runs, and a copy of a tree borrows them from the tree it
+# was made of.
 . "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
-console_packages_install "$PLUGIN"
-console_packages_install "$PAGE"
+console_packages_install "$ROOT" "plugin/math-coding-console"
+console_packages_install "$ROOT" "console"
 
 (cd "$PAGE" && npm run build >/dev/null)
 

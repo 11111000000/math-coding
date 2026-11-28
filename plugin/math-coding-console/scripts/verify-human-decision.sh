@@ -20,11 +20,11 @@ set -eu
 ROOT=$(CDPATH= cd -- "$(dirname "$0")/../../.." && pwd)
 PLUGIN="$ROOT/plugin/math-coding-console"
 
-# The checks of the decision need the packages of the plugin. They are
-# installed only when they are missing: an installed tree is not touched again
-# while a check runs.
+# The checks of the decision need the packages of the plugin. A tree that has
+# the packages keeps them, and a copy of a tree borrows them from the tree it
+# was made of.
 . "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
-console_packages_install "$PLUGIN"
+console_packages_install "$ROOT" "plugin/math-coding-console"
 
 # The fixtures of the decision: the steps are read from the canonical map, the
 # program performs them with the arguments it declares, and the state after

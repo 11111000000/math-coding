@@ -13,11 +13,11 @@ PLUGIN="$ROOT/plugin/math-coding-console"
 cd "$PLUGIN"
 
 # The check needs the packages of the plugin. Without them it cannot start,
-# and the control of the claim would look like a caught break. They are
-# installed only when they are missing: an installed tree is not touched again
-# while a check runs.
+# and the control of the claim would look like a caught break. A tree that has
+# the packages keeps them, and a copy of a tree borrows them from the tree it
+# was made of.
 . "$ROOT/plugin/math-coding-console/scripts/console-packages.sh"
-console_packages_install "$PLUGIN"
+console_packages_install "$ROOT" "plugin/math-coding-console"
 
 ./node_modules/.bin/tsx --test test/host-sheet.test.ts
 ./node_modules/.bin/tsx scripts/render-check.tsx
